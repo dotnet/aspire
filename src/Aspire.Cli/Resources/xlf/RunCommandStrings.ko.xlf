@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../RunCommandStrings.resx">
+    <body>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">대시보드</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run an Aspire app host in development mode.</source>
+        <target state="translated">개발 모드에서 Aspire 앱 호스트를 실행합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Endpoints">
+        <source>Endpoints</source>
+        <target state="translated">엔드포인트</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Health">
+        <source>The health of the resource, eg Healthy</source>
+        <target state="translated">리소스의 상태, 예: 정상</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsCompatibleAppHostIsNull">
+        <source>IsCompatibleAppHost is null</source>
+        <target state="translated">IsCompatibleAppHost가 null입니다</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">로그</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PressCtrlCToStopAppHost">
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="needs-review-translation">앱 호스트를 중지하고 종료하려면 [bold]Ctrl+C[/]를 누르세요.</target>
+        <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeRun">
+        <source>The project could not be run. For more information run with --debug switch.</source>
+        <target state="translated">프로젝트를 실행할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Resource">
+        <source>Resource</source>
+        <target state="translated">리소스</target>
+        <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartingAppHost">
+        <source>Starting Aspire app host...</source>
+        <target state="translated">Aspire 앱 호스트 시작 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDashboard">
+        <source>Starting Aspire dashboard...</source>
+        <target state="translated">Aspire 대시보드 시작 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="State">
+        <source>State</source>
+        <target state="translated">상태</target>
+        <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="Type">
+        <source>Type</source>
+        <target state="translated">형식</target>
+        <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WatchArgumentDescription">
+        <source>Start project resources in watch mode.</source>
+        <target state="translated">watch 모드에서 프로젝트 리소스를 시작합니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

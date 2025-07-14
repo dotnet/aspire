@@ -31,7 +31,7 @@ cosmosDb.AddCosmosDatabase("db");
 // Testing a connection string
 var storage = builder.AddAzureStorage("storage")
                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
-var blobs = storage.AddBlobs("blobs");
+var blobs = storage.AddBlobService("blobs");
 
 // Testing docker files
 

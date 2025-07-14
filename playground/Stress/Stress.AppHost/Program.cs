@@ -18,9 +18,9 @@ for (var i = 0; i < 5; i++)
     var rb = builder.AddTestResource(name);
     IResource parent = rb.Resource;
 
-    for (int j = 0; j < 3; j++)
+    for (var j = 0; j < 3; j++)
     {
-        name = name + $"-n{j}";
+        name += $"-n{j}";
         var nestedRb = builder.AddNestedResource(name, parent);
         parent = nestedRb.Resource;
     }
@@ -88,6 +88,7 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
        .WithUrl("https://someotherplace.com/some-path", "Some other place")
        .WithUrl("https://extremely-long-url.com/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz//abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmno")
+       .AddInteractionCommands()
        .WithCommand(
            name: "long-command",
            displayName: "This is a custom command with a very long command display name",

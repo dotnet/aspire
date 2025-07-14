@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../ErrorStrings.resx">
+    <body>
+      <trans-unit id="AlreadyConnectedToBackchannel">
+        <source>Already connected to AppHost backchannel.</source>
+        <target state="translated">AppHost arka kanala zaten bağlı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostIncompatibleWithCli">
+        <source>AppHost is incompatible with the CLI. The AppHost must be updated to a version that supports the {0} capability.</source>
+        <target state="translated">AppHost, CLI ile uyumsuzdur. AppHost, bu {0} yeteneğini destekleyen bir sürüme güncelleştirilmelidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostWasSpecifiedButDoesntExist">
+        <source>AppHost file was specified in '{0}' but it does not exist at '{1}'.</source>
+        <target state="translated">AppHost dosyası '{0}' dosyasında belirtilmiş ancak '{1}' konumunda mevcut değil.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="AspireHostingVersionNull">
+        <source>AspireHostingVersion is null</source>
+        <target state="translated">AspireHostingVersion null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireSDKVersionNotSupported">
+        <source>The Aspire.Hosting package version {0} is not supported. Please update to the latest version.</source>
+        <target state="translated">Aspire.Hosting paketinin {0} sürümü desteklenmiyor. Lütfen en son sürüme güncelleştirin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CantUseBothWatchAndNoBuild">
+        <source>Cannot use --watch and --no-build at the same time.</source>
+        <target state="translated">--watch ve --no-build aynı anda kullanılamaz.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificatesMayNotBeFullyTrusted">
+        <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
+        <target state="translated">Geliştirici sertifikaları tam olarak güvenilir olmayabilir (güven çıkış kodu şuydu: {0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyNotFound">
+        <source>Configuration key {0} not found.</source>
+        <target state="translated">{0} yapılandırma anahtarı bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyRequired">
+        <source>Configuration key is required.</source>
+        <target state="translated">Yapılandırma anahtarı gereklidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationValueRequired">
+        <source>Configuration value is required.</source>
+        <target state="translated">Yapılandırma değeri gereklidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotParseAspireSDKVersion">
+        <source>Could not parse Aspire.Hosting package version.</source>
+        <target state="translated">Aspire.Hosting paket sürümü ayrıştırılamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorDeletingConfiguration">
+        <source>Error deleting configuration: {0}</source>
+        <target state="translated">Yapılandırma silinirken hata oluştu: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorSettingConfiguration">
+        <source>Error setting configuration: {0}</source>
+        <target state="translated">Yapılandırma ayarlanırken hata: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionIncompatibleWithCli">
+        <source>Aspire Extension is incompatible with the CLI. The Extension must be updated to a version that supports the {0} capability.</source>
+        <target state="translated">Aspire Uzantısı, CLI ile uyumsuz. Uzantı, bu {0} özelliğini destekleyen bir sürüme güncelleştirilmelidir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionTokenMustBeSet">
+        <source>The Aspire extension token must be set if ASPIRE_EXTENSION_ENDPOINT is set. Please ensure that ASPIRE_EXTENSION_TOKEN is set</source>
+        <target state="translated">ASPIRE_EXTENSION_ENDPOINT ayarlandığında, Aspire uzantı belirteci ayarlanmalıdır. Lütfen ASPIRE_EXTENSION_TOKEN'ın ayarlandığından emin olun.</target>
+        <note>Do not localize ASPIRE_EXTENSION_TOKEN and ASPIRE_EXTENSION_ENDPOINT</note>
+      </trans-unit>
+      <trans-unit id="FailedToParseTemplateVersionFromStdout">
+        <source>Failed to parse template version from stdout.</source>
+        <target state="translated">stdout'tan şablon sürümü ayrıştırılamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedTemplatePackages">
+        <source>Failed to retrieve template packages via cache.</source>
+        <target state="translated">Şablon paketleri önbellek aracılığıyla alınamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToSearchForPackages">
+        <source>Failed to search for packages. Exit code: {0}.</source>
+        <target state="translated">Paketler aranamadı. Çıkış kodu: {0}.</target>
+        <note>{0} is a number</note>
+      </trans-unit>
+      <trans-unit id="InvalidLocaleProvided">
+        <source>Invalid locale {0} provided will not be used.</source>
+        <target state="translated">Sağlanan geçersiz {0} yerel ayarı kullanılmayacaktır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidSocketPath">
+        <source>The provided extension socket path needs two valid parts.</source>
+        <target state="translated">Sağlanan uzantı yuva yolunun iki geçerli bileşeni olmalıdır.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectFilesFound">
+        <source>Multiple project files found.</source>
+        <target state="translated">Birden fazla proje dosyası bulundu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectFileFound">
+        <source>No project file found.</source>
+        <target state="translated">Herhangi bir proje dosyası bulunamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSelectionMade">
+        <source>Input was required for prompt '{0}' but not provided.</source>
+        <target state="translated">'{0}' istemi için giriş gerekli ancak sağlanmadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeAnalyzed">
+        <source>The project could not be analyzed due to a build error. For more information run with --debug switch.</source>
+        <target state="translated">Proje bir derleme hatası nedeniyle analiz edilemedi. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileDoesntExist">
+        <source>Project file does not exist.</source>
+        <target state="translated">Proje dosyası mevcut değil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileNotAppHostProject">
+        <source>Project file is not an Aspire app host project.</source>
+        <target state="translated">Proje dosyası bir Aspire uygulama ana işlemi projesi değil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectIsNotAppHost">
+        <source>The project is not an Aspire app host project.</source>
+        <target state="translated">Proje, Aspire uygulama ana işlemi projesi değil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToRetrieveAssemblyVersion">
+        <source>Unable to retrieve the assembly version.</source>
+        <target state="translated">Derleme sürümü alınamadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedLocaleProvided">
+        <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
+        <target state="translated">Sağlanan desteklenmeyen {0} yerel ayarı kullanılmayacaktır. Desteklenen yerel ayarlar: {1}.</target>
+        <note>{1} is a comma-separated list of locales.</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

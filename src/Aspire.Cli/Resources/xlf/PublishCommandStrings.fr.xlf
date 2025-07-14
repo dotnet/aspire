@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../PublishCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
+        <target state="translated">Génère des artefacts de déploiement pour un projet hôte d’application Aspire. (Préversion)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToPublishArtifacts">
+        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">La publication des artefacts a échoué avec le code de sortie {0}. Pour plus d’informations, exécutez avec le commutateur --debug.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GeneratingArtifacts">
+        <source>Generating artifacts...</source>
+        <target state="translated">Génération d’artefacts...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The output path for the generated artifacts.</source>
+        <target state="translated">Le chemin de sortie des artefacts générés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">Le chemin d’accès au fichier projet hôte de l’application Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAPublisher">
+        <source>Select a publisher:</source>
+        <target state="translated">Sélectionnez un éditeur :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SuccessfullyPublishedArtifacts">
+        <source>Successfully published artifacts to: {0}</source>
+        <target state="translated">Artefacts publiés sur : {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -15,12 +15,18 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Cli\Aspire.Cli.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\playground\DatabaseMigration\DatabaseMigration.ApiService\DatabaseMigration.ApiService.csproj" />
+    <ProjectReference Include="..\..\playground\DatabaseMigration\DatabaseMigration.AppHost\DatabaseMigration.AppHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <PackageReference Include="StreamJsonRpc" />
+    <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
   </ItemGroup>
 
 </Project>

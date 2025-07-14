@@ -26,6 +26,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
+    IPublishingActivityReporter activityReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -75,13 +76,15 @@ internal sealed class DockerComposePublishingContext(
                 ? [r, .. model.Resources]
                 : model.Resources;
 
+        var containerImagesToBuild = new List<IResource>();
+
         foreach (var resource in resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is DockerComposeServiceResource serviceResource)
             {
                 if (environment.BuildContainerImages)
                 {
-                    await ImageBuilder.BuildImageAsync(serviceResource.TargetResource, cancellationToken).ConfigureAwait(false);
+                    containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
                 var composeService = serviceResource.BuildComposeService();
@@ -117,32 +120,57 @@ internal sealed class DockerComposePublishingContext(
             }
         }
 
-        // Call the environment's ConfigureComposeFile method to allow for custom modifications
-        environment.ConfigureComposeFile?.Invoke(composeFile);
-
-        var composeOutput = composeFile.ToYaml();
-        var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");
-        Directory.CreateDirectory(OutputPath);
-        await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
-
-        if (environment.CapturedEnvironmentVariables.Count == 0)
+        // Build container images for the services that require it
+        if (containerImagesToBuild.Count > 0)
         {
-            // No environment variables to write, so we can skip creating the .env file
-            return;
+            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
         }
 
-        // Write a .env file with the environment variable names
-        // that are used in the compose file
-        var envFilePath = Path.Combine(OutputPath, ".env");
-        var envFile = EnvFile.Load(envFilePath);
+        var step = await activityReporter.CreateStepAsync(
+            "Writing Docker Compose file.",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
+        await using (step.ConfigureAwait(false))
         {
-            var (key, (description, defaultValue, _)) = entry;
-            envFile.AddIfMissing(key, defaultValue, description);
-        }
+            var task = await step.CreateTaskAsync(
+                "Writing the Docker Compose file to the output path.",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        envFile.Save(envFilePath);
+            await using (task.ConfigureAwait(false))
+            {
+                // Call the environment's ConfigureComposeFile method to allow for custom modifications
+                environment.ConfigureComposeFile?.Invoke(composeFile);
+
+                var composeOutput = composeFile.ToYaml();
+                var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");
+                Directory.CreateDirectory(OutputPath);
+                await File.WriteAllTextAsync(outputFile, composeOutput, cancellationToken).ConfigureAwait(false);
+
+                if (environment.CapturedEnvironmentVariables.Count > 0)
+                {
+                    // Write a .env file with the environment variable names
+                    // that are used in the compose file
+                    var envFilePath = Path.Combine(OutputPath, ".env");
+                    var envFile = EnvFile.Load(envFilePath);
+
+                    foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
+                    {
+                        var (key, (description, defaultValue, _)) = entry;
+                        envFile.AddIfMissing(key, defaultValue, description);
+                    }
+
+                    envFile.Save(envFilePath);
+                }
+
+                await task.SucceedAsync(
+                    $"Docker Compose file written successfully to {outputFile}.",
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+
+            await step.SucceedAsync(
+                "Docker Compose file generation completed.",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)

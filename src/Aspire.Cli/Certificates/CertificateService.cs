@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Certificates;
@@ -12,17 +15,16 @@ internal interface ICertificateService
     Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken);
 }
 
-internal sealed class CertificateService(IInteractionService interactionService) : ICertificateService
+internal sealed class CertificateService(IInteractionService interactionService, AspireCliTelemetry telemetry) : ICertificateService
 {
-    private readonly ActivitySource _activitySource = new ActivitySource(nameof(CertificateService));
 
     public async Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(EnsureCertificatesTrustedAsync), ActivityKind.Client);
 
         var ensureCertificateCollector = new OutputCollector();
         var checkExitCode = await interactionService.ShowStatusAsync(
-            ":locked_with_key: Checking certificates...",
+            $":locked_with_key: {InteractionServiceStrings.CheckingCertificates}",
             async () => {
                 var options = new DotNetCliRunnerInvocationOptions
                 {
@@ -44,7 +46,7 @@ internal sealed class CertificateService(IInteractionService interactionService)
             };
 
             var trustExitCode = await interactionService.ShowStatusAsync(
-                ":locked_with_key: Trusting certificates...",
+                $":locked_with_key: {InteractionServiceStrings.TrustingCertificates}",
                 () => runner.TrustHttpCertificateAsync(
                     options,
                     cancellationToken));
@@ -52,12 +54,10 @@ internal sealed class CertificateService(IInteractionService interactionService)
             if (trustExitCode != 0)
             {
                 interactionService.DisplayLines(ensureCertificateCollector.GetLines());
-                interactionService.DisplayMessage("warning", $"Developer certificates may not be fully trusted (trust exit code was: {trustExitCode})");
+                interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
             }
         }
     }
-
-    internal const string DevCertsPartialTrustMessage = "There was an error trusting the HTTPS developer certificate. It will be trusted by some clients but not by others.";
 }
 
 public sealed class CertificateServiceException(string message) : Exception(message)

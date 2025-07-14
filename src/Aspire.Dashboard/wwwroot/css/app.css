@@ -64,6 +64,12 @@ fluent-toolbar::part(end) {
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
+    --dialog-background-color: #ffffff;
+    --dialog-border-color: #e5e5e5;
+    --messagebar-success-background-color: #f1faf1;
+    --messagebar-success-border-color: #9fd89f;
+    --messagebar-error-background-color: #FDF3F4;
+    --messagebar-error-border-color: #f1bbbc;
     --messagebar-warning-background-color: #FDF6F3;
     --messagebar-warning-border-color: #f4bfab;
     --messagebar-info-background-color: #f5f5f5;
@@ -99,6 +105,12 @@ fluent-toolbar::part(end) {
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
     --kbd-background-color: var(--fill-color);
+    --dialog-background-color: #272727;
+    --dialog-border-color: #3d3d3d;
+    --messagebar-success-background-color: #052505;
+    --messagebar-success-border-color: #107C10;
+    --messagebar-error-background-color: #3F1011;
+    --messagebar-error-border-color: #D13438;
     --messagebar-warning-background-color: #411200;
     --messagebar-warning-border-color: #DA3B01;
     --messagebar-info-background-color: #141414;
@@ -225,6 +237,16 @@ h1 {
     padding-bottom: 0 !important;
 }
 
+.fluent-messagebar.intent-success {
+    background-color: var(--messagebar-success-background-color) !important;
+    border: 1px solid var(--messagebar-success-border-color) !important;
+}
+
+.fluent-messagebar.intent-error {
+    background-color: var(--messagebar-error-background-color) !important;
+    border: 1px solid var(--messagebar-error-border-color) !important;
+}
+
 .fluent-messagebar.intent-warning {
     background-color: var(--messagebar-warning-background-color) !important;
     border: 1px solid var(--messagebar-warning-border-color) !important;
@@ -238,11 +260,16 @@ h1 {
 /* The fluent dialog's default fill color is too dark in our current dark theme.
    Setting it to the floating layer allows it to stand out more and doesn't impact light theme. */
 fluent-dialog::part(control) {
-    background: var(--neutral-layer-floating);
+    background: var(--dialog-background-color);
+    border: 1px solid var(--dialog-border-color);
+}
+
+fluent-dialog[class~="right"]::part(control) {
+    border-left-width: 1px !important;
 }
 
 fluent-dialog fluent-toolbar {
-    background-color: var(--neutral-layer-floating);
+    background-color: var(--dialog-background-color);
 }
 
 /* Changing the dialog's fill color means stealth buttons on the dialog have the wrong background,
@@ -251,7 +278,7 @@ fluent-dialog fluent-button[appearance=stealth]:not(:hover)::part(control),
 fluent-dialog fluent-button[appearance=lightweight]:not(:hover)::part(control),
 fluent-dialog fluent-anchor[appearance=stealth]:not(:hover)::part(control),
 fluent-dialog fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
-    background: var(--neutral-layer-floating);
+    background: var(--dialog-background-color);
 }
 
 /* But changing the stealth button's background in dialogs means the stealth buttons used as headers for grid cells
@@ -579,6 +606,15 @@ fluent-switch.table-switch::part(label) {
     width: 100%;
 }
 
+.wrap-log-container .log-line-row-container {
+    overflow: visible;
+}
+
+.wrap-log-container .log-content {
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
 .log-line-row-container {
     width: 100%;
     overflow: hidden;
@@ -789,4 +825,8 @@ fluent-tooltip[anchor="dialog_close"] > div {
 fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
+}
+
+.fluent-messagebar-action {
+    font-size: var(--type-ramp-minus-1-font-size);
 }

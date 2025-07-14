@@ -3,18 +3,24 @@
 {
 	"name": ".NET Aspire - Contribute",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/dotnet:dev-9.0-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:dev-10.0-preview-noble",
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/azure/azure-dev/azd:0": {},
 		"ghcr.io/devcontainers/features/docker-in-docker": {},
 		"ghcr.io/devcontainers/features/dotnet": {
 			"additionalVersions": [
-				"8.0.403"
+				"8.0.403",
+				"9.0"
 			]
 		},
 		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/devcontainers/features/python:1": {}
+		"ghcr.io/devcontainers/features/python:1": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+			"version": "latest",
+			"helm": "latest",
+			"minikube": "latest"
+		}
 	},
 
 	"hostRequirements": {
@@ -39,7 +45,9 @@
 				"ms-dotnettools.csdevkit",
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.azure-dev",
-				"GitHub.copilot"
+				"GitHub.copilot",
+				"ms-kubernetes-tools.vscode-kubernetes-tools",
+                "microsoft-aspire.aspire-vscode"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,

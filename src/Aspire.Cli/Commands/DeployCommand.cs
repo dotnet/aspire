@@ -2,30 +2,35 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine.Parsing;
+using System.Globalization;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PublishCommandBase
 {
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator)
-        : base("deploy", "Deploy an Aspire app host project to its supported deployment targets.", runner, interactionService, projectLocator)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
     {
     }
 
-    protected override string GetOutputPathDescription() => "The output path for deployment artifacts.";
+    protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 
     protected override string GetDefaultOutputPath(ArgumentResult result) => Path.Combine(Environment.CurrentDirectory, "deploy");
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
         ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, "--deploy", "true", ..unmatchedTokens];
 
-    protected override string GetSuccessMessage(string fullyQualifiedOutputPath) => $"Successfully deployed. Artifacts available at: {fullyQualifiedOutputPath}";
+    protected override string GetSuccessMessage(string fullyQualifiedOutputPath) => string.Format(CultureInfo.CurrentCulture, DeployCommandStrings.SuccessfullyDeployed, fullyQualifiedOutputPath);
 
-    protected override string GetFailureMessage(int exitCode) => $"Deployment failed with exit code {exitCode}. For more information run with --debug switch.";
+    protected override string GetFailureMessage(int exitCode) => string.Format(CultureInfo.CurrentCulture, DeployCommandStrings.DeploymentFailed, exitCode);
 
-    protected override string GetCanceledMessage() => "The deployment was canceled.";
+    protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
 
-    protected override string GetProgressMessage() => "Generating artifacts...";
+    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
 }

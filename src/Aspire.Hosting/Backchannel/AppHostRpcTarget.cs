@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,41 +20,53 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    PublishingActivityProgressReporter activityReporter,
+    PublishingActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options
-    ) 
+    DistributedApplicationOptions options)
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
+
+    public void RegisterLogChannel(Channel<BackchannelLogEntry> channel)
     {
-        while (cancellationToken.IsCancellationRequested == false)
+        ArgumentNullException.ThrowIfNull(channel);
+        _logChannelTcs.TrySetResult(channel);
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = await _logChannelTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var logEntries = channel.Reader.ReadAllAsync(cancellationToken);
+
+        await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
         {
-            var publishingActivityStatus = await activityReporter.ActivityStatusUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-
-            if (publishingActivityStatus == null)
+            // If the log entry is null, terminate the stream
+            if (logEntry == null)
             {
-                // If the publishing activity is null, it means that the activity has been removed.
-                // This can happen if the activity is complete or an error occurred.
                 yield break;
             }
 
-            yield return (
-                publishingActivityStatus.Activity.Id,
-                publishingActivityStatus.StatusText,
-                publishingActivityStatus.IsComplete,
-                publishingActivityStatus.IsError
-            );
-
-            if ( publishingActivityStatus.Activity.IsPrimary &&(publishingActivityStatus.IsComplete || publishingActivityStatus.IsError))
-            {
-                // If the activity is complete or an error and it is the primary activity,
-                // we can stop listening for updates.
-                yield break;
-            }
+            yield return logEntry;
         }
     }
 
-    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (cancellationToken.IsCancellationRequested == false)
+        {
+            var publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            // Terminate the stream if the publishing activity is null
+            if (publishingActivity == null)
+            {
+                yield break;
+            }
+
+            yield return publishingActivity;
+        }
+    }
+
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -69,7 +83,7 @@ internal class AppHostRpcTarget(
                 logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
-    
+
             var endpointUris = endpoints
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
@@ -77,7 +91,7 @@ internal class AppHostRpcTarget(
 
             // Compute health status
             var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
-            
+
             yield return new RpcResourceState
             {
                 Resource = resourceEvent.Resource.Name,
@@ -103,12 +117,12 @@ internal class AppHostRpcTarget(
         return Task.FromResult(timestamp);
     }
 
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
+    public Task<DashboardUrlsState> GetDashboardUrlsAsync()
     {
         return GetDashboardUrlsAsync(CancellationToken.None);
     }
 
-    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
         {
@@ -134,7 +148,7 @@ internal class AppHostRpcTarget(
         if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
         {
             logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");            
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
         var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
@@ -144,11 +158,28 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return (baseUrlWithLoginToken, null);
+            return new DashboardUrlsState
+            {
+                BaseUrlWithLoginToken = baseUrlWithLoginToken
+            };
         }
         else
         {
-            return (baseUrlWithLoginToken, codespacesUrlWithLoginToken);
+            return new DashboardUrlsState
+            {
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
+            };
+        }
+    }
+
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
+        var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
+        await foreach (var commandOutput in logsStream.ConfigureAwait(false))
+        {
+            yield return commandOutput;
         }
     }
 
@@ -178,4 +209,9 @@ internal class AppHostRpcTarget(
             });
     }
 #pragma warning restore CA1822
+
+    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken = default)
+    {
+        await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+    }
 }

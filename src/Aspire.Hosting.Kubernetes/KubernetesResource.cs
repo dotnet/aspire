@@ -88,6 +88,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         foreach (var resource in AdditionalResources)
         {
+            foreach(var label in Labels)
+            {
+                resource.Metadata.Labels.TryAdd(label.Key, label.Value);
+            }
+
             yield return resource;
         }
     }
@@ -105,8 +110,9 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         Labels = new()
         {
-            ["app"] = "aspire",
-            ["component"] = resource.Name,
+            ["app.kubernetes.io/name"] = Parent.HelmChartName,
+            ["app.kubernetes.io/component"] = resource.Name,
+            ["app.kubernetes.io/instance"] = "{{.Release.Name}}",
         };
     }
 
@@ -131,7 +137,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             }
         }
 
-        var imageEnvName = $"{resourceInstance.Name.ToManifestFriendlyResourceName()}_image";
+        var imageEnvName = $"{resourceInstance.Name.ToHelmValuesSectionName()}_image";
         var value = $"{resourceInstance.Name}:latest";
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
@@ -167,7 +173,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
             var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, portValue, endpoint.Name);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
         }
     }
 
@@ -175,7 +181,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         const string defaultPort = "8080";
 
-        var paramName = $"port_{endpoint.Name}".ToManifestFriendlyResourceName();
+        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
 
         var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
@@ -183,7 +189,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
         EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
 
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
     }
 
     private void ProcessVolumes()
@@ -254,7 +260,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             foreach (var environmentVariable in context.EnvironmentVariables)
             {
-                var key = environmentVariable.Key.ToManifestFriendlyResourceName();
+                var key = environmentVariable.Key;
                 var value = await this.ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
 
                 switch (value)

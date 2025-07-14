@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.AddCosmosDbContext<TestCosmosContext>("account", "db");
-builder.AddAzureBlobClient("blobs");
+builder.AddAzureBlobServiceClient("blobs");
 
 var app = builder.Build();
 

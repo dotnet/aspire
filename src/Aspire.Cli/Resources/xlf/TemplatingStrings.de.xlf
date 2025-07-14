@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../TemplatingStrings.resx">
+    <body>
+      <trans-unit id="AspireAppHost_Description">
+        <source>Aspire App Host</source>
+        <target state="translated">Aspire-App-Host</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireEmpty_Description">
+        <source>Aspire Empty App</source>
+        <target state="translated">Leere Aspire-App</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireMSTest_Description">
+        <source>Aspire Test Project (MSTest)</source>
+        <target state="translated">Aspire-Testprojekt (MSTest)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireNUnit_Description">
+        <source>Aspire Test Project (NUnit)</source>
+        <target state="translated">Aspire-Testprojekt (NUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireServiceDefaults_Description">
+        <source>Aspire Service Defaults</source>
+        <target state="translated">Standardwerte für den Aspire-Dienst</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireStarter_Description">
+        <source>Aspire Starter App</source>
+        <target state="translated">Aspire Starter-App</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireXUnit_Description">
+        <source>Aspire Test Project (xUnit)</source>
+        <target state="translated">Aspire-Testprojekt (xUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
+        <source>At least one template factory must be provided.</source>
+        <target state="translated">Es muss mindestens eine Vorlagenfactory angegeben werden.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateTrustError">
+        <source>An error occurred while trusting the certificates: {0}</source>
+        <target state="translated">Fehler beim Einstufen der Zertifikate als vertrauenswürdig: {0}</target>
+        <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreatingNewProject">
+        <source>Creating new Aspire project...</source>
+        <target state="translated">Neues Aspire-Projekt wird erstellt...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Description">
+        <source>The version of xUnit.net to use for the test project.</source>
+        <target state="translated">Die Version von xUnit.net, die für das Testprojekt verwendet werden soll.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Prompt">
+        <source>Enter the xUnit.net version to use</source>
+        <target state="translated">Geben Sie die zu verwendende xUnit.net-Version ein.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GettingLatestTemplates">
+        <source>Getting latest templates...</source>
+        <target state="translated">Die neuesten Vorlagen werden abgerufen...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No">
+        <source>No</source>
+        <target state="translated">Nein</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTemplateVersionsFound">
+        <source>No template versions were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="translated">Es wurden keine Vorlagenversionen gefunden. Überprüfen Sie Ihre Internetverbindung oder NuGet-Quellkonfiguration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="None">
+        <source>None</source>
+        <target state="translated">Keine</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCreatedSuccessfully">
+        <source>Project created successfully in {0}.</source>
+        <target state="translated">Das Projekt wurde erfolgreich in {0} erstellt.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="ProjectCreationFailed">
+        <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">Fehler bei der Projekterstellung. Exitcode {0}: Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Description">
+        <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
+        <target state="translated">Konfiguriert, ob ein Projekt für Integrationstests mit MSTest, NUnit oder xUnit.net erstellt werden soll.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Prompt">
+        <source>Do you want to create a test project?</source>
+        <target state="translated">Möchten Sie ein Testprojekt erstellen?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_Prompt">
+        <source>Select a test framework</source>
+        <target state="translated">Testframework auswählen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_UsingForTesting">
+        <source>Using {0} for testing.</source>
+        <target state="translated">{0} wird zu Testzwecken verwendet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAvailableTemplateVersions">
+        <source>Searching for available project template versions...</source>
+        <target state="translated">Verfügbare Projektvorlagenversionen werden gesucht...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateInstallationFailed">
+        <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">Fehler bei der Vorlageninstallation. Exitcode {0}: Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="Unknown">
+        <source>Unknown</source>
+        <target state="translated">Unbekannt</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Description">
+        <source>Configures whether to setup the application to use Redis for caching.</source>
+        <target state="translated">Konfiguriert, ob die Anwendung für die Verwendung von Redis für die Zwischenspeicherung eingerichtet werden soll.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Prompt">
+        <source>Use Redis Cache</source>
+        <target state="translated">Redis Cache verwenden</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UnexpectedChoice">
+        <source>Unexpected choice for Redis Cache option</source>
+        <target state="translated">Unerwartete Auswahl für Redis Cache-Option</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UsingRedisCache">
+        <source>Using Redis Cache for caching.</source>
+        <target state="translated">Verwenden von Redis Cache zum Zwischenspeichern.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingProjectTemplatesVersion">
+        <source>Using project templates version: {0}</source>
+        <target state="translated">Verwenden der Projektvorlagenversion: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Yes">
+        <source>Yes</source>
+        <target state="translated">Ja</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

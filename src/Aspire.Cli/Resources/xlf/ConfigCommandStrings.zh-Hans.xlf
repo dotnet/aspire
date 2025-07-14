@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="../ConfigCommandStrings.resx">
+    <body>
+      <trans-unit id="ConfigurationKeyDeletedGlobally">
+        <source>Configuration '{0}' deleted globally.</source>
+        <target state="translated">已在全局范围内删除配置 ‘{0}’。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyDeletedLocally">
+        <source>Configuration '{0}' deleted locally.</source>
+        <target state="translated">已在本地删除配置 ‘{0}’。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetGlobally">
+        <source>Configuration '{0}' set to '{1}' globally.</source>
+        <target state="translated">已在全局范围内将配置 ‘{0}’ 设置为 ‘{1}’。</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetLocally">
+        <source>Configuration '{0}' set to '{1}' locally.</source>
+        <target state="translated">已在本地将配置 ‘{0}’ 设置为 ‘{1}’。</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="DeleteCommand_Description">
+        <source>Delete a configuration value.</source>
+        <target state="translated">删除配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_GlobalArgumentDescription">
+        <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">从全局 $HOME/.aspire/settings.json 而不是本地设置文件中删除配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_KeyArgumentDescription">
+        <source>The configuration key to delete.</source>
+        <target state="translated">要删除的配置键。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage configuration settings.</source>
+        <target state="translated">管理配置设置。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_Description">
+        <source>Get a configuration value.</source>
+        <target state="translated">获取配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_KeyArgumentDescription">
+        <source>The configuration key to retrieve.</source>
+        <target state="translated">要检索的配置键。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_Description">
+        <source>List all configuration values.</source>
+        <target state="translated">列出所有配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoConfigurationValuesFound">
+        <source>No configuration values found.</source>
+        <target state="translated">找不到配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_Description">
+        <source>Set a configuration value.</source>
+        <target state="translated">设置配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_GlobalArgumentDescription">
+        <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">在 $HOME/.aspire/settings.json 而不是本地设置文件中全局设置配置值。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_KeyArgumentDescription">
+        <source>The configuration key to set.</source>
+        <target state="translated">要设置的配置键。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_ValueArgumentDescription">
+        <source>The configuration value to set.</source>
+        <target state="translated">要设置的配置值。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

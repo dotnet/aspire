@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <!-- Enable System.GC.DynamicAdaptationMode to get a GC that dynamically adapts to the application's memory use. -->
     <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
@@ -34,9 +34,8 @@
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
 
-    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
-      <Access>Internal</Access>
-      <Link>ResourceService\resource_service.proto</Link>
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\dashboard_service.proto">
+      <Link>ServiceClient\dashboard_service.proto</Link>
     </Protobuf>
 
     <EmbeddedResource Include="Embedded\blazor.web.js" LogicalName="_aspire/blazor.web.js" />
@@ -48,6 +47,7 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
@@ -63,6 +63,7 @@
   <ItemGroup>
     <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
+    <Using Include="Aspire.Dashboard.ServiceClient" />
   </ItemGroup>
 
   <ItemGroup>

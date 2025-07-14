@@ -10,6 +10,7 @@ resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
         '*'
       ]
     }
+    disableLocalAuth: true
     features: [
       {
         flag: 'ServiceMode'

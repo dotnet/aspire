@@ -7,11 +7,11 @@ param principalId string
 
 param principalName string
 
-resource cache 'Microsoft.Cache/redis@2024-03-01' existing = {
+resource cache 'Microsoft.Cache/redis@2024-11-01' existing = {
   name: cache_outputs_name
 }
 
-resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-11-01' = {
   name: guid(cache.id, principalId, 'Data Contributor')
   properties: {
     accessPolicyName: 'Data Contributor'

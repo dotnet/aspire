@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../TemplatingStrings.resx">
+    <body>
+      <trans-unit id="AspireAppHost_Description">
+        <source>Aspire App Host</source>
+        <target state="translated">Aspire 앱 호스트</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireEmpty_Description">
+        <source>Aspire Empty App</source>
+        <target state="translated">Aspire 빈 앱</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireMSTest_Description">
+        <source>Aspire Test Project (MSTest)</source>
+        <target state="translated">Aspire 테스트 프로젝트(MSTest)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireNUnit_Description">
+        <source>Aspire Test Project (NUnit)</source>
+        <target state="translated">Aspire 테스트 프로젝트(NUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireServiceDefaults_Description">
+        <source>Aspire Service Defaults</source>
+        <target state="translated">Aspire 서비스 기본값</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireStarter_Description">
+        <source>Aspire Starter App</source>
+        <target state="translated">Aspire 시작 앱</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireXUnit_Description">
+        <source>Aspire Test Project (xUnit)</source>
+        <target state="translated">Aspire 테스트 프로젝트(xUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
+        <source>At least one template factory must be provided.</source>
+        <target state="translated">하나 이상의 템플릿 센터를 제공해야 합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateTrustError">
+        <source>An error occurred while trusting the certificates: {0}</source>
+        <target state="translated">인증서의 신뢰성을 확인하는 중에 오류가 발생했습니다. {0}</target>
+        <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreatingNewProject">
+        <source>Creating new Aspire project...</source>
+        <target state="translated">새 Aspire 프로젝트를 만드는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Description">
+        <source>The version of xUnit.net to use for the test project.</source>
+        <target state="translated">테스트 프로젝트에 사용할 xUnit.net 버전입니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Prompt">
+        <source>Enter the xUnit.net version to use</source>
+        <target state="translated">사용할 xUnit.net 버전을 입력하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GettingLatestTemplates">
+        <source>Getting latest templates...</source>
+        <target state="translated">최신 템플릿을 가져오는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No">
+        <source>No</source>
+        <target state="translated">아니요</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTemplateVersionsFound">
+        <source>No template versions were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="translated">템플릿 버전을 찾을 수 없습니다. 인터넷 연결 또는 NuGet 원본 구성을 확인하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="None">
+        <source>None</source>
+        <target state="translated">없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCreatedSuccessfully">
+        <source>Project created successfully in {0}.</source>
+        <target state="translated">{0}에 프로젝트가 성공적으로 생성되었습니다.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="ProjectCreationFailed">
+        <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">{0} 종료 코드를 이용하여 프로젝트 만들기에 실패했습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Description">
+        <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
+        <target state="translated">MSTest, NUnit, xUnit.net을 사용하여 통합 테스트용 프로젝트를 만들지 여부를 구성합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Prompt">
+        <source>Do you want to create a test project?</source>
+        <target state="translated">테스트 프로젝트를 만드시겠어요?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_Prompt">
+        <source>Select a test framework</source>
+        <target state="translated">테스트 프레임워크 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_UsingForTesting">
+        <source>Using {0} for testing.</source>
+        <target state="translated">테스트에 {0} 사용을 진행합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAvailableTemplateVersions">
+        <source>Searching for available project template versions...</source>
+        <target state="translated">사용 가능한 프로젝트 템플릿 버전을 검색하는 중...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateInstallationFailed">
+        <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">{0} 종료 코드를 이용한 템플릿 설치에 실패했습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="Unknown">
+        <source>Unknown</source>
+        <target state="translated">알 수 없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Description">
+        <source>Configures whether to setup the application to use Redis for caching.</source>
+        <target state="translated">캐싱에 Redis를 사용하도록 애플리케이션을 설정할지 여부를 구성합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Prompt">
+        <source>Use Redis Cache</source>
+        <target state="translated">Redis Cache 사용</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UnexpectedChoice">
+        <source>Unexpected choice for Redis Cache option</source>
+        <target state="translated">예기치 않은 Redis Cache 옵션 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UsingRedisCache">
+        <source>Using Redis Cache for caching.</source>
+        <target state="translated">캐싱을 위해 Redis Cache를 사용하고 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingProjectTemplatesVersion">
+        <source>Using project templates version: {0}</source>
+        <target state="translated">프로젝트 템플릿의 {0} 버전 사용</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Yes">
+        <source>Yes</source>
+        <target state="translated">예</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pl" original="../ConsoleLogs.resx">
     <body>
+      <trans-unit id="ConsoleLogsErrorWatchingLogs">
+        <source>Error watching logs</source>
+        <target state="translated">Błąd podczas oglądania dzienników</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
         <target state="translated">Zakończono oglądanie dzienników</target>
@@ -25,6 +30,11 @@
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
         <target state="translated">Nie wybrano zasobu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="new">Don't wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -80,6 +90,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Trwa oglądanie dzienników...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="new">Wrap log lines</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

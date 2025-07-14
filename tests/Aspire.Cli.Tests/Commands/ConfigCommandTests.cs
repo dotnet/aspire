@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Tests.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -13,310 +12,347 @@ namespace Aspire.Cli.Tests.Commands;
 public class ConfigCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task ConfigSetAndGetWork()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        
-        // Set a configuration value
-        await configService.SetConfigurationAsync("testKey", "testValue");
-        
-        // Get the configuration value by rebuilding the service provider to pick up changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        configuration = provider.GetRequiredService<IConfiguration>();
-        
-        var value = configuration["testKey"];
-        
-        Assert.Equal("testValue", value);
-    }
-
-    [Fact]
-    public async Task ConfigCommandSetWithValidArguments()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config set testKey testValue");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-
-        // Verify the value was set by rebuilding the service provider to pick up changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        var value = configuration["testKey"];
-        Assert.Equal("testValue", value);
-    }
-
-    [Fact]
-    public async Task ConfigCommandGetWithValidKey()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var aspireSettingsDirectory = workspace.CreateDirectory(".aspire");
-        var settingsFilePath = Path.Combine(aspireSettingsDirectory.FullName, "settings.json");
-        await File.WriteAllTextAsync(settingsFilePath, """{"testKey": "testValue"}""");
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config get testKey");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigCommandGetWithInvalidKey()
+    public async Task ConfigCommandReturnsInvalidCommandExitCode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config get nonExistentKey");
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(1, exitCode);
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
     }
 
     [Fact]
-    public async Task ConfigCommandWithHelpArgumentReturnsZero()
+    public async Task ConfigSetCommand_WithFlatKey_CreatesSimpleProperty()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config --help");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigListWhenEmpty()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config list");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigListWithValues()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("key1", "value1");
-        await configService.SetConfigurationAsync("key2", "value2");
-
-        // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config list");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigDeleteExistingKey()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("testKey", "testValue");
-
-        // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config delete testKey");
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config set foo bar");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
 
-        // Verify the key was deleted by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        var value = configuration["testKey"];
-        Assert.Null(value);
-    }
-
-    [Fact]
-    public async Task ConfigDeleteNonExistentKey()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config delete nonExistentKey");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(1, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigServiceGetAllConfiguration()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        
-        // Initially empty
-        var emptyConfig = configuration.AsEnumerable().Where(kvp => !string.IsNullOrEmpty(kvp.Key) && !string.IsNullOrEmpty(kvp.Value));
-        Assert.Empty(emptyConfig);
-
-        // Add some values
-        await configService.SetConfigurationAsync("key1", "value1");
-        await configService.SetConfigurationAsync("key2", "value2");
-
-        // Rebuild service provider to pick up configuration changes
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        configuration = provider.GetRequiredService<IConfiguration>();
-
-        var allConfig = configuration.AsEnumerable().Where(kvp => !string.IsNullOrEmpty(kvp.Key) && !string.IsNullOrEmpty(kvp.Value)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        Assert.Equal(2, allConfig.Count);
-        Assert.Equal("value1", allConfig["key1"]);
-        Assert.Equal("value2", allConfig["key2"]);
-    }
-
-    [Fact]
-    public async Task ConfigServiceDeleteConfiguration()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        
-        // Delete non-existent key returns false
-        var deleted = await configService.DeleteConfigurationAsync("nonExistent");
-        Assert.False(deleted);
-
-        // Set a value and delete it
-        await configService.SetConfigurationAsync("testKey", "testValue");
-        deleted = await configService.DeleteConfigurationAsync("testKey");
-        Assert.True(deleted);
-
-        // Verify it's gone by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        var value = configuration["testKey"];
-        Assert.Null(value);
-    }
-
-    [Fact]
-    public async Task ConfigSetGlobalOption()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config set --global testGlobalKey testGlobalValue");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-
-        // Verify the value was set globally by checking if it exists in global settings
-        var globalSettingsPath = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire", "settings.global.json");
-        
-        if (File.Exists(globalSettingsPath))
-        {
-            var content = await File.ReadAllTextAsync(globalSettingsPath);
-            Assert.Contains("testGlobalKey", content);
-            Assert.Contains("testGlobalValue", content);
-        }
-    }
-
-    [Fact]
-    public async Task ConfigDeleteGlobalOption()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        // First set a global value
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        await configService.SetConfigurationAsync("testGlobalKey", "testGlobalValue", isGlobal: true);
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("config delete --global testGlobalKey");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task ConfigSetThenAppHostPathPreservesExistingConfig()
-    {
-        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
-
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var configService = provider.GetRequiredService<IConfigurationService>();
-        
-        // First, set some configuration value (simulating user doing `aspire config set foo bar`)
-        await configService.SetConfigurationAsync("foo", "bar");
-        
-        // Then simulate what happens when aspire run finds an apphost and sets the appHostPath
-        await configService.SetConfigurationAsync("appHostPath", "./TestProject.AppHost.csproj");
-        
-        // Verify both values are preserved by rebuilding service provider
-        services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
-        provider = services.BuildServiceProvider();
-        var configuration = provider.GetRequiredService<IConfiguration>();
-        
-        // Both values should be present
-        Assert.Equal("bar", configuration["foo"]);
-        Assert.Equal("./TestProject.AppHost.csproj", configuration["appHostPath"]);
-        
-        // Also verify the raw file content contains both values
-        var settingsPath = Path.Combine(tempRepo.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        // Verify the settings file was created correctly
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
         Assert.True(File.Exists(settingsPath));
+
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
+        Assert.Equal("bar", settings["foo"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigSetCommand_WithDotNotation_CreatesNestedObject()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config set foo.bar baz");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify the settings file was created correctly
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        Assert.True(File.Exists(settingsPath));
+
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
+        Assert.True(settings["foo"] is JsonObject);
+        var fooObject = settings["foo"]!.AsObject();
+        Assert.Equal("baz", fooObject["bar"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigSetCommand_WithDeepDotNotation_CreatesDeeplyNestedObject()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config set foo.bar.baz hello");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+
+        // Verify the settings file was created correctly
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        Assert.True(File.Exists(settingsPath));
+
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
         
-        var fileContent = await File.ReadAllTextAsync(settingsPath);
-        Assert.Contains("\"foo\"", fileContent);
-        Assert.Contains("\"bar\"", fileContent);
-        Assert.Contains("\"appHostPath\"", fileContent);
-        Assert.Contains("./TestProject.AppHost.csproj", fileContent);
+        Assert.True(settings["foo"] is JsonObject);
+        var fooObject = settings["foo"]!.AsObject();
+        Assert.True(fooObject["bar"] is JsonObject);
+        var barObject = fooObject["bar"]!.AsObject();
+        Assert.Equal("hello", barObject["baz"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigSetCommand_ReplacesPrimitiveWithObject()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        
+        // First set a primitive value
+        var result1 = command.Parse("config set foo primitive");
+        var exitCode1 = await result1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode1);
+
+        // Then set a nested value that should replace the primitive
+        var result2 = command.Parse("config set foo.bar nested");
+        var exitCode2 = await result2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode2);
+
+        // Verify the primitive was replaced with an object
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
+        
+        Assert.True(settings["foo"] is JsonObject);
+        var fooObject = settings["foo"]!.AsObject();
+        Assert.Equal("nested", fooObject["bar"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigGetCommand_WithFlatKey_ReturnsValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services1 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider1 = services1.BuildServiceProvider();
+
+        var command1 = provider1.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // First set a value
+        var setResult = command1.Parse("config set testkey testvalue");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Create a new service collection to reload config.
+        var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider2 = services2.BuildServiceProvider();
+
+        var command2 = provider2.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Then get the value
+        var getResult = command2.Parse("config get testkey");
+        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, getExitCode);
+    }
+
+    [Fact]
+    public async Task ConfigGetCommand_WithDotNotation_ReturnsNestedValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services1 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider1 = services1.BuildServiceProvider();
+
+        var command1 = provider1.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // First set a nested value
+        var setResult = command1.Parse("config set level1.level2.level3 nestedvalue");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        var services2 = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider2 = services2.BuildServiceProvider();
+
+        var command2 = provider2.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Then get the nested value
+        var getResult = command2.Parse("config get level1.level2.level3");
+        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, getExitCode);
+    }
+
+    [Fact]
+    public async Task ConfigGetCommand_WithNonExistentKey_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config get nonexistent.key");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(10, exitCode);
+    }
+
+    [Fact]
+    public async Task ConfigDeleteCommand_WithFlatKey_RemovesValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // First set a value
+        var setResult = command.Parse("config set deletekey deletevalue");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Then delete the value
+        var deleteResult = command.Parse("config delete deletekey");
+        var deleteExitCode = await deleteResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, deleteExitCode);
+
+        // Verify it's deleted
+        var getResult = command.Parse("config get deletekey");
+        var getExitCode = await getResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(10, getExitCode); // Should return error for missing key
+    }
+
+    [Fact]
+    public async Task ConfigDeleteCommand_CleansUpEmptyParentObjects()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set a deeply nested value
+        var setResult = command.Parse("config set deep.nested.value test");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Delete the nested value
+        var deleteResult = command.Parse("config delete deep.nested.value");
+        var deleteExitCode = await deleteResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, deleteExitCode);
+
+        // Verify the entire deep.nested structure is cleaned up
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json");
+        var json = await File.ReadAllTextAsync(settingsPath);
+        var settings = JsonNode.Parse(json)?.AsObject();
+        Assert.NotNull(settings);
+        
+        // The deep object should be completely removed since it became empty
+        Assert.False(settings.ContainsKey("deep"));
+    }
+
+    [Fact]
+    public async Task ConfigListCommand_ShowsFlattenedDotNotationKeys()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        // Set various values
+        var setResult1 = command.Parse("config set flatkey flatvalue");
+        var setExitCode1 = await setResult1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode1);
+
+        var setResult2 = command.Parse("config set nested.key nestedvalue");
+        var setExitCode2 = await setResult2.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode2);
+
+        var setResult3 = command.Parse("config set deep.nested.key deepvalue");
+        var setExitCode3 = await setResult3.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode3);
+
+        // List all configuration
+        var listResult = command.Parse("config list");
+        var listExitCode = await listResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, listExitCode);
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToTrue_ReturnsTrue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(
+            workspace,
+            outputHelper,
+            options => options.EnabledFeatures = new[] { "testFeature" }
+            );
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to true
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature true");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatures>();
+        Assert.True(featureFlags.IsFeatureEnabled("testFeature", defaultValue: false));
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToFalse_ReturnsFalse()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => options.DisabledFeatures = new[] { "testFeature" });
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to false
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature false");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatures>();
+        Assert.False(featureFlags.IsFeatureEnabled("testFeature", defaultValue: true));
+    }
+
+    [Fact]
+    public async Task FeatureFlags_WhenSetToInvalidValue_ReturnsFalse()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(
+            workspace,
+            outputHelper,
+            options => options.ConfigurationCallback += confing =>
+            {
+                confing[$"{KnownFeatures.FeaturePrefix}:testFeature"] = "invalid"; // Set an invalid value
+            });
+        var provider = services.BuildServiceProvider();
+
+        // Set the feature flag to an invalid value
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.testFeature invalid");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Check the feature flag
+        var featureFlags = provider.GetRequiredService<IFeatures>();
+        Assert.False(featureFlags.IsFeatureEnabled("testFeature", defaultValue: true));
+    }
+
+    [Fact]
+    public void DeployCommand_IsAlwaysAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        
+        // Check that deploy command is always available
+        var hasDeployCommand = rootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
+        Assert.True(hasDeployCommand);
     }
 }

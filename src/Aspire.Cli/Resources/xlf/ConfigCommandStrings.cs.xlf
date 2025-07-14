@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../ConfigCommandStrings.resx">
+    <body>
+      <trans-unit id="ConfigurationKeyDeletedGlobally">
+        <source>Configuration '{0}' deleted globally.</source>
+        <target state="translated">Konfigurace {0} byla odstraněna globálně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyDeletedLocally">
+        <source>Configuration '{0}' deleted locally.</source>
+        <target state="translated">Konfigurace {0} byla odstraněna místně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetGlobally">
+        <source>Configuration '{0}' set to '{1}' globally.</source>
+        <target state="translated">Konfigurace {0} je globálně nastavená na {1}.</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetLocally">
+        <source>Configuration '{0}' set to '{1}' locally.</source>
+        <target state="translated">Konfigurace {0} byla nastavená místně na {1}.</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="DeleteCommand_Description">
+        <source>Delete a configuration value.</source>
+        <target state="translated">Umožňuje odstranit hodnotu konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_GlobalArgumentDescription">
+        <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">Odstraňte hodnotu konfigurace z globálního souboru $HOME/.aspire/settings.json místo z místního souboru nastavení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_KeyArgumentDescription">
+        <source>The configuration key to delete.</source>
+        <target state="translated">Konfigurační klíč, který se má odstranit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage configuration settings.</source>
+        <target state="translated">Umožňuje spravovat nastavení konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_Description">
+        <source>Get a configuration value.</source>
+        <target state="translated">Získá hodnotu konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_KeyArgumentDescription">
+        <source>The configuration key to retrieve.</source>
+        <target state="translated">Konfigurační klíč, který se má načíst</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_Description">
+        <source>List all configuration values.</source>
+        <target state="translated">Umožňuje vypsat všechny hodnoty konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoConfigurationValuesFound">
+        <source>No configuration values found.</source>
+        <target state="translated">Nenašly se žádné hodnoty konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_Description">
+        <source>Set a configuration value.</source>
+        <target state="translated">Nastavte hodnotu konfigurace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_GlobalArgumentDescription">
+        <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">Nastavte hodnotu konfigurace globálně v souboru $HOME/.aspire/settings.json místo v místním souboru nastavení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_KeyArgumentDescription">
+        <source>The configuration key to set.</source>
+        <target state="translated">Konfigurační klíč, který se má nastavit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_ValueArgumentDescription">
+        <source>The configuration value to set.</source>
+        <target state="translated">Hodnota konfigurace, která se má nastavit</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

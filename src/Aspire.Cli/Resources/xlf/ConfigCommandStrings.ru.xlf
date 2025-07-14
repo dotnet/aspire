@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../ConfigCommandStrings.resx">
+    <body>
+      <trans-unit id="ConfigurationKeyDeletedGlobally">
+        <source>Configuration '{0}' deleted globally.</source>
+        <target state="translated">Конфигурация "{0}" удалена глобально.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeyDeletedLocally">
+        <source>Configuration '{0}' deleted locally.</source>
+        <target state="translated">Конфигурация "{0}" удалена локально.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetGlobally">
+        <source>Configuration '{0}' set to '{1}' globally.</source>
+        <target state="translated">Конфигурация "{0}" установлена в значение "{1}" глобально.</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="ConfigurationKeySetLocally">
+        <source>Configuration '{0}' set to '{1}' locally.</source>
+        <target state="translated">Конфигурация "{0}" установлена в значение "{1}" локально.</target>
+        <note>{0} is the key, {1} is the value</note>
+      </trans-unit>
+      <trans-unit id="DeleteCommand_Description">
+        <source>Delete a configuration value.</source>
+        <target state="translated">Удаляет значение конфигурации.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_GlobalArgumentDescription">
+        <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">Удаляет значение конфигурации из глобального файла $HOME/.aspire/settings.json вместо локального файла настроек.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteCommand_KeyArgumentDescription">
+        <source>The configuration key to delete.</source>
+        <target state="translated">Ключ конфигурации, который следует удалить.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage configuration settings.</source>
+        <target state="translated">Управление параметрами конфигурации.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_Description">
+        <source>Get a configuration value.</source>
+        <target state="translated">Получает значение конфигурации.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCommand_KeyArgumentDescription">
+        <source>The configuration key to retrieve.</source>
+        <target state="translated">Ключ конфигурации, который следует получить.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_Description">
+        <source>List all configuration values.</source>
+        <target state="translated">Перечислить все значения конфигурации.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoConfigurationValuesFound">
+        <source>No configuration values found.</source>
+        <target state="translated">Значения конфигурации не найдены.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_Description">
+        <source>Set a configuration value.</source>
+        <target state="translated">Задает значение конфигурации.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_GlobalArgumentDescription">
+        <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file.</source>
+        <target state="translated">Устанавливает значение конфигурации глобально в файле $HOME/.aspire/settings.json вместо локального файла настроек.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_KeyArgumentDescription">
+        <source>The configuration key to set.</source>
+        <target state="translated">Ключ конфигурации, для которого следует задать значение.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_ValueArgumentDescription">
+        <source>The configuration value to set.</source>
+        <target state="translated">Значение конфигурации, которое следует задать.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

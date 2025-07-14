@@ -7,6 +7,7 @@ internal static class KnownConfigNames
 {
     public const string AspNetCoreUrls = "ASPNETCORE_URLS";
     public const string AllowUnsecuredTransport = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
+    public const string VersionCheckDisabled = "ASPIRE_VERSION_CHECK_DISABLED";
     public const string DashboardOtlpGrpcEndpointUrl = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
     public const string DashboardOtlpHttpEndpointUrl = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
     public const string DashboardFrontendBrowserToken = "ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN";
@@ -28,6 +29,13 @@ internal static class KnownConfigNames
     public const string CliProcessId = "ASPIRE_CLI_PID";
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
+
+    public const string CliLocaleOverride = "ASPIRE_CLI_LOCALE_OVERRIDE";
+    public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
+    public const string ExtensionEndpoint = "ASPIRE_EXTENSION_ENDPOINT";
+    public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
+    public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
+    public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
 
     public static class Legacy
     {

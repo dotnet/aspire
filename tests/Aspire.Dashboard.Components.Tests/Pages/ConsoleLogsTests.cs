@@ -15,7 +15,6 @@ using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
-using Aspire.TestUtilities;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -220,6 +219,106 @@ public partial class ConsoleLogsTests : DashboardTestContext
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
         cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+    }
+
+    [Fact]
+    public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        logger.LogInformation("Throw error from console logs subscription.");
+        consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
+
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)]);
+    }
+
+    [Fact]
+    public async Task ReadingLogs_ErrorDuringReadAfterDispose_StatusUnchanged()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        logger.LogInformation("Throw error from console logs subscription.");
+        consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
+
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
     }
 
     [Fact]
@@ -463,7 +562,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9214")]
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
@@ -499,6 +597,10 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Assert initial state
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
 
+        logger.LogInformation("Check logs are empty.");
+        PrintCurrentLogEntries(cut.Instance._logEntries);
+        Assert.Empty(cut.Instance._logEntries.GetEntries());
+
         logger.LogInformation("Pause logs.");
         var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>().WaitForElement("fluent-button");
         pauseResumeButton.Click();
@@ -507,21 +609,24 @@ public partial class ConsoleLogsTests : DashboardTestContext
         logger.LogInformation("Wait for pause log.");
         var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
 
-        // Add a new log while paused and assert that the log viewer shows that 1 log was filtered
+        logger.LogInformation("Adding filtered logs during pause.");
+        // Add new logs while paused and assert that the log viewer shows correct filtered count
         var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
-
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(3, pauseContent, IsErrorMessage: false)]);
 
-        logger.LogInformation("Assert that the last log is the pause log.");
-        cut.WaitForAssertion(() => Assert.Equal(
-            string.Format(
-                loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
-                FormatHelpers.FormatTimeWithOptionalDate(timeProvider,
-                    cut.Instance._logEntries.GetEntries().Last().Pause!.StartTime, MillisecondsDisplay.Truncated),
-                3),
-            pauseConsoleLogLine.TextContent));
+        logger.LogInformation("Assert that the only log is still the pause log.");
+        cut.WaitForAssertion(() =>
+        {
+            var pauseLog = Assert.Single(cut.Instance._logEntries.GetEntries());
+            Assert.Equal(
+                string.Format(
+                    loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pauseLog.Pause!.StartTime, MillisecondsDisplay.Truncated),
+                    3),
+                pauseConsoleLogLine.TextContent);
+        });
 
         logger.LogInformation("Resume logs.");
         // Check that
@@ -531,16 +636,12 @@ public partial class ConsoleLogsTests : DashboardTestContext
         pauseResumeButton.Click();
         cut.WaitForAssertion(() => Assert.False(pauseManager.ConsoleLogsPaused));
 
-        logger.LogInformation("Write a new log.");
-        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
-        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
-
         logger.LogInformation("Assert that pause log has expected content.");
         cut.WaitForAssertion(() =>
         {
             PrintCurrentLogEntries(cut.Instance._logEntries);
 
-            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries(), e => e.Type == LogEntryType.Pause);
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries());
             var pause = pauseEntry.Pause;
             Assert.NotNull(pause);
             Assert.NotNull(pause.EndTime);
@@ -552,6 +653,10 @@ public partial class ConsoleLogsTests : DashboardTestContext
                     3),
                 pauseConsoleLogLine.TextContent);
         });
+
+        logger.LogInformation("Write a new log after resume.");
+        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
 
         logger.LogInformation("Assert that log entries discarded aren't in log viewer and log entries that should be logged are in log viewer.");
         cut.WaitForAssertion(() =>

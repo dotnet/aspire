@@ -27,4 +27,22 @@ public class CommandLineArgsParserTests
 
         Assert.Equal(expectedParsed, actualParsed.ToArray());
     }
+
+    [Theory]
+    [InlineData("git", "git", new string[] { })]
+    [InlineData("git status", "git", new[] { "status" })]
+    [InlineData("dotnet run", "dotnet", new[] { "run" })]
+    [InlineData("dotnet build --configuration Release", "dotnet", new[] { "build", "--configuration", "Release" })]
+    [InlineData("\"C:\\Program Files\\Git\\bin\\git.exe\" status", "C:\\Program Files\\Git\\bin\\git.exe", new[] { "status" })]
+    [InlineData("\"quoted exe\" arg1 arg2", "quoted exe", new[] { "arg1", "arg2" })]
+    [InlineData("cmd /c \"echo hello world\"", "cmd", new[] { "/c", "echo hello world" })]
+    [InlineData("python script.py --input \"file with spaces.txt\"", "python", new[] { "script.py", "--input", "file with spaces.txt" })]
+    [InlineData("node\tapp.js\t--port\t3000", "node", new[] { "app.js", "--port", "3000" })]
+    public void TestParseCommand(string commandLine, string expectedExe, string[] expectedArgs)
+    {
+        var (actualExe, actualArgs) = ParseCommand(commandLine);
+
+        Assert.Equal(expectedExe, actualExe);
+        Assert.Equal(expectedArgs, actualArgs);
+    }
 }

@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
-using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
@@ -160,9 +159,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
             {
                 Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
-                Kind = "AzurePowerShell",
                 // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
-                AZPowerShellVersion = "10.0"
+                AzPowerShellVersion = "10.0"
             };
 
             // Run the script as the administrator
@@ -172,11 +170,11 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
             scriptResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
 
             // Script don't support Bicep expression, they need to be passed as ENVs
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBNAME", Value = database });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
-            scriptResource.EnvironmentVariables.Add(new EnvironmentVariable() { Name = "ID", Value = userId });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "DBNAME", Value = database });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "DBSERVER", Value = sqlserver.FullyQualifiedDomainName });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "PRINCIPALTYPE", Value = roleAssignmentContext.PrincipalType });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "PRINCIPALNAME", Value = roleAssignmentContext.PrincipalName });
+            scriptResource.EnvironmentVariables.Add(new ScriptEnvironmentVariable() { Name = "ID", Value = userId });
 
             scriptResource.ScriptContent = $$"""
                 $sqlServerFqdn = "$env:DBSERVER"
@@ -184,8 +182,8 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 $principalName = "$env:PRINCIPALNAME"
                 $id = "$env:ID"
 
-                # Install SqlServer module
-                Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
+                # Install SqlServer module - using specific version to avoid breaking changes in 22.4.5.1 (see https://github.com/dotnet/aspire/issues/9926)
+                Install-Module -Name SqlServer -RequiredVersion 22.3.0 -Force -AllowClobber -Scope CurrentUser
                 Import-Module SqlServer
 
                 $sqlCmd = @"

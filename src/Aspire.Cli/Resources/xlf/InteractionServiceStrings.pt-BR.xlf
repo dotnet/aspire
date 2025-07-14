@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../InteractionServiceStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
+        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
+        <target state="translated">O host de aplicativo não é compatível. Considere atualizar o host de aplicativo ou a CLI do Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireCLIVersion">
+        <source>Aspire CLI Version</source>
+        <target state="translated">Versão da CLI do Aspire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireHostingSDKVersion">
+        <source>Aspire.Hosting Version</source>
+        <target state="translated">Versão do Aspire.Hosting</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildingAppHost">
+        <source>Building app host...</source>
+        <target state="translated">Criando host de aplicativo...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingCertificates">
+        <source>Checking certificates...</source>
+        <target state="translated">Verificando certificados...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingProjectType">
+        <source>Checking project type...</source>
+        <target state="translated">Verificando o tipo de projeto...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CodespacesLink">
+        <source>Codespaces</source>
+        <target state="translated">Codespaces</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="CreatedSettingsFile">
+        <source>Created settings file at {0}.</source>
+        <target state="translated">Arquivo de configurações criado em {0}.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Painel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectLink">
+        <source>Direct</source>
+        <target state="translated">Direto</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="ErrorConnectingToAppHost">
+        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
+        <target state="translated">Erro ao se conectar ao host de aplicativo. O host de aplicativo possivelmente falhou antes de estar disponível: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FindingAppHosts">
+        <source>Finding app hosts...</source>
+        <target state="translated">Localizando hosts de aplicativo...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoItemsAvailableForSelection">
+        <source>No items available for selection: {0}</source>
+        <target state="translated">Nenhum item disponível para seleção: {0}</target>
+        <note>{0} is the original selection prompt text.</note>
+      </trans-unit>
+      <trans-unit id="OperationCancelled">
+        <source>The operation was canceled.</source>
+        <target state="translated">A operação foi cancelada.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeBuilt">
+        <source>The project could not be built. For more information run with --debug switch.</source>
+        <target state="translated">O projeto não pôde ser compilado. Para obter mais informações, execute com a opção --debug.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDoesntExist">
+        <source>The --project option specified a project that does not exist.</source>
+        <target state="translated">A opção --project especificou um projeto que não existe.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
+        <source>The --project option was not specified and multiple app host project files were detected.</source>
+        <target state="translated">A opção --project não foi especificada e vários arquivos de projeto de host do aplicativo foram detectados.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
+        <source>The project argument was not specified and no *.csproj files were detected.</source>
+        <target state="translated">O argumento do projeto não foi especificado e nenhum arquivo *.csproj foi detectado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCapability">
+        <source>Required Capability</source>
+        <target state="translated">Funcionalidade Necessária</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingProjects">
+        <source>Searching...</source>
+        <target state="translated">Pesquisando...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHostToRun">
+        <source>Select app host to run</source>
+        <target state="translated">Selecione o host de aplicativo a ser executado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedProjectFileNotAppHostProject">
+        <source>The specified project file is not an Aspire app host project.</source>
+        <target state="translated">O arquivo de projeto especificado não é um projeto de host de aplicativo do Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingAspire">
+        <source>Stopping Aspire.</source>
+        <target state="translated">Interrompendo o Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TrustingCertificates">
+        <source>Trusting certificates...</source>
+        <target state="translated">Confiando nos certificados...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedErrorOccurred">
+        <source>An unexpected error occurred: {0}</source>
+        <target state="translated">Ocorreu um erro inesperado: {0}</target>
+        <note>{0} is the exception message</note>
+      </trans-unit>
+      <trans-unit id="WaitingForDebuggerToAttachToAppHost">
+        <source>Waiting for debugger to attach to app host process</source>
+        <target state="translated">Aguardando que o depurador seja anexado ao processo de host do aplicativo</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

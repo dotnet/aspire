@@ -28,7 +28,7 @@ public partial class Error : IComponentWithTelemetry, IDisposable
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init;  }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new("Error");
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Error);
 
     protected override void OnParametersSet()
     {

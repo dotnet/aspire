@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="../RunCommandStrings.resx">
+    <body>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">仪表板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run an Aspire app host in development mode.</source>
+        <target state="translated">在开发模式下运行 Aspire 应用主机。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Endpoints">
+        <source>Endpoints</source>
+        <target state="translated">终结点</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Health">
+        <source>The health of the resource, eg Healthy</source>
+        <target state="translated">资源的运行状况，例如“正常”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsCompatibleAppHostIsNull">
+        <source>IsCompatibleAppHost is null</source>
+        <target state="translated">IsCompatibleAppHost 为 null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">日志</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PressCtrlCToStopAppHost">
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="needs-review-translation">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
+        <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">Aspire 应用主机项目文件的路径。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeRun">
+        <source>The project could not be run. For more information run with --debug switch.</source>
+        <target state="translated">无法运行该项目。有关详细信息，请使用 --debug 开关运行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Resource">
+        <source>Resource</source>
+        <target state="translated">资源</target>
+        <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartingAppHost">
+        <source>Starting Aspire app host...</source>
+        <target state="translated">正在启动 Aspire 应用主机...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDashboard">
+        <source>Starting Aspire dashboard...</source>
+        <target state="translated">正在启动 Aspire 仪表板...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="State">
+        <source>State</source>
+        <target state="translated">状态</target>
+        <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="Type">
+        <source>Type</source>
+        <target state="translated">类型</target>
+        <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WatchArgumentDescription">
+        <source>Start project resources in watch mode.</source>
+        <target state="translated">在监视模式下启动项目资源。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

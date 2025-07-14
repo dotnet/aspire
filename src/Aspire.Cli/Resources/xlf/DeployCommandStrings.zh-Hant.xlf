@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../DeployCommandStrings.resx">
+    <body>
+      <trans-unit id="DeploymentCanceled">
+        <source>The deployment was canceled.</source>
+        <target state="translated">部署已取消。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeploymentFailed">
+        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">部署失敗，結束代碼為 {0}。如需詳細資訊，請使用 --debug 切換執行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
+        <target state="translated">將 Aspire 應用程式主機專案部署到其支援的部署目標。(預覽)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The output path for deployment artifacts.</source>
+        <target state="translated">部署成品的輸出路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SuccessfullyDeployed">
+        <source>Successfully deployed. Artifacts available at: {0}</source>
+        <target state="translated">已成功部署。成品可用於: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

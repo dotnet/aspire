@@ -16,38 +16,58 @@ internal static class HelmExtensions
     public const string ConfigKey = "config";
     public const string TemplateFileSeparator = "---";
 
-    public static string ToManifestFriendlyResourceName(this string name)
-        => name.Replace("-", "_");
+    /// <summary>
+    /// Converts the specified resource name into a Helm configuration section name.
+    /// </summary>
+    /// <remarks>
+    /// The section names in Helm values files can not contain hyphens ('-').
+    /// <see href="link">https://helm.sh/docs/chart_best_practices/values/</see>
+    /// </remarks>
+    public static string ToHelmValuesSectionName(this string resourceName)
+        => $"{resourceName.Replace("-", "_")}";
 
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 
     public static string ToHelmSecretExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 
     public static string ToHelmConfigExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} }}}}";
+        => $"{{{{ {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
+
+    public static string ToHelmChartName(this string applicationName)
+        => applicationName.ToLower().Replace("_", "-").Replace(".", "-");
+
+    /// <summary>
+    /// Converts the specified resource name into a Kubernetes resource name.
+    /// </summary>
+    /// <remarks>
+    /// Kubernetes resource object names can only contain lowercase alphanumeric characters, '-', and '.'.
+    /// <see href="link">https://kubernetes.io/docs/concepts/overview/working-with-objects/names/</see>
+    /// </remarks>
+    public static string ToKubernetesResourceName(this string resourceName)
+        => $"{resourceName.ToLowerInvariant()}";
 
     public static string ToConfigMapName(this string resourceName)
-        => $"{resourceName}-{ConfigKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{ConfigKey}";
 
     public static string ToSecretName(this string resourceName)
-        => $"{resourceName}-{SecretsKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{SecretsKey}";
 
     public static string ToDeploymentName(this string resourceName)
-        => $"{resourceName}-{DeploymentKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{DeploymentKey}";
 
     public static string ToStatefulSetName(this string resourceName)
-        => $"{resourceName}-{StatefulSetKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{StatefulSetKey}";
 
     public static string ToServiceName(this string resourceName)
-        => $"{resourceName}-{ServiceKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{ServiceKey}";
 
     public static string ToPvcName(this string resourceName, string volumeName)
-        => $"{resourceName}-{volumeName}-{PvcKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{volumeName}-{PvcKey}";
 
     public static string ToPvName(this string resourceName, string volumeName)
-        => $"{resourceName}-{volumeName}-{PvKey}";
+        => $"{resourceName.ToKubernetesResourceName()}-{volumeName}-{PvKey}";
 
     public static bool ContainsHelmExpression(this string value)
         => value.Contains($"{{{{ {ValuesSegment}.", StringComparison.Ordinal);

@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -42,9 +43,8 @@ public static class ConnectionStringBuilderExtensions
                       .WithReferenceRelationship(connectionStringExpression)
                       .WithInitialState(new CustomResourceSnapshot
                       {
-                          ResourceType = "ConnectionString",
-                          // TODO: We'll hide this until we come up with a sane representation of these in the dashboard
-                          IsHidden = true,
+                          ResourceType = KnownResourceTypes.ConnectionString,
+                          State = KnownResourceStates.Waiting,
                           Properties = []
                       });
     }

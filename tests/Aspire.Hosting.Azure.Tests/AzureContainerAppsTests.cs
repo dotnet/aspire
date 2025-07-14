@@ -275,7 +275,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
+        var blob = builder.AddAzureStorage("storage").AddBlobService("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -352,7 +352,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
+        var blob = builder.AddAzureStorage("storage").AddBlobService("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -924,7 +924,7 @@ public class AzureContainerAppsTests
 
         var storage = builder.AddAzureStorage("storage")
             .PublishAsExisting(storageName, storageRG);
-        var blobs = storage.AddBlobs("blobs");
+        var blobs = storage.AddBlobService("blobs");
 
         builder.AddProject<Project>("api", launchProfileName: null)
                .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);
@@ -1506,7 +1506,7 @@ public class AzureContainerAppsTests
         // This test fails on new default versions for ContainerApp so we check if autoConfigureDataProtection/kind exists on the new Azure.Provisioning version.
         // Also, we need to ensure the new default version isn't newer than the preview version used to set autoConfigureDataProtection/kind because
         // callers will get new APIs that may not work with the preview version we are using.
-        Assert.True(containerApp.ResourceVersion == "2024-03-01", "When we get a new ResourceVersion for ContainerApps, ensure the version used by ContainerAppContext.CreateContainerApp() still works correctly.");
+        Assert.True(containerApp.ResourceVersion == "2025-01-01", "When we get a new ResourceVersion for ContainerApps, ensure the version used by ContainerAppContext.CreateContainerApp() still works correctly.");
     }
 
     [Fact]
@@ -1527,7 +1527,7 @@ public class AzureContainerAppsTests
         }
 
         await RunTest(builder =>
-            builder.AddProject<Projects.ServiceA>("ServiceA")
+            builder.AddProject<Projects.ServiceA>("ServiceA", launchProfileName: null)
                 .PublishAsAzureContainerApp((_, _) => { }));
 
         await RunTest(builder =>

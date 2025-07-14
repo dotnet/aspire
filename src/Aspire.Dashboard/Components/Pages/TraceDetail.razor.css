@@ -47,6 +47,7 @@
 ::deep .trace-view-grid .column-header {
     padding: 0 !important;
     min-height: 32px !important;
+    height: 32px !important;
     border-bottom: 0;
 }
 
@@ -191,4 +192,76 @@
     grid-area: filters;
     display: flex;
     column-gap: 8px;
+}
+
+::deep .span-button-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+}
+
+::deep .span-log-entry-button {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    overflow: hidden;
+    border-radius: 50%;
+    align-self: center;
+    opacity: 0.8;
+    transform: translateX(-50%);
+    background: color-mix(in srgb, var(--span-color), white 30%);
+    border-color: color-mix(in srgb, var(--span-color), black 50%);
+}
+
+::deep .span-log-entry-button:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--span-color), white 50%);
+}
+
+::deep .span-log-entry-selected {
+    opacity: 1;
+    background: color-mix(in srgb, var(--span-color), white 50%);
+    width: 20px;
+    height: 20px;
+}
+
+::deep .log-tooltip-title {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+::deep .log-tooltip-subtitle {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+    padding-left: 0.5rem;
+}
+
+::deep.log-tooltip-title-container {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-bottom: 8px;
+    margin-top: 4px;
+}
+
+::deep.log-tooltip-table {
+    margin-bottom: 0;
+    width: 100%;
+    table-layout: fixed;
+}
+
+::deep.log-tooltip-table td:nth-child(1) {
+    width: 25%;
+}
+
+::deep.log-tooltip-table td {
+    padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 1px) 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    align-content: center;
+    border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
 
@@ -26,6 +27,29 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     public ReferenceExpression ConnectionStringExpression =>
         Parent.GetQueueConnectionString();
 
+    internal ReferenceExpression GetConnectionString(string? queueName)
+    {
+        if (string.IsNullOrEmpty(queueName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        ReferenceExpressionBuilder builder = new();
+
+        if (Parent.IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        builder.Append($";QueueName={queueName}");
+
+        return builder.Build();
+    }
+
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (Parent.IsEmulator)
@@ -41,5 +65,15 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
             // Injected to support Aspire client integration for Azure Storage Queues.
             target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
+    }
+
+    /// <summary>
+    /// Converts the current instance to a provisioning entity.
+    /// </summary>
+    /// <returns>A <see cref="global::Azure.Provisioning.Storage.QueueService"/> instance.</returns>
+    internal global::Azure.Provisioning.Storage.QueueService ToProvisioningEntity()
+    {
+        global::Azure.Provisioning.Storage.QueueService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
+        return service;
     }
 }

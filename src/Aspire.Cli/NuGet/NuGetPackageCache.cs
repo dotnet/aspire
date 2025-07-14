@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using Aspire.Cli.Resources;
+using System.Globalization;
+using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +13,11 @@ internal interface INuGetPackageCache
 {
     Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
     Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry) : INuGetPackageCache
 {
-    private readonly ActivitySource _activitySource = new(nameof(NuGetPackageCache));
 
     private const int SearchPageSize = 1000;
 
@@ -25,8 +27,10 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
         var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
         {
-            return await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
-        }) ?? throw new NuGetPackageCacheException("Failed to retrieve template packages via cache.");
+            var packages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
+            return packages.Where(p => p.Id.Equals("Aspire.ProjectTemplates", StringComparison.OrdinalIgnoreCase));
+
+        }) ?? throw new NuGetPackageCacheException(ErrorStrings.FailedToRetrieveCachedTemplatePackages);
 
         return packages;
     }
@@ -36,9 +40,24 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", prerelease, source, cancellationToken);
     }
 
+    public async Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    {
+        var key = $"CliPackages-{workingDirectory.FullName}-{prerelease}-{source}";
+
+        var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
+        {
+            // Set cache expiration to 1 hour for CLI updates
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var packages = await GetPackagesAsync(workingDirectory, "Aspire.Cli", prerelease, source, cancellationToken);
+            return packages.Where(p => p.Id.Equals("Aspire.Cli", StringComparison.OrdinalIgnoreCase));
+        }) ?? [];
+
+        return packages;
+    }
+
     internal async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        using var activity = _activitySource.StartActivity();
+        using var activity = telemetry.ActivitySource.StartActivity();
 
         logger.LogDebug("Getting integrations from NuGet");
 
@@ -62,8 +81,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
             if (result.ExitCode != 0)
             {
-                throw new NuGetPackageCacheException(
-                    $"Failed to search for packages. Exit code: {result}");
+                throw new NuGetPackageCacheException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToSearchForPackages, result.ExitCode));
             }
             else
             {
@@ -91,8 +109,9 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         {
             var isHostingOrCommunityToolkitNamespaced = packageName.StartsWith("Aspire.Hosting.", StringComparison.Ordinal) ||
                    packageName.StartsWith("CommunityToolkit.Aspire.Hosting.", StringComparison.Ordinal) ||
-                   packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal);
-            
+                   packageName.Equals("Aspire.ProjectTemplates", StringComparison.Ordinal) ||
+                   packageName.Equals("Aspire.Cli", StringComparison.Ordinal);
+
             var isExcluded = packageName.StartsWith("Aspire.Hosting.AppHost") ||
                              packageName.StartsWith("Aspire.Hosting.Sdk") ||
                              packageName.StartsWith("Aspire.Hosting.Orchestration") ||

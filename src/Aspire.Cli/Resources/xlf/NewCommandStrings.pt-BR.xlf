@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../NewCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Create a new Aspire project.</source>
+        <target state="translated">Criar um projeto Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterTheOutputPath">
+        <source>Enter the output path:</source>
+        <target state="translated">Insira o caminho de saída:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterTheProjectName">
+        <source>Enter the project name:</source>
+        <target state="translated">Insira o nome do projeto:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidProjectName">
+        <source>Invalid project name.</source>
+        <target state="translated">Nome de projeto inválido.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NameArgumentDescription">
+        <source>The name of the project to create.</source>
+        <target state="translated">O nome do projeto a ser criado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputArgumentDescription">
+        <source>The output path for the project.</source>
+        <target state="translated">O caminho de saída para o projeto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAProjectTemplate">
+        <source>Select a project template:</source>
+        <target state="translated">Selecione um modelo de projeto:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectATemplateVersion">
+        <source>Select a template version:</source>
+        <target state="translated">Selecione uma versão de modelo:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SourceArgumentDescription">
+        <source>The NuGet source to use for the project templates.</source>
+        <target state="translated">A origem do NuGet a ser usada para os modelos de projeto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionArgumentDescription">
+        <source>The version of the project templates to use.</source>
+        <target state="translated">A versão dos modelos de projeto a serem usados.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

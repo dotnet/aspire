@@ -72,6 +72,11 @@
         <target state="translated">보기 옵션</target>
         <note>An icon allowing the user to expand or collapse all child resources.</note>
       </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">연결 문자열</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="translated">컨테이너 인수</target>
@@ -135,6 +140,11 @@
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health state</source>
         <target state="translated">성능 상태</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">값</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">

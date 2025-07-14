@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <CliRuntime>win-x86</CliRuntime>
+    <CliPlatformType>Windows</CliPlatformType>
+    <!-- native AOT doesn't support win-x86  -->
+    <PublishNativeAot>false</PublishNativeAot>
+  </PropertyGroup>
+
+  <Import Project="Common.projitems" />
+
+</Project>

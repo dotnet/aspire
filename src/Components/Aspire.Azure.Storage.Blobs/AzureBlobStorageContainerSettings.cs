@@ -27,7 +27,7 @@ public sealed partial class AzureBlobStorageContainerSettings : AzureStorageBlob
             return;
         }
 
-        DbConnectionStringBuilder builder = new() { ConnectionString = connectionString };
+        var builder = new DbConnectionStringBuilder() { ConnectionString = connectionString };
 
         if (builder.TryGetValue("ContainerName", out var containerName))
         {

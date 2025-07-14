@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Kubernetes;
 
@@ -87,9 +88,11 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
 
     private Task PublishAsync(PublishingContext context)
     {
+        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
+
         var kubernetesContext = new KubernetesPublishingContext(
             context.ExecutionContext,
-            context.OutputPath,
+            outputPath,
             context.Logger,
             context.CancellationToken);
         return kubernetesContext.WriteModelAsync(context.Model, this);

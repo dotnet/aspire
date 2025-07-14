@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityProgressReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,12 +30,6 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                 await backchannelService.BackchannelConnected.ConfigureAwait(false);
             }
 
-            var publishingActivity = await activityReporter.CreateActivityAsync(
-                "publishing-artifacts",
-                $"Publishing artifacts",
-                isPrimary: true,
-                stoppingToken).ConfigureAwait(false);
-
             try
             {
                 await eventing.PublishAsync<BeforePublishEvent>(
@@ -49,10 +43,9 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
                     new AfterPublishEvent(serviceProvider, model), stoppingToken
                     ).ConfigureAwait(false);
 
-                await activityReporter.UpdateActivityStatusAsync(
-                    publishingActivity,
-                    (status) => status with { IsComplete = true },
-                    stoppingToken).ConfigureAwait(false);
+                // We pass null here so th aggregate state can be calculated based on the state of
+                // each of the publish steps that have been enumerated.
+                await activityReporter.CompletePublishAsync(completionMessage: null, completionState: null, stoppingToken).ConfigureAwait(false);
 
                 // If we are running in publish mode and a backchannel is being
                 // used then we don't want to stop the app host. Instead the
@@ -67,14 +60,11 @@ internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicatio
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to publish the distributed application.");
-                await activityReporter.UpdateActivityStatusAsync(
-                    publishingActivity,
-                    (status) => status with { IsError = true },
-                    stoppingToken).ConfigureAwait(false);
+                await activityReporter.CompletePublishAsync(completionMessage: ex.Message, CompletionState.CompletedWithError, stoppingToken).ConfigureAwait(false);
 
                 if (!backchannelService.IsBackchannelExpected)
                 {
-                     throw new DistributedApplicationException($"Publishing failed exception message: {ex.Message}", ex);
+                    throw new DistributedApplicationException($"Publishing failed exception message: {ex.Message}", ex);
                 }
             }
         }

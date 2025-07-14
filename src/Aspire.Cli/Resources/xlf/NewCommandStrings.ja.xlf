@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../NewCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Create a new Aspire project.</source>
+        <target state="translated">新しい Aspire プロジェクトを作成します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterTheOutputPath">
+        <source>Enter the output path:</source>
+        <target state="translated">出力パスを入力してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterTheProjectName">
+        <source>Enter the project name:</source>
+        <target state="translated">プロジェクト名を入力してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidProjectName">
+        <source>Invalid project name.</source>
+        <target state="translated">プロジェクト名が無効です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NameArgumentDescription">
+        <source>The name of the project to create.</source>
+        <target state="translated">作成するプロジェクトの名前。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputArgumentDescription">
+        <source>The output path for the project.</source>
+        <target state="translated">プロジェクトの出力パス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAProjectTemplate">
+        <source>Select a project template:</source>
+        <target state="translated">プロジェクト テンプレートを選択してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectATemplateVersion">
+        <source>Select a template version:</source>
+        <target state="translated">テンプレート のバージョンを選択してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SourceArgumentDescription">
+        <source>The NuGet source to use for the project templates.</source>
+        <target state="translated">プロジェクト テンプレートに使用する NuGet ソース。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionArgumentDescription">
+        <source>The version of the project templates to use.</source>
+        <target state="translated">使用するプロジェクト テンプレートのバージョン。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

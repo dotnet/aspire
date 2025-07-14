@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../PublishCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
+        <target state="translated">Aspire アプリ ホスティング プロセスのデプロイ成果物を生成します。(プレビュー)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToPublishArtifacts">
+        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">成果物の発行が終了コード {0}で失敗しました。詳細情報については、--debug スイッチを使用して実行してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GeneratingArtifacts">
+        <source>Generating artifacts...</source>
+        <target state="translated">成果物を生成しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputPathArgumentDescription">
+        <source>The output path for the generated artifacts.</source>
+        <target state="translated">生成された成果物の出力パス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">Aspire アプリ ホスティング プロセス プロジェクト ファイルへのパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAPublisher">
+        <source>Select a publisher:</source>
+        <target state="translated">発行元を選択してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SuccessfullyPublishedArtifacts">
+        <source>Successfully published artifacts to: {0}</source>
+        <target state="translated">成果物が {0} に正常に公開されました</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

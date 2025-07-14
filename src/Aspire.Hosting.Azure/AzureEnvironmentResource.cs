@@ -58,7 +58,8 @@ public sealed class AzureEnvironmentResource : Resource
         var azureCtx = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
-            context.Logger);
+            context.Logger,
+            context.ActivityReporter);
 
         return azureCtx.WriteModelAsync(context.Model, this);
     }

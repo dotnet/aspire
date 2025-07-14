@@ -4,7 +4,7 @@ param location string = resourceGroup().location
 @secure()
 param server_localhost_database_mydb_pwd_password_value string
 
-resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
+resource mykv 'Microsoft.KeyVault/vaults@2024-11-01' = {
   name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
@@ -20,7 +20,7 @@ resource mykv 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource secret_connection_string 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource secret_connection_string 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connection-string'
   properties: {
     value: server_localhost_database_mydb_pwd_password_value

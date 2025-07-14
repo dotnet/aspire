@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -16,8 +17,12 @@ using Spectre.Console;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Resources;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Telemetry;
+using Microsoft.Extensions.Configuration;
 
 #if DEBUG
 using OpenTelemetry;
@@ -31,16 +36,15 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static readonly ActivitySource s_activitySource = new ActivitySource(nameof(Program));
 
     private static string GetGlobalSettingsPath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "settings.json");
+        var globalSettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(homeDirectory);
         return globalSettingsPath;
     }
 
-    private static IHost BuildApplication(string[] args)
+    private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
         var builder = Host.CreateApplicationBuilder();
 
@@ -49,6 +53,8 @@ public class Program
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
+
+        await TrySetLocaleOverrideAsync(builder.Configuration);
 
         builder.Logging.ClearProviders();
 
@@ -62,17 +68,7 @@ public class Program
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
             .WithTracing(tracing => {
-                tracing.AddSource(
-                    nameof(NuGetPackageCache),
-                    nameof(AppHostBackchannel),
-                    nameof(DotNetCliRunner),
-                    nameof(Program),
-                    nameof(NewCommand),
-                    nameof(RunCommand),
-                    nameof(AddCommand),
-                    nameof(PublishCommand),
-                    nameof(DeployCommand)
-                    );
+                tracing.AddSource(AspireCliTelemetry.ActivitySourceName);
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
             });
@@ -96,18 +92,20 @@ public class Program
 
         // Shared services.
         builder.Services.AddSingleton(BuildAnsiConsole);
+        AddInteractionServices(builder);
         builder.Services.AddSingleton(BuildProjectLocator);
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
-        builder.Services.AddSingleton<IInteractionService, InteractionService>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton<IFeatures, Features>();
+        builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
-        builder.Services.AddSingleton<CliRpcTarget>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -121,6 +119,7 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<DeployCommand>();
+        builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
@@ -129,8 +128,9 @@ public class Program
 
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
@@ -138,7 +138,8 @@ public class Program
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
         var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory, features);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
@@ -159,14 +160,15 @@ public class Program
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService);
+        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
+        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)
     {
-        System.Console.OutputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
-        using var app = BuildApplication(args);
+        using var app = await BuildApplicationAsync(args);
 
         await app.StartAsync().ConfigureAwait(false);
 
@@ -174,11 +176,86 @@ public class Program
         var config = new CommandLineConfiguration(rootCommand);
         config.EnableDefaultExceptionHandler = true;
 
-        using var activity = s_activitySource.StartActivity();
+        var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
+        using var activity = telemetry.ActivitySource.StartActivity();
         var exitCode = await config.InvokeAsync(args);
 
         await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
+    }
+
+    private static void AddInteractionServices(HostApplicationBuilder builder)
+    {
+        var extensionEndpoint = builder.Configuration[KnownConfigNames.ExtensionEndpoint];
+
+        if (extensionEndpoint is not null)
+        {
+            builder.Services.AddSingleton<ExtensionRpcTarget>();
+            builder.Services.AddSingleton<IExtensionBackchannel, ExtensionBackchannel>();
+
+            var extensionPromptEnabled = builder.Configuration[KnownConfigNames.ExtensionPromptEnabled] is "true";
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                return new ExtensionInteractionService(consoleInteractionService,
+                    provider.GetRequiredService<IExtensionBackchannel>(),
+                    extensionPromptEnabled);
+            });
+
+            // If the CLI is being launched from the aspire extension, we don't want to use the console logger that's used when including --debug.
+            // Instead, we will log to the extension backchannel.
+            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Information);
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ExtensionLoggerProvider>());
+        }
+        else
+        {
+            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+        }
+    }
+
+    private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
+
+    private static async Task TrySetLocaleOverrideAsync(ConfigurationManager configuration)
+    {
+        var localeOverride = configuration[KnownConfigNames.CliLocaleOverride]
+                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
+                             ?? configuration[KnownConfigNames.DotnetCliUiLanguage];
+        if (localeOverride is not null)
+        {
+            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
+            {
+                await Console.Error.WriteLineAsync(errorMessage);
+            }
+        }
+
+        return;
+
+        static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
+        {
+            try
+            {
+                var cultureInfo = new CultureInfo(localeOverride);
+                if (s_supportedLocales.Contains(cultureInfo.Name) ||
+                    s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
+                {
+                    CultureInfo.CurrentUICulture = cultureInfo;
+                    CultureInfo.CurrentCulture = cultureInfo;
+                    CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+                    CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+                    errorMessage = null;
+                    return true;
+                }
+
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
+                return false;
+            }
+            catch (CultureNotFoundException)
+            {
+                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidLocaleProvided, localeOverride);
+                return false;
+            }
+        }
     }
 }

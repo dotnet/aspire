@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -24,6 +26,7 @@ public sealed class PublishingContext(
     CancellationToken cancellationToken,
     string outputPath)
 {
+    private IPublishingActivityReporter? _activityReporter;
     /// <summary>
     /// Gets the distributed application model to be published.
     /// </summary>
@@ -38,6 +41,12 @@ public sealed class PublishingContext(
     /// Gets the service provider for dependency resolution.
     /// </summary>
     public IServiceProvider Services { get; } = serviceProvider;
+
+    /// <summary>
+    /// Gets the activity reporter for publishing activities.
+    /// </summary>
+    public IPublishingActivityReporter ActivityReporter => _activityReporter ??=
+        Services.GetRequiredService<IPublishingActivityReporter>();
 
     /// <summary>
     /// Gets the logger for publishing operations.
@@ -59,20 +68,14 @@ public sealed class PublishingContext(
     /// </summary>
     /// <param name="model">The distributed application model whose resources will be processed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    internal async Task<bool> WriteModelAsync(DistributedApplicationModel model)
+    internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
-        var anyPublishingCallbacks = false;
-
         foreach (var resource in model.Resources)
         {
             if (resource.TryGetLastAnnotation<PublishingCallbackAnnotation>(out var annotation))
             {
-                anyPublishingCallbacks = true;
-
                 await annotation.Callback(this).ConfigureAwait(false);
             }
         }
-
-        return anyPublishingCallbacks;
     }
 }

@@ -90,10 +90,10 @@ public static class AzureCosmosExtensions
                });
 
         CosmosClient? cosmosClient = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(builder.Resource, async (@event, ct) =>
+        var creationState = HealthCheckResult.Unhealthy("Waiting for databases and containers to be created");
+        builder.OnConnectionStringAvailable(async (cosmosDb, @event, ct) =>
         {
-            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            var connectionString = await cosmosDb.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
             {
@@ -101,11 +101,9 @@ public static class AzureCosmosExtensions
             }
 
             cosmosClient = CreateCosmosClient(connectionString);
-        });
 
-        var creationState = HealthCheckResult.Unhealthy("Waiting for databases and containers to be created");
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceReadyEvent>(builder.Resource, async (@event, ct) =>
+        })
+        .OnResourceReady(async (cosmosDb, @event, ct) =>
         {
             if (cosmosClient is null)
             {
@@ -116,7 +114,7 @@ public static class AzureCosmosExtensions
             {
                 await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
 
-                foreach (var database in builder.Resource.Databases)
+                foreach (var database in cosmosDb.Databases)
                 {
                     var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
 

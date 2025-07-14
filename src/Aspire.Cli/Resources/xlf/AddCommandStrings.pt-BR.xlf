@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../AddCommandStrings.resx">
+    <body>
+      <trans-unit id="AddingAspireIntegration">
+        <source>Adding Aspire integration...</source>
+        <target state="translated">Adicionando integração Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Add an integration to the Aspire project.</source>
+        <target state="translated">Adicionar uma integração ao projeto Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorOccurredWhileAddingPackage">
+        <source>An error occurred while adding the package: {0}</source>
+        <target state="translated">Ocorreu um erro ao adicionar o pacote: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationArgumentDescription">
+        <source>The name of the integration to add (e.g. redis, postgres).</source>
+        <target state="translated">O nome da integração a ser adicionada (por exemplo, redis, postgres).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoIntegrationPackagesFound">
+        <source>No integration packages were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="translated">Nenhum pacote de integração foi encontrado. Verifique sua conexão com a internet ou a configuração da fonte NuGet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackagesFound">
+        <source>No packages found.</source>
+        <target state="translated">Nenhum pacote encontrado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoPackagesMatchedSearchTerm">
+        <source>No packages matched your search term '{0}'. Showing all available packages.</source>
+        <target state="translated">Nenhum pacote correspondeu ao termo de pesquisa '{0}'. Mostrando todos os pacotes disponíveis.</target>
+        <note>{0} is the search term provided by the user.</note>
+      </trans-unit>
+      <trans-unit id="PackageAddedSuccessfully">
+        <source>The package {0}::{1} was added successfully.</source>
+        <target state="translated">O pacote {0}::{1} foi adicionado com êxito.</target>
+        <note>{0} is the package name, {1} is the version.</note>
+      </trans-unit>
+      <trans-unit id="PackageInstallationFailed">
+        <source>The package installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">A instalação do pacote falhou com o código de saída {0}. Para mais informações, execute com a opção --debug.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the project file to add the integration to.</source>
+        <target state="translated">O caminho para o arquivo de projeto ao qual adicionar a integração.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAspirePackages">
+        <source>Searching for Aspire packages...</source>
+        <target state="translated">Procurando por pacotes Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAVersionOfPackage">
+        <source>Select a version of {0}:</source>
+        <target state="translated">Selecione uma versão do {0}:</target>
+        <note>{0} is the package name.</note>
+      </trans-unit>
+      <trans-unit id="SelectAnIntegrationToAdd">
+        <source>Select an integration to add:</source>
+        <target state="translated">Selecione uma integração para adicionar:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SourceArgumentDescription">
+        <source>The NuGet source to use for the integration.</source>
+        <target state="translated">A fonte do NuGet a ser usada para a integração.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedNumberOfPackagesFound">
+        <source>Unexpected number of packages found.</source>
+        <target state="translated">Número inesperado de pacotes encontrados.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionArgumentDescription">
+        <source>The version of the integration to add.</source>
+        <target state="translated">A versão da integração a ser adicionada.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../TemplatingStrings.resx">
+    <body>
+      <trans-unit id="AspireAppHost_Description">
+        <source>Aspire App Host</source>
+        <target state="translated">Aspire アプリ ホスティング プロセス</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireEmpty_Description">
+        <source>Aspire Empty App</source>
+        <target state="translated">Aspire の空のアプリ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireMSTest_Description">
+        <source>Aspire Test Project (MSTest)</source>
+        <target state="translated">Aspire テスト プロジェクト (MSTest)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireNUnit_Description">
+        <source>Aspire Test Project (NUnit)</source>
+        <target state="translated">Aspire テスト プロジェクト (NUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireServiceDefaults_Description">
+        <source>Aspire Service Defaults</source>
+        <target state="translated">Aspire サービスの既定</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireStarter_Description">
+        <source>Aspire Starter App</source>
+        <target state="translated">Aspire スターター アプリ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireXUnit_Description">
+        <source>Aspire Test Project (xUnit)</source>
+        <target state="translated">Aspire テスト プロジェクト (xUnit)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
+        <source>At least one template factory must be provided.</source>
+        <target state="translated">少なくとも 1 つのテンプレート ファクトリを指定する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CertificateTrustError">
+        <source>An error occurred while trusting the certificates: {0}</source>
+        <target state="translated">証明書の信頼処理でエラーが発生しました: {0}</target>
+        <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreatingNewProject">
+        <source>Creating new Aspire project...</source>
+        <target state="translated">新しい Aspire プロジェクトを作成しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Description">
+        <source>The version of xUnit.net to use for the test project.</source>
+        <target state="translated">テスト プロジェクトのために使用する xUnit.net のバージョン。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnterXUnitVersion_Prompt">
+        <source>Enter the xUnit.net version to use</source>
+        <target state="translated">使用する xUnit.net バージョンを入力</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GettingLatestTemplates">
+        <source>Getting latest templates...</source>
+        <target state="translated">最新のテンプレートを取得しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="No">
+        <source>No</source>
+        <target state="translated">いいえ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTemplateVersionsFound">
+        <source>No template versions were found. Please check your internet connection or NuGet source configuration.</source>
+        <target state="translated">テンプレート バージョンは見つかりませんでした。インターネット接続または NuGet のソース構成を確認してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="None">
+        <source>None</source>
+        <target state="translated">なし</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCreatedSuccessfully">
+        <source>Project created successfully in {0}.</source>
+        <target state="translated">{0} 内にプロジェクトが正常に作成されました。</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="ProjectCreationFailed">
+        <source>Project creation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">プロジェクトの作成が、次の終了コードで失敗しました: {0}。詳細情報については、--debug スイッチを使用し実行してください。</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Description">
+        <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
+        <target state="translated">MSTest、NUnit、または xUnit.net を使用して統合テスト用のプロジェクトを作成するかどうかを構成します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFMOptions_Prompt">
+        <source>Do you want to create a test project?</source>
+        <target state="translated">テスト プロジェクトを作成しますか?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_Prompt">
+        <source>Select a test framework</source>
+        <target state="translated">テスト フレームワークの選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForTFM_UsingForTesting">
+        <source>Using {0} for testing.</source>
+        <target state="translated">テストのために {0} を使用します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingForAvailableTemplateVersions">
+        <source>Searching for available project template versions...</source>
+        <target state="translated">使用可能なプロジェクト テンプレートのバージョンを検索しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateInstallationFailed">
+        <source>The template installation failed with exit code {0}. For more information run with --debug switch.</source>
+        <target state="translated">テンプレートのインストールが、次の終了コードで失敗しました: {0}。詳細情報については、--debug スイッチを使用し実行してください。</target>
+        <note>{0} is a number, --debug should not be localized</note>
+      </trans-unit>
+      <trans-unit id="Unknown">
+        <source>Unknown</source>
+        <target state="translated">不明</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Description">
+        <source>Configures whether to setup the application to use Redis for caching.</source>
+        <target state="translated">Redis をキャッシュに使用するようにアプリケーションを設定するかどうかを構成します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_Prompt">
+        <source>Use Redis Cache</source>
+        <target state="translated">Redis Cache を使用</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UnexpectedChoice">
+        <source>Unexpected choice for Redis Cache option</source>
+        <target state="translated">Redis Cache オプションに対する想定されない選択</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UseRedisCache_UsingRedisCache">
+        <source>Using Redis Cache for caching.</source>
+        <target state="translated">Redis Cache をキャッシュ用に使用。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingProjectTemplatesVersion">
+        <source>Using project templates version: {0}</source>
+        <target state="translated">次のバージョンのプロジェクト テンプレートを使用: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Yes">
+        <source>Yes</source>
+        <target state="translated">はい</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

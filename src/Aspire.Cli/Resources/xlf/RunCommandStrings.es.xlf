@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="es" original="../RunCommandStrings.resx">
+    <body>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Panel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run an Aspire app host in development mode.</source>
+        <target state="translated">Ejecute un host de aplicaciones Aspire en modo de desarrollo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Endpoints">
+        <source>Endpoints</source>
+        <target state="translated">Puntos de conexión</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Health">
+        <source>The health of the resource, eg Healthy</source>
+        <target state="translated">El estado del recurso, por ejemplo, Correcto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsCompatibleAppHostIsNull">
+        <source>IsCompatibleAppHost is null</source>
+        <target state="translated">IsCompatibleAppHost es null</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Registros</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PressCtrlCToStopAppHost">
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="needs-review-translation">Presione [bold]Ctrl+C[/] para detener el host de la aplicación y salir.</target>
+        <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">La ruta de acceso al archivo del proyecto host de la aplicación Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeRun">
+        <source>The project could not be run. For more information run with --debug switch.</source>
+        <target state="translated">No se pudo ejecutar el proyecto. Para obtener más información, ejecute con el conmutador --debug.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Resource">
+        <source>Resource</source>
+        <target state="translated">Recurso</target>
+        <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartingAppHost">
+        <source>Starting Aspire app host...</source>
+        <target state="translated">Iniciando el host de aplicaciones Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDashboard">
+        <source>Starting Aspire dashboard...</source>
+        <target state="translated">Iniciando el panel Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="State">
+        <source>State</source>
+        <target state="translated">Estado</target>
+        <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="Type">
+        <source>Type</source>
+        <target state="translated">Tipo</target>
+        <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WatchArgumentDescription">
+        <source>Start project resources in watch mode.</source>
+        <target state="translated">Inicie los recursos del proyecto en modo de inspección.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

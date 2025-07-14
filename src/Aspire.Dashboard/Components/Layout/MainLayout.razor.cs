@@ -28,7 +28,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
-    private const string MessageBarSection = "MessagesTop";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -126,7 +125,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                         Target = "_blank"
                     };
                     options.Intent = MessageIntent.Warning;
-                    options.Section = MessageBarSection;
+                    options.Section = DashboardUIHelpers.MessageBarSection;
                     options.AllowDismiss = true;
                     options.OnClose = async m =>
                     {
@@ -200,7 +199,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
-            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,

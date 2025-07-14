@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../RunCommandStrings.resx">
+    <body>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Řídicí panel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run an Aspire app host in development mode.</source>
+        <target state="translated">Spusťte hostitele aplikací Aspire ve vývojovém režimu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Endpoints">
+        <source>Endpoints</source>
+        <target state="translated">Koncové body</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Health">
+        <source>The health of the resource, eg Healthy</source>
+        <target state="translated">Stav prostředku, např. V pořádku</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsCompatibleAppHostIsNull">
+        <source>IsCompatibleAppHost is null</source>
+        <target state="translated">IsCompatibleAppHost má hodnotu null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Protokoly</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PressCtrlCToStopAppHost">
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="needs-review-translation">Stisknutím kláves [bold]Ctrl+C[/] zastavíte hostitele aplikací a ukončíte ho.</target>
+        <note>[bold] should not be localized</note>
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="translated">Cesta k souboru projektu hostitele aplikací Aspire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeRun">
+        <source>The project could not be run. For more information run with --debug switch.</source>
+        <target state="translated">Projekt nelze spustit. Další informace získáte spuštěním s přepínačem --debug.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Resource">
+        <source>Resource</source>
+        <target state="translated">Prostředek</target>
+        <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartingAppHost">
+        <source>Starting Aspire app host...</source>
+        <target state="translated">Spouští se hostitel aplikací Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDashboard">
+        <source>Starting Aspire dashboard...</source>
+        <target state="translated">Spouští se řídicí panel Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="State">
+        <source>State</source>
+        <target state="translated">Stav</target>
+        <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="Type">
+        <source>Type</source>
+        <target state="translated">Typ</target>
+        <note>The type of the resource, eg Project</note>
+      </trans-unit>
+      <trans-unit id="WatchArgumentDescription">
+        <source>Start project resources in watch mode.</source>
+        <target state="translated">Umožňuje spustit prostředky projektu v režimu kukátka.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

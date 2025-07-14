@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../InteractionServiceStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
+        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
+        <target state="translated">Uygulama ana işlemi uyumlu değil. Uygulama ana işlemi veya Aspire CLI'yi yükseltmeyi değerlendirin.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireCLIVersion">
+        <source>Aspire CLI Version</source>
+        <target state="translated">Aspire CLI Sürümü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireHostingSDKVersion">
+        <source>Aspire.Hosting Version</source>
+        <target state="translated">Aspire.Hosting Sürümü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildingAppHost">
+        <source>Building app host...</source>
+        <target state="translated">Uygulama ana işlemi oluşturuluyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingCertificates">
+        <source>Checking certificates...</source>
+        <target state="translated">Sertifikalar denetleniyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingProjectType">
+        <source>Checking project type...</source>
+        <target state="translated">Proje türü denetleniyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CodespacesLink">
+        <source>Codespaces</source>
+        <target state="translated">Codespaces</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="CreatedSettingsFile">
+        <source>Created settings file at {0}.</source>
+        <target state="translated">Ayarlar dosyası {0} konumunda oluşturuldu.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Pano</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectLink">
+        <source>Direct</source>
+        <target state="translated">Doğrudan</target>
+        <note>Represents a type of link</note>
+      </trans-unit>
+      <trans-unit id="ErrorConnectingToAppHost">
+        <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>
+        <target state="translated">Uygulama ana işlemiyle bağlantı kurulurken bir hata oluştu. Uygulama ana işlemi, kullanılabilir duruma gelmeden önce muhtemelen çöktü: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FindingAppHosts">
+        <source>Finding app hosts...</source>
+        <target state="translated">Uygulama ana işlemleri bulunuyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoItemsAvailableForSelection">
+        <source>No items available for selection: {0}</source>
+        <target state="translated">Seçim için herhangi bir öğe mevcut değil: {0}</target>
+        <note>{0} is the original selection prompt text.</note>
+      </trans-unit>
+      <trans-unit id="OperationCancelled">
+        <source>The operation was canceled.</source>
+        <target state="translated">İşlem iptal edildi.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCouldNotBeBuilt">
+        <source>The project could not be built. For more information run with --debug switch.</source>
+        <target state="translated">Proje oluşturulamadı. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDoesntExist">
+        <source>The --project option specified a project that does not exist.</source>
+        <target state="translated">--project seçeneği var olmayan bir projeyi belirtti.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
+        <source>The --project option was not specified and multiple app host project files were detected.</source>
+        <target state="translated">--project seçeneği belirtilmedi ve birden fazla uygulama ana işlemi projesi dosyası algılandı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
+        <source>The project argument was not specified and no *.csproj files were detected.</source>
+        <target state="translated">Proje bağımsız değişkeni belirtilmedi ve herhangi bir *.csproj dosyası algılanmadı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCapability">
+        <source>Required Capability</source>
+        <target state="translated">Gerekli Yetenek</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SearchingProjects">
+        <source>Searching...</source>
+        <target state="translated">Aranıyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHostToRun">
+        <source>Select app host to run</source>
+        <target state="translated">Çalıştırılacak uygulama ana işlemini belirtin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedProjectFileNotAppHostProject">
+        <source>The specified project file is not an Aspire app host project.</source>
+        <target state="translated">Belirtilen proje dosyası bir Aspire uygulama ana işlemi projesi değil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingAspire">
+        <source>Stopping Aspire.</source>
+        <target state="translated">Aspire durduruluyor.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TrustingCertificates">
+        <source>Trusting certificates...</source>
+        <target state="translated">Sertifikalara güveniliyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedErrorOccurred">
+        <source>An unexpected error occurred: {0}</source>
+        <target state="translated">Beklenmeyen bir hata oluştu: {0}</target>
+        <note>{0} is the exception message</note>
+      </trans-unit>
+      <trans-unit id="WaitingForDebuggerToAttachToAppHost">
+        <source>Waiting for debugger to attach to app host process</source>
+        <target state="translated">Hata ayıklayıcının uygulama ana işlemine eklenmesi bekleniyor</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
