@@ -589,25 +589,34 @@ function Update-PathEnvironment {
     }
 }
 
-# Main function
-function Main {
-    try {
-        # Determine the installation path
-        $InstallPath = Get-InstallPath -InstallPath $InstallPath
+# Function to download and install the Aspire CLI
+function Install-AspireCli {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallPath,
+        [Parameter(Mandatory = $true)]
+        [string]$Version,
+        [Parameter(Mandatory = $true)]
+        [string]$Quality,
+        [string]$OS,
+        [string]$Architecture,
+        [switch]$KeepArchive
+    )
 
-        # Create a temporary directory for downloads
-        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "aspire-cli-download-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+    # Create a temporary directory for downloads
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "aspire-cli-download-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
 
-        if (-not (Test-Path $tempDir)) {
-            Say-Verbose "Creating temporary directory: $tempDir"
-            try {
-                New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-            }
-            catch {
-                throw "Failed to create temporary directory: $tempDir - $($_.Exception.Message)"
-            }
+    if (-not (Test-Path $tempDir)) {
+        Say-Verbose "Creating temporary directory: $tempDir"
+        try {
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
         }
+        catch {
+            throw "Failed to create temporary directory: $tempDir - $($_.Exception.Message)"
+        }
+    }
 
+    try {
         # Determine OS and architecture (either detected or user-specified)
         $targetOS = if ([string]::IsNullOrWhiteSpace($OS)) { Get-OperatingSystem } else { $OS }
 
@@ -631,45 +640,57 @@ function Main {
         $filename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension"
         $checksumFilename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension.sha512"
 
-        try {
-            # Download the Aspire CLI archive
-            Say-Info "Downloading from: $url"
-            Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename -ValidateContentType -UseTempFile
+        # Download the Aspire CLI archive
+        Say-Info "Downloading from: $url"
+        Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename -ValidateContentType -UseTempFile
 
-            # Download and test the checksum
-            Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename -ValidateContentType -UseTempFile
-            Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
+        # Download and test the checksum
+        Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename -ValidateContentType -UseTempFile
+        Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
 
-            Say-Verbose "Successfully downloaded and validated: $filename"
+        Say-Verbose "Successfully downloaded and validated: $filename"
 
-            # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $InstallPath -OS $targetOS
+        # Unpack the archive
+        Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $InstallPath -OS $targetOS
 
-            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $InstallPath $cliExe
+        $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
+        $cliPath = Join-Path $InstallPath $cliExe
 
-            Say-Success "Aspire CLI successfully installed to: $cliPath"
+        Say-Success "Aspire CLI successfully installed to: $cliPath"
 
-            # Update PATH environment variables
-            Update-PathEnvironment -InstallPath $InstallPath -TargetOS $targetOS
-        }
-        finally {
-            # Clean up temporary directory and downloaded files
-            if (Test-Path $tempDir -ErrorAction SilentlyContinue) {
-                if (-not $KeepArchive) {
-                    try {
-                        Say-Verbose "Cleaning up temporary files..."
-                        Remove-Item $tempDir -Recurse -Force -ErrorAction Stop
-                    }
-                    catch {
-                        Say-Warning "Failed to clean up temporary directory: $tempDir - $($_.Exception.Message)"
-                    }
+        # Return the target OS for the caller to use
+        return $targetOS
+    }
+    finally {
+        # Clean up temporary directory and downloaded files
+        if (Test-Path $tempDir -ErrorAction SilentlyContinue) {
+            if (-not $KeepArchive) {
+                try {
+                    Say-Verbose "Cleaning up temporary files..."
+                    Remove-Item $tempDir -Recurse -Force -ErrorAction Stop
                 }
-                else {
-                    Say-Info "Archive files kept in: $tempDir"
+                catch {
+                    Say-Warning "Failed to clean up temporary directory: $tempDir - $($_.Exception.Message)"
                 }
             }
+            else {
+                Say-Info "Archive files kept in: $tempDir"
+            }
         }
+    }
+}
+
+# Main function
+function Main {
+    try {
+        # Determine the installation path
+        $InstallPath = Get-InstallPath -InstallPath $InstallPath
+
+        # Download and install the Aspire CLI
+        $targetOS = Install-AspireCli -InstallPath $InstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture -KeepArchive:$KeepArchive
+
+        # Update PATH environment variables
+        Update-PathEnvironment -InstallPath $InstallPath -TargetOS $targetOS
     }
     catch {
         Say-Error $_.Exception.Message
