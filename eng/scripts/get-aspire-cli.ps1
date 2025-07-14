@@ -42,8 +42,9 @@ PARAMETERS:
 
 ENVIRONMENT:
     The script automatically updates the PATH environment variable for the current session.
-    For persistent PATH changes across new terminal sessions, you may need to manually add
-    the installation path to your shell profile or PowerShell profile.
+
+    Windows: The script will also add the installation path to the user's persistent PATH
+    environment variable, making the aspire CLI available in new terminal sessions.
 
     GitHub Actions Support:
     When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
@@ -485,6 +486,67 @@ function Expand-AspireCliArchive {
     }
 }
 
+# Update PATH environment variables for the current session and persistently on Windows
+function Update-PathEnvironment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallPath,
+        [Parameter(Mandatory = $true)]
+        [string]$TargetOS
+    )
+
+    # Update PATH environment variable for the current session
+    $currentPath = $env:PATH
+    $pathSeparator = [System.IO.Path]::PathSeparator
+    $pathEntries = $currentPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+
+    if ($pathEntries -notcontains $InstallPath) {
+        $env:PATH = "$InstallPath$pathSeparator$currentPath"
+        Say-Info "Added $InstallPath to PATH for current session"
+    }
+
+    # Update persistent PATH for Windows
+    if ($TargetOS -eq "win") {
+        try {
+            # Get the current user PATH from registry
+            $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
+            if ([string]::IsNullOrEmpty($userPath)) {
+                $userPath = ""
+            }
+
+            $userPathEntries = $userPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+
+            if ($userPathEntries -notcontains $InstallPath) {
+                # Add to user PATH
+                $newUserPath = if ([string]::IsNullOrEmpty($userPath)) {
+                    $InstallPath
+                } else {
+                    "$InstallPath$pathSeparator$userPath"
+                }
+
+                [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
+                Say-Success "Added $InstallPath to user PATH environment variable"
+                Say-Info "The aspire CLI will be available in new terminal sessions"
+            }
+        }
+        catch {
+            Say-Warning "Failed to update persistent PATH environment variable: $($_.Exception.Message)"
+            Say-Info "You may need to manually add '$InstallPath' to your PATH environment variable"
+        }
+    }
+
+    # GitHub Actions support
+    if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
+        try {
+            Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
+            Say-Info "Added $InstallPath to GITHUB_PATH for GitHub Actions"
+        }
+        catch {
+            Say-Warning "Failed to update GITHUB_PATH: $($_.Exception.Message)"
+        }
+    }
+}
+
 # Main function
 function Main {
     try {
@@ -576,28 +638,8 @@ function Main {
 
             Say-Success "Aspire CLI successfully installed to: $cliPath"
 
-            # Update PATH environment variable for the current session
-            $currentPath = $env:PATH
-            $pathSeparator = [System.IO.Path]::PathSeparator
-            $pathEntries = $currentPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
-
-            if ($pathEntries -notcontains $InstallPath) {
-                $env:PATH = "$InstallPath$pathSeparator$currentPath"
-                Say-Info "Added $InstallPath to PATH for current session"
-            } else {
-                Say-Info "Path $InstallPath already exists in PATH, skipping addition"
-            }
-
-            # GitHub Actions support
-            if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
-                try {
-                    Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
-                    Say-Info "Added $InstallPath to GITHUB_PATH for GitHub Actions"
-                }
-                catch {
-                    Say-Warning "Failed to update GITHUB_PATH: $($_.Exception.Message)"
-                }
-            }
+            # Update PATH environment variables
+            Update-PathEnvironment -InstallPath $InstallPath -TargetOS $targetOS
         }
         finally {
             # Clean up temporary directory and downloaded files
