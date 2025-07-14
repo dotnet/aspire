@@ -90,7 +90,9 @@ public static class AzureCosmosExtensions
                });
 
         CosmosClient? cosmosClient = null;
+        
         var creationState = HealthCheckResult.Unhealthy("Waiting for databases and containers to be created");
+        
         builder.OnConnectionStringAvailable(async (cosmosDb, @event, ct) =>
         {
             var connectionString = await cosmosDb.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
@@ -188,7 +190,7 @@ public static class AzureCosmosExtensions
             = new ResiliencePipelineBuilder<ResponseMessage>()
                 .AddRetry(new()
                 {
-                    MaxRetryAttempts = 10,
+                    MaxRetryAttempts = 180, // 90 seconds of retries
                     Delay = TimeSpan.FromMilliseconds(500),
                     BackoffType = DelayBackoffType.Constant,
                     ShouldHandle = new PredicateBuilder<ResponseMessage>()
