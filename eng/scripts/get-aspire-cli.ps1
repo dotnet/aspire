@@ -486,6 +486,48 @@ function Expand-AspireCliArchive {
     }
 }
 
+# Determine the installation path based on user input or default location
+function Get-InstallPath {
+    param(
+        [string]$InstallPath
+    )
+
+    # Set default InstallPath if empty
+    if ([string]::IsNullOrWhiteSpace($InstallPath)) {
+        # Get the user's home directory in a cross-platform way
+        $homeDirectory = if ($Script:IsModernPowerShell) {
+            # PowerShell 6+ - use $env:HOME on all platforms
+            if ([string]::IsNullOrWhiteSpace($env:HOME)) {
+                # Fallback for Windows if HOME is not set
+                if ($IsWindows -and -not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+                    $env:USERPROFILE
+                } else {
+                    $env:HOME
+                }
+            } else {
+                $env:HOME
+            }
+        } else {
+            # PowerShell 5.1 and earlier - Windows only
+            if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+                $env:USERPROFILE
+            } elseif (-not [string]::IsNullOrWhiteSpace($env:HOME)) {
+                $env:HOME
+            } else {
+                $null
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+            throw "Unable to determine user home directory. Please specify -InstallPath parameter."
+        }
+
+        $InstallPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
+    }
+
+    return $InstallPath
+}
+
 # Update PATH environment variables for the current session and persistently on Windows
 function Update-PathEnvironment {
     param(
@@ -550,38 +592,8 @@ function Update-PathEnvironment {
 # Main function
 function Main {
     try {
-        # Set default InstallPath if empty
-        if ([string]::IsNullOrWhiteSpace($InstallPath)) {
-            # Get the user's home directory in a cross-platform way
-            $homeDirectory = if ($Script:IsModernPowerShell) {
-                # PowerShell 6+ - use $env:HOME on all platforms
-                if ([string]::IsNullOrWhiteSpace($env:HOME)) {
-                    # Fallback for Windows if HOME is not set
-                    if ($IsWindows -and -not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
-                        $env:USERPROFILE
-                    } else {
-                        $env:HOME
-                    }
-                } else {
-                    $env:HOME
-                }
-            } else {
-                # PowerShell 5.1 and earlier - Windows only
-                if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
-                    $env:USERPROFILE
-                } elseif (-not [string]::IsNullOrWhiteSpace($env:HOME)) {
-                    $env:HOME
-                } else {
-                    $null
-                }
-            }
-
-            if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
-                throw "Unable to determine user home directory. Please specify -InstallPath parameter."
-            }
-
-            $InstallPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
-        }
+        # Determine the installation path
+        $InstallPath = Get-InstallPath -InstallPath $InstallPath
 
         # Create a temporary directory for downloads
         $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "aspire-cli-download-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
