@@ -38,8 +38,8 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
 
         var custom = builder.AddResource(new CustomResource("myResource"));
         custom.WithAnnotation(new DcpInstancesAnnotation([
-            new DcpInstance("myResource", "abcdwxyz", 0),
-            new DcpInstance("myResource", "efghwxyz", 1)
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1)
             ]));
 
         var app = builder.Build();
@@ -82,7 +82,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
 
         var custom = builder.AddResource(new CustomResource("myResource"));
         custom.WithAnnotation(new DcpInstancesAnnotation([
-            new DcpInstance("myResource", "abcdwxyz", 0)
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0)
             ]));
         custom.WithCommand(name: "mycommand",
                 displayName: "My command",
