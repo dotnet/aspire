@@ -325,7 +325,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         {
                             for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
                             {
-                                inputsInfo.Inputs[i].SetValue(responses[i] ?? "");
+                                inputsInfo.Inputs[i].Value = responses[i] ?? "";
                             }
                         }
 

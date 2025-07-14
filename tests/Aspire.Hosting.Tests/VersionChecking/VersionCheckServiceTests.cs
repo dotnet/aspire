@@ -29,7 +29,7 @@ public class VersionCheckServiceTests
         _ = service.StartAsync(CancellationToken.None);
 
         var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
-        interaction.CompletionTcs.TrySetResult(InteractionResultFactory.Ok<bool>(true));
+        interaction.CompletionTcs.TrySetResult(InteractionResult.Ok(true));
 
         await service.ExecuteTask!.DefaultTimeout();
 
@@ -123,7 +123,7 @@ public class VersionCheckServiceTests
         _ = service.StartAsync(CancellationToken.None);
 
         var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
-        interaction.CompletionTcs.TrySetResult(InteractionResultFactory.Ok<bool>(true));
+        interaction.CompletionTcs.TrySetResult(InteractionResult.Ok(true));
 
         await service.ExecuteTask!.DefaultTimeout();
 

@@ -8,8 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestExpressionProvider, IValueProvider
 {
-    private string? _value;
-    private bool _hasValue;
+    private readonly Lazy<string> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
     private string? _configurationKey;
 
@@ -25,24 +24,16 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         ArgumentNullException.ThrowIfNull(callback);
 
         _valueGetter = callback;
+        _lazyValue = new Lazy<string>(() => _valueGetter(Default));
         Secret = secret;
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value
-    {
-        get
-        {
-            if (!_hasValue)
-            {
-                _value = _valueGetter(Default);
-                _hasValue = true;
-            }
-            return _value!;
-        }
-    }
+    public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
+
+    internal string ValueInternal => _lazyValue.Value;
 
     /// <summary>
     /// Represents how the default value of the parameter should be retrieved.
@@ -79,7 +70,12 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// </summary>
     internal TaskCompletionSource<string>? WaitForValueTcs { get; set; }
 
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for the value.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the value of the parameter.</returns>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
         if (WaitForValueTcs is not null)
         {
@@ -87,6 +83,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
             return await WaitForValueTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return Value;
+        // In publish mode, there's no WaitForValueTcs set.
+        return ValueInternal;
     }
 }

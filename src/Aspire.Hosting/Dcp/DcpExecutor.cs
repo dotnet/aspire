@@ -1145,6 +1145,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        // Force async execution
+        await Task.Yield();
+
         if (er.DcpResource is not Executable exe)
         {
             throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
@@ -1396,6 +1399,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        // Force async execution
+        await Task.Yield();
+
         await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
         var dcpContainerResource = (Container)cr.DcpResource;
