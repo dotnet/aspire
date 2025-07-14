@@ -3,7 +3,6 @@
 
 using Aspire.Shared;
 using Semver;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
 

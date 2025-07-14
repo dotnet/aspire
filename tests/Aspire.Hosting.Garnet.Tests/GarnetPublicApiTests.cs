@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Garnet.Tests;
 

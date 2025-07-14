@@ -7,7 +7,6 @@ using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
 

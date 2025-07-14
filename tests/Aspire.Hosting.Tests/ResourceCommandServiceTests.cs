@@ -5,7 +5,6 @@ using System.Threading.Channels;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

@@ -3,7 +3,6 @@
 
 #pragma warning disable CS0612
 
-using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
