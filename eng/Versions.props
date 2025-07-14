@@ -15,10 +15,10 @@
     <DotNetSdkPreviousVersionForTesting>8.0.406</DotNetSdkPreviousVersionForTesting>
     <!-- dotnet 10.0 versions for running tests - used for templates tests -->
     <DotNetSdkCurrentVersionForTesting>9.0.200</DotNetSdkCurrentVersionForTesting>
-    <XunitV3Version>3.0.0-pre.25</XunitV3Version>
+    <XunitV3Version>3.0.0</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
-    <MicrosoftTestingPlatformVersion>1.7.2</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>1.7.3</MicrosoftTestingPlatformVersion>
     <MicrosoftNETTestSdkVersion>17.13.0</MicrosoftNETTestSdkVersion>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
