@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.NuGet;
 
