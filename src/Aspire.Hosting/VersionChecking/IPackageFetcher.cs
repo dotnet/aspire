@@ -5,7 +5,7 @@ using Aspire.Shared;
 
 namespace Aspire.Hosting.VersionChecking;
 
-internal interface IVersionFetcher
+internal interface IPackageFetcher
 {
-    Task<List<NuGetPackage>> TryFetchVersionsAsync(string appHostDirectory, CancellationToken cancellationToken);
+    Task<List<NuGetPackage>> TryFetchPackagesAsync(string appHostDirectory, CancellationToken cancellationToken);
 }
