@@ -12,6 +12,8 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Spectre.Console;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+
 namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand

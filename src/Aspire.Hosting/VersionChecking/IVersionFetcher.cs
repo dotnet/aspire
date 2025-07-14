@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Semver;
+using Aspire.Shared;
 
 namespace Aspire.Hosting.VersionChecking;
 
 internal interface IVersionFetcher
 {
-    Task<SemVersion?> TryFetchLatestVersionAsync(string appHostDirectory, CancellationToken cancellationToken);
+    Task<List<NuGetPackage>> TryFetchVersionsAsync(string appHostDirectory, CancellationToken cancellationToken);
 }

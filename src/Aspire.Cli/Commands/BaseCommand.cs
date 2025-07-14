@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 
@@ -29,7 +30,9 @@ internal abstract class BaseCommand : Command
                     // but we'll only wait so long before we get details back about updates
                     // being available (it should already be in the cache for longer running
                     // commands and some commands will opt out entirely)
-                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    var cts = !Debugger.IsAttached
+                        ? new CancellationTokenSource(TimeSpan.FromSeconds(10))
+                        : new CancellationTokenSource();
                     await updateNotifier.NotifyIfUpdateAvailableAsync(currentDirectory, cancellationToken: cts.Token);
                 }
                 catch

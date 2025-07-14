@@ -3,10 +3,10 @@
 
 using System.Globalization;
 using Aspire.Hosting.VersionChecking;
+using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using Semver;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
@@ -21,12 +21,15 @@ public class VersionCheckServiceTests
         // Arrange
         var interactionService = new TestInteractionService();
         var configurationManager = new ConfigurationManager();
-        var versionFetcher = new TestVersionFetcher();
+        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var versionFetcher = new TestVersionFetcher(versionTcs.Task);
         var options = new DistributedApplicationOptions();
         var service = CreateVersionCheckService(interactionService: interactionService, versionFetcher: versionFetcher, configuration: configurationManager, options: options);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
+
+        versionTcs.TrySetResult([new NuGetPackage { Id = VersionFetcher.PackageId, Version = "100.0.0" }]);
 
         var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         interaction.CompletionTcs.TrySetResult(InteractionResult.Ok(true));
@@ -75,7 +78,7 @@ public class VersionCheckServiceTests
             [VersionCheckService.LastCheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture)
         });
 
-        var versionTcs = new TaskCompletionSource<SemVersion?>();
+        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var versionFetcher = new TestVersionFetcher(versionTcs.Task);
         var service = CreateVersionCheckService(
             interactionService: interactionService,
@@ -111,7 +114,7 @@ public class VersionCheckServiceTests
             [VersionCheckService.KnownLatestVersionKey] = "100.0.0"
         });
 
-        var versionTcs = new TaskCompletionSource<SemVersion?>();
+        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var versionFetcher = new TestVersionFetcher(versionTcs.Task);
         var service = CreateVersionCheckService(
             interactionService: interactionService,
@@ -137,14 +140,14 @@ public class VersionCheckServiceTests
         // Arrange
         var interactionService = new TestInteractionService();
         var configurationManager = new ConfigurationManager();
-        var versionTcs = new TaskCompletionSource<SemVersion?>();
+        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var versionFetcher = new TestVersionFetcher(versionTcs.Task);
         var service = CreateVersionCheckService(interactionService: interactionService, versionFetcher: versionFetcher, configuration: configurationManager);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
 
-        versionTcs.SetResult(new SemVersion(0, 1));
+        versionTcs.SetResult([new NuGetPackage { Id = VersionFetcher.PackageId, Version = "0.1.0" }]);
 
         await service.ExecuteTask!.DefaultTimeout();
 
@@ -166,14 +169,14 @@ public class VersionCheckServiceTests
         {
             [VersionCheckService.IgnoreVersionKey] = "100.0.0"
         });
-        var versionTcs = new TaskCompletionSource<SemVersion?>();
+        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var versionFetcher = new TestVersionFetcher(versionTcs.Task);
         var service = CreateVersionCheckService(interactionService: interactionService, versionFetcher: versionFetcher, configuration: configurationManager);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
 
-        versionTcs.SetResult(new SemVersion(100, 0));
+        versionTcs.SetResult([new NuGetPackage { Id = VersionFetcher.PackageId, Version = "100.0.0" }]);
 
         await service.ExecuteTask!.DefaultTimeout();
 
@@ -216,16 +219,16 @@ public class VersionCheckServiceTests
 
     private sealed class TestVersionFetcher : IVersionFetcher
     {
-        private readonly Task<SemVersion?> _versionTask;
+        private readonly Task<List<NuGetPackage>> _versionTask;
 
         public bool FetchCalled { get; private set; }
 
-        public TestVersionFetcher(Task<SemVersion?>? versionTask = null)
+        public TestVersionFetcher(Task<List<NuGetPackage>>? versionTask = null)
         {
-            _versionTask = versionTask ?? Task.FromResult<SemVersion?>(new SemVersion(100, 0, 0));
+            _versionTask = versionTask ?? Task.FromResult<List<NuGetPackage>>([]);
         }
 
-        public Task<SemVersion?> TryFetchLatestVersionAsync(string appHostDirectory, CancellationToken cancellationToken)
+        public Task<List<NuGetPackage>> TryFetchVersionsAsync(string appHostDirectory, CancellationToken cancellationToken)
         {
             FetchCalled = true;
             return _versionTask;
