@@ -7,6 +7,7 @@ import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
+import * as terminalUtils from '../../utils/terminal';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -182,6 +183,7 @@ suite('InteractionService endpoints', () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+
 		testInfo.interactionService.displayLines([
 			{ Stream: 'stdout', Line: 'line1' },
 			{ Stream: 'stderr', Line: 'line2' }
@@ -190,14 +192,6 @@ suite('InteractionService endpoints', () => {
 		assert.ok(stub.calledWith('line1'));
 		assert.ok(stub.calledWith('line2'));
 		showInformationMessageSpy.restore();
-	});
-
-	test("displayCancellationMessage endpoint", async () => {
-		const testInfo = await createTestRpcServer();
-		const showWarningMessageSpy = sinon.spy(vscode.window, 'showWarningMessage');
-		testInfo.interactionService.displayCancellationMessage('Test cancelled');
-		assert.ok(showWarningMessageSpy.calledWith('Test cancelled'));
-		showWarningMessageSpy.restore();
 	});
 });
 

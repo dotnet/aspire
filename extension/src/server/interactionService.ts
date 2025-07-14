@@ -24,7 +24,7 @@ export interface IInteractionService {
     displayEmptyLine: () => void;
     displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
-    displayCancellationMessage: (message: string) => void;
+    displayCancellationMessage: () => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
     launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], rpcClient: ICliRpcClient): Promise<void>;
@@ -222,14 +222,13 @@ export class InteractionService implements IInteractionService {
     }
 
     displayLines(lines: ConsoleLine[]) {
-        lines.forEach(line => {
-            getAspireTerminal().sendText(formatText(line.Line), false);
-            extensionLogOutputChannel.info(formatText(line.Line));
-        });
+        const displayText = lines.map(line => line.Line).join('\n');
+        vscode.window.showInformationMessage(formatText(displayText));
+        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.Line)));
     }
 
     displayCancellationMessage() {
-        extensionLogOutputChannel.info(`Canceled Aspire operation.`);
+        extensionLogOutputChannel.info(`Cancelled Aspire operation.`);
     }
 
     openProject(projectPath: string) {
