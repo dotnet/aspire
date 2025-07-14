@@ -24,7 +24,8 @@ public class ExecContainerResourceTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_ListFilesInDirectory_ShouldProduceLogs()
     {
-        Environment.SetEnvironmentVariable("DCP_LOG_LEVEL", "debug");
+        Environment.SetEnvironmentVariable("DCP_DIAGNOSTICS_LOG_LEVEL", "debug");
+        Environment.SetEnvironmentVariable("DCP_DIAGNOSTICS_LOG_FOLDER", @"D:\.other\dcp-logs");
 
         string[] args = [
             "--operation", "run",
@@ -74,7 +75,7 @@ public class ExecContainerResourceTests(ITestOutputHelper output)
 
         var apiService = builder.AddProject<Containers_ApiService>("apiservice");
         var nginx = builder.AddContainer("nginx", "nginx", "1.25");
-        // var executable = builder.AddExecutable("cmd", "dotnet build", "C:\\code");
+        var executable = builder.AddExecutable("cmd", "dotnet build", "C:\\code");
 
         return await builder.BuildAsync();
     }

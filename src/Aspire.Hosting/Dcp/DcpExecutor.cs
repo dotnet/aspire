@@ -247,6 +247,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 await Task.WhenAll(
                     Task.Run(() => WatchKubernetesResourceAsync<Executable>((t, r) => ProcessResourceChange(t, r, _resourceState.ExecutablesMap, "Executable", (e, s) => _snapshotBuilder.ToSnapshot(e, s)))),
                     Task.Run(() => WatchKubernetesResourceAsync<Container>((t, r) => ProcessResourceChange(t, r, _resourceState.ContainersMap, "Container", (c, s) => _snapshotBuilder.ToSnapshot(c, s)))),
+                    Task.Run(() => WatchKubernetesResourceAsync<ContainerExec>((t, r) => ProcessResourceChange(t, r, _resourceState.ContainerExecsMap, "ContainerExec", (c, s) => _snapshotBuilder.ToSnapshot(c, s)))),
                     Task.Run(() => WatchKubernetesResourceAsync<Service>(ProcessServiceChange)),
                     Task.Run(() => WatchKubernetesResourceAsync<Endpoint>(ProcessEndpointChange))).ConfigureAwait(false);
             }
@@ -296,6 +297,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         else if (_resourceState.ExecutablesMap.TryGetValue(entry.ResourceName, out var executable))
                         {
                             StartLogStream(executable);
+                        }
+                        else if (_resourceState.ContainerExecsMap.TryGetValue(entry.ResourceName, out var containerExec))
+                        {
+                            StartLogStream(containerExec);
                         }
                     }
                     else
@@ -512,6 +517,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             enumerable = new ResourceLogSource<Executable>(_logger, _kubernetesService, executable, follow: false);
         }
+        else if (_resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec))
+        {
+            enumerable = new ResourceLogSource<ContainerExec>(_logger, _kubernetesService, containerExec, follow: false);
+        }
 
         if (enumerable != null)
         {
@@ -638,6 +647,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         CustomResource? cr = resourceKind switch
         {
             "Container" => _resourceState.ContainersMap.TryGetValue(resourceName, out var container) ? container : null,
+            "ContainerExec" => _resourceState.ContainerExecsMap.TryGetValue(resourceName, out var containerExec) ? containerExec : null,
             "Executable" => _resourceState.ExecutablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
             _ => null
         };
@@ -903,6 +913,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 command: containerExecutable.Command,
                 args: containerExecutable.Args?.ToList(),
                 workingDirectory: containerExecutable.WorkingDirectory);
+
+            containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);
+            containerExec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
+            containerExec.Annotate(CustomResource.ResourceNameAnnotation, containerExecutable.Name);
             SetInitialResourceState(containerExecutable, containerExec);
 
             var exeAppResource = new AppResource(containerExecutable, containerExec);
