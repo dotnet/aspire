@@ -2,6 +2,11 @@
   "sdk": {
     "version": "10.0.100-preview.5.25277.114",
     "rollForward": "major",
+    "paths": [
+      ".dotnet",
+      "$host$"
+    ],
+    "errorMessage": "The .NET SDK could not be found, please run ./build.cmd on Windows or ./build.sh on Linux and macOS.",
     "allowPrerelease": true
   },
   "tools": {
