@@ -3,8 +3,10 @@
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,26 +27,24 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly ILogger<VersionCheckService> _logger;
     private readonly IConfiguration _configuration;
     private readonly DistributedApplicationOptions _options;
-    private readonly IVersionFetcher _versionFetcher;
+    private readonly IPackageFetcher _packageFetcher;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
-    private readonly SemVersion _appHostVersion;
+    private readonly SemVersion? _appHostVersion;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
-        IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher,
+        IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
         DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider)
     {
         _interactionService = interactionService;
         _logger = logger;
         _configuration = configuration;
         _options = options;
-        _versionFetcher = versionFetcher;
+        _packageFetcher = packageFetcher;
         _executionContext = executionContext;
         _timeProvider = timeProvider;
 
-        var version = typeof(VersionCheckService).Assembly.GetName().Version!;
-        var patch = version.Build > 0 ? version.Build : 0;
-        _appHostVersion = new SemVersion(version.Major, version.Minor, patch);
+        _appHostVersion = PackageUpdateHelpers.GetCurrentPackageVersion();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,6 +53,12 @@ internal sealed class VersionCheckService : BackgroundService
         {
             // Don't check version if there is no way to prompt that information to the user.
             // Or app is being run during a publish.
+            return;
+        }
+
+        if (_appHostVersion == null)
+        {
+            _logger.LogDebug("App host version is not available, skipping version check.");
             return;
         }
 
@@ -72,6 +78,8 @@ internal sealed class VersionCheckService : BackgroundService
 
     private async Task CheckForLatestAsync(CancellationToken cancellationToken)
     {
+        Debug.Assert(_appHostVersion != null);
+
         var now = _timeProvider.GetUtcNow();
         var checkForLatestVersion = true;
         if (_configuration[LastCheckDateKey] is string checkDateString &&
@@ -90,7 +98,9 @@ internal sealed class VersionCheckService : BackgroundService
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
             SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
-            latestVersion = await _versionFetcher.TryFetchLatestVersionAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
+            var packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
+
+            latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages);
         }
 
         if (TryGetConfigVersion(KnownLatestVersionKey, out var storedKnownLatestVersion))
