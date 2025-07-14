@@ -42,29 +42,30 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
             await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token).ConfigureAwait(false))
             {
-                var hasUrlChanges = false;
+                var hasPeerRelevantChanges = false;
 
                 foreach (var (changeType, resource) in changes)
                 {
                     if (changeType == ResourceViewModelChangeType.Upsert)
                     {
-                        if (!_resourceByName.TryGetValue(resource.Name, out var existingResource) || !AreEquivalent(resource.Urls, existingResource.Urls))
+                        if (!_resourceByName.TryGetValue(resource.Name, out var existingResource) || 
+                            !ArePeerRelevantPropertiesEquivalent(resource, existingResource))
                         {
-                            hasUrlChanges = true;
+                            hasPeerRelevantChanges = true;
                         }
 
                         _resourceByName[resource.Name] = resource;
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
                     {
-                        hasUrlChanges = true;
+                        hasPeerRelevantChanges = true;
 
                         var removed = _resourceByName.TryRemove(resource.Name, out _);
                         Debug.Assert(removed, "Cannot remove unknown resource.");
                     }
                 }
 
-                if (hasUrlChanges)
+                if (hasPeerRelevantChanges)
                 {
                     await RaisePeerChangesAsync().ConfigureAwait(false);
                 }
@@ -72,7 +73,30 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         });
     }
 
-    private static bool AreEquivalent(ImmutableArray<UrlViewModel> urls1, ImmutableArray<UrlViewModel> urls2)
+    private static bool ArePeerRelevantPropertiesEquivalent(ResourceViewModel resource1, ResourceViewModel resource2)
+    {
+        // Check if URLs are equivalent
+        if (!AreUrlsEquivalent(resource1.Urls, resource2.Urls))
+        {
+            return false;
+        }
+
+        // Check if connection string properties are equivalent
+        if (!ArePropertyValuesEquivalent(resource1, resource2, KnownProperties.Resource.ConnectionString))
+        {
+            return false;
+        }
+
+        // Check if parameter value properties are equivalent
+        if (!ArePropertyValuesEquivalent(resource1, resource2, KnownProperties.Parameter.Value))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool AreUrlsEquivalent(ImmutableArray<UrlViewModel> urls1, ImmutableArray<UrlViewModel> urls2)
     {
         // Compare if the two sets of URLs are equivalent.
         if (urls1.Length != urls2.Length)
@@ -94,6 +118,30 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         return true;
     }
 
+    private static bool ArePropertyValuesEquivalent(ResourceViewModel resource1, ResourceViewModel resource2, string propertyName)
+    {
+        var hasProperty1 = resource1.Properties.TryGetValue(propertyName, out var property1);
+        var hasProperty2 = resource2.Properties.TryGetValue(propertyName, out var property2);
+
+        // If both don't have the property, they're equivalent
+        if (!hasProperty1 && !hasProperty2)
+        {
+            return true;
+        }
+
+        // If only one has the property, they're not equivalent
+        if (hasProperty1 != hasProperty2)
+        {
+            return false;
+        }
+
+        // Both have the property, compare values
+        var value1 = property1!.Value.TryConvertToString(out var str1) ? str1 : string.Empty;
+        var value2 = property2!.Value.TryConvertToString(out var str2) ? str2 : string.Empty;
+
+        return string.Equals(value1, value2, StringComparison.Ordinal);
+    }
+
     public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
         return TryResolvePeerNameCore(_resourceByName, attributes, out name, out matchedResource);
@@ -104,20 +152,23 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
-            // Match exact value.
-            if (TryMatchResourceAddress(address, out name, out resourceMatch))
+            // Extract all possible addresses from resources upfront to avoid nested transformer loops
+            var resourceAddresses = ExtractResourceAddresses(resources);
+            
+            // Apply transformers to the peer address cumulatively
+            var transformedAddress = address;
+            
+            // First check exact match
+            if (TryMatchAgainstResourceAddresses(transformedAddress, resourceAddresses, resources, out name, out resourceMatch))
             {
                 return true;
             }
-
-            // Resource addresses have the format "127.0.0.1:5000". Some libraries modify the peer.service value on the span.
-            // If there isn't an exact match then transform the peer.service value and try to match again.
-            // Change from transformers are cumulative. e.g. "localhost,5000" -> "localhost:5000" -> "127.0.0.1:5000"
-            var transformedAddress = address;
+            
+            // Then apply each transformer cumulatively and check
             foreach (var transformer in s_addressTransformers)
             {
                 transformedAddress = transformer(transformedAddress);
-                if (TryMatchResourceAddress(transformedAddress, out name, out resourceMatch))
+                if (TryMatchAgainstResourceAddresses(transformedAddress, resourceAddresses, resources, out name, out resourceMatch))
                 {
                     return true;
                 }
@@ -127,57 +178,27 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         name = null;
         resourceMatch = null;
         return false;
+    }
 
-        bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
+    /// <summary>
+    /// Checks if a transformed peer address matches any of the resource addresses.
+    /// Applies the same transformations to resource addresses for consistent matching.
+    /// </summary>
+    private static bool TryMatchAgainstResourceAddresses(string peerAddress, List<(string Address, ResourceViewModel Resource)> resourceAddresses, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
+    {
+        foreach (var (resourceAddress, resource) in resourceAddresses)
         {
-            foreach (var (resourceName, resource) in resources)
+            if (DoesAddressMatch(resourceAddress, peerAddress))
             {
-                // Try to match against URL endpoints
-                foreach (var service in resource.Urls)
-                {
-                    var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
-
-                    if (DoesAddressMatch(hostAndPort, value))
-                    {
-                        name = ResourceViewModel.GetResourceName(resource, resources);
-                        resourceMatch = resource;
-                        return true;
-                    }
-                }
-
-                // Try to match against connection strings using comprehensive parsing
-                if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
-                    connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
-                    ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
-                {
-                    var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
-                    if (DoesAddressMatch(endpoint, value))
-                    {
-                        name = ResourceViewModel.GetResourceName(resource, resources);
-                        resourceMatch = resource;
-                        return true;
-                    }
-                }
-
-                // Try to match against parameter values (for Parameter resources that contain URLs or host:port values)
-                if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
-                    parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
-                    ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
-                {
-                    var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
-                    if (DoesAddressMatch(parameterEndpoint, value))
-                    {
-                        name = ResourceViewModel.GetResourceName(resource, resources);
-                        resourceMatch = resource;
-                        return true;
-                    }
-                }
+                name = ResourceViewModel.GetResourceName(resource, resources);
+                resourceMatch = resource;
+                return true;
             }
-
-            name = null;
-            resourceMatch = null;
-            return false;
         }
+
+        name = null;
+        resourceMatch = null;
+        return false;
     }
 
     private static bool DoesAddressMatch(string endpoint, string value)
@@ -199,6 +220,45 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Extracts all possible addresses from resources that can be used for peer matching.
+    /// Returns a list of (address, resource) pairs for efficient lookup.
+    /// </summary>
+    private static List<(string Address, ResourceViewModel Resource)> ExtractResourceAddresses(IDictionary<string, ResourceViewModel> resources)
+    {
+        var addresses = new List<(string, ResourceViewModel)>();
+
+        foreach (var (_, resource) in resources)
+        {
+            // Extract addresses from URL endpoints
+            foreach (var service in resource.Urls)
+            {
+                var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+                addresses.Add((hostAndPort, resource));
+            }
+
+            // Extract addresses from connection strings using comprehensive parsing
+            if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+                connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+                ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
+            {
+                var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+                addresses.Add((endpoint, resource));
+            }
+
+            // Extract addresses from parameter values (for Parameter resources that contain URLs or host:port values)
+            if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+                parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+                ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
+            {
+                var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+                addresses.Add((parameterEndpoint, resource));
+            }
+        }
+
+        return addresses;
     }
 
     private static readonly List<Func<string, string>> s_addressTransformers = [
