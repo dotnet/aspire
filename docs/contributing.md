@@ -68,7 +68,7 @@ To run tests, use the build script:
 
 ```bash
 ./build.sh --test  # Linux/macOS
-./build.cmd --test # Windows
+./build.cmd -test # Windows
 ```
 
 ### Quarantined Tests
