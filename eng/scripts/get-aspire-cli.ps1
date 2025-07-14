@@ -2,7 +2,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$OutputPath = "",
+    [string]$InstallPath = "",
     [string]$Version = "9.0",
     [string]$Quality = "daily",
     [string]$OS = "",
@@ -17,16 +17,22 @@ $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
 
-# Show help if requested
+# Ensure minimum PowerShell version
+if ($PSVersionTable.PSVersion.Major -lt 4) {
+    Write-Host "Error: This script requires PowerShell 4.0 or later. Current version: $($PSVersionTable.PSVersion)" -ForegroundColor Red
+    exit 1
+}
+
 if ($Help) {
     Write-Host @"
 Aspire CLI Download Script
 
 DESCRIPTION:
-    Downloads and unpacks the Aspire CLI for the current platform from the specified version and quality.
+    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
+    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
 PARAMETERS:
-    -OutputPath <string>        Directory to unpack the CLI (default: aspire-cli directory under current directory)
+    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, $HOME/.aspire/bin on Unix)
     -Version <string>           Version of the Aspire CLI to download (default: 9.0)
     -Quality <string>           Quality to download (default: daily)
     -OS <string>                Operating system (default: auto-detect)
@@ -34,9 +40,19 @@ PARAMETERS:
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
     -Help                       Show this help message
 
+ENVIRONMENT:
+    The script automatically updates the PATH environment variable for the current session.
+    For persistent PATH changes across new terminal sessions, you may need to manually add
+    the installation path to your shell profile or PowerShell profile.
+
+    GitHub Actions Support:
+    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
+    append the installation path to the GITHUB_PATH file to make the CLI available in
+    subsequent workflow steps.
+
 EXAMPLES:
     .\get-aspire-cli.ps1
-    .\get-aspire-cli.ps1 -OutputPath "C:\temp"
+    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
     .\get-aspire-cli.ps1 -Version "9.0" -Quality "release"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -KeepArchive
@@ -53,6 +69,42 @@ function Say-Verbose($str) {
     catch {
         # Some platforms cannot utilize Write-Verbose (Azure Functions, for instance). Fall back to Write-Output
         Write-Output $str
+    }
+}
+
+function Say-Info($str) {
+    try {
+        Write-Host $str -ForegroundColor White
+    }
+    catch {
+        Write-Output $str
+    }
+}
+
+function Say-Success($str) {
+    try {
+        Write-Host $str -ForegroundColor Green
+    }
+    catch {
+        Write-Output $str
+    }
+}
+
+function Say-Warning($str) {
+    try {
+        Write-Host "Warning: $str" -ForegroundColor Yellow
+    }
+    catch {
+        Write-Output "Warning: $str"
+    }
+}
+
+function Say-Error($str) {
+    try {
+        Write-Host "Error: $str" -ForegroundColor Red
+    }
+    catch {
+        Write-Output "Error: $str"
     }
 }
 
@@ -84,16 +136,16 @@ function Get-OperatingSystem {
         }
     }
     else {
-        # PowerShell 5.1 and earlier
-        if ($env:OS -eq "Windows_NT") {
+        # PowerShell 5.1 and earlier - more reliable Windows detection
+        if ($env:OS -eq "Windows_NT" -or [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
             return "win"
         }
         else {
             $platform = [System.Environment]::OSVersion.Platform
-            if ($platform -eq 4 -or $platform -eq 6) {
+            if ($platform -eq [System.PlatformID]::Unix -or $platform -eq 4 -or $platform -eq 6) {
                 return "linux"
             }
-            elseif ($platform -eq 128) {
+            elseif ($platform -eq [System.PlatformID]::MacOSX -or $platform -eq 128) {
                 return "osx"
             }
             else {
@@ -104,8 +156,8 @@ function Get-OperatingSystem {
 }
 
 # Taken from dotnet-install.ps1 and enhanced for cross-platform support
-function Get-Machine-Architecture() {
-    Say-Verbose $MyInvocation
+function Get-MachineArchitecture() {
+    Say-Verbose "Get-MachineArchitecture called"
 
     # On Windows PowerShell, use environment variables
     if (-not $Script:IsModernPowerShell -or $IsWindows) {
@@ -148,9 +200,9 @@ function Get-Machine-Architecture() {
                     if (Get-Command uname -ErrorAction SilentlyContinue) {
                         $unameArch = & uname -m
                         switch ($unameArch) {
-                            { $_ -in @('x86_64', 'amd64') } { return "x64" }
-                            { $_ -in @('aarch64', 'arm64') } { return "arm64" }
-                            { $_ -in @('i386', 'i686') } { return "x86" }
+                            { @('x86_64', 'amd64') -contains $_ } { return "x64" }
+                            { @('aarch64', 'arm64') -contains $_ } { return "arm64" }
+                            { @('i386', 'i686') -contains $_ } { return "x86" }
                             default {
                                 Say-Verbose "Unknown uname architecture: $unameArch"
                                 return "x64"  # Default fallback
@@ -162,7 +214,7 @@ function Get-Machine-Architecture() {
             }
         }
         catch {
-            Write-Warning "Failed to get runtime architecture: $($_.Exception.Message)"
+            Say-Warning "Failed to get runtime architecture: $($_.Exception.Message)"
             # Final fallback - assume x64
             return "x64"
         }
@@ -173,11 +225,11 @@ function Get-Machine-Architecture() {
 }
 
 # taken from dotnet-install.ps1
-function Get-CLIArchitecture-From-Architecture([string]$Architecture) {
-    Say-Verbose $MyInvocation
+function Get-CLIArchitectureFromArchitecture([string]$Architecture) {
+    Say-Verbose "Get-CLIArchitectureFromArchitecture called with Architecture: $Architecture"
 
     if ($Architecture -eq "<auto>") {
-        $Architecture = Get-Machine-Architecture
+        $Architecture = Get-MachineArchitecture
     }
 
     switch ($Architecture.ToLowerInvariant()) {
@@ -245,7 +297,26 @@ function Invoke-SecureWebRequest {
 
     # Configure TLS for PowerShell 5
     if (-not $Script:IsModernPowerShell) {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+        try {
+            # Try to set TLS 1.2 and 1.3, but fallback gracefully if TLS 1.3 is not available
+            $tls12 = [Net.SecurityProtocolType]::Tls12
+            $currentProtocols = $tls12
+
+            # Try to add TLS 1.3 if available (may not be available on older Windows versions)
+            try {
+                $tls13 = [Net.SecurityProtocolType]::Tls13
+                $currentProtocols = $tls12 -bor $tls13
+            }
+            catch {
+                # TLS 1.3 not available, just use TLS 1.2
+                Say-Verbose "TLS 1.3 not available, using TLS 1.2 only"
+            }
+
+            [Net.ServicePointManager]::SecurityProtocol = $currentProtocols
+        }
+        catch {
+            Say-Warning "Failed to configure TLS settings: $($_.Exception.Message)"
+        }
     }
 
     try {
@@ -264,9 +335,30 @@ function Invoke-SecureWebRequest {
         }
 
         if ($Script:IsModernPowerShell) {
-            $requestParams.SslProtocol = @('Tls12', 'Tls13')
-            $requestParams.OperationTimeoutSeconds = $OperationTimeoutSec
-            $requestParams.MaximumRetryCount = $MaxRetries
+            # Add modern PowerShell parameters with error handling
+            try {
+                $requestParams.SslProtocol = @('Tls12', 'Tls13')
+            }
+            catch {
+                # SslProtocol parameter might not be available in all PowerShell 6+ versions
+                Say-Verbose "SslProtocol parameter not available: $($_.Exception.Message)"
+            }
+
+            try {
+                $requestParams.OperationTimeoutSeconds = $OperationTimeoutSec
+            }
+            catch {
+                # OperationTimeoutSeconds might not be available
+                Say-Verbose "OperationTimeoutSeconds parameter not available: $($_.Exception.Message)"
+            }
+
+            try {
+                $requestParams.MaximumRetryCount = $MaxRetries
+            }
+            catch {
+                # MaximumRetryCount might not be available
+                Say-Verbose "MaximumRetryCount parameter not available: $($_.Exception.Message)"
+            }
         }
 
         $webResponse = Invoke-WebRequest @requestParams
@@ -299,7 +391,7 @@ function Invoke-FileDownload {
             $contentType = Get-ContentTypeFromHeaders -Headers $headResponse.Headers
 
             if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-                throw "Server returned HTML content (Content-Type: $contentType) instead of expected file."
+                throw "Server returned HTML content (Content-Type: $contentType) instead of expected file. Make sure the URL is correct."
             }
         }
 
@@ -396,9 +488,37 @@ function Expand-AspireCliArchive {
 # Main function
 function Main {
     try {
-        # Set default OutputPath if empty
-        if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-            $OutputPath = Join-Path (Get-Location) "aspire-cli"
+        # Set default InstallPath if empty
+        if ([string]::IsNullOrWhiteSpace($InstallPath)) {
+            # Get the user's home directory in a cross-platform way
+            $homeDirectory = if ($Script:IsModernPowerShell) {
+                # PowerShell 6+ - use $env:HOME on all platforms
+                if ([string]::IsNullOrWhiteSpace($env:HOME)) {
+                    # Fallback for Windows if HOME is not set
+                    if ($IsWindows -and -not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+                        $env:USERPROFILE
+                    } else {
+                        $env:HOME
+                    }
+                } else {
+                    $env:HOME
+                }
+            } else {
+                # PowerShell 5.1 and earlier - Windows only
+                if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+                    $env:USERPROFILE
+                } elseif (-not [string]::IsNullOrWhiteSpace($env:HOME)) {
+                    $env:HOME
+                } else {
+                    $null
+                }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+                throw "Unable to determine user home directory. Please specify -InstallPath parameter."
+            }
+
+            $InstallPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
         }
 
         # Create a temporary directory for downloads
@@ -422,7 +542,7 @@ function Main {
             throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
         }
 
-        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitecture-From-Architecture '<auto>' } else { Get-CLIArchitecture-From-Architecture $Architecture }
+        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitectureFromArchitecture '<auto>' } else { Get-CLIArchitectureFromArchitecture $Architecture }
 
         # Construct the runtime identifier
         $runtimeIdentifier = "$targetOS-$targetArch"
@@ -439,6 +559,7 @@ function Main {
 
         try {
             # Download the Aspire CLI archive
+            Say-Info "Downloading from: $url"
             Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename -ValidateContentType -UseTempFile
 
             # Download and test the checksum
@@ -448,12 +569,35 @@ function Main {
             Say-Verbose "Successfully downloaded and validated: $filename"
 
             # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $OutputPath -OS $targetOS
+            Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $InstallPath -OS $targetOS
 
             $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $OutputPath $cliExe
+            $cliPath = Join-Path $InstallPath $cliExe
 
-            Write-Host "Aspire CLI successfully unpacked to: $cliPath" -ForegroundColor Green
+            Say-Success "Aspire CLI successfully installed to: $cliPath"
+
+            # Update PATH environment variable for the current session
+            $currentPath = $env:PATH
+            $pathSeparator = [System.IO.Path]::PathSeparator
+            $pathEntries = $currentPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+
+            if ($pathEntries -notcontains $InstallPath) {
+                $env:PATH = "$InstallPath$pathSeparator$currentPath"
+                Say-Info "Added $InstallPath to PATH for current session"
+            } else {
+                Say-Info "Path $InstallPath already exists in PATH, skipping addition"
+            }
+
+            # GitHub Actions support
+            if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
+                try {
+                    Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
+                    Say-Info "Added $InstallPath to GITHUB_PATH for GitHub Actions"
+                }
+                catch {
+                    Say-Warning "Failed to update GITHUB_PATH: $($_.Exception.Message)"
+                }
+            }
         }
         finally {
             # Clean up temporary directory and downloaded files
@@ -464,23 +608,28 @@ function Main {
                         Remove-Item $tempDir -Recurse -Force -ErrorAction Stop
                     }
                     catch {
-                        Write-Warning "Failed to clean up temporary directory: $tempDir - $($_.Exception.Message)"
+                        Say-Warning "Failed to clean up temporary directory: $tempDir - $($_.Exception.Message)"
                     }
                 }
                 else {
-                    Write-Host "Archive files kept in: $tempDir" -ForegroundColor Yellow
+                    Say-Info "Archive files kept in: $tempDir"
                 }
             }
         }
     }
     catch {
-        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+        Say-Error $_.Exception.Message
         throw
     }
 }
 
 # Run main function and handle exit code
 try {
+    # Ensure we're not in strict mode which can cause issues in PowerShell 5.1
+    if (-not $Script:IsModernPowerShell) {
+        Set-StrictMode -Off
+    }
+
     Main
     exit 0
 }
