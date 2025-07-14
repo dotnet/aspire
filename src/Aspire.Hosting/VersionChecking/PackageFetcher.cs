@@ -8,18 +8,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.VersionChecking;
 
-internal sealed class VersionFetcher : IVersionFetcher
+internal sealed class PackageFetcher : IPackageFetcher
 {
     public const string PackageId = "Aspire.Hosting.AppHost";
 
-    private readonly ILogger<VersionFetcher> _logger;
+    private readonly ILogger<PackageFetcher> _logger;
 
-    public VersionFetcher(ILogger<VersionFetcher> logger)
+    public PackageFetcher(ILogger<PackageFetcher> logger)
     {
         _logger = logger;
     }
 
-    public async Task<List<NuGetPackage>> TryFetchVersionsAsync(string appHostDirectory, CancellationToken cancellationToken)
+    public async Task<List<NuGetPackage>> TryFetchPackagesAsync(string appHostDirectory, CancellationToken cancellationToken)
     {
         var outputJson = new StringBuilder();
         var spec = new ProcessSpec("dotnet")

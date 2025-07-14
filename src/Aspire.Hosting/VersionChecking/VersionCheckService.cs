@@ -27,20 +27,20 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly ILogger<VersionCheckService> _logger;
     private readonly IConfiguration _configuration;
     private readonly DistributedApplicationOptions _options;
-    private readonly IVersionFetcher _versionFetcher;
+    private readonly IPackageFetcher _packageFetcher;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly TimeProvider _timeProvider;
     private readonly SemVersion? _appHostVersion;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
-        IConfiguration configuration, DistributedApplicationOptions options, IVersionFetcher versionFetcher,
+        IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
         DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider)
     {
         _interactionService = interactionService;
         _logger = logger;
         _configuration = configuration;
         _options = options;
-        _versionFetcher = versionFetcher;
+        _packageFetcher = packageFetcher;
         _executionContext = executionContext;
         _timeProvider = timeProvider;
 
@@ -98,7 +98,7 @@ internal sealed class VersionCheckService : BackgroundService
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
             SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
-            var packages = await _versionFetcher.TryFetchVersionsAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
+            var packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
 
             latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages);
         }
