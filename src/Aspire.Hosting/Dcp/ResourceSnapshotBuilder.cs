@@ -91,6 +91,15 @@ internal class ResourceSnapshotBuilder
         }
     }
 
+#pragma warning disable CA1822 // Mark members as static
+#pragma warning disable IDE0060 // Remove unused parameter
+    public CustomResourceSnapshot ToSnapshot(ContainerExec executable, CustomResourceSnapshot previous)
+#pragma warning restore IDE0060 // Remove unused parameter
+#pragma warning restore CA1822 // Mark members as static
+    {
+        return previous;
+    }
+
     public CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;

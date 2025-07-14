@@ -788,13 +788,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
-        // var containerExecsTask = CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken);
+        var containerExecsTask = CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken);
 
-        // await Task.WhenAll(containersTask, executablesTask, containerExecsTask).ConfigureAwait(false);
-        await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
-
-        // for now to not figure out states of container
-        await CreateContainerExecutablesAsync(toCreate.Where(ar => ar.DcpResource is ContainerExec), cancellationToken).ConfigureAwait(false);
+        await Task.WhenAll(containersTask, executablesTask, containerExecsTask).ConfigureAwait(false);
     }
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
@@ -892,19 +888,25 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private void PrepareContainerExecutables()
     {
         var modelContainerExecutableResources = _model.GetContainerExecutableResources();
-        foreach (var container in modelContainerExecutableResources)
+        foreach (var containerExecutable in modelContainerExecutableResources)
         {
-            EnsureRequiredAnnotations(container);
+            EnsureRequiredAnnotations(containerExecutable);
+            var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
 
-            var exeInstance = GetDcpInstance(container, instanceIndex: 0);
+            // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
+            // since this is ContainerExec resource, we will run against one of the container instances
+            var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
 
-            // todo initialize container exec here
-            var containerExec = ContainerExec.Create(exeInstance.Name, containerName: container.ContainerName, container.Command, container.Args?.ToList());
-            containerExec.Spec.WorkingDirectory = container.WorkingDirectory;
-            SetInitialResourceState(container, containerExec);
+            var containerExec = ContainerExec.Create(
+                name: exeInstance.Name,
+                containerName: containerDcpName,
+                command: containerExecutable.Command,
+                args: containerExecutable.Args?.ToList(),
+                workingDirectory: containerExecutable.WorkingDirectory);
+            SetInitialResourceState(containerExecutable, containerExec);
 
-            var exeAppResource = new AppResource(container, containerExec);
-            AddServicesProducedInfo(container, containerExec, exeAppResource);
+            var exeAppResource = new AppResource(containerExecutable, containerExec);
+            AddServicesProducedInfo(containerExecutable, containerExec, exeAppResource);
             _appResources.Add(exeAppResource);
         }
     }
@@ -1045,29 +1047,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
-    {
-        try
-        {
-            AspireEventSource.Instance.DcpExecutablesCreateStart();
-
-            foreach (var appResource in containerExecAppResources)
-            {
-                if (appResource.DcpResource is not ContainerExec containerExec)
-                {
-                    throw new InvalidOperationException($"Expected an Executable resource, but got {appResource.DcpResource.Kind} instead");
-                }
-
-                await _kubernetesService.CreateAsync(containerExec, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            AspireEventSource.Instance.DcpExecutablesCreateStop();
-        }
-    }
-
-    private Task CreateExecutablesAsync(IEnumerable<AppResource> executableResources, CancellationToken cancellationToken)
+    private Task CreateExecutableResourcesAsync(
+        Func<AppResource, ILogger, CancellationToken, Task> createResourceFunc,
+        IEnumerable<AppResource> executables,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -1084,7 +1067,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
                     foreach (var er in executables)
                     {
-                        await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, resource, er.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Executable)er.DcpResource, s))).ConfigureAwait(false);
+                        Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
+                        {
+                            Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                            ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                            _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
+                        };
+
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(
+                            _shutdownCancellation.Token, resourceType, resource,
+                            er.DcpResourceName, new ResourceStatus(null, null, null),
+                            snapshotBuild)
+                        ).ConfigureAwait(false);
                     }
 
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
@@ -1099,7 +1093,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                         try
                         {
-                            await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                            // await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                            await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
                         }
                         catch (FailedToApplyEnvironmentException)
                         {
@@ -1130,7 +1125,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var tasks = new List<Task>();
-            foreach (var group in executableResources.GroupBy(e => e.ModelResource))
+            foreach (var group in executables.GroupBy(e => e.ModelResource))
             {
                 tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken));
             }
@@ -1141,6 +1136,54 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             AspireEventSource.Instance.DcpExecutablesCreateStop();
         }
+    }
+
+    private Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
+        => CreateExecutableResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
+
+    private Task CreateExecutablesAsync(IEnumerable<AppResource> execAppResources, CancellationToken cancellationToken)
+        => CreateExecutableResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
+
+    private async Task CreateContainerExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    {
+        // Force async execution
+        await Task.Yield();
+
+        if (er.DcpResource is not ContainerExec containerExe)
+        {
+            throw new InvalidOperationException($"Expected an {nameof(ContainerExec)} resource, but got {er.DcpResource.Kind} instead");
+        }
+        var spec = containerExe.Spec;
+
+        // An executable can be restarted so args must be reset to an empty state.
+        // After resetting, first apply any dotnet project related args, e.g. configuration, and then add args from the model resource.
+        if (er.DcpResource.TryGetAnnotationAsObjectList<string>(CustomResource.ResourceProjectArgsAnnotation, out var projectArgs) && projectArgs.Count > 0)
+        {
+            spec.Args ??= [];
+            spec.Args.AddRange(projectArgs);
+        }
+
+        // Get args from app host model resource.
+        (var appHostArgs, var failedToApplyArgs) = await BuildArgsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+
+        // TODO do we need to parse like done for executables here???
+        //var launchArgs = BuildLaunchArgs(er, spec, appHostArgs);
+        //var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
+        //if (executableArgs.Count > 0)
+        //{
+        //    spec.Args ??= [];
+        //    spec.Args.AddRange(executableArgs);
+        //}
+        //// Arg annotations are what is displayed in the dashboard.
+        //er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+
+        (spec.Env, var failedToApplyConfiguration) = await BuildEnvVarsAsync(resourceLogger, er.ModelResource, cancellationToken).ConfigureAwait(false);
+        if (failedToApplyConfiguration || failedToApplyArgs)
+        {
+            throw new FailedToApplyEnvironmentException();
+        }
+
+        await _kubernetesService.CreateAsync(containerExe, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)

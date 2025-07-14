@@ -118,19 +118,22 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     /// <param name="containerName">Resource name of the Container to run the command in</param>
     /// <param name="command">The command name to run</param>
     /// <param name="args">Arguments of the command to run</param>
+    /// <param name="workingDirectory">Container working directory to run the command in</param>
     /// <returns>A new ContainerExec instance</returns>
-    public static ContainerExec Create(string name, string containerName, string command, List<string>? args = null)
+    public static ContainerExec Create(string name, string containerName, string command, List<string>? args = null, string? workingDirectory = null)
     {
         var containerExec = new ContainerExec(new ContainerExecSpec
         {
             ContainerName = containerName,
             Command = command,
-            Args = args
+            Args = args,
+            WorkingDirectory = workingDirectory
         })
         {
             Kind = Dcp.ContainerExecKind,
             ApiVersion = Dcp.GroupVersion.ToString()
         };
+
         containerExec.Metadata.Name = name;
         containerExec.Metadata.NamespaceProperty = string.Empty;
 

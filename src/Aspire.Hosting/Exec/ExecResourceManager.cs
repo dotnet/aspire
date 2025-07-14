@@ -244,12 +244,15 @@ internal class ExecResourceManager
     {
         var (exe, args) = ParseCommand();
         string execResourceName = container.Name + "-exec";
-        var containerDcpName = container.GetResolvedResourceName();
 
-        var containerExecutable = new ContainerExecutableResource(execResourceName, containerDcpName, exe, workingDirectory: null)
+        // we cant resolve dcp name of container resource here - too early in the startup pipeline
+        // it will be resolved later in the Dcp layer
+        var containerExecutable = new ContainerExecutableResource(execResourceName, container, exe, workingDirectory: null)
         {
             Args = args
         };
+
+        containerExecutable.Annotations.Add(new WaitAnnotation(container, waitType: WaitType.WaitUntilHealthy));
 
         _logger.LogDebug("Exec container resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
         return containerExecutable;

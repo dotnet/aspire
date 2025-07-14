@@ -3,6 +3,7 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -23,6 +24,8 @@ public class ExecContainerResourceTests(ITestOutputHelper output)
     [RequiresDocker]
     public async Task Exec_ListFilesInDirectory_ShouldProduceLogs()
     {
+        Environment.SetEnvironmentVariable("DCP_LOG_LEVEL", "debug");
+
         string[] args = [
             "--operation", "run",
             "--project", ContainersAppHostProjectPath,
@@ -64,8 +67,14 @@ public class ExecContainerResourceTests(ITestOutputHelper output)
         var builder = DistributedApplicationTestingBuilder.Create(args, configureBuilder, typeof(DatabaseMigration_AppHost).Assembly)
             .WithTestAndResourceLogging(output);
 
+        builder.Services.Configure<DcpOptions>(options =>
+        {
+            options.ContainerRuntime = "docker"; // This should use PATH lookup instead of full path
+        });
+
         var apiService = builder.AddProject<Containers_ApiService>("apiservice");
         var nginx = builder.AddContainer("nginx", "nginx", "1.25");
+        // var executable = builder.AddExecutable("cmd", "dotnet build", "C:\\code");
 
         return await builder.BuildAsync();
     }

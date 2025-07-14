@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal class ContainerExecutableResource(string name, string containerName, string command, string? workingDirectory)
+internal class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
 {
     /// <summary>
@@ -19,9 +19,9 @@ internal class ContainerExecutableResource(string name, string containerName, st
     /// </summary>
     public string? WorkingDirectory { get; } = workingDirectory;
 
-    public string ContainerName { get; } = ThrowIfNullOrEmpty(containerName);
-
     public ICollection<string>? Args { get; init; }
+
+    public ContainerResource? TargetContainerResource { get; } = containerResource ?? throw new ArgumentNullException(nameof(containerResource));
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
