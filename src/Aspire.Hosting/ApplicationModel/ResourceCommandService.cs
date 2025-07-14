@@ -38,7 +38,7 @@ public class ResourceCommandService
     /// For example, if a resource named <c>cache</c> has multiple replicas, then specifing <c>cache</c> won't return a match.
     /// </para>
     /// </remarks>
-    /// <param name="resourceId">The resource id. This id can either exactly match the unique id of the resource or the displayed resource name if the resource name doesn't have duplicas (i.e. replicas).</param>
+    /// <param name="resourceId">The resource id. This id can either exactly match the unique id of the resource or the displayed resource name if the resource name doesn't have duplicates (i.e. replicas).</param>
     /// <param name="commandName">The command name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
