@@ -423,7 +423,7 @@ add_to_path()
         echo "$command" >> "$config_file"
         say_info "Successfully added aspire to \$PATH in $config_file"
     else
-        say_info "Manually add the to $config_file (or similar):"
+        say_info "Manually add the following to $config_file (or similar):"
         say_info "  $command"
     fi
 }
