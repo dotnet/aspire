@@ -383,6 +383,65 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task BuildImagesAsync_WithOnlyProjectResources_DoesNotNeedContainerRuntime()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime that would fail if called
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: true);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // This should not fail despite the fake container runtime being configured to fail
+        // because we only have project resources (no DockerfileBuildAnnotation)
+        await imageBuilder.BuildImagesAsync([servicea.Resource], options: null, cts.Token);
+
+        // Validate that the container runtime health check was not called
+        Assert.False(fakeContainerRuntime.WasHealthCheckCalled);
+    }
+
+    [Fact]
+    public async Task BuildImagesAsync_WithDockerfileResources_ChecksContainerRuntimeHealth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime that tracks health check calls
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var dockerfileResource = builder.AddDockerfile("test-dockerfile", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        await imageBuilder.BuildImagesAsync([dockerfileResource.Resource], options: null, cts.Token);
+
+        // Validate that the container runtime health check was called for resources with DockerfileBuildAnnotation
+        Assert.True(fakeContainerRuntime.WasHealthCheckCalled);
+    }
+
+    [Fact]
     public async Task BuildImageAsync_ThrowsInvalidOperationException_WhenDockerRuntimeNotAvailable()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -393,7 +452,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             logging.AddXunit(output);
         });
 
-        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", new UnhealthyMockContainerRuntime());
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", new FakeContainerRuntime(true));
 
         var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
         var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
@@ -414,18 +473,21 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
     }
 
-    private sealed class UnhealthyMockContainerRuntime : IContainerRuntime
+    private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
     {
-        public string Name => "MockDocker";
+        public string Name => "fake-runtime";
+        public bool WasHealthCheckCalled { get; private set; }
 
         public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult(false);
+            WasHealthCheckCalled = true;
+            return Task.FromResult(!shouldFail);
         }
 
         public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
         {
-            throw new InvalidOperationException("This mock runtime should not be used for building images.");
+            // For testing, we don't need to actually build anything
+            return Task.CompletedTask;
         }
     }
 }
