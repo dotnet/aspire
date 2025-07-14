@@ -17,6 +17,9 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
     private readonly Task? _watchTask;
+    
+    // Cache of extracted resource addresses to avoid recomputation on each peer resolution
+    private volatile List<(string Address, ResourceViewModel Resource)> _cachedResourceAddresses = [];
 
     public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
@@ -37,6 +40,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
                 }
 
+                // Initialize cached resource addresses after loading initial snapshot
+                _cachedResourceAddresses = ExtractResourceAddresses(_resourceByName);
                 await RaisePeerChangesAsync().ConfigureAwait(false);
             }
 
@@ -67,6 +72,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
                 if (hasPeerRelevantChanges)
                 {
+                    // Recompute cached resource addresses when peer-relevant changes are detected
+                    _cachedResourceAddresses = ExtractResourceAddresses(_resourceByName);
                     await RaisePeerChangesAsync().ConfigureAwait(false);
                 }
             }
@@ -144,7 +151,35 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
-        return TryResolvePeerNameCore(_resourceByName, attributes, out name, out matchedResource);
+        var address = OtlpHelpers.GetPeerAddress(attributes);
+        if (address != null)
+        {
+            // Use cached resource addresses for efficient lookup
+            var cachedAddresses = _cachedResourceAddresses; // Get snapshot to avoid race conditions
+            
+            // Apply transformers to the peer address cumulatively
+            var transformedAddress = address;
+            
+            // First check exact match
+            if (TryMatchAgainstResourceAddresses(transformedAddress, cachedAddresses, _resourceByName, out name, out matchedResource))
+            {
+                return true;
+            }
+            
+            // Then apply each transformer cumulatively and check
+            foreach (var transformer in s_addressTransformers)
+            {
+                transformedAddress = transformer(transformedAddress);
+                if (TryMatchAgainstResourceAddresses(transformedAddress, cachedAddresses, _resourceByName, out name, out matchedResource))
+                {
+                    return true;
+                }
+            }
+        }
+
+        name = null;
+        matchedResource = null;
+        return false;
     }
 
     internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
