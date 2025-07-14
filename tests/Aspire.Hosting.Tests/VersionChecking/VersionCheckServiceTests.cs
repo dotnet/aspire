@@ -21,15 +21,15 @@ public class VersionCheckServiceTests
         // Arrange
         var interactionService = new TestInteractionService();
         var configurationManager = new ConfigurationManager();
-        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
-        var versionFetcher = new TestPackageFetcher(versionTcs.Task);
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
         var options = new DistributedApplicationOptions();
-        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: versionFetcher, configuration: configurationManager, options: options);
+        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager, options: options);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
 
-        versionTcs.TrySetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "100.0.0" }]);
+        packagesTcs.TrySetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "100.0.0" }]);
 
         var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         interaction.CompletionTcs.TrySetResult(InteractionResult.Ok(true));
@@ -37,7 +37,7 @@ public class VersionCheckServiceTests
         await service.ExecuteTask!.DefaultTimeout();
 
         // Assert
-        Assert.True(versionFetcher.FetchCalled);
+        Assert.True(packageFetcher.FetchCalled);
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class VersionCheckServiceTests
         {
             [KnownConfigNames.VersionCheckDisabled] = "true"
         });
-        var versionFetcher = new TestPackageFetcher();
+        var packageFetcher = new TestPackageFetcher();
         var options = new DistributedApplicationOptions();
-        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: versionFetcher, configuration: configurationManager, options: options);
+        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager, options: options);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
@@ -60,7 +60,7 @@ public class VersionCheckServiceTests
         await service.ExecuteTask!.DefaultTimeout();
 
         // Assert
-        Assert.False(versionFetcher.FetchCalled);
+        Assert.False(packageFetcher.FetchCalled);
     }
 
     [Fact]
@@ -78,11 +78,11 @@ public class VersionCheckServiceTests
             [VersionCheckService.LastCheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture)
         });
 
-        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
-        var versionFetcher = new TestPackageFetcher(versionTcs.Task);
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
         var service = CreateVersionCheckService(
             interactionService: interactionService,
-            packageFetcher: versionFetcher,
+            packageFetcher: packageFetcher,
             configuration: configurationManager,
             timeProvider: timeProvider);
 
@@ -94,7 +94,7 @@ public class VersionCheckServiceTests
         interactionService.Interactions.Writer.Complete();
 
         // Assert
-        Assert.False(versionFetcher.FetchCalled);
+        Assert.False(packageFetcher.FetchCalled);
         Assert.False(interactionService.Interactions.Reader.TryRead(out var _));
     }
 
@@ -114,11 +114,11 @@ public class VersionCheckServiceTests
             [VersionCheckService.KnownLatestVersionKey] = "100.0.0"
         });
 
-        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
-        var versionFetcher = new TestPackageFetcher(versionTcs.Task);
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
         var service = CreateVersionCheckService(
             interactionService: interactionService,
-            packageFetcher: versionFetcher,
+            packageFetcher: packageFetcher,
             configuration: configurationManager,
             timeProvider: timeProvider);
 
@@ -131,7 +131,7 @@ public class VersionCheckServiceTests
         await service.ExecuteTask!.DefaultTimeout();
 
         // Assert
-        Assert.False(versionFetcher.FetchCalled);
+        Assert.False(packageFetcher.FetchCalled);
     }
 
     [Fact]
@@ -140,21 +140,21 @@ public class VersionCheckServiceTests
         // Arrange
         var interactionService = new TestInteractionService();
         var configurationManager = new ConfigurationManager();
-        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
-        var versionFetcher = new TestPackageFetcher(versionTcs.Task);
-        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: versionFetcher, configuration: configurationManager);
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
+        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
 
-        versionTcs.SetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "0.1.0" }]);
+        packagesTcs.SetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "0.1.0" }]);
 
         await service.ExecuteTask!.DefaultTimeout();
 
         interactionService.Interactions.Writer.Complete();
 
         // Assert
-        Assert.True(versionFetcher.FetchCalled);
+        Assert.True(packageFetcher.FetchCalled);
 
         Assert.False(interactionService.Interactions.Reader.TryRead(out var _));
     }
@@ -169,21 +169,21 @@ public class VersionCheckServiceTests
         {
             [VersionCheckService.IgnoreVersionKey] = "100.0.0"
         });
-        var versionTcs = new TaskCompletionSource<List<NuGetPackage>>();
-        var versionFetcher = new TestPackageFetcher(versionTcs.Task);
-        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: versionFetcher, configuration: configurationManager);
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
+        var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager);
 
         // Act
         _ = service.StartAsync(CancellationToken.None);
 
-        versionTcs.SetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "100.0.0" }]);
+        packagesTcs.SetResult([new NuGetPackage { Id = PackageFetcher.PackageId, Version = "100.0.0" }]);
 
         await service.ExecuteTask!.DefaultTimeout();
 
         interactionService.Interactions.Writer.Complete();
 
         // Assert
-        Assert.True(versionFetcher.FetchCalled);
+        Assert.True(packageFetcher.FetchCalled);
 
         Assert.False(interactionService.Interactions.Reader.TryRead(out var _));
     }
