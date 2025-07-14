@@ -1,5 +1,5 @@
 import { MessageConnection } from 'vscode-jsonrpc';
-import { logAsyncOperation } from '../utils/logging';
+import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
 import { getAspireTerminal } from '../utils/terminal';
 
 export interface ICliRpcClient {
@@ -25,7 +25,7 @@ export class RpcClient implements ICliRpcClient {
 
         this._messageConnection.onClose(() => {
             this._connectionClosed = true;
-            console.error('JSON-RPC connection closed');
+            extensionLogOutputChannel.info('JSON-RPC connection closed');
         });
     }
 

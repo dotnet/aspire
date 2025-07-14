@@ -21,7 +21,7 @@ internal interface IExtensionRpcTarget
     Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input);
 
     [JsonRpcMethod("stopCli")]
-    Task<string> StopCliAsync(string token);
+    Task StopCliAsync(string token);
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget
@@ -48,7 +48,7 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
         return Task.FromResult(ValidationFunction?.Invoke(input));
     }
 
-    public Task<string> StopCliAsync(string token)
+    public Task StopCliAsync(string token)
     {
         if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
         {
@@ -56,6 +56,6 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
         }
 
         Environment.Exit(ExitCodeConstants.Success);
-        return Task.FromResult("");
+        return Task.CompletedTask;
     }
 }
