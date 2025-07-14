@@ -17,9 +17,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
     private readonly Task? _watchTask;
-    
-    // Cache of extracted resource addresses to avoid recomputation on each peer resolution
-    private volatile List<(string Address, ResourceViewModel Resource)> _cachedResourceAddresses = [];
 
     public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
@@ -40,8 +37,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
                 }
 
-                // Initialize cached resource addresses after loading initial snapshot
-                _cachedResourceAddresses = ExtractResourceAddresses(_resourceByName);
                 await RaisePeerChangesAsync().ConfigureAwait(false);
             }
 
@@ -72,8 +67,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
                 if (hasPeerRelevantChanges)
                 {
-                    // Recompute cached resource addresses when peer-relevant changes are detected
-                    _cachedResourceAddresses = ExtractResourceAddresses(_resourceByName);
                     await RaisePeerChangesAsync().ConfigureAwait(false);
                 }
             }
@@ -154,14 +147,11 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
-            // Use cached resource addresses for efficient lookup
-            var cachedAddresses = _cachedResourceAddresses; // Get snapshot to avoid race conditions
-            
             // Apply transformers to the peer address cumulatively
             var transformedAddress = address;
             
             // First check exact match
-            if (TryMatchAgainstResourceAddresses(transformedAddress, cachedAddresses, _resourceByName, out name, out matchedResource))
+            if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
             {
                 return true;
             }
@@ -170,7 +160,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             foreach (var transformer in s_addressTransformers)
             {
                 transformedAddress = transformer(transformedAddress);
-                if (TryMatchAgainstResourceAddresses(transformedAddress, cachedAddresses, _resourceByName, out name, out matchedResource))
+                if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
                 {
                     return true;
                 }
@@ -187,14 +177,11 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
-            // Extract all possible addresses from resources upfront to avoid nested transformer loops
-            var resourceAddresses = ExtractResourceAddresses(resources);
-            
             // Apply transformers to the peer address cumulatively
             var transformedAddress = address;
             
             // First check exact match
-            if (TryMatchAgainstResourceAddresses(transformedAddress, resourceAddresses, resources, out name, out resourceMatch))
+            if (TryMatchAgainstResources(transformedAddress, resources, out name, out resourceMatch))
             {
                 return true;
             }
@@ -203,7 +190,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             foreach (var transformer in s_addressTransformers)
             {
                 transformedAddress = transformer(transformedAddress);
-                if (TryMatchAgainstResourceAddresses(transformedAddress, resourceAddresses, resources, out name, out resourceMatch))
+                if (TryMatchAgainstResources(transformedAddress, resources, out name, out resourceMatch))
                 {
                     return true;
                 }
@@ -216,18 +203,21 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     }
 
     /// <summary>
-    /// Checks if a transformed peer address matches any of the resource addresses.
+    /// Checks if a transformed peer address matches any of the resource addresses using their cached addresses.
     /// Applies the same transformations to resource addresses for consistent matching.
     /// </summary>
-    private static bool TryMatchAgainstResourceAddresses(string peerAddress, List<(string Address, ResourceViewModel Resource)> resourceAddresses, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
+    private static bool TryMatchAgainstResources(string peerAddress, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
-        foreach (var (resourceAddress, resource) in resourceAddresses)
+        foreach (var (_, resource) in resources)
         {
-            if (DoesAddressMatch(resourceAddress, peerAddress))
+            foreach (var resourceAddress in resource.CachedAddresses)
             {
-                name = ResourceViewModel.GetResourceName(resource, resources);
-                resourceMatch = resource;
-                return true;
+                if (DoesAddressMatch(resourceAddress, peerAddress))
+                {
+                    name = ResourceViewModel.GetResourceName(resource, resources);
+                    resourceMatch = resource;
+                    return true;
+                }
             }
         }
 
@@ -255,45 +245,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Extracts all possible addresses from resources that can be used for peer matching.
-    /// Returns a list of (address, resource) pairs for efficient lookup.
-    /// </summary>
-    private static List<(string Address, ResourceViewModel Resource)> ExtractResourceAddresses(IDictionary<string, ResourceViewModel> resources)
-    {
-        var addresses = new List<(string, ResourceViewModel)>();
-
-        foreach (var (_, resource) in resources)
-        {
-            // Extract addresses from URL endpoints
-            foreach (var service in resource.Urls)
-            {
-                var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
-                addresses.Add((hostAndPort, resource));
-            }
-
-            // Extract addresses from connection strings using comprehensive parsing
-            if (resource.Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
-                connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
-                ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
-            {
-                var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
-                addresses.Add((endpoint, resource));
-            }
-
-            // Extract addresses from parameter values (for Parameter resources that contain URLs or host:port values)
-            if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
-                parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
-                ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
-            {
-                var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
-                addresses.Add((parameterEndpoint, resource));
-            }
-        }
-
-        return addresses;
     }
 
     private static readonly List<Func<string, string>> s_addressTransformers = [
