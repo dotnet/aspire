@@ -387,7 +387,7 @@ internal sealed class ResourceContainerImageBuilder(
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
-    private static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources)
+    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources)
     {
         return resources.Any(resource =>
             resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
