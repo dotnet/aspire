@@ -8,8 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestExpressionProvider, IValueProvider
 {
-    private string? _value;
-    private bool _hasValue;
+    private readonly Lazy<string> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
     private string? _configurationKey;
 
@@ -25,6 +24,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         ArgumentNullException.ThrowIfNull(callback);
 
         _valueGetter = callback;
+        _lazyValue = new Lazy<string>(() => _valueGetter(Default));
         Secret = secret;
     }
 
@@ -33,18 +33,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// </summary>
     public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
 
-    internal string ValueInternal
-    {
-        get
-        {
-            if (!_hasValue)
-            {
-                _value = _valueGetter(Default);
-                _hasValue = true;
-            }
-            return _value!;
-        }
-    }
+    internal string ValueInternal => _lazyValue.Value;
 
     /// <summary>
     /// Represents how the default value of the parameter should be retrieved.
