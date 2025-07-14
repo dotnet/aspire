@@ -382,4 +382,51 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Equal("/custom/path", options.OutputPath);
         Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
+
+    [Fact]
+    public async Task BuildImageAsync_ThrowsInvalidOperationException_WhenDockerRuntimeNotAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", new UnhealthyMockContainerRuntime());
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            imageBuilder.BuildImagesAsync([container.Resource], options: null, cts.Token));
+
+        Assert.Equal("Container runtime is not running or is unhealthy.", exception.Message);
+
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
+    }
+
+    private sealed class UnhealthyMockContainerRuntime : IContainerRuntime
+    {
+        public string Name => "MockDocker";
+
+        public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("This mock runtime should not be used for building images.");
+        }
+    }
 }
