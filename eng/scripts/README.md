@@ -19,51 +19,54 @@ Other version/quality combinations are not yet available through the download UR
 
 ### Bash Script (`get-aspire-cli.sh`)
 
-| Parameter        | Short | Description                                       | Default        |
-|------------------|-------|---------------------------------------------------|----------------|
-| `--output-path`  | `-o`  | Directory to unpack the CLI                       | `./aspire-cli` |
-| `--version`      |       | Version of the Aspire CLI to download             | `9.0`          |
-| `--quality`      | `-q`  | Quality to download                               | `daily`        |
-| `--os`           |       | Operating system (auto-detected if not specified) | auto-detect    |
-| `--architecture` |       | Architecture (auto-detected if not specified)     | auto-detect    |
-| `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`        |
-| `--verbose`      | `-v`  | Enable verbose output                             | `false`        |
-| `--help`         | `-h`  | Show help message                                 |                |
+| Parameter        | Short | Description                                       | Default               |
+|------------------|-------|---------------------------------------------------|-----------------------|
+| `--install-path` | `-i`  | Directory to install the CLI                      | `$HOME/.aspire/bin`   |
+| `--version`      |       | Version of the Aspire CLI to download             | `9.0`                 |
+| `--quality`      | `-q`  | Quality to download                               | `daily`               |
+| `--os`           |       | Operating system (auto-detected if not specified) | auto-detect           |
+| `--arch`         |       | Architecture (auto-detected if not specified)     | auto-detect           |
+| `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`               |
+| `--verbose`      | `-v`  | Enable verbose output                             | `false`               |
+| `--help`         | `-h`  | Show help message                                 |                       |
 
 ### PowerShell Script (`get-aspire-cli.ps1`)
 
-| Parameter       | Description                                       | Default        |
-|-----------------|---------------------------------------------------|----------------|
-| `-OutputPath`   | Directory to unpack the CLI                       | `./aspire-cli` |
-| `-Version`      | Version of the Aspire CLI to download             | `9.0`          |
-| `-Quality`      | Quality to download                               | `daily`        |
-| `-OS`           | Operating system (auto-detected if not specified) | auto-detect    |
-| `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect    |
-| `-KeepArchive`  | Keep downloaded archive files after installation  | `false`        |
-| `-Help`         | Show help message                                 |                |
+| Parameter       | Description                                       | Default                          |
+|-----------------|---------------------------------------------------|----------------------------------|
+| `-InstallPath`  | Directory to install the CLI                     | `$HOME/.aspire/bin` (Unix) / `%USERPROFILE%\.aspire\bin` (Windows) |
+| `-Version`      | Version of the Aspire CLI to download             | `9.0`                            |
+| `-Quality`      | Quality to download                               | `daily`                          |
+| `-OS`           | Operating system (auto-detected if not specified) | auto-detect                      |
+| `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect                      |
+| `-KeepArchive`  | Keep downloaded archive files after installation  | `false`                          |
+| `-Help`         | Show help message                                 |                                  |
 
-## Output Path Parameter
+## Install Path Parameter
 
-The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies where the Aspire CLI will be unpacked:
+The `--install-path` (bash) or `-InstallPath` (PowerShell) parameter specifies where the Aspire CLI will be installed:
 
-- **Default behavior**: Creates an `aspire-cli` directory in the current working directory
+- **Default behavior**:
+  - **Unix systems**: `$HOME/.aspire/bin`
+  - **Windows**: `%USERPROFILE%\.aspire\bin`
 - **Custom path**: You can specify any directory path where you want the CLI installed
 - **Directory creation**: The scripts will automatically create the directory if it doesn't exist
+- **PATH integration**: The scripts automatically update the current session's PATH and add to shell profiles for persistent access
 - **Final location**: The CLI executable will be placed directly in the specified directory as:
   - `aspire` (on Linux/macOS)
   - `aspire.exe` (on Windows)
 
-### Example Output Paths
+### Example Install Paths
 
 ```bash
-# Default - creates ./aspire-cli/aspire
+# Default - installs to $HOME/.aspire/bin/aspire
 ./get-aspire-cli.sh
 
-# Custom path - creates /usr/local/bin/aspire
-./get-aspire-cli.sh --output-path "/usr/local/bin"
+# Custom path - installs to /usr/local/bin/aspire
+./get-aspire-cli.sh --install-path "/usr/local/bin"
 
-# Relative path - creates ../tools/aspire-cli/aspire
-./get-aspire-cli.sh --output-path "../tools/aspire-cli"
+# Relative path - installs to ../tools/aspire-cli/aspire
+./get-aspire-cli.sh --install-path "../tools/aspire-cli"
 ```
 
 ## Usage Examples
@@ -71,11 +74,11 @@ The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies whe
 ### Bash Script Examples
 
 ```bash
-# Basic usage - download to default location (./aspire-cli)
+# Basic usage - download to default location ($HOME/.aspire/bin)
 ./get-aspire-cli.sh
 
-# Specify custom output directory
-./get-aspire-cli.sh --output-path "/usr/local/bin"
+# Specify custom install directory
+./get-aspire-cli.sh --install-path "/usr/local/bin"
 
 # Download with verbose output
 ./get-aspire-cli.sh --verbose
@@ -84,20 +87,20 @@ The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies whe
 ./get-aspire-cli.sh --keep-archive
 
 # Force specific OS and architecture (useful for cross-compilation scenarios)
-./get-aspire-cli.sh --os "linux" --architecture "x64"
+./get-aspire-cli.sh --os "linux" --arch "x64"
 
 # Combine multiple options
-./get-aspire-cli.sh --output-path "/tmp/aspire" --verbose --keep-archive
+./get-aspire-cli.sh --install-path "/tmp/aspire" --verbose --keep-archive
 ```
 
 ### PowerShell Script Examples
 
 ```powershell
-# Basic usage - download to default location (./aspire-cli)
+# Basic usage - download to default location (%USERPROFILE%\.aspire\bin or $HOME/.aspire/bin)
 .\get-aspire-cli.ps1
 
-# Specify custom output directory
-.\get-aspire-cli.ps1 -OutputPath "C:\Tools\Aspire"
+# Specify custom install directory
+.\get-aspire-cli.ps1 -InstallPath "C:\Tools\Aspire"
 
 # Download with verbose output
 .\get-aspire-cli.ps1 -Verbose
@@ -109,7 +112,7 @@ The `--output-path` (bash) or `-OutputPath` (PowerShell) parameter specifies whe
 .\get-aspire-cli.ps1 -OS "win" -Architecture "x64"
 
 # Combine multiple options
-.\get-aspire-cli.ps1 -OutputPath "C:\temp\aspire" -Verbose -KeepArchive
+.\get-aspire-cli.ps1 -InstallPath "C:\temp\aspire" -Verbose -KeepArchive
 ```
 
 ## Supported Runtime Identifiers
