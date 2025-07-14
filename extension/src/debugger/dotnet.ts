@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DebugOptions, EnvVar, startAndGetDebugSession } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { debugProject } from '../loc/strings';
+import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../utils/environment';
@@ -47,8 +47,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
 async function buildDotNetProject(projectFile: string): Promise<void> {
     const csharpDevKit = vscode.extensions.getExtension('ms-dotnettools.csdevkit');
     if (!csharpDevKit) {
-        vscode.window.showErrorMessage('C# Dev Kit is not installed. Please install it from the marketplace.');
-        return Promise.reject(new Error('C# Dev Kit is not installed. Please install it from the marketplace.'));
+        return Promise.reject(new Error(csharpDevKitNotInstalled));
     }
 
     if (!csharpDevKit.isActive) {
@@ -62,14 +61,14 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
         const tasks = await vscode.tasks.fetchTasks();
         const buildTask = tasks.find(t => t.name?.includes('build'));
         if (!buildTask) {
-            throw new Error('No C# Dev Kit build task found.');
+            throw new Error(noCsharpBuildTask);
         }
     });
 
     const tasks = await vscode.tasks.fetchTasks();
     const buildTask = tasks.find(t => t.name?.includes('build'));
     if (!buildTask) {
-        return Promise.reject(new Error('No watch task found. Please ensure a watch task is defined in your workspace.'));
+        return Promise.reject(new Error(noWatchTask));
     }
 
     extensionLogOutputChannel.info(`Executing build task: ${buildTask.name} for project: ${projectFile}`);
@@ -79,10 +78,10 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
         vscode.tasks.onDidEndTaskProcess(async e => {
             if (e.execution.task === buildTask) {
                 if (e.exitCode !== 0) {
-                    reject(new Error(`Build failed with exit code ${e.exitCode}`));
+                    reject(new Error(buildFailedWithExitCode(e.exitCode ?? 0)));
                 }
                 else {
-                    vscode.window.showInformationMessage(`Build succeeded for project ${projectFile}. Attempting to locate output dll...`);
+                    vscode.window.showInformationMessage(buildSucceeded(projectFile));
                     return resolve();
                 }
             }
@@ -105,11 +104,11 @@ async function getDotnetTargetPath(projectFile: string): Promise<string> {
         const { stdout } = await execFileAsync('dotnet', args, { encoding: 'utf8' });
         const output = stdout.trim();
         if (!output) {
-            throw new Error('No output from msbuild');
+            throw new Error(noOutputFromMsbuild);
         }
 
         return output;
     } catch (err) {
-        throw new Error(`Failed to get TargetPath: ${err}`);
+        throw new Error(failedToGetTargetPath(String(err)));
     }
 }

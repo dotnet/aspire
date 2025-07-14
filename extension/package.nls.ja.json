@@ -27,5 +27,12 @@
 	"aspire-vscode.strings.rpcServerError": "RPC Server error: {0}",
 	"aspire-vscode.strings.aspireOutputChannelName": "Aspire Extension",
 	"aspire-vscode.strings.fieldRequired": "This field is required",
-	"aspire-vscode.strings.debugProject": "Debug {0}"
+	"aspire-vscode.strings.debugProject": "Debug {0}",
+	"csharpDevKitNotInstalled": "C# Dev Kit is not installed. Please install it from the marketplace.",
+	"noCsharpBuildTask": "No C# Dev Kit build task found.",
+	"noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
+	"buildFailedWithExitCode": "Build failed with exit code {0}",
+	"buildSucceeded": "Build succeeded for project {0}. Attempting to locate output dll...",
+	"noOutputFromMsbuild": "No output from msbuild",
+	"failedToGetTargetPath": "Failed to get TargetPath: {0}"
 }
