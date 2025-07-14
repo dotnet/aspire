@@ -12,6 +12,10 @@ internal sealed class PackageFetcher : IPackageFetcher
 {
     public const string PackageId = "Aspire.Hosting.AppHost";
 
+    // Limit the number of packages fetched per search to avoid overwhelming the output. This should never happen unless there is a bug in the API.
+    // Package search returns the latest version per source and few packages will match "Aspire.Hosting.AppHost" search string.
+    private const int SearchPageSize = 1000;
+
     private readonly ILogger<PackageFetcher> _logger;
 
     public PackageFetcher(ILogger<PackageFetcher> logger)
@@ -24,7 +28,7 @@ internal sealed class PackageFetcher : IPackageFetcher
         var outputJson = new StringBuilder();
         var spec = new ProcessSpec("dotnet")
         {
-            Arguments = $"package search {PackageId} --format json",
+            Arguments = $"package search {PackageId} --format json --prerelease --take {SearchPageSize}",
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true,
             OnOutputData = output =>
