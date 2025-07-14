@@ -30,6 +30,29 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task ExecuteCommandAsync_ResourceNameMultipleMatches_Failure()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0),
+            new DcpInstance("myResource-efghwxyz", "efghwxyz", 1)
+            ]));
+
+        var app = builder.Build();
+        await app.StartAsync();
+
+        // Act
+        var result = await app.ResourceCommands.ExecuteCommandAsync("myResource", "NotFound");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("Resource 'myResource' not found.", result.ErrorMessage);
+    }
+
+    [Fact]
     public async Task ExecuteCommandAsync_NoMatchingCommand_Failure()
     {
         // Arrange
@@ -46,6 +69,43 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.False(result.Success);
         Assert.Equal("Command 'NotFound' not available for resource 'myResource'.", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ExecuteCommandAsync_ResourceNameMultipleMatches_Success()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var commandResourcesChannel = Channel.CreateUnbounded<string>();
+
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithAnnotation(new DcpInstancesAnnotation([
+            new DcpInstance("myResource-abcdwxyz", "abcdwxyz", 0)
+            ]));
+        custom.WithCommand(name: "mycommand",
+                displayName: "My command",
+                executeCommand: async e =>
+                {
+                    await commandResourcesChannel.Writer.WriteAsync(e.ResourceName);
+                    return new ExecuteCommandResult { Success = true };
+                });
+
+        var app = builder.Build();
+        await app.StartAsync();
+
+        // Act
+        var result = await app.ResourceCommands.ExecuteCommandAsync("myResource", "mycommand");
+        commandResourcesChannel.Writer.Complete();
+
+        // Assert
+        Assert.True(result.Success);
+
+        var resolvedResourceNames = custom.Resource.GetResolvedResourceNames().ToList();
+        await foreach (var resourceName in commandResourcesChannel.Reader.ReadAllAsync().DefaultTimeout())
+        {
+            Assert.True(resolvedResourceNames.Remove(resourceName));
+        }
     }
 
     [Fact]
