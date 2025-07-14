@@ -98,7 +98,7 @@
     <PackageVersion Include="NATS.Net" Version="2.6.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.3" />
     <PackageVersion Include="OpenAI" Version="2.2.0" />
-    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="9.23.90" /> <!-- Can't update passed to 9.x versions as those lift up LTS versions when targeting net8 -->
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.90" /> <!-- Can't update passed to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.9.0" />
     <PackageVersion Include="Polly.Core" Version="8.6.2" />
     <PackageVersion Include="Polly.Extensions" Version="8.6.2" />
