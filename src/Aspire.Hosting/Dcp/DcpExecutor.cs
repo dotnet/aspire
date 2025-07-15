@@ -1084,6 +1084,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var tasks = new List<Task>();
             foreach (var group in executableResources.GroupBy(e => e.ModelResource))
             {
+                // Force this to be async so that blocking code does not stop other executables from being created.
                 tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
             }
 
@@ -1335,6 +1336,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
                 }
 
+                // Force this to be async so that blocking code does not stop other containers from being created.
                 tasks.Add(Task.Run(() => CreateContainerAsyncCore(cr, cancellationToken), cancellationToken));
             }
 
