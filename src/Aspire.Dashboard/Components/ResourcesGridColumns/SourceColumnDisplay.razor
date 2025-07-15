@@ -1,5 +1,4 @@
-﻿@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Resources
+﻿@using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Columns> Loc
@@ -21,7 +20,14 @@
             {
                 if (launchArgument.IsShown)
                 {
-                    <span class="subtext">&nbsp;@launchArgument.Value</span>
+                    if (launchArgument.Value.Contains(' '))
+                    {
+                        <span class="subtext">&nbsp;"@launchArgument.Value"</span>
+                    }
+                    else
+                    {
+                        <span class="subtext">&nbsp;@launchArgument.Value</span>
+                    }
                 }
                 else
                 {
