@@ -346,7 +346,7 @@ validate_checksum() {
 
     # Calculate the actual checksum
     local actual_checksum
-    actual_checksum=$(sha512sum "$archive_file" | cut -d' ' -f1)
+    actual_checksum=$(${checksum_cmd} "$archive_file" | cut -d' ' -f1)
 
     # Compare checksums
     if [[ "$expected_checksum" == "$actual_checksum" ]]; then
