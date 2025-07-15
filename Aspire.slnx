@@ -143,10 +143,6 @@
     <Project Path="playground/cdk/CdkSample.ApiService/CdkSample.ApiService.csproj" />
     <Project Path="playground/cdk/CdkSample.AppHost/CdkSample.AppHost.csproj" />
   </Folder>
-  <Folder Name="/playground/Containers/">
-    <Project Path="playground/Containers/Containers.ApiService/Containers.ApiService.csproj" />
-    <Project Path="playground/Containers/Containers.AppHost/Containers.AppHost.csproj" Id="75aa1565-325f-4baa-983f-a1537bd9b338" />
-  </Folder>
   <Folder Name="/playground/CosmosEndToEnd/">
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj" />
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
