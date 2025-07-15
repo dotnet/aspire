@@ -105,7 +105,9 @@ function Invoke-WithPowerShellVersion {
 # Function to detect OS
 function Get-OperatingSystem {
     Invoke-WithPowerShellVersion -ModernAction {
-        if ($IsWindows) { return "win" }
+        if ($IsWindows) {
+            return "win"
+        }
         elseif ($IsLinux) {
             try {
                 $lddOutput = & ldd --version 2>&1 | Out-String
@@ -113,8 +115,12 @@ function Get-OperatingSystem {
             }
             catch { return "linux" }
         }
-        elseif ($IsMacOS) { return "osx" }
-        else { return "unsupported" }
+        elseif ($IsMacOS) {
+            return "osx"
+        }
+        else {
+            return "unsupported"
+        }
     } -LegacyAction {
         # PowerShell 5.1 and earlier - more reliable Windows detection
         if ($env:OS -eq "Windows_NT" -or [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
@@ -199,7 +205,7 @@ function Get-MachineArchitecture() {
     return "x64"
 }
 
-# taken from dotnet-install.ps1 - simplified architecture detection
+# taken from dotnet-install.ps1
 function Get-CLIArchitectureFromArchitecture([string]$Architecture) {
     Write-Message "Get-CLIArchitectureFromArchitecture called with Architecture: $Architecture" -Level Verbose
 
@@ -207,23 +213,15 @@ function Get-CLIArchitectureFromArchitecture([string]$Architecture) {
         $Architecture = Get-MachineArchitecture
     }
 
-    $archMap = @{
-        'amd64' = 'x64'
-        'x64' = 'x64'
-        'x86' = 'x86'
-        'arm64' = 'arm64'
+    switch ($Architecture.ToLowerInvariant()) {
+        { ($_ -eq "amd64") -or ($_ -eq "x64") } { return "x64" }
+        { $_ -eq "x86" } { return "x86" }
+        { $_ -eq "arm64" } { return "arm64" }
+        default { throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues" }
     }
-
-    $normalizedArch = $Architecture.ToLowerInvariant()
-    if ($archMap.ContainsKey($normalizedArch)) {
-        return $archMap[$normalizedArch]
-    }
-
-    throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
 }
 
-# Function to get Content-Type from response headers by making a HEAD request
-function Get-ContentTypeFromHeaders {
+function Get-ContentTypeFromUri {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Uri,
@@ -336,19 +334,16 @@ function Invoke-FileDownload {
         [string]$OutputPath,
         [int]$TimeoutSec = 60,
         [int]$OperationTimeoutSec = 30,
-        [int]$MaxRetries = 5,
-        [switch]$ValidateContentType
+        [int]$MaxRetries = 5
     )
 
-    # Validate content type via HEAD request if requested
-    if ($ValidateContentType) {
-        Write-Message "Validating content type for $Uri" -Level Verbose
-        $contentType = Get-ContentTypeFromHeaders -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
-        Write-Message "Detected content type: '$contentType'" -Level Verbose
+    # Validate content type via HEAD request
+    Write-Message "Validating content type for $Uri" -Level Verbose
+    $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
+    Write-Message "Detected content type: '$contentType'" -Level Verbose
 
-        if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-            throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
-        }
+    if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
+        throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
     }
 
     try {
@@ -566,10 +561,10 @@ function Install-AspireCli {
 
         # Download the Aspire CLI archive
         Write-Message "Downloading from: $url" -Level Info
-        Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename -ValidateContentType
+        Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename
 
         # Download and test the checksum
-        Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename -ValidateContentType
+        Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename
         Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
 
         Write-Message "Successfully downloaded and validated: $filename" -Level Verbose
