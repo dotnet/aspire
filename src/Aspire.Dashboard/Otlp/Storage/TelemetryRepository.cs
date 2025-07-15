@@ -771,14 +771,14 @@ public sealed class TelemetryRepository : IDisposable
 
         try
         {
-            var lastestTrace = GetTraceUnsynchronized(trace.TraceId);
-            if (lastestTrace == null)
+            var latestTrace = GetTraceUnsynchronized(trace.TraceId);
+            if (latestTrace == null)
             {
                 // Trace must have been removed. Technically there is an update (nothing).
                 return true;
             }
 
-            return lastestTrace.LastUpdatedDate > trace.LastUpdatedDate;
+            return latestTrace.LastUpdatedDate > trace.LastUpdatedDate;
         }
         finally
         {
