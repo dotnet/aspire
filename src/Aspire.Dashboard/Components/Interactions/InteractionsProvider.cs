@@ -28,14 +28,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     {
         public void Dispose()
         {
-            TelemetryContext?.Dispose();
+            TelemetryContext.Dispose();
         }
     }
     internal record InteractionDialogReference(int InteractionId, IDialogReference Dialog, ComponentTelemetryContext TelemetryContext) : IDisposable
     {
         public void Dispose()
         {
-            TelemetryContext?.Dispose();
+            TelemetryContext.Dispose();
         }
     }
 

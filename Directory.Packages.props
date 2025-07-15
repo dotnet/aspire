@@ -31,7 +31,7 @@
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.12.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.2.0" />
     <!-- Azure Management SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.Provisioning" Version="1.2.0" />
+    <PackageVersion Include="Azure.Provisioning" Version="1.2.1" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.AppContainers" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.AppService" Version="1.2.0" />
@@ -77,6 +77,7 @@
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.10.1" />
     <PackageVersion Include="Dapper" Version="2.1.66" />
+    <PackageVersion Include="DnsClient" Version="1.8.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.31.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.71.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.71.0" />
@@ -147,7 +148,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.4" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Azure.Core" Version="1.46.2" />
+    <PackageVersion Include="Azure.Core" Version="1.47.0" />
     <PackageVersion Include="Azure.Identity" Version="1.14.0" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />

@@ -7,7 +7,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 

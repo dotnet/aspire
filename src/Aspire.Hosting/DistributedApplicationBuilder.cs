@@ -241,7 +241,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
-        _innerBuilder.Services.AddSingleton<IVersionFetcher, VersionFetcher>();
+        _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();

@@ -261,9 +261,22 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             _tracesSubscription?.Dispose();
             _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
             {
-                UpdateDetailViewData();
-                await InvokeAsync(StateHasChanged);
-                await _dataGrid.SafeRefreshDataAsync();
+                if (_trace == null)
+                {
+                    return;
+                }
+
+                // Only update trace if required.
+                if (TelemetryRepository.HasUpdatedTrace(_trace))
+                {
+                    UpdateDetailViewData();
+                    StateHasChanged();
+                    await _dataGrid.SafeRefreshDataAsync();
+                }
+                else
+                {
+                    Logger.LogTrace("Trace '{TraceId}' is unchanged.", TraceId);
+                }
             }));
         }
     }

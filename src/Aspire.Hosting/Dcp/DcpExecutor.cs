@@ -1704,6 +1704,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
             var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
+            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using .localhost subdomain
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
