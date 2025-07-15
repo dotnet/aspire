@@ -401,7 +401,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, resourceType, appModelResource, resource.Metadata.Name, status, s => snapshotFactory(resource, s))).ConfigureAwait(false);
 
                     if (resource is Container { LogsAvailable: true } ||
-                        resource is Executable { LogsAvailable: true })
+                        resource is Executable { LogsAvailable: true } ||
+                        resource is ContainerExec { LogsAvailable: true })
                     {
                         _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
                     }
@@ -483,6 +484,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             Container => KnownResourceTypes.Container,
             Executable => appModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+            ContainerExec => KnownResourceTypes.ContainerExec,
             _ => throw new InvalidOperationException($"Unknown resource type {resource.GetType().Name}")
         };
     }
@@ -503,6 +505,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             return new(executable.Status?.State, executable.Status?.StartupTimestamp?.ToUniversalTime(), executable.Status?.FinishTimestamp?.ToUniversalTime());
         }
+        if (resource is ContainerExec containerExec)
+        {
+            return new(containerExec.Status?.State, containerExec.Status?.StartupTimestamp?.ToUniversalTime(), containerExec.Status?.FinishTimestamp?.ToUniversalTime());
+        }
+
         return new(null, null, null);
     }
 
@@ -560,6 +567,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
             Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
+            ContainerExec e when e.LogsAvailable => new ResourceLogSource<T>(_logger, _kubernetesService, resource, follow: true),
             _ => null
         };
 
@@ -669,6 +677,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     else if (cr is Executable exe)
                     {
                         return _snapshotBuilder.ToSnapshot(exe, s);
+                    }
+                    else if (cr is ContainerExec containerExec)
+                    {
+                        return _snapshotBuilder.ToSnapshot(containerExec, s);
                     }
                     return s;
                 })).ConfigureAwait(false);
@@ -1786,6 +1798,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         return false;
                     }
 
+                case ContainerExec e:
+                    // we dont have a way to stop it forcefully; so should just GetAsync and check the state?
+                    var containerExecState = await _kubernetesService.GetAsync<ContainerExec>(e.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                    if (containerExecState.Status?.State is ExecutableState.Finished or ExecutableState.Terminated)
+                    {
+                        _logger.LogDebug("Executable '{ResourceName}' was stopped.", resourceReference.DcpResourceName);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Executable '{ResourceName}' is still running; waiting for completion...", resourceReference.DcpResourceName);
+                        return false;
+                    }
+
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
@@ -1839,6 +1865,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
+                case ContainerExec containerExec:
+                    await EnsureResourceDeletedAsync<ContainerExec>(appResource.DcpResourceName).ConfigureAwait(false);
+
+                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+                    await CreateContainerExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
+                    break;
+
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
