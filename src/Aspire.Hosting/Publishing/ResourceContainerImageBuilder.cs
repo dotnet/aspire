@@ -154,7 +154,7 @@ internal sealed class ResourceContainerImageBuilder(
                         cancellationToken).ConfigureAwait(false);
 
                     await step.CompleteAsync("Building container images failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
-                    return;
+                    throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
                 }
 
                 await task.SucceedAsync(

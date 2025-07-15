@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 

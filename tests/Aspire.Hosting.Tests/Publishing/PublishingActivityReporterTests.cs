@@ -9,7 +9,6 @@ using Aspire.Hosting.Publishing;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Publishing;
 

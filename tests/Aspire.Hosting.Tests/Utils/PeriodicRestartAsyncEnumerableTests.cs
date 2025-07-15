@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Utils;
 

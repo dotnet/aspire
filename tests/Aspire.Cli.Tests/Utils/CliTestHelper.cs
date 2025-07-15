@@ -16,7 +16,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
-using Xunit;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 

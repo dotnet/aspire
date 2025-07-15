@@ -16,10 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup .NET 10
+      - name: Setup .NET 9 and 10
         uses: actions/setup-dotnet@b2ace4b12f4cec1b96b6361ff2694ba9e931ceb4 # v3.3.1
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: |
+            9.0.x
+            10.0.x
 
       - name: Restore solution
         run: ./build.sh -restore
