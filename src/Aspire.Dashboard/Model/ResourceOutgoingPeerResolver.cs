@@ -144,35 +144,10 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
-        var address = OtlpHelpers.GetPeerAddress(attributes);
-        if (address != null)
-        {
-            // Apply transformers to the peer address cumulatively
-            var transformedAddress = address;
-            
-            // First check exact match
-            if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
-            {
-                return true;
-            }
-            
-            // Then apply each transformer cumulatively and check
-            foreach (var transformer in s_addressTransformers)
-            {
-                transformedAddress = transformer(transformedAddress);
-                if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
-                {
-                    return true;
-                }
-            }
-        }
-
-        name = null;
-        matchedResource = null;
-        return false;
+        return TryResolvePeerCore(_resourceByName, attributes, out name, out matchedResource);
     }
 
-    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
+    internal static bool TryResolvePeerCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
@@ -205,22 +180,43 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     /// <summary>
     /// Checks if a transformed peer address matches any of the resource addresses using their cached addresses.
     /// Applies the same transformations to resource addresses for consistent matching.
+    /// Returns true only if exactly one resource matches; false if no matches or multiple matches are found.
     /// </summary>
     private static bool TryMatchAgainstResources(string peerAddress, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
+        ResourceViewModel? foundResource = null;
+
         foreach (var (_, resource) in resources)
         {
             foreach (var resourceAddress in resource.CachedAddresses)
             {
                 if (DoesAddressMatch(resourceAddress, peerAddress))
                 {
-                    name = ResourceViewModel.GetResourceName(resource, resources);
-                    resourceMatch = resource;
-                    return true;
+                    if (foundResource is null)
+                    {
+                        foundResource = resource;
+                    }
+                    else if (!string.Equals(foundResource.Name, resource.Name, StringComparisons.ResourceName))
+                    {
+                        // Multiple different resources match - return false immediately
+                        name = null;
+                        resourceMatch = null;
+                        return false;
+                    }
+                    break; // No need to check other addresses for this resource once we found a match
                 }
             }
         }
 
+        // Return true only if exactly one resource matched
+        if (foundResource is not null)
+        {
+            name = ResourceViewModel.GetResourceName(foundResource, resources);
+            resourceMatch = foundResource;
+            return true;
+        }
+
+        // Return false if no matches found
         name = null;
         resourceMatch = null;
         return false;
