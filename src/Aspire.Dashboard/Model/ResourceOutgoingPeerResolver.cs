@@ -210,7 +210,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private static bool TryMatchAgainstResources(string peerAddress, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
         ResourceViewModel? foundResource = null;
-        var matchCount = 0;
 
         foreach (var (_, resource) in resources)
         {
@@ -222,21 +221,27 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     {
                         foundResource = resource;
                     }
-                    matchCount++;
+                    else if (foundResource != resource)
+                    {
+                        // Multiple different resources match - return false immediately
+                        name = null;
+                        resourceMatch = null;
+                        return false;
+                    }
                     break; // No need to check other addresses for this resource once we found a match
                 }
             }
         }
 
         // Return true only if exactly one resource matched
-        if (matchCount == 1 && foundResource is not null)
+        if (foundResource is not null)
         {
             name = ResourceViewModel.GetResourceName(foundResource, resources);
             resourceMatch = foundResource;
             return true;
         }
 
-        // Return false if no matches or multiple matches found
+        // Return false if no matches found
         name = null;
         resourceMatch = null;
         return false;
