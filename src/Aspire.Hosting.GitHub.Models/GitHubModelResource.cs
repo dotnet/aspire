@@ -10,6 +10,8 @@ namespace Aspire.Hosting.GitHub.Models;
 /// </summary>
 public class GitHubModelResource : Resource, IResourceWithConnectionString, IResourceWithoutLifetime
 {
+    internal ParameterResource DefaultKeyParameter { get; set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="GitHubModelResource"/> class.
     /// </summary>
@@ -21,7 +23,7 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString, IRes
     {
         Model = model;
         Organization = organization;
-        Key = key;
+        Key = DefaultKeyParameter = key;
     }
 
     /// <summary>

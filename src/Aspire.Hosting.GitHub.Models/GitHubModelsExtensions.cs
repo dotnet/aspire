@@ -85,8 +85,11 @@ public static class GitHubModelsExtensions
             throw new ArgumentException("The API key parameter must be marked as secret. Use AddParameter with secret: true when creating the parameter.", nameof(apiKey));
         }
 
-        // Remove the existing API key parameter
-        builder.ApplicationBuilder.Resources.Remove(builder.Resource.Key);
+        // Remove the existing parameter if it's the default one
+        if (builder.Resource.DefaultKeyParameter == builder.Resource.Key)
+        {
+            builder.ApplicationBuilder.Resources.Remove(builder.Resource.Key);
+        }
 
         builder.Resource.Key = apiKey.Resource;
 
