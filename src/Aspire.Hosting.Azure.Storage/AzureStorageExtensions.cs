@@ -330,8 +330,15 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         name ??= builder.Resource.Name + "-blobs";
+
+        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureBlobStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
+        if (existingResource != null)
+        {
+            // If the resource already exists, return it.
+            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
+        }
 
         var resource = new AzureBlobStorageResource(name, builder.Resource);
         builder.Resource.BlobStorageResource = resource;
@@ -459,8 +466,15 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureTableStorageResource> AddTableService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         name ??= builder.Resource.Name + "-tables";
+
+        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureTableStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
+        if (existingResource != null)
+        {
+            // If the resource already exists, return it.
+            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
+        }
 
         var resource = new AzureTableStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
@@ -490,8 +504,15 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureQueueStorageResource> AddQueueService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         name ??= builder.Resource.Name + "-queues";
+
+        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureQueueStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
+        if (existingResource != null)
+        {
+            // If the resource already exists, return it.
+            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
+        }
 
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         builder.Resource.QueueStorageResource = resource;

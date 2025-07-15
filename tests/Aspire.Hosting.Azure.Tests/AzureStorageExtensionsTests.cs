@@ -884,4 +884,50 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public void AddBlobServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+        var blobContainer = storage.AddBlobContainer("blobcontainer");
+        var blobStorageResource = builder.Resources.OfType<AzureBlobStorageResource>().FirstOrDefault();
+
+        var blobService = storage.AddBlobService();
+
+        Assert.NotNull(blobStorageResource);
+        Assert.Equal("storage-blobs", blobService.Resource.Name);
+        Assert.Equal(blobService.Resource, blobStorageResource);
+    }
+
+    [Fact]
+    public void AddQueueServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+        var queue = storage.AddQueue("queue");
+        var queueStorageResource = builder.Resources.OfType<AzureQueueStorageResource>().FirstOrDefault();
+
+        var queueService = storage.AddQueueService();
+
+        Assert.NotNull(queueStorageResource);
+        Assert.Equal("storage-queues", queueService.Resource.Name);
+        Assert.Equal(queueService.Resource, queueStorageResource);
+    }
+
+    [Fact]
+    public void AddTableServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        // There is no method to add a table directly, so we create a table service with the expected name instead.
+        var tableService1 = storage.AddTableService("storage-tables");
+
+        var tableService = storage.AddTableService();
+
+        Assert.NotNull(tableService1);
+        Assert.Equal("storage-tables", tableService1.Resource.Name);
+        Assert.Equal(tableService.Resource, tableService1.Resource);
+    }
 }
