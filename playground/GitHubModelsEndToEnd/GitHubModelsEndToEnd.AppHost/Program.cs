@@ -6,10 +6,6 @@ builder.AddAzureContainerAppEnvironment("env");
 
 var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini");
 
-// To set the GitHub Models API key define the value for the following parameter in User Secrets.
-// Alternatively, you can set the environment variable GITHUB_TOKEN and comment the line below.
-chat.WithApiKey(builder.AddParameter("github-api-key", secret: true));
-
 builder.AddProject<Projects.GitHubModelsEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
        .WithReference(chat).WaitFor(chat);
