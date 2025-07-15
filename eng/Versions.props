@@ -41,9 +41,8 @@
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25351.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
     <MicrosoftDotNetBuildTasksArchivesVersion>10.0.0-beta.25351.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
-    <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
-    <MicrosoftExtensionsFileProvidersEmbeddedVersion>8.0.15</MicrosoftExtensionsFileProvidersEmbeddedVersion>
+    <MicrosoftExtensionsAIVersion>9.7.0</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIPreviewVersion>9.7.0-preview.1.25356.2</MicrosoftExtensionsAIPreviewVersion>
     <MicrosoftExtensionsHttpResilienceVersion>9.7.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.7.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.7.0</MicrosoftExtensionsTimeProviderTestingVersion>
@@ -72,6 +71,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>9.0.7</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksVersion>9.0.7</MicrosoftExtensionsDiagnosticsHealthChecksVersion>
     <MicrosoftExtensionsFeaturesVersion>9.0.7</MicrosoftExtensionsFeaturesVersion>
+    <MicrosoftExtensionsFileProvidersEmbeddedVersion>9.0.7</MicrosoftExtensionsFileProvidersEmbeddedVersion>
     <MicrosoftAspNetCoreSignalRClientVersion>9.0.7</MicrosoftAspNetCoreSignalRClientVersion>
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsVersion>9.0.7</MicrosoftExtensionsHostingAbstractionsVersion>
@@ -110,6 +110,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>8.0.18</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>8.0.18</MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>
     <MicrosoftExtensionsFeaturesLTSVersion>8.0.18</MicrosoftExtensionsFeaturesLTSVersion>
+    <MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>8.0.18</MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>
     <MicrosoftAspNetCoreSignalRClientLTSVersion>8.0.18</MicrosoftAspNetCoreSignalRClientLTSVersion>
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsLTSVersion>8.0.1</MicrosoftExtensionsHostingAbstractionsLTSVersion>
