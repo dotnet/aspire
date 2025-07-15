@@ -20,13 +20,11 @@
             {
                 if (launchArgument.IsShown)
                 {
-                    if (launchArgument.Value.Contains(' '))
+                    <span class="subtext">@FormatValue(launchArgument.Value)</span>
+
+                    static string FormatValue(string value)
                     {
-                        <span class="subtext">&nbsp;"@launchArgument.Value"</span>
-                    }
-                    else
-                    {
-                        <span class="subtext">&nbsp;@launchArgument.Value</span>
+                        return " " + (value.Contains(' ') ? $"\"{value}\"" : value);
                     }
                 }
                 else
