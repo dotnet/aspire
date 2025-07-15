@@ -144,35 +144,10 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public bool TryResolvePeer(KeyValuePair<string, string>[] attributes, out string? name, out ResourceViewModel? matchedResource)
     {
-        var address = OtlpHelpers.GetPeerAddress(attributes);
-        if (address != null)
-        {
-            // Apply transformers to the peer address cumulatively
-            var transformedAddress = address;
-            
-            // First check exact match
-            if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
-            {
-                return true;
-            }
-            
-            // Then apply each transformer cumulatively and check
-            foreach (var transformer in s_addressTransformers)
-            {
-                transformedAddress = transformer(transformedAddress);
-                if (TryMatchAgainstResources(transformedAddress, _resourceByName, out name, out matchedResource))
-                {
-                    return true;
-                }
-            }
-        }
-
-        name = null;
-        matchedResource = null;
-        return false;
+        return TryResolvePeerCore(_resourceByName, attributes, out name, out matchedResource);
     }
 
-    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
+    internal static bool TryResolvePeerCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
         var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
