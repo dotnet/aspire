@@ -33,7 +33,8 @@ var parameterWithMarkdownDescription = builder.AddParameter("markdownDescription
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 var parameterWithCustomInput = builder.AddParameter("customInput")
-    .WithDescription("This parameter only accepts a number.", p => new()
+    .WithDescription("This parameter only accepts a number.")
+    .WithCustomInput(p => new()
     {
         InputType = InputType.Number,
         Label = "Custom Input",

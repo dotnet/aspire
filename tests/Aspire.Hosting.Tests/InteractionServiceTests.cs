@@ -196,7 +196,60 @@ public class InteractionServiceTests
         await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new [] { input } });
 
         // The interaction should still be in progress due to validation error
-        Assert.False(interaction.CompletionTcs.Task.IsCompleted); 
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public void InteractionInput_WithDescription_SetsProperties()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "Test description",
+            EnableDescriptionMarkup = false
+        };
+
+        // Assert
+        Assert.Equal("Test Label", input.Label);
+        Assert.Equal(InputType.Text, input.InputType);
+        Assert.Equal("Test description", input.Description);
+        Assert.False(input.EnableDescriptionMarkup);
+    }
+
+    [Fact]
+    public void InteractionInput_WithMarkdownDescription_SetsMarkupFlag()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "**Bold** description",
+            EnableDescriptionMarkup = true
+        };
+
+        // Assert
+        Assert.Equal("**Bold** description", input.Description);
+        Assert.True(input.EnableDescriptionMarkup);
+    }
+
+    [Fact]
+    public void InteractionInput_WithNullDescription_AllowsNullValue()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = null,
+            EnableDescriptionMarkup = false
+        };
+
+        // Assert
+        Assert.Null(input.Description);
+        Assert.False(input.EnableDescriptionMarkup);
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
