@@ -86,7 +86,7 @@ public static class GitHubModelsExtensions
         }
 
         // Remove the existing parameter if it's the default one
-        if (builder.Resource.Key.Name == $"{builder.Resource.Name}-gh-apikey")
+        if (builder.Resource.DefaultKeyParameter == builder.Resource.Key)
         {
             builder.ApplicationBuilder.Resources.Remove(builder.Resource.Key);
         }
