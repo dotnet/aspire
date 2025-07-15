@@ -144,12 +144,7 @@ internal sealed class ParameterProcessor(
                 foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    var input = new InteractionInput
-                    {
-                        InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
-                        Label = parameter.Name,
-                        Placeholder = $"Enter value for {parameter.Name}",
-                    };
+                    var input = parameter.CreateInput();
                     resourceInputs.Add((parameter, input));
                 }
 

@@ -86,4 +86,36 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         // In publish mode, there's no WaitForValueTcs set.
         return ValueInternal;
     }
+
+    /// <summary>
+    /// Gets a description of the parameter resource.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// </summary>
+    public bool EnableDescriptionMarkup { get; set; }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    internal InteractionInput CreateInput()
+    {
+        if (this.TryGetLastAnnotation<InputGeneratorAnnotation>(out var annotation))
+        {
+            // If the annotation is present, use it to create the input.
+            return annotation.InputGenerator(this);
+        }
+
+        var input = new InteractionInput
+        {
+            InputType = Secret ? InputType.SecretText : InputType.Text,
+            Label = Name,
+            Description = Description,
+            EnableDescriptionMarkup = EnableDescriptionMarkup,
+            Placeholder = $"Enter value for {Name}",
+
+        };
+        return input;
+    }
+#pragma warning restore ASPIREINTERACTION001
 }

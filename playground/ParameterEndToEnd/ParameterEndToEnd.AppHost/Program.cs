@@ -19,13 +19,28 @@ var db = builder.AddSqlServer("sql")
                 .PublishAsConnectionString()
                 .AddDatabase("db");
 
-var insertionrows = builder.AddParameter("insertionrows");
+var insertionrows = builder.AddParameter("insertionrows")
+    .WithDescription("The number of rows to insert into the database.");
 
 var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"sql={db};rows={insertionrows}"));
 var parameterFromConnectionStringConfig = builder.AddConnectionString("parameterFromConnectionStringConfig");
 
 var throwing = builder.AddParameter("throwing", () => throw new InvalidOperationException("This is a test exception."));
 var parameterFromConnectionStringConfigMissing = builder.AddConnectionString("parameterFromConnectionStringConfigMissing");
+
+var parameterWithMarkdownDescription = builder.AddParameter("markdownDescription")
+    .WithMarkdownDescription("This is a parameter with a **markdown** description.");
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var parameterWithCustomInput = builder.AddParameter("customInput")
+    .WithDescription("This parameter only accepts a number.", p => new()
+    {
+        InputType = InputType.Number,
+        Label = "Custom Input",
+        Placeholder = "Enter a number",
+        Description = p.Description,
+    });
+#pragma warning restore ASPIREINTERACTION001
 
 builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

@@ -32,7 +32,12 @@ public static class GitHubModelsExtensions
             Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
             throw new MissingParameterValueException($"GitHub API key parameter '{name}-gh-apikey' is missing and GITHUB_TOKEN environment variable is not set."),
             secret: true);
-
+        defaultApiKeyParameter.Resource.Description = """
+            The API key used to authenticate requests to the GitHub Models API.
+            A [fine-grained personal access token](https://github.com/settings/tokens) with the `models: read` scope is recommended.  
+            See [GitHub documentation for more details](https://docs.github.com/en/rest/models/inference).
+            """;
+        defaultApiKeyParameter.Resource.EnableDescriptionMarkup = true;
         var resource = new GitHubModelResource(name, model, organization?.Resource, defaultApiKeyParameter.Resource);
 
         defaultApiKeyParameter.WithParentRelationship(resource);

@@ -148,6 +148,53 @@ public static class ParameterResourceBuilderExtensions
             });
     }
 
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    /// <summary>
+    /// Sets the description of the parameter resource.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="description">The parameter description.</param>
+    /// <param name="createInput">Optional function to customize the input for the parameter.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, Func<ParameterResource, InteractionInput>? createInput = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(description);
+
+        builder.Resource.Description = description;
+
+        if (createInput is not null)
+        {
+            builder.Resource.Annotations.Add(new InputGeneratorAnnotation(createInput));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the description of the parameter resource and configures it to use markdown.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="description">The parameter markdown description.</param>
+    /// <param name="createInput">Optional function to customize the input for the parameter.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> WithMarkdownDescription(this IResourceBuilder<ParameterResource> builder, string description, Func<ParameterResource, InteractionInput>? createInput = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(description);
+
+        builder.Resource.Description = description;
+        builder.Resource.EnableDescriptionMarkup = true;
+
+        if (createInput is not null)
+        {
+            builder.Resource.Annotations.Add(new InputGeneratorAnnotation(createInput));
+        }
+
+        return builder;
+    }
+#pragma warning restore ASPIREINTERACTION001
+
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
