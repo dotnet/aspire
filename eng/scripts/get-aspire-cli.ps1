@@ -17,10 +17,14 @@ $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
 
+# True if the script is executed from a file (pwsh -File … or .\get-aspire-cli.ps1)
+# False if the body is piped / dot‑sourced / iex’d into the current session.
+$InvokedFromFile = -not [string]::IsNullOrEmpty($PSCommandPath)
+
 # Ensure minimum PowerShell version
 if ($PSVersionTable.PSVersion.Major -lt 4) {
     Write-Host "Error: This script requires PowerShell 4.0 or later. Current version: $($PSVersionTable.PSVersion)" -ForegroundColor Red
-    exit 1
+    if ($InvokedFromFile) { exit 1 } else { return 1 }
 }
 
 if ($Help) {
@@ -60,7 +64,7 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -Help
 
 "@
-    exit 0
+    if ($InvokedFromFile) { exit 0 } else { return 0 }
 }
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
@@ -625,8 +629,11 @@ try {
     }
 
     Main
-    exit 0
+    $exitCode = 0
 }
 catch {
-    exit 1
+    Write-Error $_
+    $exitCode = 1
 }
+
+if ($InvokedFromFile) { exit $exitCode } else { return $exitCode }
