@@ -1119,7 +1119,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                         try
                         {
-                            // await CreateExecutableAsync(er, resourceLogger, cancellationToken).ConfigureAwait(false);
                             await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
                         }
                         catch (FailedToApplyEnvironmentException)

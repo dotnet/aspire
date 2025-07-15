@@ -105,7 +105,7 @@ internal class ExecResourceManager
 
             // hack: https://github.com/dotnet/aspire/issues/10245
             // workarounds the race-condition between streaming all logs from the resource, and resource completion
-            await Task.Delay(2000, CancellationToken.None).ConfigureAwait(false);
+            await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
 
             _resourceLoggerService.Complete(dcpExecResourceName); // complete stops the `WatchAsync` async-foreach below
         }, cancellationToken);
