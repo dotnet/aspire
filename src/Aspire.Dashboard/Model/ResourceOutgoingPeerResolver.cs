@@ -196,7 +196,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                     {
                         foundResource = resource;
                     }
-                    else if (foundResource != resource)
+                    else if (!string.Equals(foundResource.Name, resource.Name, StringComparisons.ResourceName))
                     {
                         // Multiple different resources match - return false immediately
                         name = null;
