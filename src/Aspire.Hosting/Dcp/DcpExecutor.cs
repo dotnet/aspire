@@ -789,7 +789,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable), cancellationToken);
 
-        await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
+        await Task.WhenAll(containersTask, executablesTask).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
@@ -1084,10 +1084,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var tasks = new List<Task>();
             foreach (var group in executableResources.GroupBy(e => e.ModelResource))
             {
-                tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken));
+                tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
             }
 
-            return Task.WhenAll(tasks);
+            return Task.WhenAll(tasks).WaitAsync(cancellationToken);
         }
         finally
         {
@@ -1097,9 +1097,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        // Force async execution
-        await Task.Yield();
-
         if (er.DcpResource is not Executable exe)
         {
             throw new InvalidOperationException($"Expected an Executable resource, but got {er.DcpResource.Kind} instead");
@@ -1338,10 +1335,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
                 }
 
-                tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
+                tasks.Add(Task.Run(() => CreateContainerAsyncCore(cr, cancellationToken), cancellationToken));
             }
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -1351,9 +1348,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        // Force async execution
-        await Task.Yield();
-
         await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
         var dcpContainerResource = (Container)cr.DcpResource;
