@@ -57,7 +57,16 @@
                 <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
             }
 
+            @* the label and select do not have margins applied to them due to have slot="end", so
+               we can just add right margin equal to the gap applied by the toolbar * 2 to the label *@
+            <FluentInputLabel slot="end"
+                              Label="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"
+                              ForId="@_selectDurationId"
+                              Orientation="Orientation.Horizontal"
+                              style="margin-right: calc(var(--toolbar-item-gap) * 2)" />
+
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
+                          Id="@_selectDurationId"
                           Items="@_durations"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedDuration"
