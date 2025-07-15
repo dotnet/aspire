@@ -16,10 +16,12 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString, IRes
     /// <param name="name">The name of the resource.</param>
     /// <param name="model">The model name.</param>
     /// <param name="organization">The organization.</param>
-    public GitHubModelResource(string name, string model, ParameterResource? organization) : base(name)
+    /// <param name="key">The key parameter.</param>
+    public GitHubModelResource(string name, string model, ParameterResource? organization, ParameterResource key) : base(name)
     {
         Model = model;
         Organization = organization;
+        Key = key;
     }
 
     /// <summary>
@@ -39,10 +41,9 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString, IRes
     /// Gets or sets the API key (PAT or GitHub App minted token) for accessing GitHub Models.
     /// </summary>
     /// <remarks>
-    /// If not set, the value will be retrieved from the environment variable GITHUB_TOKEN.
     /// The token must have the <code>models: read</code> permission if using a fine-grained PAT or GitHub App minted token.
     /// </remarks>
-    public ParameterResource Key { get; set; } = new ParameterResource("github-api-key", p => Environment.GetEnvironmentVariable("GITHUB_TOKEN") ?? string.Empty, secret: true);
+    public ParameterResource Key { get; internal set; }
 
     /// <summary>
     /// Gets the connection string expression for the GitHub Models resource.
