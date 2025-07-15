@@ -346,6 +346,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             value =>
             {
                 _showHiddenResources = value;
+                UpdateResourcesList();
 
                 if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
