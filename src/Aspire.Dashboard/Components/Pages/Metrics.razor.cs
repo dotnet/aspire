@@ -23,6 +23,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
     private AspirePageContentLayout? _contentLayout;
     private TreeMetricSelector? _treeMetricSelector;
+    private readonly string _selectDurationId = $"select-duration-{Guid.NewGuid():N}";
 
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
