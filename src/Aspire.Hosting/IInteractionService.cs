@@ -109,6 +109,17 @@ public sealed class InteractionInput
     public required string Label { get; init; }
 
     /// <summary>
+    /// Gets or sets the description for the input.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// Setting this to <c>true</c> allows a description to contain Markdown elements such as links, text decoration and lists.
+    /// </summary>
+    public bool EnableDescriptionMarkup { get; init; }
+
+    /// <summary>
     /// Gets or sets the type of the input.
     /// </summary>
     public required InputType InputType { get; init; }

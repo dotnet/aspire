@@ -2,6 +2,17 @@
     width: 100%;
 }
 
-.interaction-input-dialog .interaction-input ::deep fluent-text-field, .interaction-input-dialog .interaction-input ::deep fluent-select {
+.interaction-input-dialog .interaction-input ::deep fluent-text-field,
+.interaction-input-dialog .interaction-input ::deep fluent-select,
+.interaction-input-dialog .interaction-input ::deep .input-description {
     width: 75%;
+}
+
+.interaction-input-dialog .interaction-input ::deep .input-description .icon {
+    width: 16px;
+}
+
+.interaction-input-dialog .interaction-input ::deep .input-description .text {
+    font-style: italic;
+    font-size: 0.8rem;
 }

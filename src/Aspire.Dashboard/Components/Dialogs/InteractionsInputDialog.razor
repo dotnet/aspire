@@ -9,6 +9,7 @@
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
+@using Markdig
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
@@ -38,6 +39,9 @@
                 * Immediate value of true on text inputs ensures the value is set to the server token with every key press in textbox.
                 *@
                 var localItem = vm;
+                var descriptionId = !string.IsNullOrEmpty(localItem.Input.Description)
+                    ? $"{_elementRefs[localItem]?.Id}-description"
+                    : null;
                 <div class="interaction-input">
                     @switch (vm.Input.InputType)
                     {
@@ -47,7 +51,9 @@
                                              Label="@localItem.Input.Label"
                                              Placeholder="@localItem.Input.Placeholder"
                                              Required="localItem.Input.Required"
-                                             Immediate="true" />
+                                             Immediate="true"
+                                             aria-describedby="@descriptionId" />
+                            @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.SecretText:
@@ -58,7 +64,9 @@
                                              Required="localItem.Input.Required"
                                              TextFieldType="TextFieldType.Password"
                                              AutoComplete="one-time-code"
-                                             Immediate="true" />
+                                             Immediate="true"
+                                             aria-describedby="@descriptionId" />
+                            @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Choice:
@@ -67,19 +75,25 @@
                                           @bind-Value="localItem.Value"
                                           Label="@localItem.Input.Label"
                                           Placeholder="@localItem.Input.Placeholder"
+                                          AriaLabel="@localItem.Input.Description"
                                           Required="localItem.Input.Required"
                                           Items="localItem.SelectOptions"
                                           OptionValue="@(vm => vm.Id)"
                                           OptionText="@(vm => vm.Name)"
                                           Height="250px"
-                                          Position="SelectPosition.Below" />
+                                          Position="SelectPosition.Below"
+                                          aria-describedby="@descriptionId" />
+                            @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Boolean:
                             <FluentCheckbox @ref="@_elementRefs[localItem]"
                                             @bind-Value="localItem.IsChecked"
                                             Label="@localItem.Input.Label"
-                                            Placeholder="@localItem.Input.Placeholder" />
+                                            Placeholder="@localItem.Input.Placeholder"
+                                            AriaLabel="@localItem.Input.Description"
+                                            aria-describedby="@descriptionId" />
+                            @GetDescriptionContent(localItem.Input, descriptionId)
                             break;
                         case InputType.Number:
                             <FluentNumberField TValue="int?"
@@ -87,8 +101,11 @@
                                                @bind-Value="localItem.NumberValue"
                                                Label="@localItem.Input.Label"
                                                Placeholder="@localItem.Input.Placeholder"
+                                               AriaLabel="@localItem.Input.Description"
                                                Required="localItem.Input.Required"
-                                               Immediate="true" />
+                                               Immediate="true"
+                                               aria-describedby="@descriptionId" />
+                            @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.NumberValue)" />
                             break;
                         default:
@@ -115,3 +132,37 @@
         </FluentButton>
     }
 </FluentDialogFooter>
+
+@code {
+    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
+
+    private static RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
+    {
+        @if (!string.IsNullOrEmpty(vm.Description))
+        {
+            return
+            @<div class="input-description">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="5">
+                    <div class="icon">
+                        <FluentIcon Icon="Icons.Regular.Size16.Info"
+                                    Color="Color.Accent"
+                                    Style="vertical-align: text-bottom;" />
+                    </div>
+                    <div class="text">
+                        @if (vm.EnableDescriptionMarkdown)
+                        {
+                            <div id="@id" data-markdown="true">
+                                @((MarkupString)MarkdownHelpers.ToHtml(vm.Description, s_markdownPipeline, true))
+                            </div>
+                        }
+                        else
+                        {
+                            <span id="@id" data-markdown="false">@vm.Description</span>
+                        }
+                    </div>
+                </FluentStack>
+            </div>;
+        }
+        return null;
+    }
+}
