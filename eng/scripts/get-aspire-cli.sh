@@ -329,9 +329,14 @@ validate_checksum() {
     local archive_file="$1"
     local checksum_file="$2"
 
-    # Check if sha512sum command is available
-    if ! command -v sha512sum >/dev/null 2>&1; then
-        say_error "sha512sum command not found. Please install it to validate checksums."
+    # Determine the checksum command to use
+    local checksum_cmd=""
+    if command -v sha512sum >/dev/null 2>&1; then
+        checksum_cmd="sha512sum"
+    elif command -v shasum >/dev/null 2>&1; then
+        checksum_cmd="shasum -a 512"
+    else
+        say_error "Neither sha512sum nor shasum is available. Please install one of them to validate checksums."
         return 1
     fi
 
