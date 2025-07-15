@@ -478,7 +478,7 @@ function Update-PathEnvironment {
     # Update current session PATH
     $currentPathArray = $env:PATH.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
     if ($currentPathArray -notcontains $InstallPath) {
-        $env:PATH = ($currentPathArray + @($InstallPath)) -join $pathSeparator
+        $env:PATH = (@($InstallPath) + $currentPathArray) -join $pathSeparator
         Write-Message "Added $InstallPath to PATH for current session" -Level Info
     }
 
@@ -490,7 +490,7 @@ function Update-PathEnvironment {
             $userPathArray = if ($userPath) { $userPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries) } else { @() }
 
             if ($userPathArray -notcontains $InstallPath) {
-                $newUserPath = ($userPathArray + @($InstallPath)) -join $pathSeparator
+                $newUserPath = (@($InstallPath) + $userPathArray) -join $pathSeparator
                 [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
                 Write-Message "Added $InstallPath to user PATH environment variable" -Level Info
             }
