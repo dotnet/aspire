@@ -256,6 +256,26 @@ public class GitHubModelsExtensionTests
     }
 
     [Fact]
+    public void WithApiKeyCalledTwiceOnlyRemovesDefaultParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "github-gh-apikey"));
+
+        github.WithApiKey(builder.AddParameter("secret-key1", secret: true));
+
+        Assert.Null(builder.Resources.FirstOrDefault(r => r.Name == "github-gh-apikey"));
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
+
+        github.WithApiKey(builder.AddParameter("secret-key2", secret: true));
+
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key2"));
+    }
+
+    [Fact]
     public void WithHealthCheckAddsHealthCheckAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
