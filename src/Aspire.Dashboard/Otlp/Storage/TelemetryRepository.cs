@@ -817,7 +817,7 @@ public sealed class TelemetryRepository : IDisposable
 
     private OtlpTrace? GetTraceAndCloneUnsynchronized(string traceId)
     {
-        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceUnsynchronized)}.");
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceAndCloneUnsynchronized)}.");
 
         var trace = GetTraceUnsynchronized(traceId);
 
@@ -828,6 +828,7 @@ public sealed class TelemetryRepository : IDisposable
     {
         Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanAndCloneUnsynchronized)}.");
 
+        // Trace and its spans are cloned here.
         var trace = GetTraceAndCloneUnsynchronized(traceId);
         if (trace != null)
         {
