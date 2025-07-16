@@ -8,25 +8,27 @@ namespace Aspire.Dashboard.Utils;
 
 public static class VersionHelpers
 {
-    private static readonly Lazy<Version?> s_cachedRuntimeVersion = new Lazy<Version?>(GetRuntimeVersion);
+    private static readonly Lazy<string?> s_cachedRuntimeVersion = new Lazy<string?>(GetRuntimeVersion);
 
     public static string? DashboardDisplayVersion { get; } = typeof(VersionHelpers).Assembly.GetDisplayVersion();
 
-    public static Version? RuntimeVersion => s_cachedRuntimeVersion.Value;
+    public static string? RuntimeVersion => s_cachedRuntimeVersion.Value;
 
-    private static Version? GetRuntimeVersion()
+    private static string? GetRuntimeVersion()
     {
         var description = RuntimeInformation.FrameworkDescription;
 
-        // Examples: ".NET 8.0.3", ".NET 7.0.16", ".NET Core 3.1.32"
-        var parts = description.Split(' ');
-        if (parts.Length >= 2)
+        // Example inputs:
+        // ".NET 8.0.3"
+        // ".NET Core 3.1.32"
+        // ".NET Framework 4.8.9032.0"
+
+        int lastSpace = description.LastIndexOf(' ');
+        if (lastSpace >= 0 && lastSpace < description.Length - 1)
         {
-            if (Version.TryParse(parts[1], out var v))
-            {
-                return v;
-            }
+            return description.Substring(lastSpace + 1);
         }
+
         return null;
     }
 }
