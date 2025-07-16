@@ -188,6 +188,20 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Resource builder for the parameter.</param>
     /// <param name="createInput">Function to customize the input for the parameter.</param>
     /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>
+    /// Use this method to customize how the input field for this parameter is rendered when its value is requested, e.g.:
+    /// <code language="csharp">
+    /// builder.AddParameter("external-service-url")
+    ///     .WithCustomInput(parameter => new()
+    ///     {
+    ///         InputType = InputType.Text,
+    ///         Value = "https://example.com",
+    ///         Label = parameter.Name,
+    ///         Placeholder = $"Enter value for {parameter.Name}",
+    ///         Description = parameter.Description
+    ///     });
+    /// </code>
+    /// </remarks>
     public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
     {
         ArgumentNullException.ThrowIfNull(builder);
