@@ -16,7 +16,7 @@
 				"ms-azuretools.vscode-bicep",
 				"GitHub.copilot-chat",
 				"GitHub.copilot",
-        "microsoft-aspire.aspire-vscode"
+        		"microsoft-aspire.aspire-vscode"
       ],
 			"settings": {
 				"remote.autoForwardPorts": true,
