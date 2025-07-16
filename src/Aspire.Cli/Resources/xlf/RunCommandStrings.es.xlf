@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
-        <target state="needs-review-translation">Presione [bold]Ctrl+C[/] para detener el host de la aplicación y salir.</target>
+        <target state="translated">Presione [bold]CTRL+C[/] para detener el apphost y salir.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
