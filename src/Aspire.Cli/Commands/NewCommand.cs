@@ -127,7 +127,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
     public virtual async Task<bool> PromptToUsePrereleaseTemplates(CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(
-            "Use pre-release templates?",
+            NewCommandStrings.PromptToUsePrereleaseTemplates,
             [false, true],
             (s) => s ? TemplatingStrings.Yes : TemplatingStrings.No,
             cancellationToken

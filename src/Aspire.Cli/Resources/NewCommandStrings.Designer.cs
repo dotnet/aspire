@@ -104,5 +104,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SelectAProjectTemplate", resourceCulture);
             }
         }
+        
+        public static string PromptToUsePrereleaseTemplates {
+            get {
+                return ResourceManager.GetString("PromptToUsePrereleaseTemplates", resourceCulture);
+            }
+        }
     }
 }
