@@ -98,17 +98,17 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             change.MessageBox = new InteractionMessageBox();
                             change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
                         }
-                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        else if (interaction.InteractionInfo is NotificationInteractionInfo notification)
                         {
-                            change.MessageBar = new InteractionMessageBar();
-                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
-                            if (messageBar.LinkText != null)
+                            change.Notification = new InteractionNotification();
+                            change.Notification.Intent = MapMessageIntent(notification.Intent);
+                            if (notification.LinkText != null)
                             {
-                                change.MessageBar.LinkText = messageBar.LinkText;
+                                change.Notification.LinkText = notification.LinkText;
                             }
-                            if (messageBar.LinkUrl != null)
+                            if (notification.LinkUrl != null)
                             {
-                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                                change.Notification.LinkUrl = notification.LinkUrl;
                             }
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
