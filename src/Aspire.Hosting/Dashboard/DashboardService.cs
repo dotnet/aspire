@@ -126,6 +126,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Label = input.Label;
                                 }
+                                if (input.Description != null)
+                                {
+                                    dto.Description = input.Description;
+                                    dto.EnableDescriptionMarkdown = input.EnableDescriptionMarkdown;
+                                }
                                 if (input.Placeholder != null)
                                 {
                                     dto.Placeholder = input.Placeholder;

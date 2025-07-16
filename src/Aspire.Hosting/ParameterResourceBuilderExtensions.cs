@@ -148,6 +148,59 @@ public static class ParameterResourceBuilderExtensions
             });
     }
 
+    /// <summary>
+    /// Sets the description of the parameter resource.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="description">The parameter description.</param>
+    /// <param name="enableMarkdown">
+    /// A value indicating whether the description should be rendered as Markdown.
+    /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
+    /// </param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(description);
+
+        builder.Resource.Description = description;
+        builder.Resource.EnableDescriptionMarkdown = enableMarkdown;
+
+        return builder;
+    }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    /// <summary>
+    /// Sets a custom input generator function for the parameter resource.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="createInput">Function to customize the input for the parameter.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>
+    /// Use this method to customize how the input field for this parameter is rendered when its value is requested, e.g.:
+    /// <code language="csharp">
+    /// builder.AddParameter("external-service-url")
+    ///     .WithCustomInput(parameter => new()
+    ///     {
+    ///         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
+    ///         Value = "https://example.com",
+    ///         Label = parameter.Name,
+    ///         Placeholder = $"Enter value for {parameter.Name}",
+    ///         Description = parameter.Description
+    ///     });
+    /// </code>
+    /// </remarks>
+    public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(createInput);
+
+        builder.Resource.Annotations.Add(new InputGeneratorAnnotation(createInput));
+
+        return builder;
+    }
+#pragma warning restore ASPIREINTERACTION001
+
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
