@@ -329,11 +329,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
             }
 
-            if (candidatePackages.Count() == 1)
-            {
-                return candidatePackages.First().Version;
-            }
-
             var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
             var selectedPackage = await prompter.PromptForTemplatesVersionAsync(orderedCandidatePackages, cancellationToken);
             return selectedPackage.Version;
