@@ -5,7 +5,9 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using HealthChecks.Uris;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -196,28 +198,98 @@ public static class ExternalServiceBuilderExtensions
 
         builder.ApplicationBuilder.Services.SuppressHealthCheckHttpClientLogging(healthCheckKey);
 
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
+        // Check if the external service uses a parameter for its URL
+        if (builder.Resource.UrlParameter is not null)
         {
-            var uri = builder.Resource.Uri;
-
-            // OK accessing the parameter here synchronously as this should only activate once the resource is running
-
-            if (uri is null && !Uri.TryCreate(builder.Resource.UrlParameter?.Value, UriKind.Absolute, out uri)
-                || (uri?.Scheme != "http" && uri?.Scheme != "https"))
+            // For parameter-based URLs, use the custom health check that resolves the URL asynchronously
+            builder.ApplicationBuilder.Services.AddSingleton(serviceProvider =>
+                new ParameterUriHealthCheck(
+                    builder.Resource.UrlParameter, 
+                    path, 
+                    statusCode.Value, 
+                    () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient()));
+            
+            builder.ApplicationBuilder.Services.AddHealthChecks().AddCheck<ParameterUriHealthCheck>(healthCheckKey);
+        }
+        else
+        {
+            // For static URLs, use the existing AddUrlGroup approach
+            builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
             {
-                return; // Skip health check if the URI is not set or not HTTP/HTTPS
-            }
+                var uri = builder.Resource.Uri;
 
-            if (path is not null)
-            {
-                uri = new Uri(uri, path);
-            }
+                if (uri is null || (uri.Scheme != "http" && uri.Scheme != "https"))
+                {
+                    return; // Skip health check if the URI is not set or not HTTP/HTTPS
+                }
 
-            options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode.Value));
-        }, healthCheckKey);
+                if (path is not null)
+                {
+                    uri = new Uri(uri, path);
+                }
+
+                options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode.Value));
+            }, healthCheckKey);
+        }
 
         builder.WithHealthCheck(healthCheckKey);
 
         return builder;
+    }
+}
+
+/// <summary>
+/// A health check that resolves URL from a parameter asynchronously and delegates to UriHealthCheck.
+/// </summary>
+internal sealed class ParameterUriHealthCheck : IHealthCheck
+{
+    private readonly ParameterResource _urlParameter;
+    private readonly Func<HttpClient> _httpClientFactory;
+    private readonly string? _path;
+    private readonly int _expectedStatusCode;
+
+    public ParameterUriHealthCheck(ParameterResource urlParameter, string? path, int expectedStatusCode, Func<HttpClient> httpClientFactory)
+    {
+        _urlParameter = urlParameter ?? throw new ArgumentNullException(nameof(urlParameter));
+        _path = path;
+        _expectedStatusCode = expectedStatusCode;
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    }
+
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Resolve the URL from the parameter asynchronously
+            var urlValue = await _urlParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            
+            if (string.IsNullOrEmpty(urlValue) || !Uri.TryCreate(urlValue, UriKind.Absolute, out var uri))
+            {
+                return HealthCheckResult.Unhealthy($"Invalid URL from parameter '{_urlParameter.Name}': '{urlValue}'");
+            }
+
+            if (uri.Scheme != "http" && uri.Scheme != "https")
+            {
+                return HealthCheckResult.Unhealthy($"URL from parameter '{_urlParameter.Name}' must be HTTP or HTTPS, but was '{uri.Scheme}'");
+            }
+
+            // Apply path if specified
+            if (_path is not null)
+            {
+                uri = new Uri(uri, _path);
+            }
+
+            // Create fresh options and health check for each call
+            var options = new UriHealthCheckOptions();
+            options.AddUri(uri, setup => setup.ExpectHttpCode(_expectedStatusCode));
+            
+            var uriHealthCheck = new UriHealthCheck(options, _httpClientFactory);
+            
+            return await uriHealthCheck.CheckHealthAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Unhealthy($"Error resolving URL from parameter '{_urlParameter.Name}': {ex.Message}", ex);
+        }
     }
 }
