@@ -112,8 +112,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
             Label = Name,
             Description = Description,
             EnableDescriptionMarkup = EnableDescriptionMarkup,
-            Placeholder = $"Enter value for {Name}",
-
+            Placeholder = $"Enter value for {Name}"
         };
         return input;
     }
