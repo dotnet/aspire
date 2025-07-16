@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
+import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../utils/environment';
@@ -10,7 +10,7 @@ import { getAspireTerminal } from '../utils/terminal';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<vscode.DebugSession | vscode.Terminal | undefined> {
+export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<vscode.DebugSession | TerminalProgramRun | undefined> {
     try {
         const outputPath = await getDotnetTargetPath(projectFile);
 
@@ -19,7 +19,15 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
         }
 
         if (!launchOptions.debug) {
-            throw new Error('Run without debug is not currently supported.');
+            // For now, launch all .NET programs using dotnet watch
+            // Consider a switch to use `dotnet run` in the future
+            return startCliProgram(
+                watchProject(path.basename(projectFile), 'dotnet'),
+                'dotnet',
+                args,
+                env,
+                workingDirectory
+            );
         }
 
         if (!getSupportedCapabilities().includes('csharp')) {

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -23,6 +24,7 @@ internal interface IAppHostBackchannel
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
+    void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -227,6 +229,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         {
             yield return commandOutput;
         }
+    }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        Debug.Assert(_rpcTaskCompletionSource.Task.IsCompletedSuccessfully);
+        var rpc = _rpcTaskCompletionSource.Task.Result;
+        rpc.Disconnected += onDisconnected;
     }
 }
 

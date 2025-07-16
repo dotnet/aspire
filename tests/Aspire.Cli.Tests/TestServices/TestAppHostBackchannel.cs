@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -31,6 +32,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
+
+    public TaskCompletionSource? AddDisconnectHandlerCalled { get; set; }
+    public Action<EventHandler<JsonRpcDisconnectedEventArgs>>? AddDisconnectHandlerCallback { get; set; }
 
     public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -246,5 +250,11 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
     {
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
+    }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        AddDisconnectHandlerCalled?.SetResult();
+        AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
 }

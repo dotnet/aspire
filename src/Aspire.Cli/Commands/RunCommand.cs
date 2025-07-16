@@ -101,21 +101,13 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            bool startDebugSession;
-            if (ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out var extensionBackchannel))
-            {
-                startDebugSession = string.Equals(await _interactionService.PromptForSelectionAsync(
-                    RunCommandStrings.PromptForDebugging,
-                    [TemplatingStrings.Yes, TemplatingStrings.No],
-                    c => c,
-                    cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
-            }
-            else
-            {
-                startDebugSession = false;
-            }
+            var startDebugSession = ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
+                RunCommandStrings.PromptForDebugging,
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
 
-            var watch = parseResult.GetValue<bool>("--watch");
+            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out _) && !startDebugSession);
 
             if (!watch)
             {

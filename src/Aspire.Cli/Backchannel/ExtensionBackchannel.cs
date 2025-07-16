@@ -552,7 +552,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         _logger.LogDebug("Running .NET project at {ProjectFile} with arguments: {Arguments}", projectFile, string.Join(" ", arguments));
 
-        await rpc.InvokeWithCancellationAsync<int>(
+        await rpc.InvokeWithCancellationAsync(
             "launchAppHost",
             [_token, projectFile, workingDirectory, arguments, environment, debug],
             cancellationToken);

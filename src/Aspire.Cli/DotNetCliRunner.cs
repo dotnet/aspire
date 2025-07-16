@@ -558,6 +558,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
                 await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
+                backchannel.AddDisconnectHandler((_, _) =>
+                {
+                    // If the backchannel disconnects, we want to stop the CLI process
+                    Environment.Exit(ExitCodeConstants.Success);
+                });
+
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
             }

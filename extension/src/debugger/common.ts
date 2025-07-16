@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { appHostDebugSession, clearAppHostDebugSession } from './appHost';
+import { mergeEnvs } from '../utils/environment';
 
 export type EnvVar = {
     name: string;
@@ -12,7 +13,32 @@ export type LaunchOptions = {
     forceBuild?: boolean;
 };
 
+export type TerminalProgramRun = {
+    terminal: vscode.Terminal;
+    runId: string;
+};
+
 const debugSessions: vscode.DebugSession[] = [];
+
+export function startCliProgram(terminalName: string, command: string, args?: string[], env?: EnvVar[], workingDirectory?: string): TerminalProgramRun {
+    const envVars = mergeEnvs(process.env, env);
+    const terminal = vscode.window.createTerminal({
+        name: terminalName,
+        cwd: workingDirectory ?? process.cwd(),
+        env: envVars
+    });
+
+    terminal.sendText(`${command} ${(args ?? []).map(a => JSON.stringify(a)).join(' ')}`);
+    terminal.show();
+
+    const runId = `${terminalName}-${Date.now()}`;
+    extensionLogOutputChannel.info(`Spawned terminal for run session ${runId}`);
+
+    return {
+        terminal,
+        runId
+    };
+}
 
 export async function startAndGetDebugSession(debugConfig: vscode.DebugConfiguration): Promise<vscode.DebugSession | undefined> {
     return new Promise(async (resolve) => {
