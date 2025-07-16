@@ -285,7 +285,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             };
             options.ExtensionBackchannelFactory = _ => new TestExtensionBackchannel
             {
-                GetCapabilitiesAsyncCallback = () => Task.FromResult<string[]>(["apphost-debug"])
+                HasCapabilityAsyncCallback = (c, _) => Task.FromResult(c is "devkit" or "csharp"),
             };
             options.AppHostBackchannelFactory = _ => new TestAppHostBackchannel();
         });

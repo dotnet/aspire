@@ -59,8 +59,8 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? LogMessageAsyncCalled { get; set; }
     public Func<LogLevel, string, Task>? LogMessageAsyncCallback { get; set; }
 
-    public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
-    public Func<Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
+    public TaskCompletionSource? HasCapabilityAsyncCalled { get; set; }
+    public Func<string, CancellationToken, Task<bool>>? HasCapabilityAsyncCallback { get; set; }
 
     public TaskCompletionSource? LaunchAppHostAsyncCalled { get; set; }
     public Func<string, string, List<string>, List<EnvVar>, Task>? LaunchAppHostAsyncCallback { get; set; }
@@ -182,12 +182,12 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.CompletedTask;
     }
 
-    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    public Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
     {
-        GetCapabilitiesAsyncCalled?.SetResult();
-        return GetCapabilitiesAsyncCallback != null
-            ? GetCapabilitiesAsyncCallback.Invoke()
-            : Task.FromResult(Array.Empty<string>());
+        HasCapabilityAsyncCalled?.SetResult();
+        return HasCapabilityAsyncCallback != null
+            ? HasCapabilityAsyncCallback.Invoke(capability, cancellationToken)
+            : Task.FromResult(false);
     }
 
     public Task LaunchAppHostAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, CancellationToken cancellationToken)

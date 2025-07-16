@@ -10,7 +10,8 @@ namespace Aspire.Cli.Utils;
 
 internal class ExtensionHelper
 {
-    public const string AppHostDebugCapability = "apphost-debug";
+    public const string DevKitCapability = "devkit";
+    public const string CSharpCapability = "csharp";
 
     public static bool IsExtensionHost(
         IServiceProvider serviceProvider,

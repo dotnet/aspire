@@ -9,11 +9,19 @@ function isCsDevKitInstalled() {
     return isExtensionInstalled("ms-dotnettools.csdevkit");
 }
 
+function isCsharpInstalled() {
+    return isExtensionInstalled("ms-dotnettools.csharp");
+}
+
 export function getSupportedCapabilities(): string[] {
     const capabilities = ['prompting', 'baseline.v1'];
 
     if (isCsDevKitInstalled()) {
-        capabilities.push("apphost-debug");
+        capabilities.push("devkit");
+    }
+
+    if (isCsharpInstalled()) {
+        capabilities.push("csharp");
     }
 
     return capabilities;

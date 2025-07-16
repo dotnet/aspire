@@ -7,14 +7,23 @@ import * as util from 'util';
 import { mergeEnvs } from '../utils/environment';
 import * as path from 'path';
 import { getAspireTerminal } from '../utils/terminal';
+import { doesFileExist } from '../utils/io';
+import { getSupportedCapabilities } from '../capabilities';
 
 export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], debugOptions: DebugOptions): Promise<vscode.DebugSession | vscode.Terminal | undefined> {
     try {
-        await buildDotNetProject(projectFile);
         const outputPath = await getDotnetTargetPath(projectFile);
+
+        if (!(await doesFileExist(outputPath))) {
+            await buildDotNetProject(projectFile);
+        }
 
         if (!debugOptions.debug) {
             throw new Error('Run without debug is not currently supported.');
+        }
+
+        if (!getSupportedCapabilities().includes('csharp')) {
+            throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
         }
 
         const config: vscode.DebugConfiguration = {
