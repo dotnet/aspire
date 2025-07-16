@@ -47,6 +47,11 @@
         <target state="translated">프로젝트를 실행할 수 없습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForDebugging">
+        <source>Do you want to start a debugging session?</source>
+        <target state="new">Do you want to start a debugging session?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">리소스</target>

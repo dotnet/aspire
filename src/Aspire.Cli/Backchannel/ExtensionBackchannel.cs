@@ -38,7 +38,7 @@ internal interface IExtensionBackchannel
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
-    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken);
+    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -542,7 +542,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return capabilities;
     }
 
-    public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken)
+    public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -554,7 +554,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         await rpc.InvokeWithCancellationAsync<int>(
             "launchAppHost",
-            [_token, projectFile, workingDirectory, arguments, environment],
+            [_token, projectFile, workingDirectory, arguments, environment, debug],
             cancellationToken);
     }
 

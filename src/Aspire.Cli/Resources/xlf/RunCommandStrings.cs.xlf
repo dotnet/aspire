@@ -47,6 +47,11 @@
         <target state="translated">Projekt nelze spustit. Další informace získáte spuštěním s přepínačem --debug.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForDebugging">
+        <source>Do you want to start a debugging session?</source>
+        <target state="new">Do you want to start a debugging session?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">Prostředek</target>

@@ -155,4 +155,7 @@
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
+  <data name="PromptForDebugging" xml:space="preserve">
+    <value>Do you want to start a debugging session?</value>
+  </data>
 </root>

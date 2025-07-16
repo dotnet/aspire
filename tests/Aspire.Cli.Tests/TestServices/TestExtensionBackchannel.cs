@@ -63,7 +63,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<string, CancellationToken, Task<bool>>? HasCapabilityAsyncCallback { get; set; }
 
     public TaskCompletionSource? LaunchAppHostAsyncCalled { get; set; }
-    public Func<string, string, List<string>, List<EnvVar>, Task>? LaunchAppHostAsyncCallback { get; set; }
+    public Func<string, string, List<string>, List<EnvVar>, bool, Task>? LaunchAppHostAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -190,11 +190,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(false);
     }
 
-    public Task LaunchAppHostAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, CancellationToken cancellationToken)
+    public Task LaunchAppHostAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)
     {
         LaunchAppHostAsyncCalled?.SetResult();
         return LaunchAppHostAsyncCallback != null
-            ? LaunchAppHostAsyncCallback.Invoke(projectPath, targetFramework, arguments, envVars)
+            ? LaunchAppHostAsyncCallback.Invoke(projectPath, targetFramework, arguments, envVars, debug)
             : Task.CompletedTask;
     }
 }

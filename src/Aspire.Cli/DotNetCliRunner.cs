@@ -38,6 +38,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public Action<string>? StandardErrorCallback { get; set; }
 
     public bool NoLaunchProfile { get; set; }
+    public bool StartDebugSession { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration) : IDotNetCliRunner
@@ -449,7 +450,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 projectFile.FullName,
                 startInfo.WorkingDirectory,
                 startInfo.ArgumentList.ToList(),
-                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList());
+                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                options.StartDebugSession);
 
             _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
 

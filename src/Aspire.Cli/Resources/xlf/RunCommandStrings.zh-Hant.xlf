@@ -47,6 +47,11 @@
         <target state="translated">無法執行專案。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForDebugging">
+        <source>Do you want to start a debugging session?</source>
+        <target state="new">Do you want to start a debugging session?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">資源</target>

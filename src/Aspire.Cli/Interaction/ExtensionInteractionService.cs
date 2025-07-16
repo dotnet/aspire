@@ -14,7 +14,7 @@ internal interface IExtensionInteractionService : IInteractionService
 {
     void OpenNewProject(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
-    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment);
+    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -235,9 +235,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
     }
 
-    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
+    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
     {
-        return _backchannel.LaunchAppHostAsync(projectFile, workingDirectory, arguments, environment, _cancellationToken);
+        return _backchannel.LaunchAppHostAsync(projectFile, workingDirectory, arguments, environment, debug, _cancellationToken);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
