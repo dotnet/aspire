@@ -8,9 +8,6 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 {
-    public TaskCompletionSource? PingAsyncCalled { get; set; }
-    public Func<long, Task<long>>? PingAsyncCallback { get; set; }
-
     public TaskCompletionSource? RequestStopAsyncCalled { get; set; }
     public Func<Task>? RequestStopAsyncCallback { get; set; }
 
@@ -31,14 +28,6 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
 
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
-
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        PingAsyncCalled?.SetResult();
-        return PingAsyncCallback != null
-            ? PingAsyncCallback.Invoke(timestamp)
-            : Task.FromResult(timestamp);
-    }
 
     public Task RequestStopAsync(CancellationToken cancellationToken)
     {

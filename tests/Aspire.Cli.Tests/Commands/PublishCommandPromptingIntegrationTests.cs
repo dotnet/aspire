@@ -621,7 +621,6 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     }
 
     // Default implementations for other interface methods
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken) => Task.FromResult(timestamp);
     public Task RequestStopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<(string, string?)>(("http://localhost:5000", null));

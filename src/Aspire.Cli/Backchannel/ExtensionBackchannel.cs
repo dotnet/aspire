@@ -21,7 +21,6 @@ namespace Aspire.Cli.Backchannel;
 internal interface IExtensionBackchannel
 {
     Task ConnectAsync(CancellationToken cancellationToken);
-    Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken);
     Task DisplaySuccessAsync(string message, CancellationToken cancellationToken);
     Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken);
@@ -50,24 +49,6 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
         ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
 
     private TaskCompletionSource? _connectionSetupTcs;
-
-    public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        await ConnectAsync(cancellationToken);
-
-        using var activity = _activitySource.StartActivity();
-
-        var rpc = await _rpcTaskCompletionSource.Task;
-
-        logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
-
-        var responseTimestamp = await rpc.InvokeWithCancellationAsync<long>(
-            "PingAsync",
-            [_token],
-            cancellationToken);
-
-        return responseTimestamp;
-    }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
