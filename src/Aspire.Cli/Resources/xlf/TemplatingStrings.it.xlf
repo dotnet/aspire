@@ -62,9 +62,9 @@
         <target state="translated">Immettere la versione xUnit.net da usare</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Recupero dei modelli più recenti in corso...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

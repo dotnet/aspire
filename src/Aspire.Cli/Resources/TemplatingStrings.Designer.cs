@@ -177,9 +177,9 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string GettingLatestTemplates {
+        public static string GettingTemplates {
             get {
-                return ResourceManager.GetString("GettingLatestTemplates", resourceCulture);
+                return ResourceManager.GetString("GettingTemplates", resourceCulture);
             }
         }
         

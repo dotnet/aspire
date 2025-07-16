@@ -62,9 +62,9 @@
         <target state="translated">사용할 xUnit.net 버전을 입력하세요.</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">최신 템플릿을 가져오는 중...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

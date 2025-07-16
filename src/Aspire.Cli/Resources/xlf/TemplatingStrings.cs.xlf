@@ -62,9 +62,9 @@
         <target state="translated">Zadat verzi xUnit.net, která se má použít</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Získávají se nejnovější šablony...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

@@ -62,9 +62,9 @@
         <target state="translated">使用する xUnit.net バージョンを入力</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">最新のテンプレートを取得しています...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

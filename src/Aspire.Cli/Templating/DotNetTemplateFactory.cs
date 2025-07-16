@@ -98,7 +98,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var useRedisCache = result.GetValue<bool?>("--use-redis-cache");
         if (!useRedisCache.HasValue)
         {
-            useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
+            useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.No, TemplatingStrings.Yes], choice => choice, cancellationToken) switch
             {
                 var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => true,
                 var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => false,
@@ -121,7 +121,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var createTestProject = await interactionService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFMOptions_Prompt,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
+                [TemplatingStrings.No, TemplatingStrings.Yes],
                 choice => choice,
                 cancellationToken);
 
@@ -207,7 +207,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                $":ice:  {TemplatingStrings.GettingLatestTemplates}",
+                $":ice:  {TemplatingStrings.GettingTemplates}",
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -317,9 +317,31 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
+            if (candidatePackages.Any(p => SemVersion.Parse(p.Version).IsPrerelease))
+            {
+                var usePrereleaseResponse = await interactionService.PromptForSelectionAsync(
+                    "Use pre-release templates?",
+                    [TemplatingStrings.No, TemplatingStrings.Yes],
+                    choice => choice,
+                    cancellationToken: cancellationToken
+                    );
+
+                candidatePackages = usePrereleaseResponse switch
+                {
+                    var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => candidatePackages.Where(p => SemVersion.Parse(p.Version).IsPrerelease),
+                    var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => candidatePackages.Where(p => !SemVersion.Parse(p.Version).IsPrerelease),
+                    _ => throw new InvalidOperationException("Unexpected choice for pre-release templates.")
+                };
+            }
+
             if (!candidatePackages.Any())
             {
                 throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
+            }
+
+            if (candidatePackages.Count() == 1)
+            {
+                return candidatePackages.First().Version;
             }
 
             var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
