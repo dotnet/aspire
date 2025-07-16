@@ -115,6 +115,7 @@ internal sealed class NewCommand : BaseCommand
 
 internal interface INewCommandPrompter
 {
+    Task<bool> PromptToUsePrereleaseTemplates(CancellationToken cancellationToken);
     Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
@@ -123,6 +124,16 @@ internal interface INewCommandPrompter
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
+    public virtual async Task<bool> PromptToUsePrereleaseTemplates(CancellationToken cancellationToken)
+    {
+        return await interactionService.PromptForSelectionAsync(
+            "Use pre-release templates?",
+            [false, true],
+            (s) => s ? TemplatingStrings.Yes : TemplatingStrings.No,
+            cancellationToken
+            );
+    }
+
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
         return await interactionService.PromptForSelectionAsync(

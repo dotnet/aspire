@@ -213,6 +213,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return promptedPackages.First();
                 };
 
+                prompter.PromptToUsePrereleaseTemplatesCallback = () =>
+                {
+                    // Simulate user choosing to use pre-release templates.
+                    return false;
+                };
+
                 return prompter;
             };
 
@@ -261,7 +267,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
-            package => Assert.Equal("9.4.0-preview.1234", package.Version),
             package => Assert.Equal("9.3.0", package.Version),
             package => Assert.Equal("9.2.0", package.Version)
         );
@@ -582,10 +587,20 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
 {
+    public Func<bool>? PromptToUsePrereleaseTemplatesCallback { get; set; }
     public Func<IEnumerable<NuGetPackage>, NuGetPackage>? PromptForTemplatesVersionCallback { get; set; }
     public Func<ITemplate[], ITemplate>? PromptForTemplateCallback { get; set; }
     public Func<string, string>? PromptForProjectNameCallback { get; set; }
     public Func<string, string>? PromptForOutputPathCallback { get; set; }
+
+    public override Task<bool> PromptToUsePrereleaseTemplates(CancellationToken cancellationToken)
+    {
+        return PromptToUsePrereleaseTemplatesCallback switch
+        {
+            { } callback => Task.FromResult(callback()),
+            _ => Task.FromResult(false) // Default to not using pre-release templates.
+        };
+    }
 
     public override Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken)
     {

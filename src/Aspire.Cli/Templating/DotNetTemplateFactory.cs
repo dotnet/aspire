@@ -319,19 +319,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (candidatePackages.Any(p => SemVersion.Parse(p.Version).IsPrerelease))
             {
-                var usePrereleaseResponse = await interactionService.PromptForSelectionAsync(
-                    "Use pre-release templates?",
-                    [TemplatingStrings.No, TemplatingStrings.Yes],
-                    choice => choice,
-                    cancellationToken: cancellationToken
-                    );
+                var usePrerelease = await prompter.PromptToUsePrereleaseTemplates(cancellationToken);
 
-                candidatePackages = usePrereleaseResponse switch
-                {
-                    var choice when string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput) => candidatePackages.Where(p => SemVersion.Parse(p.Version).IsPrerelease),
-                    var choice when string.Equals(choice, TemplatingStrings.No, StringComparisons.CliInputOrOutput) => candidatePackages.Where(p => !SemVersion.Parse(p.Version).IsPrerelease),
-                    _ => throw new InvalidOperationException("Unexpected choice for pre-release templates.")
-                };
+                candidatePackages = candidatePackages.Where(p => SemVersion.Parse(p.Version).IsPrerelease == usePrerelease);
             }
 
             if (!candidatePackages.Any())
