@@ -112,26 +112,41 @@ public static class AzureCosmosExtensions
                 throw new InvalidOperationException("CosmosClient is not initialized.");
             }
 
+            var retryPipeline = new ResiliencePipelineBuilder()
+                .AddRetry(new()
+                {
+                    MaxRetryAttempts = 600, // 5 minutes of retries
+                    Delay = TimeSpan.FromMilliseconds(500),
+                    BackoffType = DelayBackoffType.Constant,
+                    ShouldHandle = new PredicateBuilder().Handle<CosmosException>(),
+                })
+                .Build();
+
             try
             {
-                await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
-
-                foreach (var database in cosmosDb.Databases)
-                {
-                    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
-
-                    foreach (var container in database.Containers)
-                    {
-                        var containerProperties = container.ContainerProperties ?? new ContainerProperties
+                await retryPipeline
+                    .ExecuteAsync(async ct =>
                         {
-                            Id = container.ContainerName,
-                            PartitionKeyPaths = container.PartitionKeyPaths
-                        };
-
-                        await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
-                    }
-                }
-                creationState = HealthCheckResult.Healthy();
+                            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
+    
+                            foreach (var database in cosmosDb.Databases)
+                            {
+                                var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
+            
+                                foreach (var container in database.Containers)
+                                {
+                                    var containerProperties = container.ContainerProperties ?? new ContainerProperties
+                                    {
+                                        Id = container.ContainerName,
+                                        PartitionKeyPaths = container.PartitionKeyPaths
+                                    };
+            
+                                    await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
+                                }
+                            }
+                            creationState = HealthCheckResult.Healthy();
+                        }
+                        , ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -176,37 +191,12 @@ public static class AzureCosmosExtensions
                 {
                     clientOptions.ConnectionMode = ConnectionMode.Gateway;
                     clientOptions.LimitToEndpoint = true;
-                    clientOptions.CustomHandlers.Add(new CosmosClientRetryHandler());
                 }
 
                 return new CosmosClient(connectionString, clientOptions);
             }
         }
 
-    }
-    class CosmosClientRetryHandler : RequestHandler
-    {
-        private static ResiliencePipeline<ResponseMessage> Pipeline { get; }
-            = new ResiliencePipelineBuilder<ResponseMessage>()
-                .AddRetry(new()
-                {
-                    MaxRetryAttempts = 180, // 90 seconds of retries
-                    Delay = TimeSpan.FromMilliseconds(500),
-                    BackoffType = DelayBackoffType.Constant,
-                    ShouldHandle = new PredicateBuilder<ResponseMessage>()
-                        .Handle<CosmosException>()
-                        .HandleResult(static result => !result.IsSuccessStatusCode),
-                })
-                .Build();
-
-        public override async Task<ResponseMessage> SendAsync(
-            RequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            return await Pipeline
-                .ExecuteAsync(async ct => await base.SendAsync(request, ct).ConfigureAwait(false), cancellationToken)
-                .ConfigureAwait(false);
-        }
     }
 
     /// <summary>
