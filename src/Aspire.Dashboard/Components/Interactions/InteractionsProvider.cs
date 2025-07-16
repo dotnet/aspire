@@ -302,10 +302,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
-        var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
-
-        return InteractionMarkdownHelper.ToHtml(item.Message, suppressSurroundingParagraph: !hasNewline);
+        return InteractionMarkdownHelper.ToHtml(item.Message);
     }
 
     private async Task WatchInteractionsAsync()
