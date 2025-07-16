@@ -95,7 +95,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// <summary>
     /// Gets or sets a value indicating whether the description should be rendered as Markdown.
     /// </summary>
-    public bool EnableDescriptionMarkup { get; set; }
+    public bool EnableDescriptionMarkdown { get; set; }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     internal InteractionInput CreateInput()
@@ -111,7 +111,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
             InputType = Secret ? InputType.SecretText : InputType.Text,
             Label = Name,
             Description = Description,
-            EnableDescriptionMarkup = EnableDescriptionMarkup,
+            EnableDescriptionMarkdown = EnableDescriptionMarkdown,
             Placeholder = $"Enter value for {Name}"
         };
         return input;

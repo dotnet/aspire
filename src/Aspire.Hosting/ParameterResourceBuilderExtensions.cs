@@ -148,40 +148,25 @@ public static class ParameterResourceBuilderExtensions
             });
     }
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
     /// Sets the description of the parameter resource.
     /// </summary>
     /// <param name="builder">Resource builder for the parameter.</param>
     /// <param name="description">The parameter description.</param>
+    /// <param name="enableMarkdown"></param>
     /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description)
+    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(description);
 
         builder.Resource.Description = description;
+        builder.Resource.EnableDescriptionMarkdown = enableMarkdown;
 
         return builder;
     }
 
-    /// <summary>
-    /// Sets the description of the parameter resource and configures it to use markdown.
-    /// </summary>
-    /// <param name="builder">Resource builder for the parameter.</param>
-    /// <param name="description">The parameter markdown description.</param>
-    /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> WithMarkdownDescription(this IResourceBuilder<ParameterResource> builder, string description)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(description);
-
-        builder.Resource.Description = description;
-        builder.Resource.EnableDescriptionMarkup = true;
-
-        return builder;
-    }
-
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
     /// Sets a custom input generator function for the parameter resource.
     /// </summary>
@@ -194,7 +179,7 @@ public static class ParameterResourceBuilderExtensions
     /// builder.AddParameter("external-service-url")
     ///     .WithCustomInput(parameter => new()
     ///     {
-    ///         InputType = InputType.Text,
+    ///         InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
     ///         Value = "https://example.com",
     ///         Label = parameter.Name,
     ///         Placeholder = $"Enter value for {parameter.Name}",

@@ -398,7 +398,7 @@ public class AddParameterTests
 
         // Assert
         Assert.Equal("This is a test parameter", parameter.Resource.Description);
-        Assert.False(parameter.Resource.EnableDescriptionMarkup);
+        Assert.False(parameter.Resource.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -409,11 +409,11 @@ public class AddParameterTests
 
         // Act
         var parameter = appBuilder.AddParameter("test")
-            .WithMarkdownDescription("This is a **markdown** description");
+            .WithDescription("This is a **markdown** description", enableMarkdown: true);
 
         // Assert
         Assert.Equal("This is a **markdown** description", parameter.Resource.Description);
-        Assert.True(parameter.Resource.EnableDescriptionMarkup);
+        Assert.True(parameter.Resource.EnableDescriptionMarkdown);
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -431,7 +431,7 @@ public class AddParameterTests
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = p.Description,
-                EnableDescriptionMarkup = p.EnableDescriptionMarkup
+                EnableDescriptionMarkdown = p.EnableDescriptionMarkdown
             });
 
         // Assert
@@ -455,7 +455,7 @@ public class AddParameterTests
         Assert.Equal("test", input.Label);
         Assert.Equal("Test description", input.Description);
         Assert.Equal("Enter value for test", input.Placeholder);
-        Assert.False(input.EnableDescriptionMarkup);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -474,7 +474,7 @@ public class AddParameterTests
         Assert.Equal("secret", input.Label);
         Assert.Equal("Secret description", input.Description);
         Assert.Equal("Enter value for secret", input.Placeholder);
-        Assert.False(input.EnableDescriptionMarkup);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -489,7 +489,7 @@ public class AddParameterTests
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom: " + p.Description,
-                EnableDescriptionMarkup = true,
+                EnableDescriptionMarkdown = true,
                 Placeholder = "Enter number"
             });
 
@@ -501,7 +501,7 @@ public class AddParameterTests
         Assert.Equal("Custom Label", input.Label);
         Assert.Equal("Custom: Custom description", input.Description);
         Assert.Equal("Enter number", input.Placeholder);
-        Assert.True(input.EnableDescriptionMarkup);
+        Assert.True(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -510,14 +510,14 @@ public class AddParameterTests
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var parameter = appBuilder.AddParameter("test")
-            .WithMarkdownDescription("**Bold** description");
+            .WithDescription("**Bold** description", enableMarkdown: true);
 
         // Act
         var input = parameter.Resource.CreateInput();
 
         // Assert
         Assert.Equal("**Bold** description", input.Description);
-        Assert.True(input.EnableDescriptionMarkup);
+        Assert.True(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -533,7 +533,7 @@ public class AddParameterTests
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom description",
-                EnableDescriptionMarkup = false
+                EnableDescriptionMarkdown = false
             });
 
         // Assert
@@ -543,7 +543,7 @@ public class AddParameterTests
         Assert.Equal(InputType.Number, input.InputType);
         Assert.Equal("Custom Label", input.Label);
         Assert.Equal("Custom description", input.Description);
-        Assert.False(input.EnableDescriptionMarkup);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 #pragma warning restore ASPIREINTERACTION001
 }

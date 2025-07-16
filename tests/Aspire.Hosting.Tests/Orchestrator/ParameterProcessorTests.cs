@@ -399,11 +399,11 @@ public class ParameterProcessorTests
 
         var param1 = CreateParameterWithMissingValue("param1");
         param1.Description = "This is a test parameter";
-        param1.EnableDescriptionMarkup = false;
+        param1.EnableDescriptionMarkdown = false;
 
         var param2 = CreateParameterWithMissingValue("param2");
         param2.Description = "This parameter has **markdown** formatting";
-        param2.EnableDescriptionMarkup = true;
+        param2.EnableDescriptionMarkdown = true;
 
         List<ParameterResource> parameters = [param1, param2];
 
@@ -428,13 +428,13 @@ public class ParameterProcessorTests
         var param1Input = inputsInteraction.Inputs[0];
         Assert.Equal("param1", param1Input.Label);
         Assert.Equal("This is a test parameter", param1Input.Description);
-        Assert.False(param1Input.EnableDescriptionMarkup);
+        Assert.False(param1Input.EnableDescriptionMarkdown);
         Assert.Equal(InputType.Text, param1Input.InputType);
 
         var param2Input = inputsInteraction.Inputs[1];
         Assert.Equal("param2", param2Input.Label);
         Assert.Equal("This parameter has **markdown** formatting", param2Input.Description);
-        Assert.True(param2Input.EnableDescriptionMarkup);
+        Assert.True(param2Input.EnableDescriptionMarkdown);
         Assert.Equal(InputType.Text, param2Input.InputType);
     }
 
@@ -447,7 +447,7 @@ public class ParameterProcessorTests
 
         var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
         secretParam.Description = "This is a secret parameter";
-        secretParam.EnableDescriptionMarkup = false;
+        secretParam.EnableDescriptionMarkdown = false;
 
         List<ParameterResource> parameters = [secretParam];
         secretParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -468,7 +468,7 @@ public class ParameterProcessorTests
         var secretInput = inputsInteraction.Inputs[0];
         Assert.Equal("secretParam", secretInput.Label);
         Assert.Equal("This is a secret parameter", secretInput.Description);
-        Assert.False(secretInput.EnableDescriptionMarkup);
+        Assert.False(secretInput.EnableDescriptionMarkdown);
         Assert.Equal(InputType.SecretText, secretInput.InputType);
     }
 
