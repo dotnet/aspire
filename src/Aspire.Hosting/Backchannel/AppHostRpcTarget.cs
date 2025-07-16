@@ -110,13 +110,6 @@ internal class AppHostRpcTarget(
         return Task.CompletedTask;
     }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        logger.LogTrace("Received ping from CLI with timestamp: {Timestamp}", timestamp);
-        return Task.FromResult(timestamp);
-    }
-
     public Task<DashboardUrlsState> GetDashboardUrlsAsync()
     {
         return GetDashboardUrlsAsync(CancellationToken.None);
