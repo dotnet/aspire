@@ -117,7 +117,7 @@ public sealed class InteractionInput
     /// Gets or sets a value indicating whether the description should be rendered as Markdown.
     /// Setting this to <c>true</c> allows a description to contain Markdown elements such as links, text decoration and lists.
     /// </summary>
-    public bool EnableDescriptionMarkup { get; init; }
+    public bool EnableDescriptionMarkdown { get; init; }
 
     /// <summary>
     /// Gets or sets the type of the input.

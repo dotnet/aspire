@@ -9,7 +9,6 @@
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
-@using Markdig
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
@@ -134,33 +133,20 @@
 </FluentDialogFooter>
 
 @code {
-    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
-
     private static RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
     {
         @if (!string.IsNullOrEmpty(vm.Description))
         {
             return
-            @<div class="input-description">
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="5">
-                    <div class="icon">
-                        <FluentIcon Icon="Icons.Regular.Size16.Info"
-                                    Color="Color.Accent"
-                                    Style="vertical-align: text-bottom;" />
-                    </div>
-                    <div class="text">
-                        @if (vm.EnableDescriptionMarkdown)
-                        {
-                            <div id="@id" data-markdown="true">
-                                @((MarkupString)MarkdownHelpers.ToHtml(vm.Description, s_markdownPipeline, true))
-                            </div>
-                        }
-                        else
-                        {
-                            <span id="@id" data-markdown="false">@vm.Description</span>
-                        }
-                    </div>
-                </FluentStack>
+            @<div class="input-description" id="@id">
+                @if (vm.EnableDescriptionMarkdown)
+                {
+                    @InteractionMarkdownHelper.ToMarkupString(vm.Description)
+                }
+                else
+                {
+                    <span>@vm.Description</span>
+                }
             </div>;
         }
         return null;

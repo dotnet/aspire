@@ -8,11 +8,7 @@
     width: 75%;
 }
 
-.interaction-input-dialog .interaction-input ::deep .input-description .icon {
-    width: 16px;
-}
-
-.interaction-input-dialog .interaction-input ::deep .input-description .text {
-    font-style: italic;
-    font-size: 0.8rem;
+.interaction-input-dialog .interaction-input ::deep .input-description {
+    color: var(--foreground-settings-text);
+    font-size: var(--type-ramp-minus-1-font-size);
 }

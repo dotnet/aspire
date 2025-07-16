@@ -209,14 +209,14 @@ public class InteractionServiceTests
             Label = "Test Label",
             InputType = InputType.Text,
             Description = "Test description",
-            EnableDescriptionMarkup = false
+            EnableDescriptionMarkdown = false
         };
 
         // Assert
         Assert.Equal("Test Label", input.Label);
         Assert.Equal(InputType.Text, input.InputType);
         Assert.Equal("Test description", input.Description);
-        Assert.False(input.EnableDescriptionMarkup);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -228,12 +228,12 @@ public class InteractionServiceTests
             Label = "Test Label",
             InputType = InputType.Text,
             Description = "**Bold** description",
-            EnableDescriptionMarkup = true
+            EnableDescriptionMarkdown = true
         };
 
         // Assert
         Assert.Equal("**Bold** description", input.Description);
-        Assert.True(input.EnableDescriptionMarkup);
+        Assert.True(input.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -245,12 +245,12 @@ public class InteractionServiceTests
             Label = "Test Label",
             InputType = InputType.Text,
             Description = null,
-            EnableDescriptionMarkup = false
+            EnableDescriptionMarkdown = false
         };
 
         // Assert
         Assert.Null(input.Description);
-        Assert.False(input.EnableDescriptionMarkup);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
