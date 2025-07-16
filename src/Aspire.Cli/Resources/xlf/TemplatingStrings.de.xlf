@@ -62,9 +62,9 @@
         <target state="translated">Geben Sie die zu verwendende xUnit.net-Version ein.</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Die neuesten Vorlagen werden abgerufen...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

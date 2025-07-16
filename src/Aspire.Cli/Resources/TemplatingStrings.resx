@@ -183,8 +183,8 @@
   <data name="EnterXUnitVersion_Description" xml:space="preserve">
     <value>The version of xUnit.net to use for the test project.</value>
   </data>
-  <data name="GettingLatestTemplates" xml:space="preserve">
-    <value>Getting latest templates...</value>
+  <data name="GettingTemplates" xml:space="preserve">
+    <value>Getting templates...</value>
   </data>
   <data name="TemplateInstallationFailed" xml:space="preserve">
     <value>The template installation failed with exit code {0}. For more information run with --debug switch.</value>
