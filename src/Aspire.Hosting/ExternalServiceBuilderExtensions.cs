@@ -202,33 +202,36 @@ public static class ExternalServiceBuilderExtensions
         if (builder.Resource.UrlParameter is not null)
         {
             // For parameter-based URLs, use the custom health check that resolves the URL asynchronously
-            builder.ApplicationBuilder.Services.AddSingleton(serviceProvider =>
-                new ParameterUriHealthCheck(
+            builder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+                healthCheckKey,
+                serviceProvider => new ParameterUriHealthCheck(
                     builder.Resource.UrlParameter, 
                     path, 
                     statusCode.Value, 
-                    () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient()));
-            
-            builder.ApplicationBuilder.Services.AddHealthChecks().AddCheck<ParameterUriHealthCheck>(healthCheckKey);
+                    () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient()),
+                default,
+                default,
+                default));
         }
         else
         {
-            // For static URLs, use the existing AddUrlGroup approach
+            // For static URLs, validate HTTP/HTTPS scheme up front
+            var uri = builder.Resource.Uri;
+            if (uri is null || (uri.Scheme != "http" && uri.Scheme != "https"))
+            {
+                throw new ArgumentException($"External service '{builder.Resource.Name}' must have an HTTP or HTTPS URL for health checks, but was '{uri?.Scheme ?? "null"}'.");
+            }
+
+            // Use the existing AddUrlGroup approach for static URLs
             builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
             {
-                var uri = builder.Resource.Uri;
-
-                if (uri is null || (uri.Scheme != "http" && uri.Scheme != "https"))
-                {
-                    return; // Skip health check if the URI is not set or not HTTP/HTTPS
-                }
-
+                var targetUri = uri;
                 if (path is not null)
                 {
-                    uri = new Uri(uri, path);
+                    targetUri = new Uri(uri, path);
                 }
 
-                options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode.Value));
+                options.AddUri(targetUri, setup => setup.ExpectHttpCode(statusCode.Value));
             }, healthCheckKey);
         }
 
