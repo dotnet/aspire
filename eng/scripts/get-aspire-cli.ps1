@@ -64,7 +64,7 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -Help
 
 "@
-    if ($InvokedFromFile) { exit 0 } else { return 0 }
+    if ($InvokedFromFile) { exit 0 } else { return }
 }
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
@@ -636,4 +636,4 @@ catch {
     $exitCode = 1
 }
 
-if ($InvokedFromFile) { exit $exitCode } else { return $exitCode }
+if ($InvokedFromFile) { exit $exitCode } else { if ($exitCode -ne 0) { return $exitCode } }

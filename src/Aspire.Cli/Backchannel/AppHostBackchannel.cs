@@ -13,7 +13,6 @@ namespace Aspire.Cli.Backchannel;
 
 internal interface IAppHostBackchannel
 {
-    Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task RequestStopAsync(CancellationToken cancellationToken);
     Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken);
@@ -29,21 +28,6 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
 {
     private const string BaselineCapability = "baseline.v2";
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
-
-    public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity();
-        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
-
-        var responseTimestamp = await rpc.InvokeWithCancellationAsync<long>(
-            "PingAsync",
-            [timestamp],
-            cancellationToken);
-
-        return responseTimestamp;
-    }
 
     public async Task RequestStopAsync(CancellationToken cancellationToken)
     {
