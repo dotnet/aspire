@@ -126,9 +126,7 @@ public static class AzureCosmosExtensions
             {
                 await retryPipeline
                     .ExecuteAsync(async ct =>
-                        {
-                            await cosmosClient.ReadAccountAsync().WaitAsync(ct).ConfigureAwait(false);
-    
+                        {    
                             foreach (var database in cosmosDb.Databases)
                             {
                                 var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync(database.DatabaseName, cancellationToken: ct).ConfigureAwait(false)).Database;
