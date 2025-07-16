@@ -51,6 +51,7 @@ internal class ConsoleInteractionService : IInteractionService
         {
             prompt.DefaultValue(defaultValue);
             prompt.ShowDefaultValue();
+            prompt.DefaultValueStyle(new Style(Color.Purple));
         }
 
         if (validator is not null)
