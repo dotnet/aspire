@@ -72,10 +72,10 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
         while (_options.Location == null || _options.SubscriptionId == null)
         {
-            var messageBarResult = await interactionService.PromptMessageBarAsync(
+            var messageBarResult = await interactionService.PromptNotificationAsync(
                  "Azure provisioning",
                  "The model contains Azure resources that require an Azure Subscription.",
-                 new MessageBarInteractionOptions
+                 new NotificationInteractionOptions
                  {
                      Intent = MessageIntent.Warning,
                      PrimaryButtonText = "Enter values"

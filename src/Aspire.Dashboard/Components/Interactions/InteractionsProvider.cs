@@ -343,8 +343,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             NotifyInteractionAvailable();
                         }
                         break;
-                    case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
-                        var messageBar = item.MessageBar;
+                    case WatchInteractionsResponseUpdate.KindOneofCase.Notification:
+                        var notification = item.Notification;
 
                         Message? message = null;
                         await InvokeAsync(async () =>
@@ -353,23 +353,23 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
                                 options.Body = GetMessageHtml(item);
-                                options.Intent = MapMessageIntent(messageBar.Intent);
+                                options.Intent = MapMessageIntent(notification.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;
-                                if (!string.IsNullOrEmpty(messageBar.LinkText))
+                                if (!string.IsNullOrEmpty(notification.LinkText))
                                 {
                                     options.Link = new()
                                     {
-                                        Text = messageBar.LinkText,
-                                        Href = messageBar.LinkUrl
+                                        Text = notification.LinkText,
+                                        Href = notification.LinkUrl
                                     };
                                 }
 
                                 var primaryButtonText = item.PrimaryButtonText;
                                 var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;
-                                if (messageBar.Intent == MessageIntentDto.Confirmation)
+                                if (notification.Intent == MessageIntentDto.Confirmation)
                                 {
-                                    primaryButtonText = ResolvedPrimaryButtonText(item, messageBar.Intent);
+                                    primaryButtonText = ResolvedPrimaryButtonText(item, notification.Intent);
                                     secondaryButtonText = ResolvedSecondaryButtonText(item);
                                 }
 
@@ -418,8 +418,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                         }
                                         else
                                         {
-                                            messageBar.Result = result.Value;
-                                            request.MessageBar = messageBar;
+                                            notification.Result = result.Value;
+                                            request.Notification = notification;
                                         }
 
                                         _openMessageBars.Remove(item.InteractionId);
