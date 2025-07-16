@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">输入项目名称:</target>
+        <source>Enter the project name</source>
+        <target state="needs-review-translation">输入项目名称:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">

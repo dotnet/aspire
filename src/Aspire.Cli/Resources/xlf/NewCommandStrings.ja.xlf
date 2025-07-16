@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">プロジェクト名を入力してください:</target>
+        <source>Enter the project name</source>
+        <target state="needs-review-translation">プロジェクト名を入力してください:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">

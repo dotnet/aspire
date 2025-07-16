@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire Uygulama Ana İşlemi</target>
+        <source>Apphost project only</source>
+        <target state="needs-review-translation">Aspire Uygulama Ana İşlemi</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire Boş Uygulama</target>
+        <source>Empty apphost with Service Defaults project</source>
+        <target state="needs-review-translation">Aspire Boş Uygulama</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire Test Projesi (MSTest)</target>
+        <source>Test Project (MSTest) only</source>
+        <target state="needs-review-translation">Aspire Test Projesi (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire Test Projesi (NUnit)</target>
+        <source>Test Project (NUnit) only</source>
+        <target state="needs-review-translation">Aspire Test Projesi (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire Hizmet Varsayılanları</target>
+        <source>Service Defaults project only</source>
+        <target state="needs-review-translation">Aspire Hizmet Varsayılanları</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire Başlangıç Uygulaması</target>
+        <source>Sample starter with frontend and backend services</source>
+        <target state="needs-review-translation">Aspire Başlangıç Uygulaması</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire Test Projesi (xUnit)</target>
+        <source>Test Project (xUnit) only</source>
+        <target state="needs-review-translation">Aspire Test Projesi (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">

@@ -158,7 +158,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
-            t => $"{t.Name} ({t.Description})",
+            t => t.Description,
             cancellationToken
         );
     }

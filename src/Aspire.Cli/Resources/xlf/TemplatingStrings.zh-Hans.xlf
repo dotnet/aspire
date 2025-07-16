@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire 应用主机</target>
+        <source>Apphost project only</source>
+        <target state="needs-review-translation">Aspire 应用主机</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire 空应用</target>
+        <source>Empty apphost with Service Defaults project</source>
+        <target state="needs-review-translation">Aspire 空应用</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire 测试项目(MSTest)</target>
+        <source>Test Project (MSTest) only</source>
+        <target state="needs-review-translation">Aspire 测试项目(MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire 测试项目(NUnit)</target>
+        <source>Test Project (NUnit) only</source>
+        <target state="needs-review-translation">Aspire 测试项目(NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire 服务默认值</target>
+        <source>Service Defaults project only</source>
+        <target state="needs-review-translation">Aspire 服务默认值</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire 入门应用</target>
+        <source>Sample starter with frontend and backend services</source>
+        <target state="needs-review-translation">Aspire 入门应用</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire 测试项目(xUnit)</target>
+        <source>Test Project (xUnit) only</source>
+        <target state="needs-review-translation">Aspire 测试项目(xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
