@@ -443,7 +443,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (backchannelCompletionSource is not null
             && projectFile is not null
             && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out var extensionBackchannel)
-            && (await extensionBackchannel.GetCapabilitiesAsync(cancellationToken)).Contains("apphost-debug"))
+            && await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.AppHostDebugCapability, cancellationToken))
         {
             await interactionService.LaunchAppHostAsync(
                 projectFile.FullName,

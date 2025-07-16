@@ -10,6 +10,8 @@ namespace Aspire.Cli.Utils;
 
 internal class ExtensionHelper
 {
+    public const string AppHostDebugCapability = "apphost-debug";
+
     public static bool IsExtensionHost(
         IServiceProvider serviceProvider,
         [NotNullWhen(true)] out IExtensionInteractionService? interactionService,
