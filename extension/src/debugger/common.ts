@@ -7,8 +7,9 @@ export type EnvVar = {
     value: string;
 };
 
-export type DebugOptions = {
+export type LaunchOptions = {
     debug: boolean;
+    forceBuild?: boolean;
 };
 
 const debugSessions: vscode.DebugSession[] = [];

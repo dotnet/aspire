@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DebugOptions, EnvVar, startAndGetDebugSession } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
 import { execFile } from 'child_process';
@@ -10,15 +10,15 @@ import { getAspireTerminal } from '../utils/terminal';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], debugOptions: DebugOptions): Promise<vscode.DebugSession | vscode.Terminal | undefined> {
+export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<vscode.DebugSession | vscode.Terminal | undefined> {
     try {
         const outputPath = await getDotnetTargetPath(projectFile);
 
-        if (!(await doesFileExist(outputPath))) {
+        if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
             await buildDotNetProject(projectFile);
         }
 
-        if (!debugOptions.debug) {
+        if (!launchOptions.debug) {
             throw new Error('Run without debug is not currently supported.');
         }
 
