@@ -117,11 +117,6 @@ internal class AppHostRpcTarget(
         return Task.FromResult(timestamp);
     }
 
-    public Task<DashboardUrlsState> GetDashboardUrlsAsync()
-    {
-        return GetDashboardUrlsAsync(CancellationToken.None);
-    }
-
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
