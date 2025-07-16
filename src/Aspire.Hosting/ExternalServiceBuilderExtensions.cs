@@ -247,6 +247,8 @@ internal sealed class ParameterUriHealthCheck : IHealthCheck
     private readonly Func<HttpClient> _httpClientFactory;
     private readonly string? _path;
     private readonly int _expectedStatusCode;
+    private readonly UriHealthCheckOptions _options;
+    private readonly UriHealthCheck _uriHealthCheck;
 
     public ParameterUriHealthCheck(ParameterResource urlParameter, string? path, int expectedStatusCode, Func<HttpClient> httpClientFactory)
     {
@@ -254,6 +256,8 @@ internal sealed class ParameterUriHealthCheck : IHealthCheck
         _path = path;
         _expectedStatusCode = expectedStatusCode;
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _options = new UriHealthCheckOptions();
+        _uriHealthCheck = new UriHealthCheck(_options, _httpClientFactory);
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -263,11 +267,13 @@ internal sealed class ParameterUriHealthCheck : IHealthCheck
             // Resolve the URL from the parameter asynchronously
             var urlValue = await _urlParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
             
-            if (string.IsNullOrEmpty(urlValue) || !Uri.TryCreate(urlValue, UriKind.Absolute, out var uri))
+            // Use ExternalServiceResource validation for the base URL
+            if (!ExternalServiceResource.UrlIsValidForExternalService(urlValue, out var uri, out var message))
             {
-                return HealthCheckResult.Unhealthy($"Invalid URL from parameter '{_urlParameter.Name}': '{urlValue}'");
+                return HealthCheckResult.Unhealthy($"Invalid URL from parameter '{_urlParameter.Name}': {message}");
             }
 
+            // Additional validation for health check: ensure HTTP/HTTPS scheme
             if (uri.Scheme != "http" && uri.Scheme != "https")
             {
                 return HealthCheckResult.Unhealthy($"URL from parameter '{_urlParameter.Name}' must be HTTP or HTTPS, but was '{uri.Scheme}'");
@@ -279,13 +285,16 @@ internal sealed class ParameterUriHealthCheck : IHealthCheck
                 uri = new Uri(uri, _path);
             }
 
-            // Create fresh options and health check for each call
-            var options = new UriHealthCheckOptions();
-            options.AddUri(uri, setup => setup.ExpectHttpCode(_expectedStatusCode));
+            // Update the options with the current URI
+            // Note: We need to clear existing URIs first and add the new one
+            // Since we don't know the exact API of UriHealthCheckOptions, we'll create fresh options
+            var currentOptions = new UriHealthCheckOptions();
+            currentOptions.AddUri(uri, setup => setup.ExpectHttpCode(_expectedStatusCode));
             
-            var uriHealthCheck = new UriHealthCheck(options, _httpClientFactory);
+            // Create a new health check with the current options
+            var currentUriHealthCheck = new UriHealthCheck(currentOptions, _httpClientFactory);
             
-            return await uriHealthCheck.CheckHealthAsync(context, cancellationToken).ConfigureAwait(false);
+            return await currentUriHealthCheck.CheckHealthAsync(context, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
