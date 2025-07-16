@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Utils;
 
 public static class VersionHelpers
 {
-    private static readonly Lazy<Version?> s_cachedRuntimeVersion = new Lazy<Version?>(static () => GetRuntimeVersion());
+    private static readonly Lazy<Version?> s_cachedRuntimeVersion = new Lazy<Version?>(GetRuntimeVersion);
 
     public static string? DashboardDisplayVersion { get; } = typeof(VersionHelpers).Assembly.GetDisplayVersion();
 
