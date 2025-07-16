@@ -5,7 +5,6 @@ using Aspire.Hosting.Yarp.Transforms;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// URL value is in appsettings.json, or can be overridden by environment variable
 var externalServiceUrl = builder.AddParameter("external-service-url")
     .WithDescription("The URL of the external service.")
     .WithCustomInput(p => new()
