@@ -24,6 +24,8 @@ public class OtlpLogEntry
     public OtlpApplicationView ApplicationView { get; }
     public OtlpScope Scope { get; }
     public long InternalId { get; }
+    public bool IsError => Severity is LogLevel.Error or LogLevel.Critical;
+    public bool IsWarning => Severity is LogLevel.Warning;
 
     public OtlpLogEntry(LogRecord record, OtlpApplicationView logApp, OtlpScope scope, OtlpContext context)
     {

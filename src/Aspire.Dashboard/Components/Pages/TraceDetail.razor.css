@@ -212,25 +212,31 @@
     align-self: center;
     opacity: 0.8;
     transform: translateX(-50%);
-    background: color-mix(in srgb, var(--span-color), white 30%);
-    border-color: color-mix(in srgb, var(--span-color), black 50%);
+    background: color-mix(in srgb, var(--button-color), white 30%);
+    border-color: color-mix(in srgb, var(--button-color), black 50%);
 }
 
 ::deep .span-log-entry-button:hover {
     opacity: 1;
-    background: color-mix(in srgb, var(--span-color), white 50%);
+    background: color-mix(in srgb, var(--button-color), white 50%);
 }
 
 ::deep .span-log-entry-selected {
     opacity: 1;
-    background: color-mix(in srgb, var(--span-color), white 50%);
+    background: color-mix(in srgb, var(--button-color), white 50%);
     width: 20px;
     height: 20px;
 }
 
+::deep .span-log-entry-error {
+    opacity: 1;
+    /* Error log entries appear above non-error log entries */
+    z-index: 1;
+}
+
 ::deep .log-tooltip-title {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 15px;
 }
 
 ::deep .log-tooltip-subtitle {
@@ -243,7 +249,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     margin-top: 4px;
 }
 
@@ -251,6 +257,7 @@
     margin-bottom: 0;
     width: 100%;
     table-layout: fixed;
+    font-size: 12px;
 }
 
 ::deep.log-tooltip-table td:nth-child(1) {

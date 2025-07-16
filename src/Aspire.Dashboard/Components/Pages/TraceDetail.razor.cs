@@ -284,7 +284,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string GetRowClass(SpanWaterfallViewModel viewModel)
     {
         // Test with id rather than the object reference because the data and view model objects are recreated on trace updates.
-        if (viewModel.Span.SpanId == SelectedData?.SpanViewModel?.Span.SpanId)
+        if (SelectedData?.SpanViewModel is { } selectedSpan && selectedSpan.Span.SpanId == viewModel.Span.SpanId)
+        {
+            return "selected-row";
+        }
+        else if (SelectedData?.LogEntryViewModel is { } selectedLog && viewModel.SpanLogs.Any(l => l.LogEntry.InternalId == selectedLog.LogEntry.InternalId))
         {
             return "selected-row";
         }
