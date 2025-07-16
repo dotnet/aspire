@@ -15,8 +15,9 @@
 				"ms-dotnettools.csdevkit",
 				"ms-azuretools.vscode-bicep",
 				"GitHub.copilot-chat",
-				"GitHub.copilot"
-			],
+				"GitHub.copilot",
+        "microsoft-aspire.aspire-vscode"
+      ],
 			"settings": {
 				"remote.autoForwardPorts": true,
 				"remote.autoForwardPortsSource": "hybrid",
