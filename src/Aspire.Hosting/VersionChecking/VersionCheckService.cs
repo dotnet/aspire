@@ -134,10 +134,10 @@ internal sealed class VersionCheckService : BackgroundService
             SecretsStore.TrySetUserSecret(_options.Assembly, KnownLatestVersionKey, latestVersion.ToString());
         }
 
-        var result = await _interactionService.PromptMessageBarAsync(
+        var result = await _interactionService.PromptNotificationAsync(
             title: "Update now",
             message: $"Aspire {latestVersion} is available.",
-            options: new MessageBarInteractionOptions
+            options: new NotificationInteractionOptions
             {
                 LinkText = "Upgrade instructions",
                 LinkUrl = "https://aka.ms/dotnet/aspire/update-latest",
