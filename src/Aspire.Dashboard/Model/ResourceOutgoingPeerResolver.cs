@@ -180,6 +180,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     /// <summary>
     /// Checks if a transformed peer address matches any of the resource addresses using their cached addresses.
     /// Applies the same transformations to resource addresses for consistent matching.
+    /// Returns true and outputs the first matching resource if a match is found; otherwise, returns false.
     /// </summary>
     private static bool TryMatchAgainstResources(string peerAddress, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
