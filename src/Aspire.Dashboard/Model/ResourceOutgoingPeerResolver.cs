@@ -180,43 +180,22 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     /// <summary>
     /// Checks if a transformed peer address matches any of the resource addresses using their cached addresses.
     /// Applies the same transformations to resource addresses for consistent matching.
-    /// Returns true only if exactly one resource matches; false if no matches or multiple matches are found.
     /// </summary>
     private static bool TryMatchAgainstResources(string peerAddress, IDictionary<string, ResourceViewModel> resources, [NotNullWhen(true)] out string? name, [NotNullWhen(true)] out ResourceViewModel? resourceMatch)
     {
-        ResourceViewModel? foundResource = null;
-
         foreach (var (_, resource) in resources)
         {
             foreach (var resourceAddress in resource.CachedAddresses)
             {
                 if (DoesAddressMatch(resourceAddress, peerAddress))
                 {
-                    if (foundResource is null)
-                    {
-                        foundResource = resource;
-                    }
-                    else if (!string.Equals(foundResource.Name, resource.Name, StringComparisons.ResourceName))
-                    {
-                        // Multiple different resources match - return false immediately
-                        name = null;
-                        resourceMatch = null;
-                        return false;
-                    }
-                    break; // No need to check other addresses for this resource once we found a match
+                    name = ResourceViewModel.GetResourceName(resource, resources);
+                    resourceMatch = resource;
+                    return true;
                 }
             }
         }
 
-        // Return true only if exactly one resource matched
-        if (foundResource is not null)
-        {
-            name = ResourceViewModel.GetResourceName(foundResource, resources);
-            resourceMatch = foundResource;
-            return true;
-        }
-
-        // Return false if no matches found
         name = null;
         resourceMatch = null;
         return false;
