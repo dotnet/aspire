@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(DefaultTargetFramework);net472</TargetFrameworks>
     <IsTestUtilityProject>true</IsTestUtilityProject>
   </PropertyGroup>
 
@@ -9,5 +9,10 @@
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <PackageReference Include="Microsoft.Bcl.Memory" />
+  </ItemGroup>
 
+  <Import Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
 </Project>

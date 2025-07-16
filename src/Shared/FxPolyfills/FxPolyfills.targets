@@ -1,0 +1,29 @@
+<!-- Licensed to the .NET Foundation under one or more agreements. -->
+<!-- The .NET Foundation licenses this file to you under the MIT license. -->
+
+<Project>
+  <PropertyGroup>
+    <IsTargetingNetFramework>false</IsTargetingNetFramework>
+    <IsTargetingNetFramework Condition="$(TargetFramework.StartsWith('net4'))">true</IsTargetingNetFramework>
+    <SharedFxPolyfillsDir>$(MSBuildThisFileDirectory)</SharedFxPolyfillsDir>
+  </PropertyGroup>
+
+  <!-- Include all Framework Extension files from the shared location, excluding test-specific ones -->
+  <ItemGroup Condition="$(IsTargetingNetFramework)">
+    <Reference Include="System.Net.Http" />
+
+    <Using Include="System.Net.Http" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ExcludedFrameworkPolyfills
+      Condition="'@(PackageReference->WithMetadataValue('Identity', 'Microsoft.Bcl.TimeProvider'))' == ''"
+      Include="$(SharedFxPolyfillsDir)Task.TimeProvider.cs" />
+
+    <Compile Include="$(SharedFxPolyfillsDir)*.cs" 
+             Exclude="@(ExcludedFrameworkPolyfills)" 
+             Link="FxPolyfills/%(Filename).cs" />
+  </ItemGroup>
+
+</Project>
