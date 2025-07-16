@@ -153,7 +153,10 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">Resource builder for the parameter.</param>
     /// <param name="description">The parameter description.</param>
-    /// <param name="enableMarkdown"></param>
+    /// <param name="enableMarkdown">
+    /// A value indicating whether the description should be rendered as Markdown.
+    /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
+    /// </param>
     /// <returns>Resource builder for the parameter.</returns>
     public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
     {
