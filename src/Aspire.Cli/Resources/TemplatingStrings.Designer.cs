@@ -92,9 +92,19 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireXUnit_Description", resourceCulture);
             }
         }
+
+        public static string IntegrationTestsTemplate_Description
+        {
+            get
+            {
+                return ResourceManager.GetString("IntegrationTestsTemplate_Description", resourceCulture);
+            }
+        }
         
-        public static string UseRedisCache_Prompt {
-            get {
+        public static string UseRedisCache_Prompt
+        {
+            get
+            {
                 return ResourceManager.GetString("UseRedisCache_Prompt", resourceCulture);
             }
         }

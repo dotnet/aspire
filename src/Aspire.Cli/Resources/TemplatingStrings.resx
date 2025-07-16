@@ -133,13 +133,16 @@
     <value>Service Defaults project only</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
-    <value>Test Project (MSTest) only</value>
+    <value>MSTest</value>
   </data>
   <data name="AspireNUnit_Description" xml:space="preserve">
-    <value>Test Project (NUnit) only</value>
+    <value>NUnit</value>
   </data>
   <data name="AspireXUnit_Description" xml:space="preserve">
-    <value>Test Project (xUnit) only</value>
+    <value>xUnit</value>
+  </data>
+  <data name="IntegrationTestsTemplate_Description" xml:space="preserve">
+    <value>Integration tests template</value>
   </data>
   <data name="UseRedisCache_Prompt" xml:space="preserve">
     <value>Use Redis Cache</value>
