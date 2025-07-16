@@ -141,7 +141,7 @@
             @<div class="input-description" id="@id">
                 @if (vm.EnableDescriptionMarkdown)
                 {
-                    @InteractionMarkdownHelper.ToMarkupString(vm.Description, suppressSurroundingParagraph: true)
+                    @InteractionMarkdownHelper.ToMarkupString(vm.Description)
                 }
                 else
                 {

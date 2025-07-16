@@ -29,7 +29,16 @@ var throwing = builder.AddParameter("throwing", () => throw new InvalidOperation
 var parameterFromConnectionStringConfigMissing = builder.AddConnectionString("parameterFromConnectionStringConfigMissing");
 
 var parameterWithMarkdownDescription = builder.AddParameter("markdownDescription")
-    .WithDescription("This is a parameter with a **markdown** description.", enableMarkdown: true);
+    .WithDescription("""
+        This is a parameter with a **markdown** description.
+
+        And has another paragraph.
+
+        And a list:
+        - Item 1
+        - Item 2 (and a [hyperlink](https://aka.ms/aspire))
+        - Item 3
+        """, enableMarkdown: true);
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 var parameterWithCustomInput = builder.AddParameter("customInput")
