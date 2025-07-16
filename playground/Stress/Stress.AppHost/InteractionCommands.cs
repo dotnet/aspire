@@ -33,12 +33,12 @@ internal static class InteractionCommands
                await Task.Yield();
 
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
-               _ = interactionService.PromptMessageBarAsync("Success bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBarAsync("Information bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information });
-               _ = interactionService.PromptMessageBarAsync("Warning bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Warning });
-               _ = interactionService.PromptMessageBarAsync("Error bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Error, LinkText = "Click here for more information", LinkUrl = "https://www.microsoft.com" });
-               _ = interactionService.PromptMessageBarAsync("Confirmation bar", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Confirmation });
-               _ = interactionService.PromptMessageBarAsync("No dismiss", "The command successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
+               _ = interactionService.PromptNotificationAsync("Success bar", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success });
+               _ = interactionService.PromptNotificationAsync("Information bar", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Information });
+               _ = interactionService.PromptNotificationAsync("Warning bar", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Warning });
+               _ = interactionService.PromptNotificationAsync("Error bar", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Error, LinkText = "Click here for more information", LinkUrl = "https://www.microsoft.com" });
+               _ = interactionService.PromptNotificationAsync("Confirmation bar", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Confirmation });
+               _ = interactionService.PromptNotificationAsync("No dismiss", "The command successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Information, ShowDismiss = false });
 
                return CommandResults.Success();
            })
@@ -46,9 +46,9 @@ internal static class InteractionCommands
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
-               _ = interactionService.PromptMessageBarAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new MessageBarInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success });
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
 
                _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success });
                _ = interactionService.PromptMessageBoxAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new MessageBoxInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
