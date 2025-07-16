@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Hostitel aplikací Aspire</target>
+        <source>Apphost project only</source>
+        <target state="needs-review-translation">Hostitel aplikací Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Prázdná aplikace Aspire</target>
+        <source>Empty apphost with Service Defaults project</source>
+        <target state="needs-review-translation">Prázdná aplikace Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Testovací projekt Aspire (MSTest)</target>
+        <source>Test Project (MSTest) only</source>
+        <target state="needs-review-translation">Testovací projekt Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Testovací projekt Aspire (NUnit)</target>
+        <source>Test Project (NUnit) only</source>
+        <target state="needs-review-translation">Testovací projekt Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Výchozí nastavení služby Aspire</target>
+        <source>Service Defaults project only</source>
+        <target state="needs-review-translation">Výchozí nastavení služby Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Úvodní aplikace Aspire</target>
+        <source>Sample starter with frontend and backend services</source>
+        <target state="needs-review-translation">Úvodní aplikace Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Testovací projekt Aspire (xUnit)</target>
+        <source>Test Project (xUnit) only</source>
+        <target state="needs-review-translation">Testovací projekt Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">

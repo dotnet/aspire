@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Host de Aplicativo Aspire</target>
+        <source>Apphost project only</source>
+        <target state="needs-review-translation">Host de Aplicativo Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aplicativo Aspire Vazio</target>
+        <source>Empty apphost with Service Defaults project</source>
+        <target state="needs-review-translation">Aplicativo Aspire Vazio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Projeto de Teste Aspire (MSTest)</target>
+        <source>Test Project (MSTest) only</source>
+        <target state="needs-review-translation">Projeto de Teste Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Projeto de Teste Aspire (NUnit)</target>
+        <source>Test Project (NUnit) only</source>
+        <target state="needs-review-translation">Projeto de Teste Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Padrões do Serviço Do Azure</target>
+        <source>Service Defaults project only</source>
+        <target state="needs-review-translation">Padrões do Serviço Do Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aplicativo Inicial Aspire</target>
+        <source>Sample starter with frontend and backend services</source>
+        <target state="needs-review-translation">Aplicativo Inicial Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Projeto de Teste Aspire (xUnit)</target>
+        <source>Test Project (xUnit) only</source>
+        <target state="needs-review-translation">Projeto de Teste Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">

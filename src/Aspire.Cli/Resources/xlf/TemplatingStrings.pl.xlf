@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="pl" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Host aplikacji Aspire</target>
+        <source>Apphost project only</source>
+        <target state="needs-review-translation">Host aplikacji Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Pusta aplikacja Aspire</target>
+        <source>Empty apphost with Service Defaults project</source>
+        <target state="needs-review-translation">Pusta aplikacja Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Projekt testowy Aspire (MSTest)</target>
+        <source>Test Project (MSTest) only</source>
+        <target state="needs-review-translation">Projekt testowy Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Projekt testowy Aspire (NUnit)</target>
+        <source>Test Project (NUnit) only</source>
+        <target state="needs-review-translation">Projekt testowy Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Domyślne ustawienia usługi Aspire</target>
+        <source>Service Defaults project only</source>
+        <target state="needs-review-translation">Domyślne ustawienia usługi Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aplikacja startowa Aspire</target>
+        <source>Sample starter with frontend and backend services</source>
+        <target state="needs-review-translation">Aplikacja startowa Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Projekt testowy Aspire (xUnit)</target>
+        <source>Test Project (xUnit) only</source>
+        <target state="needs-review-translation">Projekt testowy Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
