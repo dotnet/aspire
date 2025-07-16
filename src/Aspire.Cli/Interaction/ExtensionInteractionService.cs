@@ -10,7 +10,14 @@ using Spectre.Console;
 
 namespace Aspire.Cli.Interaction;
 
-internal class ExtensionInteractionService : IInteractionService
+internal interface IExtensionInteractionService : IInteractionService
+{
+    void OpenNewProject(string projectPath);
+    void LogMessage(LogLevel logLevel, string message);
+    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment);
+}
+
+internal class ExtensionInteractionService : IExtensionInteractionService
 {
     private readonly ConsoleInteractionService _consoleInteractionService;
     private readonly IExtensionBackchannel _backchannel;
@@ -198,7 +205,6 @@ internal class ExtensionInteractionService : IInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.DisplayCancellationMessageAsync(_cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
@@ -227,6 +233,11 @@ internal class ExtensionInteractionService : IInteractionService
     public void LogMessage(LogLevel logLevel, string message)
     {
         Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => _backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
+    }
+
+    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
+    {
+        return _backchannel.LaunchAppHostAsync(projectFile, workingDirectory, arguments, environment, _cancellationToken);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)

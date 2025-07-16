@@ -37,19 +37,37 @@ internal interface IExtensionBackchannel
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
+    Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
+    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken);
 }
 
-internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, ExtensionRpcTarget target, IConfiguration configuration) : IExtensionBackchannel
+internal sealed class ExtensionBackchannel : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
     private const string BaselineCapability = "baseline.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
-    private readonly string _token = configuration[KnownConfigNames.ExtensionToken]
-        ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
+    private readonly string _token;
 
     private TaskCompletionSource? _connectionSetupTcs;
+    private readonly ILogger<ExtensionBackchannel> _logger;
+    private readonly IExtensionRpcTarget _target;
+    private readonly IConfiguration _configuration;
+
+    public ExtensionBackchannel(ILogger<ExtensionBackchannel> logger, IExtensionRpcTarget target, IConfiguration configuration)
+    {
+        _logger = logger;
+        _target = target;
+        _configuration = configuration;
+        _token = configuration[KnownConfigNames.ExtensionToken]
+                      ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
+
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            StopDebuggingAsync().GetAwaiter().GetResult();
+        };
+    }
 
     public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -59,7 +77,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
+        _logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
 
         var responseTimestamp = await rpc.InvokeWithCancellationAsync<long>(
             "PingAsync",
@@ -81,12 +99,12 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         _connectionSetupTcs = new TaskCompletionSource();
 
-        var endpoint = configuration[KnownConfigNames.ExtensionEndpoint];
+        var endpoint = _configuration[KnownConfigNames.ExtensionEndpoint];
         Debug.Assert(endpoint is not null);
 
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
         var connectionAttempts = 0;
-        logger.LogDebug("Starting backchannel connection to Aspire extension at {Endpoint}", endpoint);
+        _logger.LogDebug("Starting backchannel connection to Aspire extension at {Endpoint}", endpoint);
 
         var startTime = DateTimeOffset.UtcNow;
 
@@ -97,7 +115,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             try
             {
                 await ConnectCoreAsync().ConfigureAwait(false);
-                logger.LogDebug("Connected to ExtensionBackchannel at {Endpoint}", endpoint);
+                _logger.LogDebug("Connected to ExtensionBackchannel at {Endpoint}", endpoint);
                 _connectionSetupTcs.SetResult();
                 return;
             }
@@ -106,7 +124,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 var waitingFor = DateTimeOffset.UtcNow - startTime;
                 if (waitingFor > TimeSpan.FromSeconds(10))
                 {
-                    logger.LogDebug("Slow polling for backchannel connection (attempt {ConnectionAttempts}), {SocketException}", connectionAttempts, ex);
+                    _logger.LogDebug("Slow polling for backchannel connection (attempt {ConnectionAttempts}), {SocketException}", connectionAttempts, ex);
                     await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
                 else
@@ -116,7 +134,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             }
             catch (ExtensionIncompatibleException ex)
             {
-                logger.LogError(
+                _logger.LogError(
                     "The Aspire extension is incompatible with the CLI and must be updated to a version that supports the {RequiredCapability} capability.",
                     ex.RequiredCapability
                     );
@@ -131,7 +149,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
+                _logger.LogError(ex, "An unexpected error occurred while trying to connect to the backchannel.");
                 _connectionSetupTcs.SetException(ex);
                 throw;
             }
@@ -150,7 +168,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                     throw new InvalidOperationException($"Already connected to {Name} backchannel.");
                 }
 
-                logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, endpoint);
+                _logger.LogDebug("Connecting to {Name} backchannel at {SocketPath}", Name, endpoint);
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var addressParts = endpoint.Split(':');
                 if (addressParts.Length != 2 || !int.TryParse(addressParts[1], out var port) || port <= 0 ||
@@ -160,7 +178,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 }
 
                 await socket.ConnectAsync(addressParts[0], port, cancellationToken);
-                logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, endpoint);
+                _logger.LogDebug("Connected to {Name} backchannel at {SocketPath}", Name, endpoint);
 
                 var stream = new SslStream(new NetworkStream(socket, true),
                     leaveInnerStreamOpen: true,
@@ -189,7 +207,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
                 [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
                     Justification = "AddLocalRpcTarget closes on generic types if there are events on the target, which is explicitly disabled.")]
-                static void AddLocalRpcTarget(JsonRpc rpc, ExtensionRpcTarget target)
+                static void AddLocalRpcTarget(JsonRpc rpc, IExtensionRpcTarget target)
                 {
                     // We don't want to notify the client of events because we are not using the
                     // event system in the extension.
@@ -197,7 +215,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
                 }
 
                 var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
-                AddLocalRpcTarget(rpc, target);
+                AddLocalRpcTarget(rpc, _target);
                 rpc.StartListening();
 
                 var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
@@ -218,7 +236,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             }
             catch (RemoteMethodNotFoundException ex)
             {
-                logger.LogError(ex,
+                _logger.LogError(ex,
                     "Failed to connect to {Name} backchannel. The connection must be updated to a version that supports the {BaselineCapability} capability.",
                     Name,
                     BaselineCapability);
@@ -240,7 +258,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent message {Message}", message);
+        _logger.LogDebug("Sent message {Message}", message);
 
         await rpc.InvokeWithCancellationAsync(
             "displayMessage",
@@ -256,7 +274,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent success message {Message}", message);
+        _logger.LogDebug("Sent success message {Message}", message);
 
         await rpc.InvokeWithCancellationAsync(
             "displaySuccess",
@@ -272,7 +290,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent subtle message {Message}", message);
+        _logger.LogDebug("Sent subtle message {Message}", message);
 
         await rpc.InvokeWithCancellationAsync(
             "displaySubtleMessage",
@@ -288,7 +306,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent error message {Error}", error);
+        _logger.LogDebug("Sent error message {Error}", error);
 
         await rpc.InvokeWithCancellationAsync(
             "displayError",
@@ -304,7 +322,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent empty line");
+        _logger.LogDebug("Sent empty line");
 
         await rpc.InvokeWithCancellationAsync(
             "displayEmptyLine",
@@ -320,7 +338,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent incompatible version error for capability {RequiredCapability} with hosting SDK version {AppHostHostingSdkVersion}",
+        _logger.LogDebug("Sent incompatible version error for capability {RequiredCapability} with hosting SDK version {AppHostHostingSdkVersion}",
             requiredCapability, appHostHostingSdkVersion);
 
         await rpc.InvokeWithCancellationAsync(
@@ -337,7 +355,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent cancellation message");
+        _logger.LogDebug("Sent cancellation message");
 
         await rpc.InvokeWithCancellationAsync(
             "displayCancellationMessage",
@@ -353,7 +371,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent lines for display");
+        _logger.LogDebug("Sent lines for display");
 
         await rpc.InvokeWithCancellationAsync(
             "displayLines",
@@ -369,7 +387,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent dashboard URLs for display");
+        _logger.LogDebug("Sent dashboard URLs for display");
 
         var dashboardUrlsState = new DashboardUrlsState()
         {
@@ -391,7 +409,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent status update: {Status}", status);
+        _logger.LogDebug("Sent status update: {Status}", status);
 
         await rpc.InvokeWithCancellationAsync(
             "showStatus",
@@ -412,7 +430,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Prompting for selection with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
+        _logger.LogDebug("Prompting for selection with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
 
         var choicesArray = choicesByFormattedValue.Keys.ToArray();
         var result = await rpc.InvokeWithCancellationAsync<string?>(
@@ -433,7 +451,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Prompting for confirmation with text: {PromptText}, default value: {DefaultValue}", promptText, defaultValue);
+        _logger.LogDebug("Prompting for confirmation with text: {PromptText}, default value: {DefaultValue}", promptText, defaultValue);
 
         var result = await rpc.InvokeWithCancellationAsync<bool?>(
             "confirm",
@@ -447,13 +465,13 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
     {
         await ConnectAsync(cancellationToken);
 
-        target.ValidationFunction = validator;
+        _target.ValidationFunction = validator;
 
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Prompting for string with text: {PromptText}, default value: {DefaultValue}, required: {Required}", promptText, defaultValue, required);
+        _logger.LogDebug("Prompting for string with text: {PromptText}, default value: {DefaultValue}, required: {Required}", promptText, defaultValue, required);
 
         var result = await rpc.InvokeWithCancellationAsync<string?>(
             "promptForString",
@@ -471,7 +489,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Opening project at path: {ProjectPath}", projectPath);
+        _logger.LogDebug("Opening project at path: {ProjectPath}", projectPath);
 
         await rpc.InvokeWithCancellationAsync(
             "openProject",
@@ -492,7 +510,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Logging message at level {LogLevel}: {Message}", logLevel, message);
+        _logger.LogDebug("Logging message at level {LogLevel}: {Message}", logLevel, message);
 
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
@@ -500,9 +518,65 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
     }
 
+    public async Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
+    {
+        var capabilities = await GetCapabilitiesAsync(cancellationToken);
+        return capabilities.Contains(capability);
+    }
+
+    private async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Requesting capabilities from the extension");
+
+        var capabilities = await rpc.InvokeWithCancellationAsync<string[]>(
+            "getCapabilities",
+            [_token],
+            cancellationToken);
+
+        return capabilities;
+    }
+
+    public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Running .NET project at {ProjectFile} with arguments: {Arguments}", projectFile, string.Join(" ", arguments));
+
+        await rpc.InvokeWithCancellationAsync<int>(
+            "launchAppHost",
+            [_token, projectFile, workingDirectory, arguments, environment],
+            cancellationToken);
+    }
+
+    public async Task StopDebuggingAsync()
+    {
+        await ConnectAsync(CancellationToken.None);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Stopping extension debugging session");
+
+        await rpc.InvokeWithCancellationAsync(
+            "stopDebugging",
+            [_token],
+            CancellationToken.None);
+    }
+
     private X509Certificate2 GetCertificate()
     {
-        var serverCertificate = configuration[KnownConfigNames.ExtensionCert];
+        var serverCertificate = _configuration[KnownConfigNames.ExtensionCert];
         Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
         var data = Convert.FromBase64String(serverCertificate);
         return new X509Certificate2(data);

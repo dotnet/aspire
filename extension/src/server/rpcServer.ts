@@ -8,6 +8,8 @@ import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
 import { generateSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { get } from 'http';
+import { getSupportedCapabilities } from '../capabilities';
 
 export type RpcServerInformation = {
     address: string;
@@ -48,7 +50,7 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
             }));
 
             connection.onRequest('getCapabilities', withAuthentication(async () => {
-                return ["baseline.v1"];
+                return getSupportedCapabilities();
             }));
 
             addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection, token), withAuthentication);
