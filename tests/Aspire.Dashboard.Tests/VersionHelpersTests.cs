@@ -12,5 +12,6 @@ public class VersionHelpersTests
     public void RuntimeVersion_ReturnsValue()
     {
         Assert.NotNull(VersionHelpers.RuntimeVersion);
+        Assert.True(VersionHelpers.RuntimeVersion.Major >= 8);
     }
 }
