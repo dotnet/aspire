@@ -32,6 +32,11 @@
         <target state="translated">La ruta de salida del proyecto.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptToUsePrereleaseTemplates">
+        <source>Use pre-release templates?</source>
+        <target state="new">Use pre-release templates?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
         <target state="translated">Seleccione una plantilla de proyecto:</target>

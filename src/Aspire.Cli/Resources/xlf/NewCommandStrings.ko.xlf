@@ -32,6 +32,11 @@
         <target state="translated">프로젝트의 출력 경로입니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptToUsePrereleaseTemplates">
+        <source>Use pre-release templates?</source>
+        <target state="new">Use pre-release templates?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
         <target state="translated">프로젝트 템플릿 선택:</target>

@@ -136,4 +136,7 @@
   <data name="SelectAProjectTemplate" xml:space="preserve">
     <value>Select a project template:</value>
   </data>
+  <data name="PromptToUsePrereleaseTemplates" xml:space="preserve">
+    <value>Use pre-release templates?</value>
+  </data>
 </root>

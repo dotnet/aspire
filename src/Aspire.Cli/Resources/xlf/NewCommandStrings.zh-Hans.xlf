@@ -32,6 +32,11 @@
         <target state="translated">项目的输出路径。</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptToUsePrereleaseTemplates">
+        <source>Use pre-release templates?</source>
+        <target state="new">Use pre-release templates?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
         <target state="translated">选择项目模板:</target>
