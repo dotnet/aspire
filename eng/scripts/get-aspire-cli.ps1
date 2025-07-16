@@ -3,8 +3,8 @@
 [CmdletBinding()]
 param(
     [string]$InstallPath = "",
-    [string]$Version = "9.0",
-    [string]$Quality = "daily",
+    [string]$Version = "",
+    [string]$Quality = "ga",
     [string]$OS = "",
     [string]$Architecture = "",
     [switch]$KeepArchive,
@@ -35,10 +35,16 @@ DESCRIPTION:
     Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
     Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
+    Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality prerelease` will download the latest prerelease version, or the GA version if no prerelease is available.
+    Running with `-Quality daily` will download the latest daily build from `main`.
+
+    Pass a specific version to get CLI for that version.
+
 PARAMETERS:
     -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, $HOME/.aspire/bin on Unix)
-    -Version <string>           Version of the Aspire CLI to download (default: 9.0)
-    -Quality <string>           Quality to download (default: daily)
+    -Quality <string>           Quality to download (default: ga)
+    -Version <string>           Version of the Aspire CLI to download (default: unset)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
@@ -58,10 +64,14 @@ ENVIRONMENT:
 EXAMPLES:
     .\get-aspire-cli.ps1
     .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
-    .\get-aspire-cli.ps1 -Version "9.0" -Quality "release"
+    .\get-aspire-cli.ps1 -Quality "prerelease"
+    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -Help
+
+    # Piped execution
+    iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
 
 "@
     if ($InvokedFromFile) { exit 0 } else { return }
@@ -516,6 +526,51 @@ function Update-PathEnvironment {
     }
 }
 
+# Function to construct the base URL for the Aspire CLI download
+function Get-AspireCliUrl {
+    param(
+        [string]$Version,
+        [string]$Quality,
+        [string]$RuntimeIdentifier,
+        [string]$Extension,
+        [bool]$IsChecksum = $false
+    )
+
+    # Default quality to "ga" if empty
+    if ([string]::IsNullOrWhiteSpace($Quality)) {
+        $Quality = "ga"
+    }
+
+    # Add .sha512 to extension if checksum is true
+    if ($IsChecksum) {
+        $Extension = "$Extension.sha512"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        # When version is not set use aka.ms URLs based on quality
+        $baseUrl = switch ($Quality) {
+            "daily" { "https://aka.ms/dotnet/9/aspire/daily" }
+            "prerelease" { "https://aka.ms/dotnet/9/aspire/rc/daily" }
+            "ga" { "https://aka.ms/dotnet/9/aspire/ga/daily" }
+            default {
+                throw "Unsupported quality '$Quality'. Supported values are: daily, prerelease, ga."
+            }
+        }
+
+        return "$baseUrl/aspire-cli-$RuntimeIdentifier.$Extension"
+    } else {
+        # When version is set, use ci.dot.net URL
+        if ($IsChecksum) {
+            # For checksum URLs, use the public-checksums URL
+            $baseUrl = "https://ci.dot.net/public-checksums/aspire"
+        } else {
+            $baseUrl = "https://ci.dot.net/public/aspire"
+        }
+
+        return "$baseUrl/$Version/aspire-cli-$RuntimeIdentifier-$Version.$Extension"
+    }
+}
+
 # Function to download and install the Aspire CLI
 function Install-AspireCli {
     param(
@@ -557,8 +612,8 @@ function Install-AspireCli {
         # Construct the runtime identifier and URLs
         $runtimeIdentifier = "$targetOS-$targetArch"
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
-        $url = "https://aka.ms/dotnet/$Version/$Quality/aspire-cli-$runtimeIdentifier.$extension"
-        $checksumUrl = "$url.sha512"
+        $url = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension -IsChecksum $false
+        $checksumUrl = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension -IsChecksum $true
 
         $filename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension"
         $checksumFilename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension.sha512"
@@ -606,6 +661,11 @@ function Install-AspireCli {
 # Main function
 function Main {
     try {
+        # Validate that both Version and Quality are not provided
+        if (-not [string]::IsNullOrWhiteSpace($Version) -and $Quality -ne "ga") {
+            throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
+        }
+
         # Determine the installation path
         $InstallPath = Get-InstallPath -InstallPath $InstallPath
 

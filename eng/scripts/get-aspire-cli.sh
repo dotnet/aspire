@@ -17,8 +17,8 @@ readonly RESET='\033[0m'
 
 # Default values
 INSTALL_PATH=""
-VERSION="9.0"
-QUALITY="daily"
+VERSION=""
+QUALITY="ga"
 OS=""
 ARCH=""
 SHOW_HELP=false
@@ -33,12 +33,18 @@ Aspire CLI Download Script
 DESCRIPTION:
     Downloads and unpacks the Aspire CLI for the current platform from the specified version and quality.
 
+    Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
+    Running with `-q prerelease` will download the latest prerelease version, or the GA version if no prerelease is available.
+    Running with `-q daily` will download the latest daily build from `main`.
+
+    Pass a specific version to get CLI for that version.
+
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
-    --version VERSION           Version of the Aspire CLI to download (default: 9.0)
-    -q, --quality QUALITY       Quality to download (default: daily)
+    -q, --quality QUALITY       Quality to download (default: ga). Supported values: daily, prerelease, ga
+    --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
@@ -47,15 +53,16 @@ USAGE:
 
 EXAMPLES:
     ./get-aspire-cli.sh
-    ./get-aspire-cli.sh --install-path "/usr/local/bin"
-    ./get-aspire-cli.sh --version "9.0" --quality "release"
+    ./get-aspire-cli.sh --install-path "~/bin"
+    ./get-aspire-cli.sh --quality "prerelease"
+    ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --keep-archive
     ./get-aspire-cli.sh --help
 
     # Piped execution (like wget <url> | bash or curl <url> | bash):
-    curl -sSL <url>/get-aspire-cli.sh | bash
-    curl -sSL <url>/get-aspire-cli.sh | bash -s -- --install-path "/usr/local/bin"
+    curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash
+    curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash -s -- --install-path "~/bin"
 
 EOF
 }
@@ -520,6 +527,59 @@ add_to_shell_profile() {
     return 0
 }
 
+# Function to construct the base URL for the Aspire CLI download
+construct_aspire_cli_url() {
+    local version="$1"
+    local quality="$2"
+    local rid="$3"
+    local extension="$4"
+    local checksum="${5:-false}"
+    local base_url
+    local filename
+
+    # Default quality to "ga" if empty
+    if [[ -z "$quality" ]]; then
+        quality="ga"
+    fi
+
+    # Add .sha512 to extension if checksum is true
+    if [[ "$checksum" == "true" ]]; then
+        extension="${extension}.sha512"
+    fi
+
+    if [[ -z "$version" ]]; then
+        # When version is not set use aka.ms URLs based on quality
+        case "$quality" in
+            daily)
+                base_url="https://aka.ms/dotnet/9/aspire/daily"
+                ;;
+            prerelease)
+                base_url="https://aka.ms/dotnet/9/aspire/rc/daily"
+                ;;
+            ga)
+                base_url="https://aka.ms/dotnet/9/aspire/ga/daily"
+                ;;
+            *)
+                say_error "Unsupported quality '$quality'. Supported values are: daily, prerelease, ga."
+                return 1
+                ;;
+        esac
+
+        printf "${base_url}/aspire-cli-${rid}.${extension}"
+    else
+        # When version is set, use ci.dot.net URL
+
+        if [[ "$checksum" == "true" ]]; then
+            # For checksum URLs, use the public-checksums URL
+            base_url="https://ci.dot.net/public-checksums/aspire"
+        else
+            base_url="https://ci.dot.net/public/aspire/"
+        fi
+
+        printf "${base_url}/${version}/aspire-cli-${rid}-${version}.${extension}"
+    fi
+}
+
 # Function to download and install archive
 download_and_install_archive() {
     local temp_dir="$1"
@@ -556,9 +616,13 @@ download_and_install_archive() {
         extension="tar.gz"
     fi
 
-    # Construct the URLs
-    url="https://aka.ms/dotnet/${VERSION}/${QUALITY}/aspire-cli-${runtimeIdentifier}.${extension}"
-    checksum_url="${url}.sha512"
+    # Construct the URLs using the new function
+    if ! url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension"); then
+        return 1
+    fi
+    if ! checksum_url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "true"); then
+        return 1
+    fi
 
     filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}"
     checksum_filename="${temp_dir}/aspire-cli-${runtimeIdentifier}.${extension}.sha512"
@@ -601,6 +665,13 @@ parse_args "$@"
 if [[ "$SHOW_HELP" == true ]]; then
     show_help
     exit 0
+fi
+
+# Validate that both Version and Quality are not provided
+if [[ -n "$VERSION" && "$QUALITY" != "ga" ]]; then
+    say_error "Cannot specify both --version and --quality. Use --version for a specific version or --quality for a quality level."
+    say_info "Use --help for usage information."
+    exit 1
 fi
 
 # Set default install path if not provided
