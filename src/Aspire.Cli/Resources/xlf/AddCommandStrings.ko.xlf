@@ -77,6 +77,11 @@
         <target state="translated">예기치 않은 수의 패키지를 발견했습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="new">Use pre-release packages</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">추가할 통합의 버전입니다.</target>
