@@ -1170,12 +1170,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
-            AspireEventSource.Instance.DcpContainerExecutablesCreateStart();
+            AspireEventSource.Instance.DcpContainerExecutableCreateStart(er.DcpResourceName);
             await _kubernetesService.CreateAsync(containerExe, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            AspireEventSource.Instance.DcpContainerExecutablesCreateStop();
+            AspireEventSource.Instance.DcpContainerExecutableCreateStop(er.DcpResourceName);
         }
     }
 
@@ -1223,12 +1223,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStart();
+            AspireEventSource.Instance.DcpExecutableCreateStart(er.DcpResourceName);
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStop();
+            AspireEventSource.Instance.DcpExecutableCreateStop(er.DcpResourceName);
         }
     }
 
