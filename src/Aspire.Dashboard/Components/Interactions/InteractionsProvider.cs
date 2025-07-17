@@ -332,11 +332,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
                     case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
                         if (_interactionDialogReference != null &&
-                            _interactionDialogReference.InteractionId == item.InteractionId)
+                            _interactionDialogReference.InteractionId == item.InteractionId &&
+                            _interactionDialogReference.Dialog.Instance.Content is InteractionsInputsDialogViewModel inputsVM)
                         {
                             // If the dialog is already open for this interaction, update it with the new data.
-                            var c = (InteractionsInputsDialogViewModel)_interactionDialogReference.Dialog.Instance.Content;
-                            await c.UpdateInteractionAsync(item);
+                            await inputsVM.UpdateInteractionAsync(item);
                         }
                         else
                         {
