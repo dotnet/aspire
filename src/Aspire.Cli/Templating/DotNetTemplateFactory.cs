@@ -5,7 +5,6 @@ using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
-using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
@@ -252,39 +251,39 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             interactionService.DisplayMessage($"package", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UsingProjectTemplatesVersion, templateInstallResult.TemplateVersion));
 
             var newProjectCollector = new OutputCollector();
-            try
-            {
-                var newProjectExitCode = await interactionService.ShowStatusAsync(
-                    $":rocket:  {TemplatingStrings.CreatingNewProject}",
-                    async () =>
-                    {
-                        var options = new DotNetCliRunnerInvocationOptions()
-                        {
-                            StandardOutputCallback = newProjectCollector.AppendOutput,
-                            StandardErrorCallback = newProjectCollector.AppendOutput,
-                        };
-
-                        var result = await runner.NewProjectAsync(
-                                    template.Name,
-                                    name,
-                                    outputPath,
-                                    extraArgs,
-                                    options,
-                                    cancellationToken);
-
-                        return result;
-                    });
-
-                if (newProjectExitCode != 0)
+            var newProjectExitCode = await interactionService.ShowStatusAsync(
+                $":rocket:  {TemplatingStrings.CreatingNewProject}",
+                async () =>
                 {
-                    interactionService.DisplayLines(newProjectCollector.GetLines());
-                    interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
+                    var options = new DotNetCliRunnerInvocationOptions()
+                    {
+                        StandardOutputCallback = newProjectCollector.AppendOutput,
+                        StandardErrorCallback = newProjectCollector.AppendOutput,
+                    };
+
+                    var result = await runner.NewProjectAsync(
+                                template.Name,
+                                name,
+                                outputPath,
+                                extraArgs,
+                                options,
+                                cancellationToken);
+
+                    return result;
+                });
+
+            if (newProjectExitCode != 0)
+            {
+                // Exit code 73 indicates that the output directory already contains files from a previous project
+                // See: https://github.com/dotnet/aspire/issues/9685
+                if (newProjectExitCode == 73)
+                {
+                    interactionService.DisplayError(TemplatingStrings.ProjectAlreadyExists);
                     return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
                 }
-            }
-            catch (ProjectAlreadyExistsException)
-            {
-                interactionService.DisplayError(TemplatingStrings.ProjectAlreadyExists);
+
+                interactionService.DisplayLines(newProjectCollector.GetLines());
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
                 return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
             }
 
