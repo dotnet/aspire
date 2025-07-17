@@ -88,8 +88,8 @@
     <PackageVersion Include="Markdig" Version="0.41.3" />
     <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="0.1.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.9" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.9" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.12.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.12.1" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="ModelContextProtocol" Version="0.3.0-preview.2" />
     <PackageVersion Include="MongoDB.Driver" Version="3.4.0" />

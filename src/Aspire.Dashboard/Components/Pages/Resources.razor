@@ -129,6 +129,7 @@
                                                     ItemSize="46"
                                                     ItemsProvider="@GetData"
                                                     ResizableColumns="true"
+                                                    ResizeColumnOnAllRows="false"
                                                     GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                     RowClass="@(r => GetRowClass(r.Resource))"
                                                     Loading="_isLoading"
