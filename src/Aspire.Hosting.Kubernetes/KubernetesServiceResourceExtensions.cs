@@ -122,8 +122,15 @@ internal static class KubernetesServiceResourceExtensions
             formattedName.ToHelmSecretExpression(resource.Name) :
             formattedName.ToHelmConfigExpression(resource.Name);
 
-        var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
-        return new(expression, value);
+        // Store the parameter itself for deferred resolution instead of resolving the value immediately
+        if (parameter.Default is null || parameter.Secret)
+        {
+            return new(expression, (string?)null);
+        }
+        else
+        {
+            return new(expression, parameter);
+        }
     }
 
     private static HelmExpressionWithValue ResolveUnknownValue(IManifestExpressionProvider parameter, IResource resource)
