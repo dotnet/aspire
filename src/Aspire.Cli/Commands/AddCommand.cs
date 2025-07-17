@@ -264,12 +264,6 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
         var selectedPackage = packages.First();
-        // var version = await interactionService.PromptForSelectionAsync(
-        //     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-        //     packages.DistinctBy(p => p.Package.Version),
-        //     p => p.Package.Version,
-        //     cancellationToken);
-        // return version;
 
         var packagesGroupedByReleaseStatus = packages.GroupBy(p => SemVersion.Parse(p.Package.Version).IsPrerelease ? "Prerelease" : "Released");
         var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
