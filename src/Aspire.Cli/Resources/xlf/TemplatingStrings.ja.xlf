@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire アプリ ホスティング プロセス</target>
+        <source>AppHost</source>
+        <target state="needs-review-translation">Aspire アプリ ホスティング プロセス</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire の空のアプリ</target>
+        <source>AppHost and service defaults</source>
+        <target state="needs-review-translation">Aspire の空のアプリ</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire テスト プロジェクト (MSTest)</target>
+        <source>MSTest</source>
+        <target state="needs-review-translation">Aspire テスト プロジェクト (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire テスト プロジェクト (NUnit)</target>
+        <source>NUnit</source>
+        <target state="needs-review-translation">Aspire テスト プロジェクト (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire サービスの既定</target>
+        <source>Service defaults</source>
+        <target state="needs-review-translation">Aspire サービスの既定</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire スターター アプリ</target>
+        <source>Starter template</source>
+        <target state="needs-review-translation">Aspire スターター アプリ</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire テスト プロジェクト (xUnit)</target>
+        <source>xUnit</source>
+        <target state="needs-review-translation">Aspire テスト プロジェクト (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -62,9 +62,14 @@
         <target state="translated">使用する xUnit.net バージョンを入力</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">最新のテンプレートを取得しています...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="new">Integration tests</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

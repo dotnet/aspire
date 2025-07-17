@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">輸入專案名稱:</target>
+        <source>Enter the project name</source>
+        <target state="needs-review-translation">輸入專案名稱:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">要用於專案範本的 NuGet 來源。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="new">(use pre-release templates)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
