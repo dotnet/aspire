@@ -7,11 +7,6 @@
         <target state="translated">Generiert Bereitstellungsartefakte für ein Aspire-App-Hostprojekt. (Vorschau)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Fehler beim Veröffentlichen von Artefakten. Exitcode: {0}. Weitere Informationen erhalten Sie, wenn Sie mit dem Schalter „--debug“ ausführen.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">Artefakte werden generiert...</target>
@@ -40,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">Wählen Sie einen Herausgeber aus:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">Artefakte wurden erfolgreich in {0} veröffentlicht.</target>
         <note />
       </trans-unit>
     </body>

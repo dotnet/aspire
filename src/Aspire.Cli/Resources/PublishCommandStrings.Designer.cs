@@ -75,18 +75,6 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string SuccessfullyPublishedArtifacts {
-            get {
-                return ResourceManager.GetString("SuccessfullyPublishedArtifacts", resourceCulture);
-            }
-        }
-        
-        public static string FailedToPublishArtifacts {
-            get {
-                return ResourceManager.GetString("FailedToPublishArtifacts", resourceCulture);
-            }
-        }
-        
         public static string OperationSucceededPrefix {
             get {
                 return ResourceManager.GetString("OperationSucceededPrefix", resourceCulture);

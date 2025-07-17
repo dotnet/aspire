@@ -7,11 +7,6 @@
         <target state="translated">Развертывание было отменено.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Сбой развертывания с кодом выхода {0}. Для получения дополнительных сведений запустите команду с параметром --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">Разверните проект хоста приложений Aspire на поддерживаемых целевых объектах развертывания. (Предварительная версия)</target>
@@ -30,11 +25,6 @@
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">Путь вывода для артефактов развертывания.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">Развертывание выполнено успешно. Артефакты доступны по адресу: {0}</target>
         <note />
       </trans-unit>
     </body>

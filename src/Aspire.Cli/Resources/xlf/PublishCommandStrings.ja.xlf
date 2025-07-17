@@ -7,11 +7,6 @@
         <target state="translated">Aspire アプリ ホスティング プロセスのデプロイ成果物を生成します。(プレビュー)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">成果物の発行が終了コード {0}で失敗しました。詳細情報については、--debug スイッチを使用して実行してください。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">成果物を生成しています...</target>
@@ -40,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">発行元を選択してください:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">成果物が {0} に正常に公開されました</target>
         <note />
       </trans-unit>
     </body>

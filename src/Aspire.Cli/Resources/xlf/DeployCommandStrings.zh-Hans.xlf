@@ -7,11 +7,6 @@
         <target state="translated">已取消部署。</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">部署失败，退出代码为 {0}。有关详细信息，请使用 --debug 开关运行。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。(预览版)</target>
@@ -30,11 +25,6 @@
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">部署工件的输出路径。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">已成功部署。工件可用位置: {0}</target>
         <note />
       </trans-unit>
     </body>

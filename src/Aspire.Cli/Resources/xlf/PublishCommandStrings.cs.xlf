@@ -7,11 +7,6 @@
         <target state="translated">Generuje artefakty nasazení pro projekt hostitele aplikací Aspire. (Preview)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Publikování artefaktů se nezdařilo s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">Generování artefaktů...</target>
@@ -40,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">Vyberte vydavatele:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">Artefakty se úspěšně publikovaly do: {0}</target>
         <note />
       </trans-unit>
     </body>

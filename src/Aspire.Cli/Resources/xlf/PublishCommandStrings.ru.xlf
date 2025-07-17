@@ -7,11 +7,6 @@
         <target state="translated">Генерирует артефакты развертывания для проекта узла приложения Aspire. (Предварительная версия)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Публикация артефактов завершилась сбоем, код завершения {0}. Для получения дополнительных сведений запустите команду с параметром --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">Генерируются артефакты...</target>
@@ -40,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">Выберите издателя:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">Артефакты успешно опубликованы в {0}</target>
         <note />
       </trans-unit>
     </body>
