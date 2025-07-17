@@ -663,6 +663,35 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.True(promptedForIntegration);
         Assert.Contains("No packages matched your search term 'nonexistentpackage'", displayedSubtleMessage);
     }
+
+    [Theory]
+    [InlineData("Aspire.Hosting.Azure.Redis", "azure-redis")]
+    [InlineData("CommunityToolkit.Aspire.Hosting.Cosmos", "communitytoolkit-cosmos")]
+    [InlineData("Aspire.Hosting.Postgres", "postgres")]
+    [InlineData("Acme.Aspire.Hosting.Foo.Bar", "acme-foo-bar")]
+    [InlineData("Aspire.Hosting.Docker", "docker")]
+    [InlineData("SomeOther.Package.Name", "someother-package-name")]
+    public void GenerateFriendlyName_ProducesExpectedResults(string packageId, string expectedFriendlyName)
+    {
+        // Arrange
+        var package = new NuGetPackage { Id = packageId, Version = "1.0.0", Source = "test" };
+
+        // Act
+        var result = InvokeGenerateFriendlyName(package);
+
+        // Assert
+        Assert.Equal(expectedFriendlyName, result.FriendlyName);
+        Assert.Equal(package, result.Package);
+    }
+
+    private static (string FriendlyName, NuGetPackage Package) InvokeGenerateFriendlyName(NuGetPackage package)
+    {
+        // Use reflection to access the private static method
+        var method = typeof(AddCommand).GetMethod("GenerateFriendlyName", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        
+        return ((string FriendlyName, NuGetPackage Package))method!.Invoke(null, [package])!;
+    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)
