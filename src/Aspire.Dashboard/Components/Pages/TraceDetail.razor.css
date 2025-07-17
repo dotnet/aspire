@@ -221,6 +221,18 @@
     background: color-mix(in srgb, var(--button-color), white 50%);
 }
 
+::deep .span-log-entry-error {
+    opacity: 1;
+    /* Error log entries appear above non-error log entries */
+    z-index: 1;
+    background: color-mix(in srgb, var(--button-color), white 15%);
+    border-color: color-mix(in srgb, var(--button-color), black 50%);
+}
+
+::deep .span-log-entry-error:hover {
+    background: color-mix(in srgb, var(--button-color), white 30%);
+}
+
 ::deep .span-log-entry-selected {
     opacity: 1;
     background: color-mix(in srgb, var(--button-color), white 50%);
@@ -228,10 +240,8 @@
     height: 20px;
 }
 
-::deep .span-log-entry-error {
-    opacity: 1;
-    /* Error log entries appear above non-error log entries */
-    z-index: 1;
+::deep .span-log-entry-selected.span-log-entry-error {
+    background: color-mix(in srgb, var(--button-color), white 30%);
 }
 
 ::deep .log-tooltip-title {
