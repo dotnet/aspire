@@ -438,13 +438,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // not exist the orphan detector will exit.
         startInfo.EnvironmentVariables[KnownConfigNames.CliProcessId] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
-        // If we are launching the app host in an extension host that supports c# project launch,
-        // then we can launch the app host via the extension and the IDE will handle program
-        // lifetime from there.
         if (backchannelCompletionSource is not null
             && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out var extensionBackchannel)
-            && await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.CSharpCapability, cancellationToken))
+            && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out _))
         {
             await interactionService.LaunchAppHostAsync(
                 projectFile.FullName,
