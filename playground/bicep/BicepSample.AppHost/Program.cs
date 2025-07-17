@@ -29,7 +29,7 @@ var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku
 var storage = builder.AddAzureStorage("storage");
                     // .RunAsEmulator();
 
-var blobs = storage.AddBlobService("blob");
+var blobs = storage.BlobService;
 var tables = storage.AddTableService("table");
 var queues = storage.AddQueueService("queue");
 
@@ -70,7 +70,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
        .WithReference(pg)
        .WithReference(cosmosDb)
-       .WithReference(blobs)
+       .WithReference(blobs, "blob")
        .WithReference(tables)
        .WithReference(queues)
        .WithReference(kv)

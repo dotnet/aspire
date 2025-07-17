@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddKeyedAzureTableServiceClient("clustering");
-builder.AddKeyedAzureBlobServiceClient("grainstate");
+builder.AddKeyedAzureBlobServiceClient("storage-blobs");
 builder.UseOrleans();
 
 var app = builder.Build();

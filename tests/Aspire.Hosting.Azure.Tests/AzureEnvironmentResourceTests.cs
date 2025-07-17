@@ -98,8 +98,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         builder.AddAzureStorage("existing-storage").PublishAsExisting("images", "rg-shared");
         var pgdb = builder.AddAzurePostgresFlexibleServer("pg").AddDatabase("pgdb");
         var cosmos = builder.AddAzureCosmosDB("account").AddCosmosDatabase("db");
-        var blobs = builder.AddAzureStorage("storage")
-            .ConfigureInfrastructure(c =>
+        var storage = builder.AddAzureStorage("storage");
+        storage.ConfigureInfrastructure(c =>
             {
                 var storageAccount = c.GetProvisionableResources().OfType<StorageAccount>().FirstOrDefault();
                 storageAccount!.Sku.Name = storageSku.AsProvisioningParameter(c);
@@ -108,8 +108,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
                     Value = skuDescriptionExpr.AsProvisioningParameter(c, "sku_description")
                 };
                 c.Add(output);
-            })
-            .AddBlobService("blobs");
+            });
+        var blobs = storage.BlobService;
         builder.AddAzureInfrastructure("mod", infra => { })
             .WithParameter("pgdb", pgdb.Resource.ConnectionStringExpression);
         builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
@@ -141,8 +141,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var skuDescriptionExpr = ReferenceExpression.Create($"{description} {storageSku}");
         var kv = builder.AddAzureKeyVault("kv");
         var cosmos = builder.AddAzureCosmosDB("account").AddCosmosDatabase("db");
-        var blobs = builder.AddAzureStorage("storage")
-            .ConfigureInfrastructure(c =>
+        var storage = builder.AddAzureStorage("storage");
+        storage.ConfigureInfrastructure(c =>
             {
                 var storageAccount = c.GetProvisionableResources().OfType<StorageAccount>().FirstOrDefault();
                 storageAccount!.Sku.Name = storageSku.AsProvisioningParameter(c);
@@ -151,8 +151,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
                     Value = skuDescriptionExpr.AsProvisioningParameter(c, "sku_description")
                 };
                 c.Add(output);
-            })
-            .AddBlobService("blobs");
+            });
+        var blobs = storage.BlobService;
         builder.AddProject<TestProject>("fe", launchProfileName: null)
             .WithEnvironment("BLOB_CONTAINER_URL", $"{blobs}/container")
             .WithReference(cosmos);

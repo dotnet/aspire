@@ -23,8 +23,15 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
-    internal AzureBlobStorageResource? BlobStorageResource { get; set; }
+    private AzureBlobStorageResource? _blobStorageResource;
+    
     internal AzureQueueStorageResource? QueueStorageResource { get; set; }
+
+    internal AzureBlobStorageResource? BlobStorageResource 
+    { 
+        get => _blobStorageResource; 
+        set => _blobStorageResource = value; 
+    }
 
     internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 

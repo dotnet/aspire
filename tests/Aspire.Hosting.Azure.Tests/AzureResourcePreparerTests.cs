@@ -52,10 +52,10 @@ public class AzureResourcePreparerTests
         }
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobService("blobs");
+        var blobs = storage.BlobService;
 
         var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithReference(blobs);
+            .WithReference(blobs, "blobs");
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -93,15 +93,15 @@ public class AzureResourcePreparerTests
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobService("blobs");
+        var blobs = storage.BlobService;
 
         var api = builder.AddProject<Project>("api", launchProfileName: null)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDelegator, StorageBuiltInRole.StorageBlobDataReader)
-            .WithReference(blobs);
+            .WithReference(blobs, "blobs");
 
         var api2 = builder.AddProject<Project>("api2", launchProfileName: null)
             .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
-            .WithReference(blobs);
+            .WithReference(blobs, "blobs");
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -162,7 +162,7 @@ public class AzureResourcePreparerTests
         builder.AddAzureContainerAppEnvironment("env");
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobService("blobs");
+        var blobs = storage.BlobService;
 
         // the project doesn't WithReference or WithRoleAssignments, so it should get the default role assignments
         var api = builder.AddProject<Project>("api", launchProfileName: null)

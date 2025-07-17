@@ -41,7 +41,7 @@ automatically.
 In the _AppHost.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
 
 ```csharp
-var blobs = builder.AddAzureStorage("storage").AddBlobService("blobs");
+var blobs = builder.AddAzureStorage("storage").BlobService;
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(blobs);

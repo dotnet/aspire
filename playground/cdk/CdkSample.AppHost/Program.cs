@@ -14,15 +14,15 @@ cosmosdb.AddCosmosDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
-var storage = builder.AddAzureStorage("storage")
-    .ConfigureInfrastructure(infrastructure =>
+var storage = builder.AddAzureStorage("storage");
+storage.ConfigureInfrastructure(infrastructure =>
     {
         var account = infrastructure.GetProvisionableResources().OfType<StorageAccount>().Single();
         account.Sku = new StorageSku() { Name = sku.AsProvisioningParameter(infrastructure) };
         account.Location = locationOverride.AsProvisioningParameter(infrastructure);
     });
 
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.BlobService;
 
 var sqldb = builder.AddAzureSqlServer("sql").AddDatabase("sqldb");
 
@@ -108,7 +108,7 @@ var appInsights = builder.AddAzureApplicationInsights("appInsights", logAnalytic
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
     .WithReference(signalr)
-    .WithReference(blobs)
+    .WithReference(blobs, "blobs")
     .WithReference(sqldb)
     .WithReference(keyvault)
     .WithReference(cache)
