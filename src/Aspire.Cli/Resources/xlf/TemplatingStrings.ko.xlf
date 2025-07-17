@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>AppHost</source>
-        <target state="needs-review-translation">Aspire 앱 호스트</target>
+        <target state="new">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
-        <target state="needs-review-translation">Aspire 빈 앱</target>
+        <target state="new">AppHost and service defaults</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
-        <target state="needs-review-translation">Aspire 테스트 프로젝트(MSTest)</target>
+        <target state="new">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>NUnit</source>
-        <target state="needs-review-translation">Aspire 테스트 프로젝트(NUnit)</target>
+        <target state="new">NUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
-        <target state="needs-review-translation">Aspire 서비스 기본값</target>
+        <target state="new">Service defaults</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
-        <target state="needs-review-translation">Aspire 시작 앱</target>
+        <target state="new">Starter template</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>xUnit</source>
-        <target state="needs-review-translation">Aspire 테스트 프로젝트(xUnit)</target>
+        <target state="new">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
