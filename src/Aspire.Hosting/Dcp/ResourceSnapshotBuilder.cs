@@ -97,16 +97,14 @@ internal class ResourceSnapshotBuilder
         _ = executable.AppModelResourceName is not null && _resourceState.ApplicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource);
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
-        var urls = GetUrls(executable, executable.Status?.State);
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
+        var launchArguments = GetLaunchArgs(executable);
 
         var relationships = ImmutableArray<RelationshipSnapshot>.Empty;
         if (appModelResource != null)
         {
             relationships = ApplicationModel.ResourceSnapshotBuilder.BuildRelationships(appModelResource);
         }
-
-        var launchArguments = GetLaunchArgs(executable);
 
         return previous with
         {
@@ -123,7 +121,6 @@ internal class ResourceSnapshotBuilder
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
             StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
             StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
-            Urls = urls,
             Relationships = relationships
         };
     }
