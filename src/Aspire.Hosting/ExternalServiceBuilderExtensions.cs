@@ -221,7 +221,7 @@ public static class ExternalServiceBuilderExtensions
                     builder.Resource.UrlParameter,
                     path,
                     statusCode.Value,
-                    () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient()),
+                    () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(healthCheckKey)),
                 default,
                 default,
                 default));
