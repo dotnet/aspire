@@ -8,7 +8,7 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Empty apphost</source>
+        <source>Apphost and service defaults</source>
         <target state="needs-review-translation">Pusta aplikacja Aspire</target>
         <note />
       </trans-unit>
@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Service Defaults only</source>
+        <source>Service defaults only</source>
         <target state="needs-review-translation">Domyślne ustawienia usługi Aspire</target>
         <note />
       </trans-unit>

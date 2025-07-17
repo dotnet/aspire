@@ -124,13 +124,13 @@
     <value>Starter template</value>
   </data>
   <data name="AspireEmpty_Description" xml:space="preserve">
-    <value>Empty apphost</value>
+    <value>Apphost and service defaults</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
     <value>Apphost only</value>
   </data>
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
-    <value>Service Defaults only</value>
+    <value>Service defaults only</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
     <value>MSTest</value>
