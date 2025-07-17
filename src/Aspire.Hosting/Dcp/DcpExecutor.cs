@@ -1072,15 +1072,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private Task CreateExecutableResourcesAsync(
+    private Task CreateSnapshotableResourcesAsync(
         Func<AppResource, ILogger, CancellationToken, Task> createResourceFunc,
         IEnumerable<AppResource> executables,
         CancellationToken cancellationToken)
     {
         try
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStart();
-
+            AspireEventSource.Instance.DcpSnapshotableResourcesCreateStart();
             async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
             {
                 var resourceLogger = _loggerService.GetLogger(resource);
@@ -1159,15 +1158,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
         finally
         {
-            AspireEventSource.Instance.DcpExecutablesCreateStop();
+            AspireEventSource.Instance.DcpSnapshotableResourcesCreateStop();
         }
     }
 
     private Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
-        => CreateExecutableResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
+        => CreateSnapshotableResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
 
     private Task CreateExecutablesAsync(IEnumerable<AppResource> execAppResources, CancellationToken cancellationToken)
-        => CreateExecutableResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
+        => CreateSnapshotableResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
 
     private async Task CreateContainerExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
@@ -1177,7 +1176,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
         var spec = containerExe.Spec;
 
-        await _kubernetesService.CreateAsync(containerExe, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            AspireEventSource.Instance.DcpContainerExecutablesCreateStart();
+            await _kubernetesService.CreateAsync(containerExe, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpContainerExecutablesCreateStop();
+        }
     }
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
@@ -1222,7 +1229,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
-        await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            AspireEventSource.Instance.DcpExecutablesCreateStart();
+            await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpExecutablesCreateStop();
+        }
     }
 
     private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(AppResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)

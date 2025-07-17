@@ -280,4 +280,40 @@ internal sealed class AspireEventSource : EventSource
             WriteEvent(30);
         }
     }
+
+    [Event(31, Level = EventLevel.Informational, Message = "DCP Container Executable object creation starting...")]
+    public void DcpContainerExecutablesCreateStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(31);
+        }
+    }
+
+    [Event(32, Level = EventLevel.Informational, Message = "DCP Container Executable object creation completed")]
+    public void DcpContainerExecutablesCreateStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(32);
+        }
+    }
+
+    [Event(33, Level = EventLevel.Informational, Message = "DCP snapshotable resources creation starting...")]
+    public void DcpSnapshotableResourcesCreateStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(33);
+        }
+    }
+
+    [Event(34, Level = EventLevel.Informational, Message = "DCP snapshotable resources creation completed")]
+    public void DcpSnapshotableResourcesCreateStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(34);
+        }
+    }
 }
