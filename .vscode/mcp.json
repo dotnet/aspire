@@ -8,6 +8,10 @@
                 "--project",
                 "${workspaceFolder}/tools/AspireMcpTools/AspireMcpTools.csproj"
             ]
-        }
+        },
+        "github": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp/"
+      }
     }
 }
