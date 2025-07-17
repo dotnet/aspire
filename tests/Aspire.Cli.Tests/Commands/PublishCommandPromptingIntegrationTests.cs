@@ -61,7 +61,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("production", completedPrompt.Answers[0]);
+        Assert.Equal("production", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("secret-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("SecurePassword123!", completedPrompt.Answers[0]);
+        Assert.Equal("SecurePassword123!", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("choice-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("us-east-1", completedPrompt.Answers[0]);
+        Assert.Equal("us-east-1", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("bool-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("true", completedPrompt.Answers[0]);
+        Assert.Equal("true", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("number-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("3", completedPrompt.Answers[0]);
+        Assert.Equal("3", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -321,13 +321,13 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Equal(3, promptBackchannel.CompletedPrompts.Count);
 
         Assert.Equal("text-prompt-1", promptBackchannel.CompletedPrompts[0].PromptId);
-        Assert.Equal("MyTestApp", promptBackchannel.CompletedPrompts[0].Answers[0]);
+        Assert.Equal("MyTestApp", promptBackchannel.CompletedPrompts[0].Answers[0].Value);
 
         Assert.Equal("choice-prompt-1", promptBackchannel.CompletedPrompts[1].PromptId);
-        Assert.Equal("prod", promptBackchannel.CompletedPrompts[1].Answers[0]);
+        Assert.Equal("prod", promptBackchannel.CompletedPrompts[1].Answers[0].Value);
 
         Assert.Equal("bool-prompt-1", promptBackchannel.CompletedPrompts[2].PromptId);
-        Assert.Equal("true", promptBackchannel.CompletedPrompts[2].Answers[0]);
+        Assert.Equal("true", promptBackchannel.CompletedPrompts[2].Answers[0].Value);
     }
 
     [Fact]
@@ -408,10 +408,10 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("multi-input-prompt-1", completedPrompt.PromptId);
         Assert.Equal(4, completedPrompt.Answers.Length);
-        Assert.Equal("Server=localhost;Database=MyApp;", completedPrompt.Answers[0]);
-        Assert.Equal("secret-api-key-12345", completedPrompt.Answers[1]);
-        Assert.Equal("staging", completedPrompt.Answers[2]);
-        Assert.Equal("true", completedPrompt.Answers[3]);
+        Assert.Equal("Server=localhost;Database=MyApp;", completedPrompt.Answers[0].Value);
+        Assert.Equal("secret-api-key-12345", completedPrompt.Answers[1].Value);
+        Assert.Equal("staging", completedPrompt.Answers[2].Value);
+        Assert.Equal("true", completedPrompt.Answers[3].Value);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("development", completedPrompt.Answers[0]);
+        Assert.Equal("development", completedPrompt.Answers[0].Value);
 
         // Verify that the PromptForStringAsync was called with the default value
         var promptCalls = consoleService.StringPromptCalls;
@@ -512,7 +512,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("development", completedPrompt.Answers[0]);
+        Assert.Equal("development", completedPrompt.Answers[0].Value);
 
         // Verify that the PromptForStringAsync was called with the default value
         var promptCalls = consoleService.StringPromptCalls;
@@ -608,7 +608,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         _completionSource.SetResult();
     }
 
-    public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         CompletedPrompts.Add(new PromptCompletion(promptId, answers));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
@@ -647,7 +647,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 // Data structures for tracking prompts
 internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
-internal sealed record PromptCompletion(string PromptId, string?[] Answers);
+internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers);
 
 // Enhanced TestConsoleInteractionService that tracks interaction types
 [SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]

@@ -205,3 +205,8 @@ internal struct CommandOutput
 
     public int? ExitCode { get; init; }
 }
+
+internal class PublishingPromptInputAnswer
+{
+    public string? Value { get; set; }
+}
