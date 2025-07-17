@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Text;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -235,24 +234,22 @@ internal sealed class AddCommand : BaseCommand
 
     private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
     {
-        var shortNameBuilder = new StringBuilder();
-
-        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
+        // Remove 'Aspire.Hosting' segment from anywhere in the package name
+        var packageId = package.Id.Replace("Aspire.Hosting", "", StringComparison.OrdinalIgnoreCase);
+        
+        // Remove leading or trailing dots that might result from the replacement
+        packageId = packageId.Trim('.');
+        
+        // Replace multiple consecutive dots with a single dot
+        while (packageId.Contains(".."))
         {
-            shortNameBuilder.Append("az-");
+            packageId = packageId.Replace("..", ".");
         }
-        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
-        {
-            shortNameBuilder.Append("aws-");
-        }
-        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
-        {
-            shortNameBuilder.Append("ct-");
-        }
-
-        var lastSegment = package.Id.Split('.').Last().ToLower();
-        shortNameBuilder.Append(lastSegment);
-        return (shortNameBuilder.ToString(), package);
+        
+        // Replace all dots with dashes and convert to lowercase
+        var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
+        
+        return (friendlyName, package);
     }
 }
 
