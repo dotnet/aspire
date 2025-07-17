@@ -265,7 +265,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task NewProjectAsyncThrowsProjectAlreadyExistsExceptionOnExitCode73()
+    public async Task NewProjectAsyncReturnsExitCode73WhenProjectAlreadyExists()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -292,12 +292,11 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             73 // Return exit code 73 to simulate project already exists
         );
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Aspire.Cli.Exceptions.ProjectAlreadyExistsException>(
-            () => runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", [], options, CancellationToken.None)
-        );
+        // Act
+        var exitCode = await runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", [], options, CancellationToken.None);
 
-        Assert.NotNull(exception);
+        // Assert
+        Assert.Equal(73, exitCode);
     }
 }
 
