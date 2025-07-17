@@ -432,7 +432,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         // Handle multiple inputs
-        var results = new string?[inputs.Count];
+        var answers = new PublishingPromptInputAnswer[inputs.Count];
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
@@ -456,11 +456,14 @@ internal abstract class PublishCommandBase : BaseCommand
                 result = input.Value;
             }
 
-            results[i] = result;
+            answers[i] = new PublishingPromptInputAnswer
+            {
+                Value = result
+            };
         }
 
         // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, results, cancellationToken);
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

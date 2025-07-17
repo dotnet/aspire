@@ -46,7 +46,13 @@ public class Program
 
     private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder();
+        var settings = new HostApplicationBuilderSettings
+        {
+            Configuration = new ConfigurationManager()
+        };
+        settings.Configuration.AddEnvironmentVariables();
+
+        var builder = Host.CreateEmptyApplicationBuilder(settings);
 
         // Set up settings with appropriate paths.
         var globalSettingsFilePath = GetGlobalSettingsPath();
@@ -55,8 +61,6 @@ public class Program
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
 
         await TrySetLocaleOverrideAsync(builder.Configuration);
-
-        builder.Logging.ClearProviders();
 
         // Always configure OpenTelemetry.
         builder.Logging.AddOpenTelemetry(logging => {

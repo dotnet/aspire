@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Hôte d’application Aspire</target>
+        <source>AppHost</source>
+        <target state="needs-review-translation">Hôte d’application Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Application vide Aspire</target>
+        <source>AppHost and service defaults</source>
+        <target state="needs-review-translation">Application vide Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Projet de test Aspire (MSTest)</target>
+        <source>MSTest</source>
+        <target state="needs-review-translation">Projet de test Aspire (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Projet de test Aspire (NUnit)</target>
+        <source>NUnit</source>
+        <target state="needs-review-translation">Projet de test Aspire (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Paramètres par défaut du service Aspire</target>
+        <source>Service defaults</source>
+        <target state="needs-review-translation">Paramètres par défaut du service Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Application de démarrage Aspire</target>
+        <source>Starter template</source>
+        <target state="needs-review-translation">Application de démarrage Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Projet de test Aspire (xUnit)</target>
+        <source>xUnit</source>
+        <target state="needs-review-translation">Projet de test Aspire (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -62,9 +62,14 @@
         <target state="translated">Entrez la version de xUnit.net à utiliser</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">Récupération des derniers modèles...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="new">Integration tests</target>
         <note />
       </trans-unit>
       <trans-unit id="No">

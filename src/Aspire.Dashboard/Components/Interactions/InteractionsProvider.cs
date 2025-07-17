@@ -10,7 +10,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
-using Markdig;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -22,8 +21,6 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
-    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
-
     internal record InteractionMessageBarReference(int InteractionId, Message Message, ComponentTelemetryContext TelemetryContext) : IDisposable
     {
         public void Dispose()
@@ -305,10 +302,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
-        var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
-
-        return MarkdownHelpers.ToHtml(item.Message, s_markdownPipeline, suppressSurroundingParagraph: !hasNewline);
+        return InteractionMarkdownHelper.ToHtml(item.Message);
     }
 
     private async Task WatchInteractionsAsync()
@@ -349,8 +343,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             NotifyInteractionAvailable();
                         }
                         break;
-                    case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
-                        var messageBar = item.MessageBar;
+                    case WatchInteractionsResponseUpdate.KindOneofCase.Notification:
+                        var notification = item.Notification;
 
                         Message? message = null;
                         await InvokeAsync(async () =>
@@ -359,23 +353,23 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
                                 options.Body = GetMessageHtml(item);
-                                options.Intent = MapMessageIntent(messageBar.Intent);
+                                options.Intent = MapMessageIntent(notification.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;
-                                if (!string.IsNullOrEmpty(messageBar.LinkText))
+                                if (!string.IsNullOrEmpty(notification.LinkText))
                                 {
                                     options.Link = new()
                                     {
-                                        Text = messageBar.LinkText,
-                                        Href = messageBar.LinkUrl
+                                        Text = notification.LinkText,
+                                        Href = notification.LinkUrl
                                     };
                                 }
 
                                 var primaryButtonText = item.PrimaryButtonText;
                                 var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;
-                                if (messageBar.Intent == MessageIntentDto.Confirmation)
+                                if (notification.Intent == MessageIntentDto.Confirmation)
                                 {
-                                    primaryButtonText = ResolvedPrimaryButtonText(item, messageBar.Intent);
+                                    primaryButtonText = ResolvedPrimaryButtonText(item, notification.Intent);
                                     secondaryButtonText = ResolvedSecondaryButtonText(item);
                                 }
 
@@ -424,8 +418,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                         }
                                         else
                                         {
-                                            messageBar.Result = result.Value;
-                                            request.MessageBar = messageBar;
+                                            notification.Result = result.Value;
+                                            request.Notification = notification;
                                         }
 
                                         _openMessageBars.Remove(item.InteractionId);

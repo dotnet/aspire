@@ -77,6 +77,11 @@
         <target state="translated">Se encontró un número inesperado de paquetes.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="new">Use pre-release packages</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">La versión de la integración que se va a agregar.</target>

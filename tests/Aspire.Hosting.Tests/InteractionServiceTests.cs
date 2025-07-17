@@ -165,7 +165,7 @@ public class InteractionServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => interactionService.PromptMessageBarAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+            () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
     }
@@ -196,7 +196,60 @@ public class InteractionServiceTests
         await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new [] { input } });
 
         // The interaction should still be in progress due to validation error
-        Assert.False(interaction.CompletionTcs.Task.IsCompleted); 
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public void InteractionInput_WithDescription_SetsProperties()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "Test description",
+            EnableDescriptionMarkdown = false
+        };
+
+        // Assert
+        Assert.Equal("Test Label", input.Label);
+        Assert.Equal(InputType.Text, input.InputType);
+        Assert.Equal("Test description", input.Description);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void InteractionInput_WithMarkdownDescription_SetsMarkupFlag()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "**Bold** description",
+            EnableDescriptionMarkdown = true
+        };
+
+        // Assert
+        Assert.Equal("**Bold** description", input.Description);
+        Assert.True(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void InteractionInput_WithNullDescription_AllowsNullValue()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = null,
+            EnableDescriptionMarkdown = false
+        };
+
+        // Assert
+        Assert.Null(input.Description);
+        Assert.False(input.EnableDescriptionMarkdown);
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)

@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">プロジェクト名を入力してください:</target>
+        <source>Enter the project name</source>
+        <target state="needs-review-translation">プロジェクト名を入力してください:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">プロジェクト テンプレートに使用する NuGet ソース。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="new">(use pre-release templates)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
