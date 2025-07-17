@@ -124,13 +124,13 @@
     <value>Starter template</value>
   </data>
   <data name="AspireEmpty_Description" xml:space="preserve">
-    <value>Apphost and service defaults</value>
+    <value>AppHost and service defaults</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
-    <value>Apphost only</value>
+    <value>AppHost</value>
   </data>
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
-    <value>Service defaults only</value>
+    <value>Service defaults</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
     <value>MSTest</value>
@@ -142,7 +142,7 @@
     <value>xUnit</value>
   </data>
   <data name="IntegrationTestsTemplate_Description" xml:space="preserve">
-    <value>Integration tests only</value>
+    <value>Integration tests</value>
   </data>
   <data name="UseRedisCache_Prompt" xml:space="preserve">
     <value>Use Redis Cache</value>
