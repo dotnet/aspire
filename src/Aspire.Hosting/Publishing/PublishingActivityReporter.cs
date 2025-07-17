@@ -268,11 +268,11 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
             await _interactionService.CompleteInteractionAsync(interaction.InteractionId, (interaction, ServiceProvider) =>
             {
                 // Complete the interaction with an error state
-                interaction.CompletionTcs.TrySetException(new InvalidOperationException("Unsupported interaction type. Only input interactions are supported during publishing."));
+                interaction.CompletionTcs.TrySetException(new InvalidOperationException("Unsupported interaction type. Only input interactions are supported in the CLI."));
                 return new InteractionCompletionState
                 {
                     Complete = true,
-                    State = "Unsupported interaction type. Only input interactions are supported during publishing."
+                    State = "Unsupported interaction type. Only input interactions are supported in the CLI."
                 };
             }, cancellationToken).ConfigureAwait(false);
             return;
