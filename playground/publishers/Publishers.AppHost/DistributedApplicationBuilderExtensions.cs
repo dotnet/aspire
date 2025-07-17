@@ -5,7 +5,6 @@
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREINTERACTION001
 
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 internal static class IDistributedApplicationBuilderExtensions
@@ -90,7 +89,6 @@ internal static class IDistributedApplicationBuilderExtensions
             var appVersion = multiInputResult.Canceled ? "1.0.0" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "Application Version")?.Value ?? "1.0.0");
             var sslType = multiInputResult.Canceled ? "self-signed" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "SSL Certificate Type")?.Value ?? "self-signed");
 
-            Debugger.Launch();
 
             // Test Text input
             var envResult = await interactionService.PromptInputAsync(
