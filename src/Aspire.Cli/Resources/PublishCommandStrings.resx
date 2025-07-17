@@ -123,9 +123,9 @@
   </data>
 
   <data name="OperationSucceededPrefix" xml:space="preserve">
-    <value>PUBLISHING</value>
+    <value>PUBLISHING SUCCEEDED</value>
   </data>
   <data name="OperationFailedPrefix" xml:space="preserve">
-    <value>PUBLISHING</value>
+    <value>PUBLISHING FAILED</value>
   </data>
 </root>

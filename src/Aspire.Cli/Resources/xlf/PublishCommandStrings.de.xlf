@@ -13,13 +13,13 @@
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
-        <source>PUBLISHING</source>
-        <target state="new">PUBLISHING</target>
+        <source>PUBLISHING FAILED</source>
+        <target state="new">PUBLISHING FAILED</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationSucceededPrefix">
-        <source>PUBLISHING</source>
-        <target state="new">PUBLISHING</target>
+        <source>PUBLISHING SUCCEEDED</source>
+        <target state="new">PUBLISHING SUCCEEDED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

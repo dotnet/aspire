@@ -88,7 +88,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DEPLOYMENT.
+        ///   Looks up a localized string similar to DEPLOYMENT SUCCEEDED.
         /// </summary>
         public static string OperationSucceededPrefix {
             get {
@@ -97,7 +97,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DEPLOYMENT.
+        ///   Looks up a localized string similar to DEPLOYMENT FAILED.
         /// </summary>
         public static string OperationFailedPrefix {
             get {
