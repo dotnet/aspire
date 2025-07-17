@@ -89,7 +89,6 @@ internal static class IDistributedApplicationBuilderExtensions
             var appVersion = multiInputResult.Canceled ? "1.0.0" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "Application Version")?.Value ?? "1.0.0");
             var sslType = multiInputResult.Canceled ? "self-signed" : (multiInputResult.Data?.FirstOrDefault(i => i.Label == "SSL Certificate Type")?.Value ?? "self-signed");
 
-
             // Test Text input
             var envResult = await interactionService.PromptInputAsync(
                 "Environment Configuration",
