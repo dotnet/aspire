@@ -122,8 +122,8 @@
     <value>Generating artifacts...</value>
   </data>
 
-  <data name="OperationSucceededPrefix" xml:space="preserve">
-    <value>PUBLISHING SUCCEEDED</value>
+  <data name="OperationCompletedPrefix" xml:space="preserve">
+    <value>PUBLISHING COMPLETED</value>
   </data>
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>PUBLISHING FAILED</value>

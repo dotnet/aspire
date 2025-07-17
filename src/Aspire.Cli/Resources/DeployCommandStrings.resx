@@ -116,8 +116,8 @@
   <data name="DeploymentCanceled" xml:space="preserve">
     <value>The deployment was canceled.</value>
   </data>
-  <data name="OperationSucceededPrefix" xml:space="preserve">
-    <value>DEPLOYMENT SUCCEEDED</value>
+  <data name="OperationCompletedPrefix" xml:space="preserve">
+    <value>DEPLOYMENT COMPLETED</value>
   </data>
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>DEPLOYMENT FAILED</value>

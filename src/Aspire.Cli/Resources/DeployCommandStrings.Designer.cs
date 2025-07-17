@@ -88,11 +88,11 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DEPLOYMENT SUCCEEDED.
+        ///   Looks up a localized string similar to DEPLOYMENT COMPLETED.
         /// </summary>
-        public static string OperationSucceededPrefix {
+        public static string OperationCompletedPrefix {
             get {
-                return ResourceManager.GetString("OperationSucceededPrefix", resourceCulture);
+                return ResourceManager.GetString("OperationCompletedPrefix", resourceCulture);
             }
         }
         

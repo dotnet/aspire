@@ -12,14 +12,14 @@
         <target state="translated">Generování artefaktů...</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>PUBLISHING COMPLETED</source>
+        <target state="new">PUBLISHING COMPLETED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>PUBLISHING FAILED</source>
         <target state="new">PUBLISHING FAILED</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="OperationSucceededPrefix">
-        <source>PUBLISHING SUCCEEDED</source>
-        <target state="new">PUBLISHING SUCCEEDED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

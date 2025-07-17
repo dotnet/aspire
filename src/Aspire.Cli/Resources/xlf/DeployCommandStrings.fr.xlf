@@ -12,14 +12,14 @@
         <target state="translated">Déployez un projet hôte d’application Aspire sur ses cibles de déploiement prises en charge. (Préversion)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>DEPLOYMENT FAILED</source>
         <target state="new">DEPLOYMENT FAILED</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="OperationSucceededPrefix">
-        <source>DEPLOYMENT SUCCEEDED</source>
-        <target state="new">DEPLOYMENT SUCCEEDED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

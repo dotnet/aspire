@@ -12,14 +12,14 @@
         <target state="translated">將 Aspire 應用程式主機專案部署到其支援的部署目標。(預覽)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>DEPLOYMENT FAILED</source>
         <target state="new">DEPLOYMENT FAILED</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="OperationSucceededPrefix">
-        <source>DEPLOYMENT SUCCEEDED</source>
-        <target state="new">DEPLOYMENT SUCCEEDED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
