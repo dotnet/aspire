@@ -311,7 +311,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         }
     }
 
-    internal async Task CompleteInteractionAsync(string promptId, string?[]? responses, CancellationToken cancellationToken = default)
+    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, CancellationToken cancellationToken = default)
     {
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
@@ -325,7 +325,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         {
                             for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
                             {
-                                inputsInfo.Inputs[i].Value = responses[i] ?? "";
+                                inputsInfo.Inputs[i].Value = responses[i].Value ?? "";
                             }
                         }
 
