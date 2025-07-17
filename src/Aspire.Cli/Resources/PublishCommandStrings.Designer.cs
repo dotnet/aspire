@@ -86,5 +86,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FailedToPublishArtifacts", resourceCulture);
             }
         }
+        
+        public static string OperationSucceededPrefix {
+            get {
+                return ResourceManager.GetString("OperationSucceededPrefix", resourceCulture);
+            }
+        }
+        
+        public static string OperationFailedPrefix {
+            get {
+                return ResourceManager.GetString("OperationFailedPrefix", resourceCulture);
+            }
+        }
     }
 }

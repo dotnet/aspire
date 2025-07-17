@@ -40,7 +40,8 @@ internal sealed class PublishCommand : PublishCommandBase
         _prompter = prompter;
     }
 
-    protected override string OperationPrefix => "Publishing";
+    protected override string OperationSucceededPrefix => PublishCommandStrings.OperationSucceededPrefix;
+    protected override string OperationFailedPrefix => PublishCommandStrings.OperationFailedPrefix;
 
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 

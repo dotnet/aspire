@@ -17,6 +17,16 @@
         <target state="translated">Gerando artefatos...</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>PUBLISHING</source>
+        <target state="new">PUBLISHING</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationSucceededPrefix">
+        <source>PUBLISHING</source>
+        <target state="new">PUBLISHING</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts.</source>
         <target state="translated">O caminho de saída para os artefatos gerados.</target>

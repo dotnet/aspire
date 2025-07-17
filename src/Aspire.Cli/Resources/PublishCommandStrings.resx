@@ -127,4 +127,10 @@
   <data name="FailedToPublishArtifacts" xml:space="preserve">
     <value>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</value>
   </data>
+  <data name="OperationSucceededPrefix" xml:space="preserve">
+    <value>PUBLISHING</value>
+  </data>
+  <data name="OperationFailedPrefix" xml:space="preserve">
+    <value>PUBLISHING</value>
+  </data>
 </root>

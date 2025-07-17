@@ -17,6 +17,16 @@
         <target state="translated">Разверните проект хоста приложений Aspire на поддерживаемых целевых объектах развертывания. (Предварительная версия)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT</source>
+        <target state="new">DEPLOYMENT</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationSucceededPrefix">
+        <source>DEPLOYMENT</source>
+        <target state="new">DEPLOYMENT</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">Путь вывода для артефактов развертывания.</target>

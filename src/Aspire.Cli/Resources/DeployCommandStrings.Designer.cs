@@ -104,5 +104,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SuccessfullyDeployed", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DEPLOYMENT.
+        /// </summary>
+        public static string OperationSucceededPrefix {
+            get {
+                return ResourceManager.GetString("OperationSucceededPrefix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DEPLOYMENT.
+        /// </summary>
+        public static string OperationFailedPrefix {
+            get {
+                return ResourceManager.GetString("OperationFailedPrefix", resourceCulture);
+            }
+        }
     }
 }

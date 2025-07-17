@@ -18,7 +18,8 @@ internal sealed class DeployCommand : PublishCommandBase
     {
     }
 
-    protected override string OperationPrefix => "Deployment";
+    protected override string OperationSucceededPrefix => DeployCommandStrings.OperationSucceededPrefix;
+    protected override string OperationFailedPrefix => DeployCommandStrings.OperationFailedPrefix;
 
     protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 

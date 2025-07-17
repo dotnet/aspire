@@ -17,6 +17,16 @@
         <target state="translated">將 Aspire 應用程式主機專案部署到其支援的部署目標。(預覽)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT</source>
+        <target state="new">DEPLOYMENT</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationSucceededPrefix">
+        <source>DEPLOYMENT</source>
+        <target state="new">DEPLOYMENT</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">部署成品的輸出路徑。</target>

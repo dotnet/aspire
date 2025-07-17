@@ -190,12 +190,12 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool deploy = false, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
-        var operationName = deploy ? "Deployment" : "Publishing";
+        var operationName = isDeploy ? "Deployment" : "Publishing";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,

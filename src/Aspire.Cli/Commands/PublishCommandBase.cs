@@ -26,7 +26,8 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
 
-    protected abstract string OperationPrefix { get; }
+    protected abstract string OperationSucceededPrefix { get; }
+    protected abstract string OperationFailedPrefix { get; }
 
     private static bool IsCompletionStateComplete(string completionState) =>
         completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
@@ -396,10 +397,10 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var prefix = hasErrors
-                ? $"[red]✗ {OperationPrefix.ToUpperInvariant()} FAILED:[/]"
-: hasWarnings
-                    ? $"[yellow]⚠ {OperationPrefix.ToUpperInvariant()} COMPLETED:[/]"
-                    : $"[green]✓ {OperationPrefix.ToUpperInvariant()} COMPLETED:[/]";
+                ? $"[red]✗ {OperationFailedPrefix} FAILED:[/]"
+                : hasWarnings
+                    ? $"[yellow]⚠ {OperationSucceededPrefix} COMPLETED:[/]"
+                    : $"[green]✓ {OperationSucceededPrefix} COMPLETED:[/]";
 
             AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
