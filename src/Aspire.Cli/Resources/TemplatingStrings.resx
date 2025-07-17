@@ -121,16 +121,16 @@
     <value>At least one template factory must be provided.</value>
   </data>
   <data name="AspireStarter_Description" xml:space="preserve">
-    <value>Sample starter with frontend and backend services</value>
+    <value>Starter template</value>
   </data>
   <data name="AspireEmpty_Description" xml:space="preserve">
-    <value>Empty apphost with Service Defaults project</value>
+    <value>Empty apphost</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
-    <value>Apphost project only</value>
+    <value>Apphost only</value>
   </data>
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
-    <value>Service Defaults project only</value>
+    <value>Service Defaults only</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
     <value>MSTest</value>
@@ -142,7 +142,7 @@
     <value>xUnit</value>
   </data>
   <data name="IntegrationTestsTemplate_Description" xml:space="preserve">
-    <value>Integration tests template</value>
+    <value>Integration tests only</value>
   </data>
   <data name="UseRedisCache_Prompt" xml:space="preserve">
     <value>Use Redis Cache</value>

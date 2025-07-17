@@ -3,12 +3,12 @@
   <file datatype="xml" source-language="en" target-language="de" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Apphost project only</source>
+        <source>Apphost only</source>
         <target state="needs-review-translation">Aspire-App-Host</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Empty apphost with Service Defaults project</source>
+        <source>Empty apphost</source>
         <target state="needs-review-translation">Leere Aspire-App</target>
         <note />
       </trans-unit>
@@ -23,12 +23,12 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Service Defaults project only</source>
+        <source>Service Defaults only</source>
         <target state="needs-review-translation">Standardwerte für den Aspire-Dienst</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Sample starter with frontend and backend services</source>
+        <source>Starter template</source>
         <target state="needs-review-translation">Aspire Starter-App</target>
         <note />
       </trans-unit>
@@ -68,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="IntegrationTestsTemplate_Description">
-        <source>Integration tests template</source>
-        <target state="new">Integration tests template</target>
+        <source>Integration tests only</source>
+        <target state="new">Integration tests only</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
