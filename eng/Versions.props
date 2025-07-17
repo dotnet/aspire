@@ -28,14 +28,14 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.15.16</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.15.16</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.15.16</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.15.16</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.15.16</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
-    <MicrosoftDeveloperControlPlanewindows386Version>0.15.16</MicrosoftDeveloperControlPlanewindows386Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.15.16</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.15.16</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.15.19</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.15.19</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.15.19</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.15.19</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.15.19</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
+    <MicrosoftDeveloperControlPlanewindows386Version>0.15.19</MicrosoftDeveloperControlPlanewindows386Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.15.19</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.15.19</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>10.0.0-beta.25351.1</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25351.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
