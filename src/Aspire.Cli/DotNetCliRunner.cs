@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Exceptions;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Hosting;
@@ -374,13 +375,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath, ..extraArgs];
-        return await ExecuteAsync(
+        var exitCode = await ExecuteAsync(
             args: cliArgs,
             env: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
+
+        // Exit code 73 indicates that the output directory already contains files from a previous project
+        // See: https://github.com/dotnet/aspire/issues/9685
+        if (exitCode == 73)
+        {
+            throw new ProjectAlreadyExistsException();
+        }
+
+        return exitCode;
     }
 
     internal static string GetBackchannelSocketPath()

@@ -217,4 +217,7 @@
   <data name="NoTemplateVersionsFound" xml:space="preserve">
     <value>No template versions were found. Please check your internet connection or NuGet source configuration.</value>
   </data>
+  <data name="ProjectAlreadyExists" xml:space="preserve">
+    <value>The output folder already contains files from a previous project. Please remove or move these files before creating a new project in this location.</value>
+  </data>
 </root>
