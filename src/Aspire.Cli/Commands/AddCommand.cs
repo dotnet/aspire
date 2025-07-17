@@ -235,18 +235,7 @@ internal sealed class AddCommand : BaseCommand
     internal static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
     {
         // Remove 'Aspire.Hosting' segment from anywhere in the package name
-        var packageId = package.Id.Replace("Aspire.Hosting", "", StringComparison.OrdinalIgnoreCase);
-        
-        // Remove leading or trailing dots that might result from the replacement
-        packageId = packageId.Trim('.');
-        
-        // Replace multiple consecutive dots with a single dot
-        while (packageId.Contains(".."))
-        {
-            packageId = packageId.Replace("..", ".");
-        }
-        
-        // Replace all dots with dashes and convert to lowercase
+        var packageId = package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
         
         return (friendlyName, package);
