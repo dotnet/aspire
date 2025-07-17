@@ -87,6 +87,11 @@
         <target state="translated">Hiçbiri</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The output folder already contains files from a previous project. Please remove or move these files before creating a new project in this location.</source>
+        <target state="new">The output folder already contains files from a previous project. Please remove or move these files before creating a new project in this location.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
         <source>Project created successfully in {0}.</source>
         <target state="translated">Proje {0} konumunda başarıyla oluşturuldu.</target>
