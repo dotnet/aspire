@@ -62,6 +62,16 @@
         <target state="translated">앱 호스트를 찾는 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="MoreInfoNewDashboardVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="new">[dim]For more information, see: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewDashboardVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="new">[yellow]A new version of the Aspire CLI is available: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
+      </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
         <target state="translated">선택할 수 있는 항목 없음: {0}</target>

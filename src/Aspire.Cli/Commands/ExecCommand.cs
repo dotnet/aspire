@@ -174,7 +174,7 @@ internal class ExecCommand : BaseCommand
                     });
 
                 commandExitCode = await _interactionService.ShowStatusAsync<int?>(
-                    ":running_shoe: Running exec...",
+                    $":running_shoe: {ExecCommandStrings.Running}",
                     async () =>
                     {
                         // execute tool and stream the output
@@ -197,7 +197,7 @@ internal class ExecCommand : BaseCommand
                 if (backchannel is not null)
                 {
                     _ = await _interactionService.ShowStatusAsync<int>(
-                    ":linked_paperclips: Stopping app host...",
+                    $":linked_paperclips: {ExecCommandStrings.StoppingAppHost}",
                     async () =>
                     {
                         await backchannel.RequestStopAsync(cancellationToken);

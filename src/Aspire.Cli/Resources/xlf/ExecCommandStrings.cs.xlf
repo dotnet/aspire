@@ -17,9 +17,19 @@
         <target state="new">The path to the Aspire app host project file.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Running">
+        <source>Running exec...</source>
+        <target state="new">Running exec...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
         <source>The name of the target resource to start and execute the command against.</source>
         <target state="new">The name of the target resource to start and execute the command against.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingAppHost">
+        <source>Stopping app host...</source>
+        <target state="new">Stopping app host...</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">

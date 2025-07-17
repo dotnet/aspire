@@ -200,5 +200,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("WaitingForDebuggerToAttachToAppHost", resourceCulture);
             }
         }
+        
+        public static string NewDashboardVersionAvailable {
+            get {
+                return ResourceManager.GetString("NewDashboardVersionAvailable", resourceCulture);
+            }
+        }
+        
+        public static string MoreInfoNewDashboardVersion {
+            get {
+                return ResourceManager.GetString("MoreInfoNewDashboardVersion", resourceCulture);
+            }
+        }
     }
 }
