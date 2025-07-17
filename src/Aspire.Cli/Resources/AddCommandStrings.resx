@@ -157,4 +157,7 @@
     <value>No packages matched your search term '{0}'. Showing all available packages.</value>
     <comment>{0} is the search term provided by the user.</comment>
   </data>
+  <data name="UsePrereleasePackages" xml:space="preserve">
+    <value>Use pre-release packages</value>
+  </data>
 </root>

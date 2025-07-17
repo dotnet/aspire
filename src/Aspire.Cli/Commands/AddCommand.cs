@@ -264,12 +264,63 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
         var selectedPackage = packages.First();
-        var version = await interactionService.PromptForSelectionAsync(
+        // var version = await interactionService.PromptForSelectionAsync(
+        //     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
+        //     packages.DistinctBy(p => p.Package.Version),
+        //     p => p.Package.Version,
+        //     cancellationToken);
+        // return version;
+
+        var packagesGroupedByReleaseStatus = packages.GroupBy(p => SemVersion.Parse(p.Package.Version).IsPrerelease ? "Prerelease" : "Released");
+        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
+        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
+
+        var selections = new List<(string SelectionText, Func<Task<(string, NuGetPackage)>> PackageSelector)>();
+
+        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<(string FriendlyName, NuGetPackage Package)>())
+        {
+            selections.Add(($"{releasedPackage.Package.Version} ({releasedPackage.Package.Source})", () => Task.FromResult(releasedPackage)));
+        }
+
+        if (releasedGroup is not null && prereleaseGroup is not null)
+        {
+            // If we have prerelease packages (and there are released packages) we
+            // want to show a sub-menu option which we will use to prompt the user.
+            // To make this work the first prompt returns a function which is invoke
+            // which will either return the package or trigger another prompt for
+            // sub-packages. This is the sub-prompt logic.
+            selections.Add((AddCommandStrings.UsePrereleasePackages, async () =>
+            {
+                return await interactionService.PromptForSelectionAsync(
+                     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
+                     prereleaseGroup,
+                     (p) => $"{p.Package.Version} ({p.Package.Source})",
+                     cancellationToken
+                     );
+            }
+            ));
+        }
+        else if (prereleaseGroup is not null)
+        {
+            // Fallback behavior if we happen to have NuGet feeds configured such
+            // that we only have access to prerelease packages - in this
+            // case we just want to display them rather than having a special
+            // expander menu.
+            foreach (var prereleasePackage in prereleaseGroup)
+            {
+                selections.Add(($"{prereleasePackage.Package.Version} ({prereleasePackage.Package.Source})", () => Task.FromResult(prereleasePackage)));
+            }
+        }
+
+        var selection = await interactionService.PromptForSelectionAsync(
             string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-            packages.DistinctBy(p => p.Package.Version),
-            p => p.Package.Version,
-            cancellationToken);
-        return version;
+            selections,
+            s => s.SelectionText,
+            cancellationToken
+            );
+
+        var package = await selection.PackageSelector();
+        return package;
     }
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
