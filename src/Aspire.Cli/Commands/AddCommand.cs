@@ -232,7 +232,7 @@ internal sealed class AddCommand : BaseCommand
         return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
     }
 
-    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
+    internal static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
     {
         // Remove 'Aspire.Hosting' segment from anywhere in the package name
         var packageId = package.Id.Replace("Aspire.Hosting", "", StringComparison.OrdinalIgnoreCase);

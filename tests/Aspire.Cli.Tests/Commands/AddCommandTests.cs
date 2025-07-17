@@ -30,7 +30,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     public async Task AddCommandInteractiveFlowSmokeTest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -94,9 +95,10 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     public async Task AddCommandSortsPackageVersions()
     {
         IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -166,9 +168,10 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     public async Task AddCommandSortsPackageVersionsWithPrerelease()
     {
         IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -248,7 +251,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var promptedForIntegrationPackages = false;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -324,7 +328,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var promptedForVersion = false;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -408,7 +413,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         string? addedPackageVersion = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -493,7 +499,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         const string expectedSource = "https://custom-nuget-source.test/v3/index.json";
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             // Makes it easier to isolate behavior in test case by disabling one
             // of the concurrent calls to the NuGetCache from the prefetcher.
@@ -532,7 +539,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 {
                     // Capture the source used for add
                     addUsedSource = nugetSource;
-                    
+
                     // Simulate adding the package.
                     return 0; // Success.
                 };
@@ -547,7 +554,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse($"add redis --source {expectedSource}");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         // Assert
         Assert.Equal(0, exitCode);
         Assert.Equal(expectedSource, searchUsedSource);
@@ -560,10 +567,13 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         string? displayedErrorMessage = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-            options.InteractionServiceFactory = (sp) => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = (sp) =>
+            {
                 var testInteractionService = new TestConsoleInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) => {
+                testInteractionService.DisplayErrorCallback = (message) =>
+                {
                     displayedErrorMessage = message;
                 };
                 return testInteractionService;
@@ -599,10 +609,13 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         bool promptedForIntegration = false;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-            options.InteractionServiceFactory = (sp) => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = (sp) =>
+            {
                 var testInteractionService = new TestConsoleInteractionService();
-                testInteractionService.DisplaySubtleMessageCallback = (message) => {
+                testInteractionService.DisplaySubtleMessageCallback = (message) =>
+                {
                     displayedSubtleMessage = message;
                 };
                 return testInteractionService;
@@ -676,20 +689,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var package = new NuGetPackage { Id = packageId, Version = "1.0.0", Source = "test" };
 
         // Act
-        var result = InvokeGenerateFriendlyName(package);
+        var result = AddCommand.GenerateFriendlyName(package);
 
         // Assert
         Assert.Equal(expectedFriendlyName, result.FriendlyName);
         Assert.Equal(package, result.Package);
-    }
-
-    private static (string FriendlyName, NuGetPackage Package) InvokeGenerateFriendlyName(NuGetPackage package)
-    {
-        // Use reflection to access the private static method
-        var method = typeof(AddCommand).GetMethod("GenerateFriendlyName", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        
-        return ((string FriendlyName, NuGetPackage Package))method!.Invoke(null, [package])!;
     }
 }
 
