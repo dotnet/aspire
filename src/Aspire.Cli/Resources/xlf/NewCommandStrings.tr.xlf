@@ -32,11 +32,6 @@
         <target state="translated">Projenin çıkış yolu.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptToUsePrereleaseTemplates">
-        <source>Use pre-release templates?</source>
-        <target state="new">Use pre-release templates?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
         <target state="translated">Bir proje şablonu seçin:</target>
@@ -50,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">Proje şablonları için kullanılacak NuGet kaynağı.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="new">(use pre-release templates)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

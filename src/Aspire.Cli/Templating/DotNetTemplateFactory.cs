@@ -338,13 +338,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
-            if (candidatePackages.Any(p => SemVersion.Parse(p.Version).IsPrerelease))
-            {
-                var usePrerelease = await prompter.PromptToUsePrereleaseTemplates(cancellationToken);
-
-                candidatePackages = candidatePackages.Where(p => SemVersion.Parse(p.Version).IsPrerelease == usePrerelease);
-            }
-
             if (!candidatePackages.Any())
             {
                 throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);

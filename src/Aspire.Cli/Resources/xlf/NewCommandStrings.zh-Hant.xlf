@@ -32,11 +32,6 @@
         <target state="translated">專案的輸出路徑。</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptToUsePrereleaseTemplates">
-        <source>Use pre-release templates?</source>
-        <target state="new">Use pre-release templates?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a project template:</source>
         <target state="translated">選取專案範本:</target>
@@ -50,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">要用於專案範本的 NuGet 來源。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="new">(use pre-release templates)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
