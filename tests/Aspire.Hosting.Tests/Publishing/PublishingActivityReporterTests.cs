@@ -477,19 +477,19 @@ public class PublishingActivityReporterTests
         var messageBoxException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _interactionService.PromptMessageBoxAsync("Test MessageBox", "This is a test message"));
         
-        Assert.Equal("Unsupported interaction type. Only input interactions are supported during publishing.", messageBoxException.Message);
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", messageBoxException.Message);
 
         // Act & Assert - Test Notification interaction (unsupported)
         var notificationException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _interactionService.PromptNotificationAsync("Test Notification", "This is a test notification"));
         
-        Assert.Equal("Unsupported interaction type. Only input interactions are supported during publishing.", notificationException.Message);
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", notificationException.Message);
 
         // Act & Assert - Test Confirmation interaction (unsupported)
         var confirmationException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _interactionService.PromptConfirmationAsync("Test Confirmation", "This is a test confirmation"));
         
-        Assert.Equal("Unsupported interaction type. Only input interactions are supported during publishing.", confirmationException.Message);
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", confirmationException.Message);
     }
 
     [Fact]
