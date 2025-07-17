@@ -262,6 +262,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
+            package => Assert.Equal("9.4.0-preview.1234", package.Version),
             package => Assert.Equal("9.3.0", package.Version),
             package => Assert.Equal("9.2.0", package.Version)
         );
