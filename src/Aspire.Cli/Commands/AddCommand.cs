@@ -95,7 +95,7 @@ internal sealed class AddCommand : BaseCommand
 
             var version = parseResult.GetValue<string?>("--version");
 
-            var packagesWithShortName = packages.Select(GenerateFriendlyName);
+            var packagesWithShortName = packages.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
             if (!packagesWithShortName.Any())
             {
@@ -292,5 +292,25 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
         {
             return packageWithFriendlyName.Package.Id;
         }
+    }
+}
+
+internal sealed class CommunityToolkitFirstComparer : IComparer<string>
+{
+    public int Compare(string? x, string? y)
+    {
+        ArgumentNullException.ThrowIfNull(x);
+        ArgumentNullException.ThrowIfNull(y);
+
+        var prefix = "communitytoolkit-";
+        var xStarts = x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+        var yStarts = y.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+
+        return (xStarts, yStarts) switch
+        {
+            (true, false) => 1,
+            (false, true) => -1,
+            _ => string.Compare(x, y, StringComparison.OrdinalIgnoreCase)
+        };
     }
 }
