@@ -171,6 +171,32 @@ public class InteractionServiceTests
     }
 
     [Fact]
+    public async Task PromptInputsAsync_DashboardDisabled_DoesNotThrowErrors()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService(options: new DistributedApplicationOptions { DisableDashboard = true });
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, Required = true };
+
+        // Act & Assert - These should not throw even when dashboard is disabled
+        var inputTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        // Verify the task is created successfully (it would throw immediately if EnsureServiceAvailable was called)
+        Assert.False(inputTask.IsCompleted);
+
+        // Complete the interaction to clean up
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true });
+        
+        // Test PromptInputsAsync as well
+        var inputsTask = interactionService.PromptInputsAsync("Please provide multiple", "please", [input]);
+        Assert.False(inputsTask.IsCompleted);
+
+        var interaction2 = Assert.Single(interactionService.GetCurrentInteractions());
+        await CompleteInteractionAsync(interactionService, interaction2.InteractionId, new InteractionCompletionState { Complete = true });
+    }
+
+    [Fact]
     public async Task PromptInputAsync_InvalidData()
     {
         var interactionService = CreateInteractionService();

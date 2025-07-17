@@ -89,8 +89,6 @@ internal class InteractionService : IInteractionService
 
     public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        EnsureServiceAvailable();
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= InputsDialogInteractionOptions.Default;
