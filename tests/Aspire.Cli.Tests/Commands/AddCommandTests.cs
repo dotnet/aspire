@@ -478,8 +478,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.Collection(
             promptedPackages!,
-            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id),
-            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id)
+            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id),
+            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id)
             );
         Assert.Equal("Aspire.Hosting.Redis", addedPackageName);
         Assert.Equal("9.2.0", addedPackageVersion);
