@@ -77,6 +77,11 @@
         <target state="translated">予期しない数のパッケージが見つかりました。</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="new">Use pre-release packages</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">追加する統合のバージョン。</target>
