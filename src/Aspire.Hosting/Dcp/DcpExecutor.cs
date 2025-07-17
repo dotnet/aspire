@@ -1077,89 +1077,81 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         IEnumerable<AppResource> executables,
         CancellationToken cancellationToken)
     {
-        try
+        async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
         {
-            AspireEventSource.Instance.DcpSnapshotableResourcesCreateStart();
-            async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
+            var resourceLogger = _loggerService.GetLogger(resource);
+            var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
+
+            try
             {
-                var resourceLogger = _loggerService.GetLogger(resource);
-                var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
-
-                try
+                // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
+                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+                foreach (var er in executables)
                 {
-                    // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
-                    // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
-                    foreach (var er in executables)
+                    Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
                     {
-                        Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
-                        {
-                            Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
-                            ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
-                            _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
-                        };
+                        Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                        ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                        _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
+                    };
 
-                        await _executorEvents.PublishAsync(new OnResourceChangedContext(
-                            _shutdownCancellation.Token, resourceType, resource,
-                            er.DcpResourceName, new ResourceStatus(null, null, null),
-                            snapshotBuild)
-                        ).ConfigureAwait(false);
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(
+                        _shutdownCancellation.Token, resourceType, resource,
+                        er.DcpResourceName, new ResourceStatus(null, null, null),
+                        snapshotBuild)
+                    ).ConfigureAwait(false);
+                }
+
+                await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
+
+                foreach (var er in executables)
+                {
+                    if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
+                    {
+                        await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                        continue;
                     }
 
-                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-
-                    foreach (var er in executables)
+                    try
                     {
-                        if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
-                        {
-                            await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
-                            continue;
-                        }
-
-                        try
-                        {
-                            await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
-                        }
-                        catch (FailedToApplyEnvironmentException)
-                        {
-                            // For this exception we don't want the noise of the stack trace, we've already
-                            // provided more detail where we detected the issue (e.g. envvar name). To get
-                            // more diagnostic information reduce logging level for DCP log category to Debug.
-                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            // The purpose of this catch block is to ensure that if an individual executable resource fails
-                            // to start that it doesn't tear down the entire app host AND that we route the error to the
-                            // appropriate replica.
-                            resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
-                            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                        }
+                        await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (FailedToApplyEnvironmentException)
+                    {
+                        // For this exception we don't want the noise of the stack trace, we've already
+                        // provided more detail where we detected the issue (e.g. envvar name). To get
+                        // more diagnostic information reduce logging level for DCP log category to Debug.
+                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // The purpose of this catch block is to ensure that if an individual executable resource fails
+                        // to start that it doesn't tear down the entire app host AND that we route the error to the
+                        // appropriate replica.
+                        resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
+                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
-                {
-                    // The purpose of this catch block is to ensure that if an error processing the overall
-                    // configuration of the executable resource files. This is different to the exception handling
-                    // block above because at this stage of processing we don't necessarily have any replicas
-                    // yet. For example if a dependency fails to start.
-                    resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
-                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-                }
             }
-
-            var tasks = new List<Task>();
-            foreach (var group in executables.GroupBy(e => e.ModelResource))
+            catch (Exception ex)
             {
-                // Force this to be async so that blocking code does not stop other executables from being created.
-                tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
+                // The purpose of this catch block is to ensure that if an error processing the overall
+                // configuration of the executable resource files. This is different to the exception handling
+                // block above because at this stage of processing we don't necessarily have any replicas
+                // yet. For example if a dependency fails to start.
+                resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
+                await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
             }
+        }
 
-            return Task.WhenAll(tasks).WaitAsync(cancellationToken);
-        }
-        finally
+        var tasks = new List<Task>();
+        foreach (var group in executables.GroupBy(e => e.ModelResource))
         {
-            AspireEventSource.Instance.DcpSnapshotableResourcesCreateStop();
+            // Force this to be async so that blocking code does not stop other executables from being created.
+            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
         }
+
+        return Task.WhenAll(tasks).WaitAsync(cancellationToken);
     }
 
     private Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)

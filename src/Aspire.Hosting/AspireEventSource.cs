@@ -298,22 +298,4 @@ internal sealed class AspireEventSource : EventSource
             WriteEvent(32);
         }
     }
-
-    [Event(33, Level = EventLevel.Informational, Message = "DCP snapshotable resources creation starting...")]
-    public void DcpSnapshotableResourcesCreateStart()
-    {
-        if (IsEnabled())
-        {
-            WriteEvent(33);
-        }
-    }
-
-    [Event(34, Level = EventLevel.Informational, Message = "DCP snapshotable resources creation completed")]
-    public void DcpSnapshotableResourcesCreateStop()
-    {
-        if (IsEnabled())
-        {
-            WriteEvent(34);
-        }
-    }
 }
