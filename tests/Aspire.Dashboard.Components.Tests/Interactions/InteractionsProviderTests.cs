@@ -351,6 +351,76 @@ public partial class InteractionsProviderTests : DashboardTestContext
         await instance.DisposeAsync().DefaultTimeout();
     }
 
+    [Fact]
+    public async Task ReceiveData_MessageBoxReceivedTwice_IgnoreReplayedNotification()
+    {
+        // Arrange
+        var interactionsChannel = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var sendInteractionUpdatesChannel = Channel.CreateUnbounded<WatchInteractionsRequestUpdate>();
+
+        var dialogReference = new DialogReference("abc", null!);
+        var dashboardClient = new TestDashboardClient(isEnabled: true,
+            interactionChannelProvider: () => interactionsChannel,
+            sendInteractionUpdateChannel: sendInteractionUpdatesChannel);
+        var dialogService = new TestDialogService(onShowDialog: (data, parameters) =>
+        {
+            return Task.FromResult<IDialogReference>(dialogReference);
+        });
+
+        SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
+
+        // Act 1
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+
+        var instance = cut.Instance;
+
+        var response = new WatchInteractionsResponseUpdate
+        {
+            InteractionId = 1,
+            MessageBox = new InteractionMessageBox()
+        };
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 1
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance._interactionDialogReference;
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (dialogReference != reference.Dialog || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 1;
+        }, "Wait for dialog created.");
+
+        // Act 2
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 2
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance._interactionDialogReference;
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (dialogReference != reference.Dialog || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 2;
+        }, "Wait for dialog created.");
+
+        await instance.DisposeAsync().DefaultTimeout();
+    }
+
     [Theory]
     [InlineData(true, "**Hello** _World_! <b>Bold</b>", "<strong>Hello</strong> <em>World</em>! &lt;b&gt;Bold&lt;/b&gt;")]
     [InlineData(false, "**Hello** _World_! <b>Bold</b>", "**Hello** _World_! &lt;b&gt;Bold&lt;/b&gt;")]
