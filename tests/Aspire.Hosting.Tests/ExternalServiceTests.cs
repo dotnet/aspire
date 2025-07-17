@@ -155,7 +155,7 @@ public class ExternalServiceTests
     public async Task ExternalServiceWithParameterCanBeReferencedInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        
+
         var urlParam = builder.AddParameter("nuget-url");
         var externalService = builder.AddExternalService("nuget", urlParam);
         var project = builder.AddProject<TestProject>("project")
@@ -418,7 +418,7 @@ public class ExternalServiceTests
     public async Task ExternalServiceWithParameterHttpHealthCheckResolvesUrlAsync()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:external-url"] = "https://httpbin.org/";
+        builder.Configuration["Parameters:external-url"] = "https://example.com/";
 
         var urlParam = builder.AddParameter("external-url");
         var externalService = builder.AddExternalService("external", urlParam)
@@ -428,7 +428,7 @@ public class ExternalServiceTests
 
         // Get the health check service and run health checks
         var healthCheckService = app.Services.GetRequiredService<HealthCheckService>();
-        
+
         // Find our specific health check key
         Assert.True(externalService.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var healthCheckAnnotations));
         var healthCheckKey = healthCheckAnnotations.First(hc => hc.Key.StartsWith($"{externalService.Resource.Name}_external")).Key;
