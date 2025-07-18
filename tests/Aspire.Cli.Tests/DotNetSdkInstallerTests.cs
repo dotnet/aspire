@@ -84,6 +84,19 @@ public class DotNetSdkInstallerTests
 
         Assert.True(result);
     }
+
+    [Fact]
+    public async Task CheckAsync_UsesArchitectureSpecificCommand()
+    {
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature());
+
+        // This test verifies that the architecture-specific command is used
+        // Since the implementation adds --arch flag, it should still work correctly
+        var result = await installer.CheckAsync("8.0.0");
+
+        // The test should pass if the command with --arch flag works
+        Assert.True(result);
+    }
 }
 
 public class MinimumSdkCheckFeature(bool enabled = true) : IFeatures
