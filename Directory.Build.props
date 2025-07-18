@@ -31,6 +31,11 @@
     <!-- We don't want to use the workload for AppHost projects in this repo -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
 
+    <!-- This error is meant to be shown to customer projects that still depend on the workload version of Aspire.
+    Since this repo itself still depends on that version (as that is the only version of Aspire avaialable in this branch)
+    then we suppress the error message for the whole repo. -->
+    <SuppressAspireWorkloadDeprecationError>true</SuppressAspireWorkloadDeprecationError>
+
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
     <WorkloadsPackageSource>$(ArtifactsShippingPackagesDir)</WorkloadsPackageSource>
   </PropertyGroup>
