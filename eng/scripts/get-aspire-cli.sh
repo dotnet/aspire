@@ -694,7 +694,7 @@ if [[ "$SHOW_HELP" == true ]]; then
     exit 0
 fi
 
-# Validate that both Version and Quality are not provided
+# Validate that both --version and --quality are not provided together
 if [[ -n "$VERSION" && -n "$QUALITY" ]]; then
     say_error "Cannot specify both --version and --quality. Use --version for a specific version or --quality for a quality level."
     say_info "Use --help for usage information."
