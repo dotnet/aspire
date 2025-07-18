@@ -135,7 +135,7 @@ internal sealed class ResourceContainerImageBuilder(
         await using (step.ConfigureAwait(false))
         {
             // Only check container runtime health if there are resources that need it
-            if (ResourcesRequireContainerRuntime(resources))
+            if (ResourcesRequireContainerRuntime(resources, options))
             {
                 var task = await step.CreateTaskAsync(
                     $"Checking {ContainerRuntime.Name} health",
@@ -387,11 +387,13 @@ internal sealed class ResourceContainerImageBuilder(
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
-    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources)
+    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
     {
-        return resources.Any(resource =>
+        var hasDockerfileResources= resources.Any(resource =>
             resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
             resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
+        var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
+        return hasDockerfileResources || usesDocker;
     }
 
 }
