@@ -202,7 +202,7 @@ public static partial class AzureKeyVaultResourceExtensions
         var secret = new AzureKeyVaultSecretResource(name, name, builder.Resource, parameterResource);
         builder.Resource.Secrets.Add(secret);
 
-        return builder.ApplicationBuilder.AddResource(secret);
+        return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ public static partial class AzureKeyVaultResourceExtensions
         var secret = new AzureKeyVaultSecretResource(name, name, builder.Resource, value);
         builder.Resource.Secrets.Add(secret);
 
-        return builder.ApplicationBuilder.AddResource(secret);
+        return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
     }
 
     /// <summary>
@@ -259,7 +259,7 @@ public static partial class AzureKeyVaultResourceExtensions
         var secret = new AzureKeyVaultSecretResource(name, secretName, builder.Resource, parameterResource);
         builder.Resource.Secrets.Add(secret);
 
-        return builder.ApplicationBuilder.AddResource(secret);
+        return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
     }
 
     /// <summary>
@@ -280,7 +280,7 @@ public static partial class AzureKeyVaultResourceExtensions
         var secret = new AzureKeyVaultSecretResource(name, secretName, builder.Resource, value);
         builder.Resource.Secrets.Add(secret);
 
-        return builder.ApplicationBuilder.AddResource(secret);
+        return builder.ApplicationBuilder.AddResource(secret).ExcludeFromManifest();
     }
 
     private static void ValidateSecretName(string secretName)
