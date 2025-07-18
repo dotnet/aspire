@@ -1523,7 +1523,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
-            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost, ea.IsProxied);
+            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost);
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1539,31 +1539,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private static string NormalizeServiceProducerTargetHost(string targetHost, bool isProxied)
+    private static string NormalizeServiceProducerTargetHost(string targetHost)
     {
-        // When proxied, the individual services are always bound to localhost even if the proxy
-        // is bound to different addresses.
-        if (isProxied)
+        return targetHost switch
         {
-            return "localhost";
-        }
-        else
-        {
-            if (string.IsNullOrEmpty(targetHost) || string.Equals(targetHost, "localhost", StringComparison.OrdinalIgnoreCase))
+            null or "" => "localhost", // Default is localhost
+            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => "localhost", // Explicitly set to localhost
+            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => "localhost", // Explicitly set to localhost when using .localhost subdomain
+            var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
-                return "localhost";
-            }
-            else if (IPAddress.TryParse(targetHost, out _))
-            {
-                // Use an IP address as is
-                return targetHost;
-            }
-            else
-            {
-                // Use 0.0.0.0 if the target host is not a valid IP address or hostname
-                return IPAddress.Any.ToString();
-            }
-        }
+                var ip when IPAddress.Any.Equals(ip) => "localhost", // 0.0.0.0 (IPv4 all addresses)
+                var ip when IPAddress.IPv6Any.Equals(ip) => "localhost", // :: (IPv6 all addreses)
+                _ => s, // Any other IP address is returned as-is
+            },
+            _ => "localhost", // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
+        };
     }
 
     /// <summary>
