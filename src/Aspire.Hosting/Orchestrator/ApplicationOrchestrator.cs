@@ -258,7 +258,7 @@ internal sealed class ApplicationOrchestrator
 
                     if (additionalUrl is not null)
                     {
-                        if (!existingUrls.Any(existingUrl => existingUrl.Url.Equals(additionalUrl.Url, StringComparison.OrdinalIgnoreCase) && existingUrl.Endpoint?.EndpointName == url.Endpoint?.EndpointName))
+                        if (!existingUrls.Any(existingUrl => existingUrl.Url.Equals(additionalUrl.Url, StringComparison.OrdinalIgnoreCase) && existingUrl.Endpoint?.EndpointName == additionalUrl.Endpoint?.EndpointName))
                         {
                             urls.Add(additionalUrl);
                         }
