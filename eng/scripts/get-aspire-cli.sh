@@ -15,10 +15,10 @@ readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly RESET='\033[0m'
 
-# Default values
+# Variables (defaults set after parsing arguments)
 INSTALL_PATH=""
 VERSION=""
-QUALITY="ga"
+QUALITY=""
 OS=""
 ARCH=""
 SHOW_HELP=false
@@ -34,8 +34,8 @@ DESCRIPTION:
     Downloads and unpacks the Aspire CLI for the current platform from the specified version and quality.
 
     Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
-    Running with `-q prerelease` will download the latest prerelease version, or the GA version if no prerelease is available.
-    Running with `-q daily` will download the latest daily build from `main`.
+    Running with `-q staging` will download the latest staging version, or the GA version if no staging is available.
+    Running with `-q dev` will download the latest daily build from `main`.
 
     Pass a specific version to get CLI for that version.
 
@@ -43,7 +43,7 @@ USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
-    -q, --quality QUALITY       Quality to download (default: ga). Supported values: daily, prerelease, ga
+    -q, --quality QUALITY       Quality to download (default: staging). Supported values: dev, staging, ga
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
@@ -54,7 +54,7 @@ USAGE:
 EXAMPLES:
     ./get-aspire-cli.sh
     ./get-aspire-cli.sh --install-path "~/bin"
-    ./get-aspire-cli.sh --quality "prerelease"
+    ./get-aspire-cli.sh --quality "staging"
     ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --keep-archive
@@ -537,9 +537,9 @@ construct_aspire_cli_url() {
     local base_url
     local filename
 
-    # Default quality to "ga" if empty
+    # Default quality to "staging" if empty
     if [[ -z "$quality" ]]; then
-        quality="ga"
+        quality="staging"
     fi
 
     # Add .sha512 to extension if checksum is true
@@ -550,17 +550,17 @@ construct_aspire_cli_url() {
     if [[ -z "$version" ]]; then
         # When version is not set use aka.ms URLs based on quality
         case "$quality" in
-            daily)
+            dev)
                 base_url="https://aka.ms/dotnet/9/aspire/daily"
                 ;;
-            prerelease)
+            staging)
                 base_url="https://aka.ms/dotnet/9/aspire/rc/daily"
                 ;;
             ga)
                 base_url="https://aka.ms/dotnet/9/aspire/ga/daily"
                 ;;
             *)
-                say_error "Unsupported quality '$quality'. Supported values are: daily, prerelease, ga."
+                say_error "Unsupported quality '$quality'. Supported values are: dev, staging, ga."
                 return 1
                 ;;
         esac

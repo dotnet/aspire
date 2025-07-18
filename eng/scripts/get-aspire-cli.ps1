@@ -4,7 +4,13 @@
 param(
     [string]$InstallPath = "",
     [string]$Version = "",
-    [string]$Quality = "ga",
+
+    [Parameter(HelpMessage = "Quality to download")]
+    [ValidateSet("ga", "staging", "dev")]
+    [string]$Quality = "staging",
+
+    [Parameter(HelpMessage = "Operating system")]
+    [ValidateSet("", "win", "linux", "linux-musl", "osx")]
     [string]$OS = "",
     [string]$Architecture = "",
     [switch]$KeepArchive,
@@ -17,14 +23,34 @@ $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
 
+# Configuration constants
+$Script:Config = @{
+    MinimumPowerShellVersion = 4
+    SupportedQualities = @("ga", "staging", "dev")
+    SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
+    SupportedArchitectures = @("x64", "x86", "arm64")
+    BaseUrls = @{
+        "dev" = "https://aka.ms/dotnet/9/aspire/daily"
+        "staging" = "https://aka.ms/dotnet/9/aspire/rc/daily"
+        "ga" = "https://aka.ms/dotnet/9/aspire/ga/daily"
+        "versioned" = "https://ci.dot.net/public/aspire"
+        "versioned-checksums" = "https://ci.dot.net/public-checksums/aspire"
+    }
+}
+
 # True if the script is executed from a file (pwsh -File … or .\get-aspire-cli.ps1)
 # False if the body is piped / dot‑sourced / iex’d into the current session.
 $InvokedFromFile = -not [string]::IsNullOrEmpty($PSCommandPath)
 
 # Ensure minimum PowerShell version
-if ($PSVersionTable.PSVersion.Major -lt 4) {
-    Write-Host "Error: This script requires PowerShell 4.0 or later. Current version: $($PSVersionTable.PSVersion)" -ForegroundColor Red
-    if ($InvokedFromFile) { exit 1 } else { return 1 }
+if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion) {
+    Write-Message "Error: This script requires PowerShell $($Script:Config.MinimumPowerShellVersion).0 or later. Current version: $($PSVersionTable.PSVersion)" -Level Error
+    if ($InvokedFromFile) {
+        exit 1
+    }
+    else {
+        return 1
+    }
 }
 
 if ($Help) {
@@ -36,14 +62,14 @@ DESCRIPTION:
     Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
     Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
-    Running with `-Quality prerelease` will download the latest prerelease version, or the GA version if no prerelease is available.
-    Running with `-Quality daily` will download the latest daily build from `main`.
+    Running with `-Quality staging` will download the latest staging version, or the GA version if no staging is available.
+    Running with `-Quality dev` will download the latest dev build from `main`.
 
     Pass a specific version to get CLI for that version.
 
 PARAMETERS:
     -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, $HOME/.aspire/bin on Unix)
-    -Quality <string>           Quality to download (default: ga)
+    -Quality <string>           Quality to download (default: staging)
     -Version <string>           Version of the Aspire CLI to download (default: unset)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
@@ -64,14 +90,15 @@ ENVIRONMENT:
 EXAMPLES:
     .\get-aspire-cli.ps1
     .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
-    .\get-aspire-cli.ps1 -Quality "prerelease"
+    .\get-aspire-cli.ps1 -Quality "staging"
     .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -KeepArchive
+    .\get-aspire-cli.ps1 -WhatIf
     .\get-aspire-cli.ps1 -Help
 
     # Piped execution
-    iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
+    Invoke-Expression "& { `$(Invoke-RestMethod https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
 
 "@
     if ($InvokedFromFile) { exit 0 } else { return }
