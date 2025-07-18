@@ -9,8 +9,8 @@ param(
     [string]$Version = "",
 
     [Parameter(HelpMessage = "Quality to download")]
-    [ValidateSet("ga", "staging", "dev")]
-    [string]$Quality = "staging",
+    [ValidateSet("", "ga", "staging", "dev")]
+    [string]$Quality = "",
 
     [Parameter(HelpMessage = "Operating system")]
     [ValidateSet("", "win", "linux", "linux-musl", "osx")]
@@ -698,9 +698,12 @@ function Get-AspireCliUrl {
         [string]$Extension
     )
 
-    # Validation against supported values is handled by the [ValidateSet] attribute on the $Quality parameter.
-
     if ([string]::IsNullOrWhiteSpace($Version)) {
+        # Validate quality against supported values
+        if ($Quality -notin $Script:Config.SupportedQualities) {
+            throw "Unsupported quality '$Quality'. Supported values are: $($Script:Config.SupportedQualities -join ", ")."
+        }
+
         # When version is not set use aka.ms URLs based on quality
         $baseUrl = $Script:Config.BaseUrls[$Quality]
         if (-not $baseUrl) {
@@ -841,8 +844,13 @@ function Start-AspireCliInstallation {
 
     try {
         # Validate that both Version and Quality are not provided
-        if (-not [string]::IsNullOrWhiteSpace($Version) -and $Quality -ne "ga") {
+        if (-not [string]::IsNullOrWhiteSpace($Version) -and -not [string]::IsNullOrWhiteSpace($Quality)) {
             throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
+        }
+
+        # Set default quality to staging if not specified and no version is provided
+        if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
+            $Quality = "staging"
         }
 
         # Additional parameter validation
