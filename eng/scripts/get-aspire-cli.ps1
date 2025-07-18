@@ -9,7 +9,7 @@ param(
     [string]$Version = "",
 
     [Parameter(HelpMessage = "Quality to download")]
-    [ValidateSet("", "ga", "staging", "dev")]
+    [ValidateSet("", "release", "staging", "dev")]
     [string]$Quality = "",
 
     [Parameter(HelpMessage = "Operating system")]
@@ -36,13 +36,13 @@ $Script:ChecksumDownloadTimeoutSec = 120
 # Configuration constants
 $Script:Config = @{
     MinimumPowerShellVersion = 4
-    SupportedQualities = @("ga", "staging", "dev")
+    SupportedQualities = @("release", "staging", "dev")
     SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
     SupportedArchitectures = @("x64", "x86", "arm64")
     BaseUrls = @{
         "dev" = "https://aka.ms/dotnet/9/aspire/daily"
         "staging" = "https://aka.ms/dotnet/9/aspire/rc/daily"
-        "ga" = "https://aka.ms/dotnet/9/aspire/ga/daily"
+        "release" = "https://aka.ms/dotnet/9/aspire/ga/daily"
         "versioned" = "https://ci.dot.net/public/aspire"
         "versioned-checksums" = "https://ci.dot.net/public-checksums/aspire"
     }
@@ -71,8 +71,8 @@ DESCRIPTION:
     Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
     Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
-    Running with `-Quality ga` download the latest GA version of the Aspire CLI for your platform and architecture.
-    Running with `-Quality staging` will download the latest staging version, or the GA version if no staging is available.
+    Running with `-Quality release` download the latest release version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
 
     The default quality is `staging`.

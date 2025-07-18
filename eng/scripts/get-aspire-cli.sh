@@ -32,11 +32,14 @@ show_help() {
 Aspire CLI Download Script
 
 DESCRIPTION:
-    Downloads and unpacks the Aspire CLI for the current platform from the specified version and quality.
+    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
+    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
-    Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
-    Running with `-q staging` will download the latest staging version, or the GA version if no staging is available.
-    Running with `-q dev` will download the latest daily build from `main`.
+    Running with `-Quality release` download the latest release version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
+    Running with `-Quality dev` will download the latest dev build from `main`.
+
+    The default quality is `staging`.
 
     Pass a specific version to get CLI for that version.
 
@@ -44,7 +47,7 @@ USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
-    -q, --quality QUALITY       Quality to download (default: staging). Supported values: dev, staging, ga
+    -q, --quality QUALITY       Quality to download (default: staging). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
@@ -582,11 +585,11 @@ construct_aspire_cli_url() {
             staging)
                 base_url="https://aka.ms/dotnet/9/aspire/rc/daily"
                 ;;
-            ga)
+            release)
                 base_url="https://aka.ms/dotnet/9/aspire/ga/daily"
                 ;;
             *)
-                say_error "Unsupported quality '$quality'. Supported values are: dev, staging, ga."
+                say_error "Unsupported quality '$quality'. Supported values are: dev, staging, release."
                 return 1
                 ;;
         esac
