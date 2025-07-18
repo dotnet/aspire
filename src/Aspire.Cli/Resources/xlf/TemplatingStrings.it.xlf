@@ -88,8 +88,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
-        <source>The output folder already contains files from a previous project. Please remove or move these files before creating a new project in this location.</source>
-        <target state="new">The output folder already contains files from a previous project. Please remove or move these files before creating a new project in this location.</target>
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
