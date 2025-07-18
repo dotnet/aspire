@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.Configuration;
 using Semver;
 
 namespace Aspire.Cli.DotNet;
@@ -9,7 +10,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -25,6 +26,12 @@ internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
     /// <inheritdoc />
     public async Task<bool> CheckAsync(string minimumVersion, CancellationToken cancellationToken = default)
     {
+        if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
+        {
+            // If the feature is disabled, we assume the SDK is available
+            return true;
+        }
+
         try
         {
             using var process = new Process
@@ -43,7 +50,7 @@ internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
             process.Start();
             var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
-            
+
             if (process.ExitCode != 0)
             {
                 return false;

@@ -102,6 +102,11 @@
         <target state="translated">提供的扩展套接字路径需要两个有效部分。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MininumSdkVersionMissing">
+        <source>The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</source>
+        <target state="new">The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">找到多个项目文件。</target>
