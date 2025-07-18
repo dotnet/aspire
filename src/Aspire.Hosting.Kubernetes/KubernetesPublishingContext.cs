@@ -114,7 +114,7 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            paramValues[key] = helmExpressionWithValue.Value ?? string.Empty;
+            paramValues[key.ToHelmValuesSectionName()] = helmExpressionWithValue.Value ?? string.Empty;
         }
 
         if (paramValues.Count > 0)
