@@ -117,7 +117,7 @@ internal static class ResourceExtensions
 
     internal static Service? ToService(this IResource resource, KubernetesResource context)
     {
-        if (context.EndpointMappings.Count == 0)
+        if (context.EndpointMappings.All(x => x.Value.ServicePort == null))
         {
             return null;
         }
@@ -138,12 +138,17 @@ internal static class ResourceExtensions
 
         foreach (var (_, mapping) in context.EndpointMappings)
         {
+            if (mapping.ServicePort is null)
+            {
+                continue;
+            }
+
             service.Spec.Ports.Add(
                 new()
                 {
                     Name = mapping.Name,
-                    Port = new(mapping.Port),
-                    TargetPort = new(mapping.Port),
+                    Port = new(mapping.ServicePort),
+                    TargetPort = new(mapping.Name),
                     Protocol = "TCP",
                 });
         }
@@ -269,7 +274,7 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.Port),
+                    ContainerPort = new(mapping.ContainerPort),
                     Protocol = "TCP",
                 });
         }
