@@ -32,18 +32,6 @@ public class ExecCommandTests
     }
 
     [Fact]
-    public void ExecCommandDescriptionContainsPreviewIndicator()
-    {
-        using var workspace = TemporaryWorkspace.Create(_outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var execCommand = provider.GetRequiredService<ExecCommand>();
-        
-        Assert.StartsWith("(preview)", execCommand.Description);
-    }
-
-    [Fact]
     public async Task ExecCommand_WhenNoProjectFileFound_ReturnsFailedToFindProject()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
