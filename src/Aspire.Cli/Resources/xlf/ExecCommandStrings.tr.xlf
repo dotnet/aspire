@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../ExecCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>(preview) Run an Aspire app host to execute a command against the resource.</source>
-        <target state="new">(preview) Run an Aspire app host to execute a command against the resource.</target>
+        <source>Run an Aspire app host to execute a command against the resource. (Preview)</source>
+        <target state="new">Run an Aspire app host to execute a command against the resource. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
