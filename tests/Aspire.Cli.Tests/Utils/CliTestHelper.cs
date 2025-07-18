@@ -10,6 +10,7 @@ using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,6 +78,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
+        services.AddTransient(options.DotNetSdkInstallerFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -202,6 +204,11 @@ internal sealed class CliServiceCollectionTestOptions
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
+    };
+
+    public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestDotNetSdkInstaller();
     };
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
