@@ -3,8 +3,8 @@
     <!-- This repo version -->
     <MajorVersion>8</MajorVersion>
     <MinorVersion>2</MinorVersion>
-    <PatchVersion>2</PatchVersion>
-    <VersionPrefix>8.2.2</VersionPrefix>
+    <PatchVersion>3</PatchVersion>
+    <VersionPrefix>8.2.3</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <!--
       When running package validation as part of the build, we want to ensure we didn't break the API against the previous

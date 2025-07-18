@@ -12,11 +12,11 @@
   "packs": {
     "Aspire.Hosting.Sdk": {
       "kind": "sdk",
-      "version": "@VERSION@"
+      "version": "8.2.2"
     },
     "Aspire.ProjectTemplates": {
       "kind": "template",
-      "version": "@VERSION@"
+      "version": "8.2.2"
     }
   }
 }
