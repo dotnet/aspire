@@ -97,6 +97,28 @@ public static class ProjectResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(projectPath);
 
+        // Check if the path is a directory and auto-discover the project file
+        var normalizedPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
+        
+        if (Directory.Exists(normalizedPath))
+        {
+            var projectFiles = Directory.GetFiles(normalizedPath, "*.csproj");
+            
+            if (projectFiles.Length == 0)
+            {
+                throw new DistributedApplicationException($"No .csproj files found in directory '{projectPath}'.");
+            }
+            
+            if (projectFiles.Length > 1)
+            {
+                var fileNames = projectFiles.Select(Path.GetFileName).ToArray();
+                throw new DistributedApplicationException($"Multiple .csproj files found in directory '{projectPath}': {string.Join(", ", fileNames)}. Specify the exact project file path instead.");
+            }
+            
+            // Use the relative path from the original projectPath combined with the found project file name
+            projectPath = Path.Combine(projectPath, Path.GetFileName(projectFiles[0]));
+        }
+
         return builder.AddProject(name, projectPath, _ => { });
     }
 

@@ -743,4 +743,188 @@ public class ProjectResourceTests
             };
         }
     }
+
+    [Fact]
+    public async Task AddProjectWithDirectoryPath_SingleProject_Success()
+    {
+        // Create a temporary directory structure with a single .csproj file
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        
+        var projectDir = Path.Combine(tempDir, "MyProject");
+        Directory.CreateDirectory(projectDir);
+        
+        var csprojContent = """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """;
+        
+        var csprojPath = Path.Combine(projectDir, "MyProject.csproj");
+        await File.WriteAllTextAsync(csprojPath, csprojContent);
+        
+        try
+        {
+            var appBuilder = CreateBuilder();
+            
+            // This should work - passing the directory path relative to the temp directory
+            var relativeProjectDir = Path.GetRelativePath(appBuilder.AppHostDirectory, projectDir);
+            var project = appBuilder.AddProject("myproject", relativeProjectDir);
+            
+            using var app = appBuilder.Build();
+            
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var projectResources = appModel.GetProjectResources();
+            
+            var resource = Assert.Single(projectResources);
+            Assert.Equal("myproject", resource.Name);
+            
+            // Verify the project path points to the .csproj file
+            var projectMetadata = resource.GetProjectMetadata();
+            Assert.EndsWith("MyProject.csproj", projectMetadata.ProjectPath);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddProjectWithDirectoryPath_MultipleProjects_ThrowsException()
+    {
+        // Create a temporary directory structure with multiple .csproj files
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        
+        var projectDir = Path.Combine(tempDir, "MyProject");
+        Directory.CreateDirectory(projectDir);
+        
+        var csprojContent = """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """;
+        
+        var csproj1Path = Path.Combine(projectDir, "Project1.csproj");
+        var csproj2Path = Path.Combine(projectDir, "Project2.csproj");
+        
+        await File.WriteAllTextAsync(csproj1Path, csprojContent);
+        await File.WriteAllTextAsync(csproj2Path, csprojContent);
+        
+        try
+        {
+            var appBuilder = CreateBuilder();
+            
+            var relativeProjectDir = Path.GetRelativePath(appBuilder.AppHostDirectory, projectDir);
+            
+            var ex = Assert.Throws<DistributedApplicationException>(() => 
+                appBuilder.AddProject("myproject", relativeProjectDir));
+            
+            Assert.Contains("Multiple .csproj files found", ex.Message);
+            Assert.Contains("Project1.csproj", ex.Message);
+            Assert.Contains("Project2.csproj", ex.Message);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddProjectWithDirectoryPath_NoProjects_ThrowsException()
+    {
+        // Create a temporary directory structure with no .csproj files
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        
+        var projectDir = Path.Combine(tempDir, "MyProject");
+        Directory.CreateDirectory(projectDir);
+        
+        // Create a non-project file
+        var txtPath = Path.Combine(projectDir, "readme.txt");
+        await File.WriteAllTextAsync(txtPath, "This is not a project file");
+        
+        try
+        {
+            var appBuilder = CreateBuilder();
+            
+            var relativeProjectDir = Path.GetRelativePath(appBuilder.AppHostDirectory, projectDir);
+            
+            var ex = Assert.Throws<DistributedApplicationException>(() => 
+                appBuilder.AddProject("myproject", relativeProjectDir));
+            
+            Assert.Contains("No .csproj files found", ex.Message);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddProjectWithFilePath_StillWorks()
+    {
+        // Verify that existing functionality still works when passing a file path
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        
+        var projectDir = Path.Combine(tempDir, "MyProject");
+        Directory.CreateDirectory(projectDir);
+        
+        var csprojContent = """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """;
+        
+        var csprojPath = Path.Combine(projectDir, "MyProject.csproj");
+        await File.WriteAllTextAsync(csprojPath, csprojContent);
+        
+        try
+        {
+            var appBuilder = CreateBuilder();
+            
+            // This should work - passing the file path directly
+            var relativeCsprojPath = Path.GetRelativePath(appBuilder.AppHostDirectory, csprojPath);
+            var project = appBuilder.AddProject("myproject", relativeCsprojPath);
+            
+            using var app = appBuilder.Build();
+            
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var projectResources = appModel.GetProjectResources();
+            
+            var resource = Assert.Single(projectResources);
+            Assert.Equal("myproject", resource.Name);
+            
+            // Verify the project path points to the .csproj file
+            var projectMetadata = resource.GetProjectMetadata();
+            Assert.EndsWith("MyProject.csproj", projectMetadata.ProjectPath);
+        }
+        finally
+        {
+            // Clean up
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
 }
