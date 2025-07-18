@@ -1,5 +1,9 @@
 <Project>
 
+  <Target Name="__ErrorOnDeprecatedAspireWorkload" BeforeTargets="PrepareForBuild" Condition="'$(IsAspireHost)' == 'true' and '$(SuppressAspireWorkloadDeprecationError)' != 'true'">
+    <Error Code="ASPIRE008" Text="$(MSBuildProjectName) depends on an Aspire version that is out of support. Aspire now ships independently as NuGet packages and the Aspire workload that this project depends on is now deprecated. For more information on how to move to the latest Aspire with NuGet packages, visit: https://aka.ms/aspire/update-to-sdk. To suppress this error, add &lt;SuppressAspireWorkloadDeprecationError&gt;true&lt;/SuppressAspireWorkloadDeprecationError&gt; to a PropertyGroup in your project file." />
+  </Target>
+
   <Import Project="Sdk.props" Sdk="Aspire.Hosting.Sdk" />
   <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Sdk" />
 
