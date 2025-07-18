@@ -75,7 +75,7 @@ DESCRIPTION:
     Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
 
-    The default quality is `staging`.
+    The default quality is `release`.
 
     Pass a specific version to get CLI for that version.
 
@@ -850,7 +850,7 @@ function Start-AspireCliInstallation {
 
         # Set default quality to staging if not specified and no version is provided
         if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
-            $Quality = "staging"
+            $Quality = "release"
         }
 
         # Additional parameter validation

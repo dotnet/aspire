@@ -39,7 +39,7 @@ DESCRIPTION:
     Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
 
-    The default quality is `staging`.
+    The default quality is `release`.
 
     Pass a specific version to get CLI for that version.
 
@@ -47,7 +47,7 @@ USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
-    -q, --quality QUALITY       Quality to download (default: staging). Supported values: dev, staging, release
+    -q, --quality QUALITY       Quality to download (default: release). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
@@ -566,11 +566,6 @@ construct_aspire_cli_url() {
     local base_url
     local filename
 
-    # Default quality to "staging" if empty
-    if [[ -z "$quality" ]]; then
-        quality="staging"
-    fi
-
     # Add .sha512 to extension if checksum is true
     if [[ "$checksum" == "true" ]]; then
         extension="${extension}.sha512"
@@ -706,8 +701,8 @@ fi
 
 # Initialize default values after parsing arguments
 if [[ -z "$QUALITY" ]]; then
-    # Default quality to "staging" if not provided
-    QUALITY="staging"
+    # Default quality to "release" if not provided
+    QUALITY="release"
 fi
 
 # Set default install path if not provided

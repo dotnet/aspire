@@ -23,7 +23,7 @@ Supported Quality values:
 |------------------|-------|---------------------------------------------------|-----------------------|
 | `--install-path` | `-i`  | Directory to install the CLI                      | `$HOME/.aspire/bin`   |
 | `--version`      |       | Version of the Aspire CLI to download             | `9.0`                 |
-| `--quality`      | `-q`  | Quality to download                               | `staging`               |
+| `--quality`      | `-q`  | Quality to download                               | `release`             |
 | `--os`           |       | Operating system (auto-detected if not specified) | auto-detect           |
 | `--arch`         |       | Architecture (auto-detected if not specified)     | auto-detect           |
 | `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`               |
@@ -36,7 +36,7 @@ Supported Quality values:
 |-----------------|---------------------------------------------------|--------------------------------------------------------------------|
 | `-InstallPath`  | Directory to install the CLI                      | `$HOME/.aspire/bin` (Unix) / `%USERPROFILE%\.aspire\bin` (Windows) |
 | `-Version`      | Version of the Aspire CLI to download             | `9.0`                                                              |
-| `-Quality`      | Quality to download                               | `staging`                                                          |
+| `-Quality`      | Quality to download                               | `release`                                                          |
 | `-OS`           | Operating system (auto-detected if not specified) | auto-detect                                                        |
 | `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect                                                        |
 | `-KeepArchive`  | Keep downloaded archive files after installation  | `false`                                                            |
