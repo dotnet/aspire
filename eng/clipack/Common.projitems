@@ -3,8 +3,8 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
-    <ArchiveFormat Condition="'$(ArchiveFormat)' == '' and $(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
-    <ArchiveFormat Condition="'$(ArchiveFormat)' == ''">tar.gz</ArchiveFormat>
+    <ArchiveFormat Condition="$(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('win-'))">tar.gz</ArchiveFormat>
 
     <!-- PublishNativeAot is explicitly set to false in the projects for cases where we don't want to AOT at all.
          For the rest, publish native AOT if running on the target platfrom -->
