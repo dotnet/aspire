@@ -25,6 +25,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
 
     internal AzureBlobStorageResource? BlobStorageResource { get; set; }
     internal AzureQueueStorageResource? QueueStorageResource { get; set; }
+    internal AzureTableStorageResource? TableStorageResource { get; set; }
 
     internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 
