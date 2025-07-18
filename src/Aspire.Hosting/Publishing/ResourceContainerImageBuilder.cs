@@ -387,13 +387,15 @@ internal sealed class ResourceContainerImageBuilder(
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
     }
 
+    // .NET Container builds that push OCI images to a local file path do not need a runtime
     internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
     {
         var hasDockerfileResources= resources.Any(resource =>
             resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
             resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
         var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
-        return hasDockerfileResources || usesDocker;
+        var hasNoOutputPath = options?.OutputPath == null;
+        return hasDockerfileResources || usesDocker || hasNoOutputPath;
     }
 
 }
