@@ -34,6 +34,7 @@ resource queue 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
 }
 
 resource table 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
+  name: 'default'
   parent: storage
 }
 
