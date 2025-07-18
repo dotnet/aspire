@@ -102,6 +102,11 @@
         <target state="translated">La ruta de acceso del socket de extensión proporcionada necesita dos partes válidas.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MininumSdkVersionMissing">
+        <source>The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</source>
+        <target state="new">The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">Se encontraron varios archivos de proyecto.</target>

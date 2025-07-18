@@ -102,6 +102,11 @@
         <target state="translated">指定された拡張ソケット パスには、2 つの有効な部分が必要です。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MininumSdkVersionMissing">
+        <source>The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</source>
+        <target state="new">The minimum .NET SDK version ({0}) is not installed. Please install the .NET SDK and ensure it's available in your PATH.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">プロジェクト ファイルが複数見つかりました。</target>

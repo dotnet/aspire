@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Utils;
 
@@ -30,7 +32,8 @@ internal static class SdkInstallHelper
 
         if (!isSdkAvailable)
         {
-            interactionService.DisplayError("The .NET SDK is required but was not found. Please install the .NET SDK and ensure it's available in your PATH.");
+            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, ErrorStrings.MininumSdkVersionMissing, DotNetSdkInstaller.MinimumSdkVersion);
+            interactionService.DisplayError(sdkErrorMessage);
             return false;
         }
 
