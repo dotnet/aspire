@@ -1523,7 +1523,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
-            spAnn.Address = NormalizeServiceProducerTargetHost(ea.TargetHost);
+            (spAnn.Address, _) = NormalizeTargetHost(ea.TargetHost);
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
@@ -1539,31 +1539,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private static string NormalizeServiceProducerTargetHost(string targetHost)
-    {
-        return targetHost switch
-        {
-            null or "" => "localhost", // Default is localhost
-            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => "localhost", // Explicitly set to localhost
-            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => "localhost", // Explicitly set to localhost when using .localhost subdomain
-            var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
-            {
-                var ip when IPAddress.Any.Equals(ip) => "localhost", // 0.0.0.0 (IPv4 all addresses)
-                var ip when IPAddress.IPv6Any.Equals(ip) => "localhost", // :: (IPv6 all addresses)
-                _ => s, // Any other IP address is returned as-is
-            },
-            _ => "localhost", // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
-        };
-    }
-
     /// <summary>
-    /// Normalize the target host to a tuple of (address, binding mode). A user may have configured
-    /// an endpoint target host that isn't itself a valid IP address or hostname that can be resolved
-    /// by other services or clients. For example, 0.0.0.0 is considered to mean that the service should
-    /// bind to all IPv4 addresses. When the target host indicates that the service should bind to all
-    /// IPv4 or IPv6 addresses, we instead return "localhost" as the address. The binding mode is metdata
-    /// that indicates whether an endpoint is bound to a single address or some set of multiple addresses
-    /// on the system.
+    /// Normalize the target host to a tuple of (address, binding mode) to a single valid address for
+    /// service discovery purposes. A user may have configured an endpoint target host that isn't itself
+    /// a valid IP address or hostname that can be resolved by other services or clients. For example,
+    /// 0.0.0.0 is considered to mean that the service should bind to all IPv4 addresses. When the target
+    /// host indicates that the service should bind to all IPv4 or IPv6 addresses, we instead return
+    /// "localhost" as the address as that is a valid address for the .NET dev certificate. The binding mode
+    /// is metdata that indicates whether an endpoint is bound to a single address or some set of multiple
+    /// addresses on the system.
     /// </summary>
     /// <param name="targetHost">The target host from an EndpointAnnotation</param>
     /// <returns>A tuple of (address, binding mode).</returns>
@@ -1577,8 +1561,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
-                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addreses)
-                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is
+                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addresses)
+                _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is as that will be the only address the service is bound to
             },
             _ => ("localhost", EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
         };
