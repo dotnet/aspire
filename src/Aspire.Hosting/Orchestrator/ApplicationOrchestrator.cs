@@ -236,18 +236,19 @@ internal sealed class ApplicationOrchestrator
                     // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
                     // address. If bound to a *.localhost address, we add the originally declared *.localhost address
                     // as an additional URL.
-                    var additionalUrl = (allocatedEndpoint.BindingMode, endpoint.TargetHost) switch
+                    var additionalUrl = allocatedEndpoint.BindingMode switch
                     {
                         // The allocated address doesn't match the original target host, so include the target host as
                         // an additional URL.
-                        (EndpointBindingMode.SingleAddress, var host) when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
+                        EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
                         {
                             Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
                             Endpoint = endpointReference,
                         },
-                        // For other single address bindings, don't include an additional URL.
-                        (EndpointBindingMode.SingleAddress, _) => null,
-                        // All other cases are binding to multiple interfaces, so add the machine name as an additional URL.
+                        // For other single address bindings ("localhost", specific IP), don't include an additional URL.
+                        EndpointBindingMode.SingleAddress => null,
+                        // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
+                        // name as an additional URL.
                         _ => new ResourceUrlAnnotation
                         {
                             Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
