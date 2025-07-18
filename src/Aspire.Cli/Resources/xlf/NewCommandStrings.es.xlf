@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">Escriba el nombre del proyecto:</target>
+        <source>Enter the project name</source>
+        <target state="needs-review-translation">Escriba el nombre del proyecto:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">El origen de NuGet que se va a usar para las plantillas de proyecto.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="new">(use pre-release templates)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

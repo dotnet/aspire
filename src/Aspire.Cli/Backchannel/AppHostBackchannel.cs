@@ -20,7 +20,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken);
+    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
 }
 
@@ -182,7 +182,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         return capabilities;
     }
 
-    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);

@@ -77,6 +77,11 @@
         <target state="translated">找到意外数量的包。</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="new">Use pre-release packages</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">要添加的集成的版本。</target>

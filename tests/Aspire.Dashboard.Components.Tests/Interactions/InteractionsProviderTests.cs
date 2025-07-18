@@ -281,6 +281,146 @@ public partial class InteractionsProviderTests : DashboardTestContext
         await instance.DisposeAsync().DefaultTimeout();
     }
 
+    [Fact]
+    public async Task ReceiveData_NotificationReceivedTwice_IgnoreReplayedNotification()
+    {
+        // Arrange
+        var interactionsChannel = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var sendInteractionUpdatesChannel = Channel.CreateUnbounded<WatchInteractionsRequestUpdate>();
+
+        var message = new Message();
+        var dashboardClient = new TestDashboardClient(isEnabled: true,
+            interactionChannelProvider: () => interactionsChannel,
+            sendInteractionUpdateChannel: sendInteractionUpdatesChannel);
+        var messageService = new TestMessageService(options =>
+        {
+            return Task.FromResult(message);
+        });
+
+        SetupInteractionProviderServices(dashboardClient: dashboardClient, messageService: messageService);
+
+        // Act 1
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+
+        var instance = cut.Instance;
+
+        var response = new WatchInteractionsResponseUpdate
+        {
+            InteractionId = 1,
+            Notification = new InteractionNotification()
+        };
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 1
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance.OpenMessageBars.SingleOrDefault();
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (message != reference.Message || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 1;
+        }, "Wait for message created.");
+
+        // Act 2
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 2
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance.OpenMessageBars.SingleOrDefault();
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (message != reference.Message || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 2;
+        }, "Wait for message created.");
+
+        await instance.DisposeAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task ReceiveData_MessageBoxReceivedTwice_IgnoreReplayedNotification()
+    {
+        // Arrange
+        var interactionsChannel = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var sendInteractionUpdatesChannel = Channel.CreateUnbounded<WatchInteractionsRequestUpdate>();
+
+        var dialogReference = new DialogReference("abc", null!);
+        var dashboardClient = new TestDashboardClient(isEnabled: true,
+            interactionChannelProvider: () => interactionsChannel,
+            sendInteractionUpdateChannel: sendInteractionUpdatesChannel);
+        var dialogService = new TestDialogService(onShowDialog: (data, parameters) =>
+        {
+            return Task.FromResult<IDialogReference>(dialogReference);
+        });
+
+        SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
+
+        // Act 1
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+
+        var instance = cut.Instance;
+
+        var response = new WatchInteractionsResponseUpdate
+        {
+            InteractionId = 1,
+            MessageBox = new InteractionMessageBox()
+        };
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 1
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance._interactionDialogReference;
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (dialogReference != reference.Dialog || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 1;
+        }, "Wait for dialog created.");
+
+        // Act 2
+        await interactionsChannel.Writer.WriteAsync(response);
+
+        // Assert 2
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(async () =>
+        {
+            var reference = instance._interactionDialogReference;
+            if (reference == null)
+            {
+                return false;
+            }
+
+            if (dialogReference != reference.Dialog || reference.InteractionId != 1)
+            {
+                return false;
+            }
+
+            return await instance.GetMessagesProcessedAsync() == 2;
+        }, "Wait for dialog created.");
+
+        await instance.DisposeAsync().DefaultTimeout();
+    }
+
     [Theory]
     [InlineData(true, "**Hello** _World_! <b>Bold</b>", "<strong>Hello</strong> <em>World</em>! &lt;b&gt;Bold&lt;/b&gt;")]
     [InlineData(false, "**Hello** _World_! <b>Bold</b>", "**Hello** _World_! &lt;b&gt;Bold&lt;/b&gt;")]
@@ -339,7 +479,7 @@ public partial class InteractionsProviderTests : DashboardTestContext
         await instance.DisposeAsync().DefaultTimeout();
     }
 
-    private void SetupInteractionProviderServices(TestDashboardClient? dashboardClient = null, TestDialogService? dialogService = null)
+    private void SetupInteractionProviderServices(TestDashboardClient? dashboardClient = null, TestDialogService? dialogService = null, TestMessageService? messageService = null)
     {
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
@@ -347,7 +487,7 @@ public partial class InteractionsProviderTests : DashboardTestContext
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         Services.AddSingleton<IDialogService>(dialogService ?? new TestDialogService());
-        Services.AddSingleton<IMessageService, MessageService>();
+        Services.AddSingleton<IMessageService>(messageService ?? new TestMessageService());
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();

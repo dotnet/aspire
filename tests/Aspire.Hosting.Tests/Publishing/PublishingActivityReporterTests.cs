@@ -464,6 +464,35 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
+    public async Task HandleInteractionUpdateAsync_UnsupportedInteractionTypes_FailWithError()
+    {
+        // Arrange
+        var reporter = new PublishingActivityReporter(_interactionService);
+
+        // Clear any previous activities
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        while (activityReader.TryRead(out _)) { }
+
+        // Act & Assert - Test MessageBox interaction (unsupported)
+        var messageBoxException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
+            await _interactionService.PromptMessageBoxAsync("Test MessageBox", "This is a test message"));
+        
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", messageBoxException.Message);
+
+        // Act & Assert - Test Notification interaction (unsupported)
+        var notificationException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
+            await _interactionService.PromptNotificationAsync("Test Notification", "This is a test notification"));
+        
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", notificationException.Message);
+
+        // Act & Assert - Test Confirmation interaction (unsupported)
+        var confirmationException = await Assert.ThrowsAsync<InvalidOperationException>(async () => 
+            await _interactionService.PromptConfirmationAsync("Test Confirmation", "This is a test confirmation"));
+        
+        Assert.Equal("Unsupported interaction type. Only input interactions are supported in the CLI.", confirmationException.Message);
+    }
+
+    [Fact]
     public async Task CompleteInteractionAsync_ProcessesUserResponsesCorrectly()
     {
         // Arrange
@@ -481,7 +510,7 @@ public class PublishingActivityReporterTests
         Assert.Equal("text-label", input.Label);
         Assert.Equal("Text", input.InputType);
 
-        var responses = new string[] { "user-response" };
+        var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
         await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None).DefaultTimeout();
