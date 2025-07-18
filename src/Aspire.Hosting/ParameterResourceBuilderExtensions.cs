@@ -170,7 +170,6 @@ public static class ParameterResourceBuilderExtensions
         return builder;
     }
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
     /// Sets a custom input generator function for the parameter resource.
     /// </summary>
@@ -201,7 +200,6 @@ public static class ParameterResourceBuilderExtensions
 
         return builder;
     }
-#pragma warning restore ASPIREINTERACTION001
 
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
