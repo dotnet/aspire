@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;

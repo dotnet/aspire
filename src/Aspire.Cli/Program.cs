@@ -17,6 +17,7 @@ using Spectre.Console;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;

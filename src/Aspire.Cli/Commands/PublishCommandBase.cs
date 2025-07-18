@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;

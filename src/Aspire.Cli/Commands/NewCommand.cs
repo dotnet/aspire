@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;

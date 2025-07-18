@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Cli;
+namespace Aspire.Cli.DotNet;
 
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
