@@ -24,7 +24,7 @@ public partial class InteractionsInputDialog
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
     private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
-    
+
     protected override void OnInitialized()
     {
         _editContext = new EditContext(Content);
