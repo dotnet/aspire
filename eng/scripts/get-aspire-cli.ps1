@@ -698,10 +698,7 @@ function Get-AspireCliUrl {
         [string]$Extension
     )
 
-    # Validate quality against supported values
-    if ($Quality -notin $Script:Config.SupportedQualities) {
-        throw "Unsupported quality '$Quality'. Supported values are: $($Script:Config.SupportedQualities -join ", ")."
-    }
+    # Validation against supported values is handled by the [ValidateSet] attribute on the $Quality parameter.
 
     if ([string]::IsNullOrWhiteSpace($Version)) {
         # When version is not set use aka.ms URLs based on quality
