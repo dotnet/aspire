@@ -16,7 +16,7 @@ var externalServiceUrl = builder.AddParameter("external-service-url")
         Placeholder = $"Enter value for {p.Name}",
         Description = p.Description
     });
-#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore ASPIREINTERACTION001
 var externalService = builder.AddExternalService("external-service", externalServiceUrl);
 
 var nuget = builder.AddExternalService("nuget", "https://api.nuget.org/")
