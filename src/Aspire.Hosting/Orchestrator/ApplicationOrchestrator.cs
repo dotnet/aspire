@@ -202,12 +202,6 @@ internal sealed class ApplicationOrchestrator
     private async Task ProcessResourceUrlCallbacks(IResource resource, CancellationToken cancellationToken)
     {
         var urls = new List<ResourceUrlAnnotation>();
-        var existingUrls = new List<ResourceUrlAnnotation>();
-
-        if (resource.TryGetUrls(out var existingAnnotations))
-        {
-            existingUrls.AddRange(existingAnnotations);
-        }
 
         // Project endpoints to URLs
         if (resource.TryGetEndpoints(out var endpoints) && resource is IResourceWithEndpoints resourceWithEndpoints)
@@ -226,17 +220,14 @@ internal sealed class ApplicationOrchestrator
                     var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
                     var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
 
-                    if (!existingUrls.Any(existingUrl => existingUrl.Url.Equals(url.Url, StringComparison.OrdinalIgnoreCase) && existingUrl.Endpoint?.EndpointName == url.Endpoint?.EndpointName))
-                    {
-                        urls.Add(url);
-                    }
+                    urls.Add(url);
 
                     // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
-                    // additional URLs to indicate to the user other ways their service can be reached. If the service
-                    // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
-                    // address. If bound to a *.localhost address, we add the originally declared *.localhost address
-                    // as an additional URL.
-                    var additionalUrl = allocatedEndpoint.BindingMode switch
+                        // additional URLs to indicate to the user other ways their service can be reached. If the service
+                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                        // as an additional URL.
+                        var additionalUrl = allocatedEndpoint.BindingMode switch
                     {
                         // The allocated address doesn't match the original target host, so include the target host as
                         // an additional URL.
@@ -258,10 +249,7 @@ internal sealed class ApplicationOrchestrator
 
                     if (additionalUrl is not null)
                     {
-                        if (!existingUrls.Any(existingUrl => existingUrl.Url.Equals(additionalUrl.Url, StringComparison.OrdinalIgnoreCase) && existingUrl.Endpoint?.EndpointName == additionalUrl.Endpoint?.EndpointName))
-                        {
-                            urls.Add(additionalUrl);
-                        }
+                        urls.Add(additionalUrl);
                     }
                 }
             }
@@ -288,6 +276,20 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            foreach (var existingUrl in existingUrls)
+            {
+                resource.Annotations.Remove(existingUrl);
+
+                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
+                {
+                    // Add existing URLs back that aren't duplicates
+                    urls.Add(existingUrl);
                 }
             }
         }
