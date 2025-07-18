@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
         <source>Enter the project name</source>
-        <target state="new">Enter the project name</target>
+        <target state="translated">Insira o nome do projeto</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">

@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
         <source>Enter the project name</source>
-        <target state="new">Enter the project name</target>
+        <target state="translated">Escriba el nombre del proyecto</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
         <source>(use pre-release templates)</source>
-        <target state="new">(use pre-release templates)</target>
+        <target state="translated">(usar plantillas de versión preliminar)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
