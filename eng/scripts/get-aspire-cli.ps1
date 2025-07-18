@@ -111,6 +111,7 @@ EXAMPLES:
 
     # Piped execution
     Invoke-Expression "& { `$(Invoke-RestMethod https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
+    Invoke-Expression "& { `$(Invoke-RestMethod https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) } -Quality staging"
 
 "@
     if ($InvokedFromFile) { exit 0 } else { return }
