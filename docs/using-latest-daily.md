@@ -40,25 +40,13 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 On Windows:
 
 ```powershell
-iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
-```
-
-or with arguments like:
-
-```powershell
-iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) } -Quality staging"
+iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) } -Quality dev"
 ```
 
 On Linux, or macOS:
 
 ```sh
-curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash
-```
-
-or with arguments like:
-
-```sh
-curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash -s -- -q staging
+curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash -s -- -q dev
 ```
 
 <!-- break between blocks -->
