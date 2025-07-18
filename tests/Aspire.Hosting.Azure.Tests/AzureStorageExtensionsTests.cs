@@ -884,4 +884,16 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage")
+                            .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(storage.Resource.IsEmulator());
+        Assert.Contains(storage.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
 }

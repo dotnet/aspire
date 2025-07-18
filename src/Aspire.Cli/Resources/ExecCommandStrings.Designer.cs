@@ -9,21 +9,21 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class ExecCommandStrings {
-        
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal ExecCommandStrings() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Aspire.Cli.Resources {
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,49 +44,52 @@ namespace Aspire.Cli.Resources {
                 resourceCulture = value;
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Run an Aspire app host to execute a command against the resource. (Preview).
+        /// </summary>
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
+
         internal static string ProjectArgumentDescription {
             get {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
             }
         }
-        
+
         internal static string StartTargetResourceArgumentDescription {
             get {
                 return ResourceManager.GetString("StartTargetResourceArgumentDescription", resourceCulture);
             }
         }
-        
+
         internal static string TargetResourceArgumentDescription {
             get {
                 return ResourceManager.GetString("TargetResourceArgumentDescription", resourceCulture);
             }
         }
-        
+
         internal static string TargetResourceNotSpecified {
             get {
                 return ResourceManager.GetString("TargetResourceNotSpecified", resourceCulture);
             }
         }
-        
+
         internal static string FailedToParseCommand {
             get {
                 return ResourceManager.GetString("FailedToParseCommand", resourceCulture);
             }
         }
-        
+
         internal static string Running {
             get {
                 return ResourceManager.GetString("Running", resourceCulture);
             }
         }
-        
+
         internal static string StoppingAppHost {
             get {
                 return ResourceManager.GetString("StoppingAppHost", resourceCulture);

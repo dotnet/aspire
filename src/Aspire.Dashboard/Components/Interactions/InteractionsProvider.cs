@@ -44,10 +44,24 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _messagesProcessed;
 
     // Internal for testing.
     internal bool? _enabled;
     internal InteractionDialogReference? _interactionDialogReference;
+    internal IEnumerable<InteractionMessageBarReference> OpenMessageBars => _openMessageBars;
+    internal async Task<int> GetMessagesProcessedAsync()
+    {
+        await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
+        try
+        {
+            return _messagesProcessed;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -318,11 +332,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
                     case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
                         if (_interactionDialogReference != null &&
-                            _interactionDialogReference.InteractionId == item.InteractionId)
+                            _interactionDialogReference.InteractionId == item.InteractionId &&
+                            _interactionDialogReference.Dialog.Instance.Content is InteractionsInputsDialogViewModel inputsVM)
                         {
                             // If the dialog is already open for this interaction, update it with the new data.
-                            var c = (InteractionsInputsDialogViewModel)_interactionDialogReference.Dialog.Instance.Content;
-                            await c.UpdateInteractionAsync(item);
+                            await inputsVM.UpdateInteractionAsync(item);
                         }
                         else
                         {
@@ -345,6 +359,13 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         break;
                     case WatchInteractionsResponseUpdate.KindOneofCase.Notification:
                         var notification = item.Notification;
+
+                        // Check if the message bar is already open for this interaction.
+                        // This can happen if the connection is lost and then restored, which will replay pending interactions.
+                        if (_openMessageBars.Contains(item.InteractionId))
+                        {
+                            break;
+                        }
 
                         Message? message = null;
                         await InvokeAsync(async () =>
@@ -470,6 +491,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         Logger.LogWarning("Unexpected interaction kind: {Kind}", item.KindCase);
                         break;
                 }
+                _messagesProcessed++;
             }
             finally
             {

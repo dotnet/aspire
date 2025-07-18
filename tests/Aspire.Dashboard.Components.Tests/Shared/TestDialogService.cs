@@ -65,14 +65,25 @@ public class TestDialogService : IDialogService
         throw new NotImplementedException();
     }
 
-    public Task<IDialogReference> ShowDialogAsync<TData>(Type dialogComponent, TData data, DialogParameters parameters) where TData : class
+    public async Task<IDialogReference> ShowDialogAsync<TData>(Type dialogComponent, TData data, DialogParameters parameters) where TData : class
     {
-        return _onShowDialog?.Invoke(data, parameters) ?? throw new InvalidOperationException("No dialog callback specified.");
+        return await RunShowDialogCallbackAsync(dialogComponent, data, parameters);
     }
 
-    public Task<IDialogReference> ShowDialogAsync<TDialog>(object data, DialogParameters parameters) where TDialog : IDialogContentComponent
+    public async Task<IDialogReference> ShowDialogAsync<TDialog>(object data, DialogParameters parameters) where TDialog : IDialogContentComponent
     {
-        return _onShowDialog?.Invoke(data, parameters) ?? throw new InvalidOperationException("No dialog callback specified.");
+        return await RunShowDialogCallbackAsync(typeof(TDialog), data, parameters);
+    }
+
+    private async Task<IDialogReference> RunShowDialogCallbackAsync(Type dialogComponent, object data, DialogParameters parameters)
+    {
+        if (_onShowDialog == null)
+        {
+            throw new InvalidOperationException("No dialog callback specified.");
+        }
+        var reference = await _onShowDialog.Invoke(data, parameters);
+        reference.Instance = new DialogInstance(dialogComponent, parameters, data);
+        return reference;
     }
 
     public Task<IDialogReference> ShowDialogAsync<TDialog>(DialogParameters parameters) where TDialog : IDialogContentComponent
