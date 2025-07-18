@@ -15,7 +15,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstall
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
     /// </summary>
-    public const string MinimumSdkVersion = "9.0.302";
+    public const string MinimumSdkVersion = "9.0.100";
 
     /// <inheritdoc />
     public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
