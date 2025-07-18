@@ -219,6 +219,9 @@ public static class AzureEventHubsExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
             .WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 5300)

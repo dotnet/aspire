@@ -134,32 +134,33 @@ internal sealed class ResourceContainerImageBuilder(
 
         await using (step.ConfigureAwait(false))
         {
-            // Currently, we build these images to the local Docker daemon. We need to ensure that
-            // the Docker daemon is running and accessible
-
-            var task = await step.CreateTaskAsync(
-                $"Checking {ContainerRuntime.Name} health",
-                cancellationToken).ConfigureAwait(false);
-
-            await using (task.ConfigureAwait(false))
+            // Only check container runtime health if there are resources that need it
+            if (ResourcesRequireContainerRuntime(resources, options))
             {
-                var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
-
-                if (!containerRuntimeHealthy)
-                {
-                    logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-
-                    await task.FailAsync(
-                        $"{ContainerRuntime.Name} is not running or is unhealthy.",
-                        cancellationToken).ConfigureAwait(false);
-
-                    await step.CompleteAsync("Building container images failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
-                    throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
-                }
-
-                await task.SucceedAsync(
-                    $"{ContainerRuntime.Name} is healthy.",
+                var task = await step.CreateTaskAsync(
+                    $"Checking {ContainerRuntime.Name} health",
                     cancellationToken).ConfigureAwait(false);
+
+                await using (task.ConfigureAwait(false))
+                {
+                    var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (!containerRuntimeHealthy)
+                    {
+                        logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
+
+                        await task.FailAsync(
+                            $"{ContainerRuntime.Name} is not running or is unhealthy.",
+                            cancellationToken).ConfigureAwait(false);
+
+                        await step.CompleteAsync("Building container images failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+                        throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+                    }
+
+                    await task.SucceedAsync(
+                        $"{ContainerRuntime.Name} is healthy.",
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
 
             foreach (var resource in resources)
@@ -384,6 +385,17 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
+    }
+
+    // .NET Container builds that push OCI images to a local file path do not need a runtime
+    internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
+    {
+        var hasDockerfileResources = resources.Any(resource =>
+            resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
+            resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
+        var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
+        var hasNoOutputPath = options?.OutputPath == null;
+        return hasDockerfileResources || usesDocker || hasNoOutputPath;
     }
 
 }

@@ -137,6 +137,9 @@ public static class AzureStorageExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         builder.WithHttpEndpoint(name: "blob", targetPort: 10000)
                .WithHttpEndpoint(name: "queue", targetPort: 10001)
                .WithHttpEndpoint(name: "table", targetPort: 10002)

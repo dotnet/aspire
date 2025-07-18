@@ -37,11 +37,17 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 
 ## Install the daily CLI
 
-```sh
-dotnet tool install --global aspire.cli --prerelease --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json
+On Windows:
+
+```powershell
+iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
 ```
 
-now `aspire` will be available as a [tool](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-tool-install).
+On Linux, or macOS:
+
+```sh
+curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash
+```
 
 <!-- break between blocks -->
 
