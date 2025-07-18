@@ -140,6 +140,9 @@ public static class AzureStorageExtensions
         builder.WithHttpEndpoint(name: "blob", targetPort: 10000)
                .WithHttpEndpoint(name: "queue", targetPort: 10001)
                .WithHttpEndpoint(name: "table", targetPort: 10002)
+               .WithUrlForEndpoint("blob", url => url.DisplayText = "Blob Service API")
+               .WithUrlForEndpoint("queue", url => url.DisplayText = "Queue Service API") 
+               .WithUrlForEndpoint("table", url => url.DisplayText = "Table Service API")
                .WithAnnotation(new ContainerImageAnnotation
                {
                    Registry = StorageEmulatorContainerImageTags.Registry,
