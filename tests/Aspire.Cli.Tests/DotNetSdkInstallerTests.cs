@@ -36,7 +36,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature());
 
         // Use the actual minimum version constant and check the behavior
-        // Since this test environment has 8.0.117, it should return false for 9.0.302
+        // Since this test environment has 8.0.117, it should return false for 9.0.100
         var result = await installer.CheckAsync(DotNetSdkInstaller.MinimumSdkVersion);
 
         // Don't assert the specific result, just ensure the method doesn't throw
