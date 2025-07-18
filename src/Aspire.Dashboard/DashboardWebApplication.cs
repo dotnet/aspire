@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -227,6 +228,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
                     builder.WithMethods(HttpMethods.Post);
                 });
+            });
+        }
+
+        // Add Forwarded Headers support so that the dashboard can be run behind a reverse proxy.
+        if (builder.Configuration.GetBool("ASPNETCORE_FORWARDEDHEADERS_ENABLED") ?? false)
+        {
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+
+                // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
+                // being enabled by explicit configuration.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
             });
         }
 
