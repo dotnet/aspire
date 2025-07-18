@@ -11,6 +11,8 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class InteractionsInputDialog
 {
+    internal const int MaxTextLength = 8000;
+
     [Parameter]
     public InteractionsInputsDialogViewModel Content { get; set; } = default!;
 
@@ -22,7 +24,7 @@ public partial class InteractionsInputDialog
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
     private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
-
+    
     protected override void OnInitialized()
     {
         _editContext = new EditContext(Content);

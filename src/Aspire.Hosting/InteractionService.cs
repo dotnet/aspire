@@ -3,6 +3,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -234,25 +235,75 @@ internal class InteractionService : IInteractionService
             // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
             if (result.State is IReadOnlyList<InteractionInput> inputs)
             {
-                var options = (InputsDialogInteractionOptions)interactionState.Options;
-
-                if (options.ValidationCallback is { } validationCallback)
+                foreach (var input in inputs)
                 {
-                    foreach (var input in inputs)
-                    {
-                        input.ValidationErrors.Clear();
-                    }
-
-                    var context = new InputsDialogValidationContext
-                    {
-                        CancellationToken = cancellationToken,
-                        ServiceProvider = _serviceProvider,
-                        Inputs = inputsInfo.Inputs
-                    };
-                    await validationCallback(context).ConfigureAwait(false);
-
-                    return !context.HasErrors;
+                    input.ValidationErrors.Clear();
                 }
+
+                var context = new InputsDialogValidationContext
+                {
+                    CancellationToken = cancellationToken,
+                    ServiceProvider = _serviceProvider,
+                    Inputs = inputsInfo.Inputs
+                };
+
+                foreach (var input in inputs)
+                {
+                    var value = input.Value = input.Value?.Trim();
+
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        if (input.Required)
+                        {
+                            context.AddValidationError(input, "Value is required.");
+                        }
+                    }
+                    else
+                    {
+                        switch (input.InputType)
+                        {
+                            case InputType.Text:
+                            case InputType.SecretText:
+                                if (value.Length > InteractionInput.MaxTextLength)
+                                {
+                                    context.AddValidationError(input, $"Value length exceeds {InteractionInput.MaxTextLength} characters.");
+                                }
+                                break;
+                            case InputType.Choice:
+                                if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                {
+                                    context.AddValidationError(input, "Value must be one of the provided options.");
+                                }
+                                break;
+                            case InputType.Boolean:
+                                if (!bool.TryParse(value, out _))
+                                {
+                                    context.AddValidationError(input, "Value must be a valid boolean.");
+                                }
+                                break;
+                            case InputType.Number:
+                                if (!int.TryParse(value, CultureInfo.InvariantCulture, out _))
+                                {
+                                    context.AddValidationError(input, "Value must be a valid number.");
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                // Only run validation callback if there are no data validation errors.
+                if (!context.HasErrors)
+                {
+                    var options = (InputsDialogInteractionOptions)interactionState.Options;
+                    if (options.ValidationCallback is { } validationCallback)
+                    {
+                        await validationCallback(context).ConfigureAwait(false);
+                    }
+                }
+
+                return !context.HasErrors;
             }
         }
 
