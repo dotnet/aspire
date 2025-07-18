@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.GitHub.Models.Tests;
 
@@ -13,6 +12,7 @@ public class GitHubModelsExtensionTests
     public void AddGitHubModelAddsResourceWithCorrectName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
@@ -21,9 +21,23 @@ public class GitHubModelsExtensionTests
     }
 
     [Fact]
+    public void AddGitHubModelCreatesDefaultApiKeyParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var github = builder.AddGitHubModel("mymodel", "openai/gpt-4o-mini");
+
+        // Verify that the API key parameter exists and follows the naming pattern
+        Assert.NotNull(github.Resource.Key);
+        Assert.Equal("mymodel-gh-apikey", github.Resource.Key.Name);
+        Assert.True(github.Resource.Key.Secret);
+    }
+
+    [Fact]
     public void AddGitHubModelUsesCorrectEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
@@ -35,6 +49,7 @@ public class GitHubModelsExtensionTests
     public void ConnectionStringExpressionIsCorrectlyFormatted()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
@@ -73,7 +88,7 @@ public class GitHubModelsExtensionTests
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
         Assert.NotNull(github.Resource.Key);
-        Assert.Equal("github-api-key", github.Resource.Key.Name);
+        Assert.Equal("github-gh-apikey", github.Resource.Key.Name);
         Assert.True(github.Resource.Key.Secret);
     }
 
@@ -81,6 +96,7 @@ public class GitHubModelsExtensionTests
     public void AddGitHubModelWithoutOrganization()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
@@ -94,6 +110,7 @@ public class GitHubModelsExtensionTests
 
         var orgParameter = builder.AddParameter("github-org");
         builder.Configuration["Parameters:github-org"] = "myorg";
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini", orgParameter);
 
@@ -109,6 +126,7 @@ public class GitHubModelsExtensionTests
 
         var orgParameter = builder.AddParameter("github-org");
         builder.Configuration["Parameters:github-org"] = "myorg";
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini", orgParameter);
 
@@ -128,6 +146,7 @@ public class GitHubModelsExtensionTests
 
         var orgParameter = builder.AddParameter("github-org");
         builder.Configuration["Parameters:github-org"] = "myorg";
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini", orgParameter);
 
@@ -142,6 +161,7 @@ public class GitHubModelsExtensionTests
     public void ConnectionStringExpressionWithoutOrganization()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
 
@@ -161,21 +181,31 @@ public class GitHubModelsExtensionTests
         var orgParameter = builder.AddParameter("github-org");
         builder.Configuration["Parameters:github-org"] = "myorg";
 
-        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", orgParameter.Resource);
+        var apiKeyParameter = builder.AddParameter("github-api-key", secret: true);
+        builder.Configuration["Parameters:github-api-key"] = "test-key";
+
+        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", orgParameter.Resource, apiKeyParameter.Resource);
 
         Assert.Equal("test", resource.Name);
         Assert.Equal("openai/gpt-4o-mini", resource.Model);
         Assert.Equal(orgParameter.Resource, resource.Organization);
+        Assert.Equal(apiKeyParameter.Resource, resource.Key);
     }
 
     [Fact]
     public void GitHubModelResourceConstructorWithNullOrganization()
     {
-        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", null);
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var apiKeyParameter = builder.AddParameter("github-api-key", secret: true);
+        builder.Configuration["Parameters:github-api-key"] = "test-key";
+
+        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", null, apiKeyParameter.Resource);
 
         Assert.Equal("test", resource.Name);
         Assert.Equal("openai/gpt-4o-mini", resource.Model);
         Assert.Null(resource.Organization);
+        Assert.Equal(apiKeyParameter.Resource, resource.Key);
     }
 
     [Fact]
@@ -186,7 +216,10 @@ public class GitHubModelsExtensionTests
         var orgParameter = builder.AddParameter("github-org");
         builder.Configuration["Parameters:github-org"] = "myorg";
 
-        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", null);
+        var apiKeyParameter = builder.AddParameter("github-api-key", secret: true);
+        builder.Configuration["Parameters:github-api-key"] = "test-key";
+
+        var resource = new GitHubModelResource("test", "openai/gpt-4o-mini", null, apiKeyParameter.Resource);
         Assert.Null(resource.Organization);
 
         resource.Organization = orgParameter.Resource;
@@ -194,9 +227,58 @@ public class GitHubModelsExtensionTests
     }
 
     [Fact]
+    public void WithApiKeyThrowsIfParameterIsNotSecret()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+        var apiKey = builder.AddParameter("non-secret-key"); // Not marked as secret
+
+        var exception = Assert.Throws<ArgumentException>(() => github.WithApiKey(apiKey));
+        Assert.Contains("The API key parameter must be marked as secret", exception.Message);
+    }
+
+    [Fact]
+    public void WithApiKeySucceedsIfParameterIsSecret()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+        var apiKey = builder.AddParameter("secret-key", secret: true);
+
+        // This should not throw
+        var result = github.WithApiKey(apiKey);
+        Assert.NotNull(result);
+        Assert.Equal(apiKey.Resource, github.Resource.Key);
+    }
+
+    [Fact]
+    public void WithApiKeyCalledTwiceOnlyRemovesDefaultParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini");
+
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "github-gh-apikey"));
+
+        github.WithApiKey(builder.AddParameter("secret-key1", secret: true));
+
+        Assert.Null(builder.Resources.FirstOrDefault(r => r.Name == "github-gh-apikey"));
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
+
+        github.WithApiKey(builder.AddParameter("secret-key2", secret: true));
+
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
+        Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key2"));
+    }
+
+    [Fact]
     public void WithHealthCheckAddsHealthCheckAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
 
         var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini").WithHealthCheck();
 

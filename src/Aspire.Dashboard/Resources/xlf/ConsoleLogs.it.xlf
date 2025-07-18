@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
-        <target state="new">Don't wrap log lines</target>
+        <target state="translated">Non eseguire il wrapping delle righe di log</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsWrapLogs">
         <source>Wrap log lines</source>
-        <target state="new">Wrap log lines</target>
+        <target state="translated">Esegui il wrapping delle righe di log</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

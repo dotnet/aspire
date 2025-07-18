@@ -22,6 +22,7 @@ public sealed class ResourceViewModel
 {
     private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
     private readonly KnownResourceState? _knownState;
+    private Lazy<ImmutableArray<string>>? _cachedAddresses;
 
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
@@ -42,6 +43,44 @@ public sealed class ResourceViewModel
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
     public bool SupportsDetailedTelemetry { get; init; }
+
+    /// <summary>
+    /// Gets the cached addresses for this resource that can be used for peer matching.
+    /// This includes addresses extracted from URLs, connection strings, and parameter values.
+    /// </summary>
+    public ImmutableArray<string> CachedAddresses => (_cachedAddresses ??= new Lazy<ImmutableArray<string>>(ExtractResourceAddresses)).Value;
+
+    private ImmutableArray<string> ExtractResourceAddresses()
+    {
+        var addresses = new List<string>();
+
+        // Extract addresses from URL endpoints
+        foreach (var service in Urls)
+        {
+            var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+            addresses.Add(hostAndPort);
+        }
+
+        // Extract addresses from connection strings using comprehensive parsing
+        if (Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+            connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+            ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
+        {
+            var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+            addresses.Add(endpoint);
+        }
+
+        // Extract addresses from parameter values (for Parameter resources that contain URLs or host:port values)
+        if (Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+            parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+            ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
+        {
+            var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+            addresses.Add(parameterEndpoint);
+        }
+
+        return addresses.ToImmutableArray();
+    }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {

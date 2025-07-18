@@ -51,6 +51,7 @@ internal class ConsoleInteractionService : IInteractionService
         {
             prompt.DefaultValue(defaultValue);
             prompt.ShowDefaultValue();
+            prompt.DefaultValueStyle(new Style(Color.Fuchsia));
         }
 
         if (validator is not null)
@@ -99,7 +100,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+        DisplayMessage("thumbs_down", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -157,11 +158,11 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _ansiConsole.MarkupLineInterpolated($"{line}");
+                _ansiConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
             else
             {
-                _ansiConsole.MarkupLineInterpolated($"[red]{line}[/]");
+                _ansiConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
@@ -180,7 +181,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
-        _ansiConsole.MarkupLine($"[dim]{message}[/]");
+        _ansiConsole.MarkupLine($"[dim]{message.EscapeMarkup()}[/]");
     }
 
     public void DisplayEmptyLine()

@@ -37,7 +37,7 @@ internal sealed class TestInteractionService : IInteractionService
         return (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
     }
 
-    public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var data = new InteractionData(title, message, [], options, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);

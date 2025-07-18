@@ -7,7 +7,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -386,4 +385,165 @@ public class AddParameterTests
         Assert.Equal(KnownResourceTypes.ConnectionString, state.ResourceType);
         Assert.Equal(KnownResourceStates.Waiting, state.State?.Text);
     }
+
+    [Fact]
+    public void ParameterWithDescription_SetsDescriptionProperty()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("This is a test parameter");
+
+        // Assert
+        Assert.Equal("This is a test parameter", parameter.Resource.Description);
+        Assert.False(parameter.Resource.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void ParameterWithMarkdownDescription_SetsDescriptionAndMarkupProperties()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("This is a **markdown** description", enableMarkdown: true);
+
+        // Assert
+        Assert.Equal("This is a **markdown** description", parameter.Resource.Description);
+        Assert.True(parameter.Resource.EnableDescriptionMarkdown);
+    }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    [Fact]
+    public void ParameterWithDescriptionAndCustomInput_AddsInputGeneratorAnnotation()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("Custom input parameter")
+            .WithCustomInput(p => new InteractionInput
+            {
+                InputType = InputType.Number,
+                Label = "Custom Label",
+                Description = p.Description,
+                EnableDescriptionMarkdown = p.EnableDescriptionMarkdown
+            });
+
+        // Assert
+        Assert.Equal("Custom input parameter", parameter.Resource.Description);
+        Assert.True(parameter.Resource.Annotations.OfType<InputGeneratorAnnotation>().Any());
+    }
+
+    [Fact]
+    public void ParameterCreateInput_WithoutCustomGenerator_ReturnsDefaultInput()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("Test description");
+
+        // Act
+        var input = parameter.Resource.CreateInput();
+
+        // Assert
+        Assert.Equal(InputType.Text, input.InputType);
+        Assert.Equal("test", input.Label);
+        Assert.Equal("Test description", input.Description);
+        Assert.Equal("Enter value for test", input.Placeholder);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void ParameterCreateInput_ForSecretParameter_ReturnsSecretTextInput()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("secret", secret: true)
+            .WithDescription("Secret description");
+
+        // Act
+        var input = parameter.Resource.CreateInput();
+
+        // Assert
+        Assert.Equal(InputType.SecretText, input.InputType);
+        Assert.Equal("secret", input.Label);
+        Assert.Equal("Secret description", input.Description);
+        Assert.Equal("Enter value for secret", input.Placeholder);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void ParameterCreateInput_WithCustomGenerator_UsesGenerator()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("Custom description")
+            .WithCustomInput(p => new InteractionInput
+            {
+                InputType = InputType.Number,
+                Label = "Custom Label",
+                Description = "Custom: " + p.Description,
+                EnableDescriptionMarkdown = true,
+                Placeholder = "Enter number"
+            });
+
+        // Act
+        var input = parameter.Resource.CreateInput();
+
+        // Assert
+        Assert.Equal(InputType.Number, input.InputType);
+        Assert.Equal("Custom Label", input.Label);
+        Assert.Equal("Custom: Custom description", input.Description);
+        Assert.Equal("Enter number", input.Placeholder);
+        Assert.True(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void ParameterCreateInput_WithMarkdownDescription_SetsMarkupFlag()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test")
+            .WithDescription("**Bold** description", enableMarkdown: true);
+
+        // Act
+        var input = parameter.Resource.CreateInput();
+
+        // Assert
+        Assert.Equal("**Bold** description", input.Description);
+        Assert.True(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void ParameterWithCustomInput_AddsInputGeneratorAnnotation()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Act
+        var parameter = appBuilder.AddParameter("test")
+            .WithCustomInput(p => new InteractionInput
+            {
+                InputType = InputType.Number,
+                Label = "Custom Label",
+                Description = "Custom description",
+                EnableDescriptionMarkdown = false
+            });
+
+        // Assert
+        Assert.True(parameter.Resource.Annotations.OfType<InputGeneratorAnnotation>().Any());
+
+        var input = parameter.Resource.CreateInput();
+        Assert.Equal(InputType.Number, input.InputType);
+        Assert.Equal("Custom Label", input.Label);
+        Assert.Equal("Custom description", input.Description);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+#pragma warning restore ASPIREINTERACTION001
 }

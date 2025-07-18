@@ -156,9 +156,10 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         foreach (var (resource, database) in Databases)
         {
             var uniqueScriptIdentifier = Infrastructure.NormalizeBicepIdentifier($"{this.GetBicepIdentifier()}_{resource}");
-            var scriptResource = new SqlServerScriptProvisioningResource($"script_{uniqueScriptIdentifier}")
+            var scriptResource = new AzurePowerShellScript($"script_{uniqueScriptIdentifier}")
             {
                 Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
+                RetentionInterval = TimeSpan.FromHours(1),
                 // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
                 AzPowerShellVersion = "10.0"
             };

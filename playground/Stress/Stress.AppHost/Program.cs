@@ -126,6 +126,10 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
+builder.AddExecutable("executableWithSingleArg", "dotnet", Environment.CurrentDirectory, "--version");
+builder.AddExecutable("executableWithSingleEscapedArg", "dotnet", Environment.CurrentDirectory, "one two");
+builder.AddExecutable("executableWithMultipleArgs", "dotnet", Environment.CurrentDirectory, "--version", "one two");
+
 IResourceBuilder<IResource>? previousResourceBuilder = null;
 
 for (var i = 0; i < 3; i++)

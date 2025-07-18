@@ -11,9 +11,11 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Hosting;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli;
 
@@ -284,7 +286,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var exitCode = await ExecuteAsync(
             args: [.. cliArgs],
-            env: null,
+            env: new Dictionary<string, string>
+            {
+                // Force English output for consistent parsing.
+                // See NOTE: below
+                [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
+            },
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -589,13 +596,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
-        
+
         // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
         var env = new Dictionary<string, string>
         {
             ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
         };
-        
+
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
@@ -716,37 +723,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
-            var foundPackages = new List<NuGetPackage>();
             try
             {
-                using var document = JsonDocument.Parse(stdout);
-
-                var searchResultsArray = document.RootElement.GetProperty("searchResult");
-
-                foreach (var sourceResult in searchResultsArray.EnumerateArray())
-                {
-                    var source = sourceResult.GetProperty("sourceName").GetString();
-                    var sourcePackagesArray = sourceResult.GetProperty("packages");
-
-                    foreach (var packageResult in sourcePackagesArray.EnumerateArray())
-                    {
-                        var id = packageResult.GetProperty("id").GetString();
-
-                        // var version = prerelease switch {
-                        //     true => packageResult.GetProperty("version").GetString(),
-                        //     false => packageResult.GetProperty("latestVersion").GetString()
-                        // };
-
-                        var version = packageResult.GetProperty("latestVersion").GetString();
-
-                        foundPackages.Add(new NuGetPackage
-                        {
-                            Id = id!,
-                            Version = version!,
-                            Source = source!
-                        });
-                    }
-                }
+                var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(stdout);
+                return (result, foundPackages.ToArray());
             }
             catch (JsonException ex)
             {
@@ -754,14 +734,6 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
-            return (result, foundPackages.ToArray());
         }
     }
-}
-
-internal class NuGetPackage
-{
-    public string Id { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
-    public string Source { get; set; } = string.Empty;
 }

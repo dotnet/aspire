@@ -126,10 +126,10 @@ internal sealed class ParameterProcessor(
         while (unresolvedParameters.Count > 0)
         {
             // First we show a notification that there are unresolved parameters.
-            var result = await interactionService.PromptMessageBarAsync(
+            var result = await interactionService.PromptNotificationAsync(
                  "Unresolved parameters",
                  "There are unresolved parameters that need to be set. Please provide values for them.",
-                 new MessageBarInteractionOptions
+                 new NotificationInteractionOptions
                  {
                      Intent = MessageIntent.Warning,
                      PrimaryButtonText = "Enter values"
@@ -144,12 +144,7 @@ internal sealed class ParameterProcessor(
                 foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    var input = new InteractionInput
-                    {
-                        InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
-                        Label = parameter.Name,
-                        Placeholder = $"Enter value for {parameter.Name}",
-                    };
+                    var input = parameter.CreateInput();
                     resourceInputs.Add((parameter, input));
                 }
 
