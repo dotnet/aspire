@@ -1549,7 +1549,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => "localhost", // 0.0.0.0 (IPv4 all addresses)
-                var ip when IPAddress.IPv6Any.Equals(ip) => "localhost", // :: (IPv6 all addreses)
+                var ip when IPAddress.IPv6Any.Equals(ip) => "localhost", // :: (IPv6 all addresses)
                 _ => s, // Any other IP address is returned as-is
             },
             _ => "localhost", // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
