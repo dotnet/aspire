@@ -826,4 +826,16 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         Assert.Equal("Hello, World!", message.Body.ToString());
     }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("servicebus")
+                               .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(serviceBus.Resource.IsEmulator());
+        Assert.Contains(serviceBus.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
 }
