@@ -62,12 +62,12 @@
         <target state="translated">アプリ ホスティング プロセスを検索しています...</target>
         <note />
       </trans-unit>
-      <trans-unit id="MoreInfoNewDashboardVersion">
+      <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
         <target state="new">[dim]For more information, see: [link]{0}[/][/]</target>
         <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
       </trans-unit>
-      <trans-unit id="NewDashboardVersionAvailable">
+      <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
         <target state="new">[yellow]A new version of the Aspire CLI is available: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>

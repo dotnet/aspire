@@ -200,11 +200,11 @@
   <data name="WaitingForDebuggerToAttachToAppHost" xml:space="preserve">
     <value>Waiting for debugger to attach to app host process</value>
   </data>
-  <data name="NewDashboardVersionAvailable" xml:space="preserve">
+  <data name="NewCliVersionAvailable" xml:space="preserve">
     <value>[yellow]A new version of the Aspire CLI is available: {0}[/]</value>
     <comment>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</comment>
   </data>
-  <data name="MoreInfoNewDashboardVersion" xml:space="preserve">
+  <data name="MoreInfoNewCliVersion" xml:space="preserve">
     <value>[dim]For more information, see: [link]{0}[/][/]</value>
     <comment>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</comment>
   </data>

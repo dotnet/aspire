@@ -201,15 +201,15 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string NewDashboardVersionAvailable {
+        public static string NewCliVersionAvailable {
             get {
-                return ResourceManager.GetString("NewDashboardVersionAvailable", resourceCulture);
+                return ResourceManager.GetString("NewCliVersionAvailable", resourceCulture);
             }
         }
         
-        public static string MoreInfoNewDashboardVersion {
+        public static string MoreInfoNewCliVersion {
             get {
-                return ResourceManager.GetString("MoreInfoNewDashboardVersion", resourceCulture);
+                return ResourceManager.GetString("MoreInfoNewCliVersion", resourceCulture);
             }
         }
     }

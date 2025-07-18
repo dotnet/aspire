@@ -193,8 +193,8 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewDashboardVersionAvailable, newerVersion));
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewDashboardVersion, UpdateUrl));
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
         _ansiConsole.WriteLine();
     }
 }
