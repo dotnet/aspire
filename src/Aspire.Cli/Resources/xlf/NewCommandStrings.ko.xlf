@@ -17,6 +17,11 @@
         <target state="needs-review-translation">프로젝트 이름 입력:</target>
         <note />
       </trans-unit>
+      <trans-unit id="FrameworkArgumentDescription">
+        <source>The target framework for the project.</source>
+        <target state="new">The target framework for the project.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidProjectName">
         <source>Invalid project name.</source>
         <target state="translated">프로젝트 이름이 잘못되었습니다.</target>

@@ -513,11 +513,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("new");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
         Assert.Contains("No template versions were found", displayedErrorMessage);
     }
-    
+
     [Fact]
     public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
@@ -554,7 +554,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return (0, version); // Success, return the template version
                 };
 
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
                 {
                     return 0; // Success
                 };
@@ -569,6 +569,55 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
+    }
+
+    [Fact]
+    public async Task NewCommand_WhenFrameworkSpecified_UsesCorrectFramework()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
+                {
+                    Assert.Equal("net10.0", framework); // Check that the specified framework is used.
+                    return 0; // Success
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None --framework net10.0");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
     }
 
     private sealed class ThrowingCertificateService : ICertificateService
