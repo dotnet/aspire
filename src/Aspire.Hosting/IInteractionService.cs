@@ -103,6 +103,8 @@ public interface IInteractionService
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class InteractionInput
 {
+    internal const int MaxTextLength = 8000;
+
     /// <summary>
     /// Gets or sets the label for the input.
     /// </summary>

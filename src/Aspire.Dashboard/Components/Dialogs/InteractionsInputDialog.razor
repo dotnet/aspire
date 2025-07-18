@@ -51,7 +51,8 @@
                                              Placeholder="@localItem.Input.Placeholder"
                                              Required="localItem.Input.Required"
                                              Immediate="true"
-                                             aria-describedby="@descriptionId" />
+                                             aria-describedby="@descriptionId"
+                                             Maxlength="@MaxTextLength" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
@@ -64,7 +65,8 @@
                                              TextFieldType="TextFieldType.Password"
                                              AutoComplete="one-time-code"
                                              Immediate="true"
-                                             aria-describedby="@descriptionId" />
+                                             aria-describedby="@descriptionId"
+                                             Maxlength="@MaxTextLength" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
