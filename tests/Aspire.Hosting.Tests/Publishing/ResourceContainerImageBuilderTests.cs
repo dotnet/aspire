@@ -384,7 +384,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task BuildImagesAsync_WithOnlyProjectResources_DoesNotNeedContainerRuntime()
+    public async Task BuildImagesAsync_WithOnlyProjectResourcesAndOci_DoesNotNeedContainerRuntime()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
 
@@ -407,7 +407,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // This should not fail despite the fake container runtime being configured to fail
         // because we only have project resources (no DockerfileBuildAnnotation)
-        await imageBuilder.BuildImagesAsync([servicea.Resource], options: null, cts.Token);
+        await imageBuilder.BuildImagesAsync([servicea.Resource], options: new ContainerBuildOptions { ImageFormat = ContainerImageFormat.Oci }, cts.Token);
 
         // Validate that the container runtime health check was not called
         Assert.False(fakeContainerRuntime.WasHealthCheckCalled);
