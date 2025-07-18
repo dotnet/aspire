@@ -24,6 +24,7 @@ ARCH=""
 SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
+DRY_RUN=false
 
 # Function to show help
 show_help() {
@@ -48,6 +49,7 @@ USAGE:
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
+    --dry-run                   Show what would be done without actually performing any actions
     -v, --verbose               Enable verbose output
     -h, --help                  Show this help message
 
@@ -58,6 +60,7 @@ EXAMPLES:
     ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
     ./get-aspire-cli.sh --keep-archive
+    ./get-aspire-cli.sh --dry-run
     ./get-aspire-cli.sh --help
 
     # Piped execution (like wget <url> | bash or curl <url> | bash):
@@ -120,6 +123,10 @@ parse_args() {
                 KEEP_ARCHIVE=true
                 shift
                 ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
             -v|--verbose)
                 VERBOSE=true
                 shift
@@ -156,7 +163,6 @@ say_info() {
     echo -e "$1" >&2
 }
 
-# Function to detect OS
 detect_os() {
     local uname_s
     uname_s=$(uname -s)
@@ -208,7 +214,6 @@ get_cli_architecture_from_architecture() {
     esac
 }
 
-# Function to detect architecture
 detect_architecture() {
     local uname_m
     uname_m=$(uname -m)
@@ -301,6 +306,11 @@ download_file() {
     local validate_content_type="${5:-true}"
     local use_temp_file="${6:-true}"
 
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would download $url"
+        return 0
+    fi
+
     local target_file="$output_path"
     if [[ "$use_temp_file" == true ]]; then
         target_file="${output_path}.tmp"
@@ -326,7 +336,7 @@ download_file() {
         say_verbose "Successfully downloaded file to: $output_path"
         return 0
     else
-        say_error "Failed to download $url to $output_path"
+        say_error "Failed to download $url"
         return 1
     fi
 }
@@ -335,6 +345,11 @@ download_file() {
 validate_checksum() {
     local archive_file="$1"
     local checksum_file="$2"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would validate checksum of $archive_file using $checksum_file"
+        return 0
+    fi
 
     # Determine the checksum command to use
     local checksum_cmd=""
@@ -379,6 +394,11 @@ install_archive() {
     local archive_file="$1"
     local destination_path="$2"
     local os="$3"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would install archive $archive_file to $destination_path"
+        return 0
+    fi
 
     say_verbose "Installing archive to: $destination_path"
 
@@ -425,6 +445,12 @@ add_to_path()
     local config_file="$1"
     local bin_path="$2"
     local command="$3"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would check if $bin_path is already in \$PATH"
+        say_info "[DRY RUN] Would add '$command' to $config_file if not already present"
+        return 0
+    fi
 
     if [[ ":$PATH:" == *":$bin_path:"* ]]; then
         say_info "Path $bin_path already exists in \$PATH, skipping addition"
@@ -641,7 +667,9 @@ download_and_install_archive() {
         return 1
     fi
 
-    say_verbose "Successfully downloaded and validated: $filename"
+    if [[ "$DRY_RUN" != true ]]; then
+        say_verbose "Successfully downloaded and validated: $filename"
+    fi
 
     # Install the archive
     if ! install_archive "$filename" "$INSTALL_PATH" "$os"; then
@@ -661,14 +689,19 @@ download_and_install_archive() {
 # Parse command line arguments
 parse_args "$@"
 
-# Show help if requested
 if [[ "$SHOW_HELP" == true ]]; then
     show_help
     exit 0
 fi
 
+# Initialize default values after parsing arguments
+if [[ -z "$QUALITY" ]]; then
+    # Default quality to "staging" if not provided
+    QUALITY="staging"
+fi
+
 # Validate that both Version and Quality are not provided
-if [[ -n "$VERSION" && "$QUALITY" != "ga" ]]; then
+if [[ -n "$VERSION" && -n "$QUALITY" ]]; then
     say_error "Cannot specify both --version and --quality. Use --version for a specific version or --quality for a quality level."
     say_info "Use --help for usage information."
     exit 1
@@ -683,12 +716,21 @@ else
 fi
 
 # Create a temporary directory for downloads
-temp_dir=$(mktemp -d -t aspire-cli-download-XXXXXXXX)
-say_verbose "Creating temporary directory: $temp_dir"
+if [[ "$DRY_RUN" == true ]]; then
+    temp_dir="/tmp/aspire-cli-dry-run"
+else
+    temp_dir=$(mktemp -d -t aspire-cli-download-XXXXXXXX)
+    say_verbose "Creating temporary directory: $temp_dir"
+fi
 
 # Cleanup function for temporary directory
 cleanup() {
     # shellcheck disable=SC2317  # Function is called via trap
+    if [[ "$DRY_RUN" == true ]]; then
+        # No cleanup needed in dry-run mode
+        return 0
+    fi
+
     if [[ -n "${temp_dir:-}" ]] && [[ -d "$temp_dir" ]]; then
         if [[ "$KEEP_ARCHIVE" != true ]]; then
             say_verbose "Cleaning up temporary files..."
@@ -710,8 +752,12 @@ fi
 # Handle GitHub Actions environment
 if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
     if [[ -n "${GITHUB_PATH:-}" ]]; then
-        echo "$INSTALL_PATH" >> "$GITHUB_PATH"
-        say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
+        else
+            echo "$INSTALL_PATH" >> "$GITHUB_PATH"
+            say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+        fi
     fi
 fi
 
@@ -720,5 +766,9 @@ add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
 
 # Add to current session PATH, if the path is not already in PATH
 if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
-    export PATH="$INSTALL_PATH:$PATH"
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
+    else
+        export PATH="$INSTALL_PATH:$PATH"
+    fi
 fi

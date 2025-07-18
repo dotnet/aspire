@@ -1,8 +1,11 @@
 #!/usr/bin/env pwsh
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
+    [Parameter(HelpMessage = "Directory to install the CLI")]
     [string]$InstallPath = "",
+
+    [Parameter(HelpMessage = "Version of the Aspire CLI to download")]
     [string]$Version = "",
 
     [Parameter(HelpMessage = "Quality to download")]
@@ -12,14 +15,21 @@ param(
     [Parameter(HelpMessage = "Operating system")]
     [ValidateSet("", "win", "linux", "linux-musl", "osx")]
     [string]$OS = "",
+
+    [Parameter(HelpMessage = "Architecture")]
+    [ValidateSet("", "x64", "x86", "arm64")]
     [string]$Architecture = "",
+
+    [Parameter(HelpMessage = "Keep downloaded archive files and temporary directory after installation")]
     [switch]$KeepArchive,
+
+    [Parameter(HelpMessage = "Show help message")]
     [switch]$Help
 )
 
 # Global constants
 $Script:UserAgent = "get-aspire-cli.ps1/1.0"
-$Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6
+$Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
 
@@ -54,16 +64,18 @@ if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion)
 }
 
 if ($Help) {
-    Write-Host @"
+    Write-Message @"
 Aspire CLI Download Script
 
 DESCRIPTION:
     Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
     Automatically updates the current session's PATH environment variable and supports GitHub Actions.
 
-    Running this without any arguments will download the latest stable version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality ga` download the latest GA version of the Aspire CLI for your platform and architecture.
     Running with `-Quality staging` will download the latest staging version, or the GA version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
+
+    The default quality is `staging`.
 
     Pass a specific version to get CLI for that version.
 
@@ -106,33 +118,56 @@ EXAMPLES:
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
 function Write-Message {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
         [string]$Message,
-        [ValidateSet('Verbose', 'Info', 'Success', 'Warning', 'Error')]
-        [string]$Level = 'Info'
+
+        [Parameter()]
+        [ValidateSet("Verbose", "Info", "Success", "Warning", "Error")]
+        [string]$Level = "Info"
     )
 
-    try {
-        switch ($Level) {
-            'Verbose' { Write-Verbose $Message }
-            'Info' { Write-Host $Message -ForegroundColor White }
-            'Success' { Write-Host $Message -ForegroundColor Green }
-            'Warning' { Write-Host "Warning: $Message" -ForegroundColor Yellow }
-            'Error' { Write-Host "Error: $Message" -ForegroundColor Red }
+    $hasWriteHost = Get-Command Write-Host -ErrorAction SilentlyContinue
+
+    switch ($Level) {
+        "Verbose" {
+            if ($VerbosePreference -ne "SilentlyContinue") {
+                Write-Verbose $Message
+            }
         }
-    }
-    catch {
-        # Fallback for platforms that don't support Write-Host (e.g., Azure Functions)
-        $prefix = if ($Level -in @('Warning', 'Error')) { "$Level`: " } else { "" }
-        Write-Output "$prefix$Message"
+        "Info" {
+            if ($hasWriteHost) {
+                Write-Host $Message -ForegroundColor White
+            } else {
+                Write-Output $Message
+            }
+        }
+        "Success" {
+            if ($hasWriteHost) {
+                Write-Host $Message -ForegroundColor Green
+            } else {
+                Write-Output "SUCCESS: $Message"
+            }
+        }
+        "Warning" {
+            Write-Warning $Message
+        }
+        "Error" {
+            Write-Error $Message
+        }
     }
 }
 
 # Helper function for PowerShell version-specific operations
 function Invoke-WithPowerShellVersion {
+    [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
         [scriptblock]$ModernAction,
+
+        [Parameter(Mandatory = $true)]
         [scriptblock]$LegacyAction
     )
 
@@ -145,146 +180,192 @@ function Invoke-WithPowerShellVersion {
 
 # Function to detect OS
 function Get-OperatingSystem {
-    Invoke-WithPowerShellVersion -ModernAction {
-        if ($IsWindows) {
-            return "win"
-        }
-        elseif ($IsLinux) {
-            try {
-                $lddOutput = & ldd --version 2>&1 | Out-String
-                return if ($lddOutput -match "musl") { "linux-musl" } else { "linux" }
-            }
-            catch { return "linux" }
-        }
-        elseif ($IsMacOS) {
-            return "osx"
-        }
-        else {
-            return "unsupported"
-        }
-    } -LegacyAction {
-        # PowerShell 5.1 and earlier - more reliable Windows detection
-        if ($env:OS -eq "Windows_NT" -or [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
-            return "win"
-        }
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
 
-        $platform = [System.Environment]::OSVersion.Platform
-        switch ($platform) {
-            { $_ -in @([System.PlatformID]::Unix, 4, 6) } { return "linux" }
-            { $_ -in @([System.PlatformID]::MacOSX, 128) } { return "osx" }
-            default { return "unsupported" }
+    try {
+        return Invoke-WithPowerShellVersion -ModernAction {
+            if ($IsWindows) {
+                return "win"
+            }
+            elseif ($IsLinux) {
+                try {
+                    $lddOutput = & ldd --version 2>&1 | Out-String
+                    return if ($lddOutput -match "musl") { "linux-musl" } else { "linux" }
+                }
+                catch { return "linux" }
+            }
+            elseif ($IsMacOS) {
+                return "osx"
+            }
+            else {
+                return "unsupported"
+            }
+        } -LegacyAction {
+            # PowerShell 5.1 and earlier - more reliable Windows detection
+            if ($env:OS -eq "Windows_NT" -or [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+                return "win"
+            }
+
+            $platform = [System.Environment]::OSVersion.Platform
+            switch ($platform) {
+                { $_ -in @([System.PlatformID]::Unix, 4, 6) } { return "linux" }
+                { $_ -in @([System.PlatformID]::MacOSX, 128) } { return "osx" }
+                default { return "unsupported" }
+            }
         }
+    }
+    catch {
+        Write-Message "Failed to detect operating system: $($_.Exception.Message)" -Level Warning
+        return "unsupported"
     }
 }
 
-# Taken from dotnet-install.ps1 and enhanced for cross-platform support
-function Get-MachineArchitecture() {
-    Write-Message "Get-MachineArchitecture called" -Level Verbose
+# Enhanced function for cross-platform architecture detection
+function Get-MachineArchitecture {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
 
-    # On Windows PowerShell, use environment variables
-    if (-not $Script:IsModernPowerShell -or $IsWindows) {
-        # On PS x86, PROCESSOR_ARCHITECTURE reports x86 even on x64 systems.
-        # To get the correct architecture, we need to use PROCESSOR_ARCHITEW6432.
-        # PS x64 doesn't define this, so we fall back to PROCESSOR_ARCHITECTURE.
-        # Possible values: amd64, x64, x86, arm64, arm
-        if ( $null -ne $ENV:PROCESSOR_ARCHITEW6432 ) {
-            return $ENV:PROCESSOR_ARCHITEW6432
-        }
+    Write-Message "Detecting machine architecture" -Level Verbose
 
-        try {
-            if ( ((Get-CimInstance -ClassName CIM_OperatingSystem).OSArchitecture) -like "ARM*") {
-                if ( [Environment]::Is64BitOperatingSystem ) {
-                    return "arm64"
+    try {
+        # On Windows PowerShell, use environment variables
+        if (-not $Script:IsModernPowerShell -or $IsWindows) {
+            # On PS x86, PROCESSOR_ARCHITECTURE reports x86 even on x64 systems.
+            # To get the correct architecture, we need to use PROCESSOR_ARCHITEW6432.
+            # PS x64 doesn't define this, so we fall back to PROCESSOR_ARCHITECTURE.
+            # Possible values: amd64, x64, x86, arm64, arm
+            if ( $null -ne $ENV:PROCESSOR_ARCHITEW6432 ) {
+                return $ENV:PROCESSOR_ARCHITEW6432
+            }
+
+            try {
+                $osInfo = Get-CimInstance -ClassName CIM_OperatingSystem -ErrorAction Stop
+                if ($osInfo.OSArchitecture -like "ARM*") {
+                    if ([Environment]::Is64BitOperatingSystem) {
+                        return "arm64"
+                    }
+                    return "arm"
                 }
-                return "arm"
+            }
+            catch {
+                Write-Message "Failed to get CIM instance: $($_.Exception.Message)" -Level Verbose
+            }
+
+            if ( $null -ne $ENV:PROCESSOR_ARCHITECTURE ) {
+                return $ENV:PROCESSOR_ARCHITECTURE
             }
         }
-        catch {
-            # Machine doesn't support Get-CimInstance
-        }
 
-        if ($null -ne $ENV:PROCESSOR_ARCHITECTURE) {
-            return $ENV:PROCESSOR_ARCHITECTURE
-        }
-    }
-
-    # For PowerShell 6+ on Unix systems, use .NET runtime information
-    if ($Script:IsModernPowerShell) {
-        try {
-            $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
-            switch ($runtimeArch) {
-                'X64' { return "x64" }
-                'X86' { return "x86" }
-                'Arm64' { return "arm64" }
-                default {
-                    Write-Message "Unknown runtime architecture: $runtimeArch" -Level Verbose
-                    # Fall back to uname if available
-                    if (Get-Command uname -ErrorAction SilentlyContinue) {
-                        $unameArch = & uname -m
-                        switch ($unameArch) {
-                            { @('x86_64', 'amd64') -contains $_ } { return "x64" }
-                            { @('aarch64', 'arm64') -contains $_ } { return "arm64" }
-                            { @('i386', 'i686') -contains $_ } { return "x86" }
-                            default {
-                                Write-Message "Unknown uname architecture: $unameArch" -Level Verbose
-                                return "x64"  # Default fallback
+        # For PowerShell 6+ on Unix systems, use .NET runtime information
+        if ($Script:IsModernPowerShell) {
+            try {
+                $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+                switch ($runtimeArch) {
+                    "X64" { return "x64" }
+                    "X86" { return "x86" }
+                    "Arm64" { return "arm64" }
+                    default {
+                        Write-Message "Unknown runtime architecture: $runtimeArch" -Level Verbose
+                        # Fall back to uname if available
+                        if (Get-Command uname -ErrorAction SilentlyContinue) {
+                            $unameArch = & uname -m
+                            switch ($unameArch) {
+                                { @("x86_64", "amd64") -contains $_ } { return "x64" }
+                                { @("aarch64", "arm64") -contains $_ } { return "arm64" }
+                                { @("i386", "i686") -contains $_ } { return "x86" }
+                                default {
+                                    Write-Message "Unknown uname architecture: $unameArch" -Level Verbose
+                                    return "x64"  # Default fallback
+                                }
                             }
                         }
+                        return "x64"  # Default fallback
                     }
-                    return "x64"  # Default fallback
                 }
             }
+            catch {
+                Write-Message "Failed to get runtime architecture: $($_.Exception.Message)" -Level Warning
+                return "x64"  # Default fallback
+            }
         }
-        catch {
-            Write-Message "Failed to get runtime architecture: $($_.Exception.Message)" -Level Warning
-            # Final fallback - assume x64
-            return "x64"
-        }
-    }
 
-    # Final fallback for older PowerShell versions
-    return "x64"
+        # Final fallback for older PowerShell versions
+        return "x64"
+    }
+    catch {
+        Write-Message "Architecture detection failed: $($_.Exception.Message)" -Level Warning
+        return "x64"  # Safe fallback
+    }
 }
 
-# taken from dotnet-install.ps1
-function Get-CLIArchitectureFromArchitecture([string]$Architecture) {
-    Write-Message "Get-CLIArchitectureFromArchitecture called with Architecture: $Architecture" -Level Verbose
+# Convert architecture to CLI architecture format
+function Get-CLIArchitectureFromArchitecture {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Architecture
+    )
+
+    Write-Message "Converting architecture: $Architecture" -Level Verbose
 
     if ($Architecture -eq "<auto>") {
         $Architecture = Get-MachineArchitecture
     }
 
-    switch ($Architecture.ToLowerInvariant()) {
-        { ($_ -eq "amd64") -or ($_ -eq "x64") } { return "x64" }
-        { $_ -eq "x86" } { return "x86" }
-        { $_ -eq "arm64" } { return "arm64" }
-        default { throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues" }
+    $normalizedArch = $Architecture.ToLowerInvariant()
+    switch ($normalizedArch) {
+        { @("amd64", "x64") -contains $_ } {
+            return "x64"
+        }
+        { $_ -eq "x86" } {
+            return "x86"
+        }
+        { $_ -eq "arm64" } {
+            return "arm64"
+        }
+        default {
+            throw "Architecture '$Architecture' not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
+        }
     }
 }
 
 function Get-ContentTypeFromUri {
+    [CmdletBinding()]
+    [OutputType([string])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Uri,
+
+        [Parameter()]
         [int]$TimeoutSec = 60,
+
+        [Parameter()]
         [int]$OperationTimeoutSec = 30,
+
+        [Parameter()]
         [int]$MaxRetries = 5
     )
 
     try {
         Write-Message "Making HEAD request to get content type for: $Uri" -Level Verbose
-        $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method 'Head' -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
+        $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method "Head" -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
 
         # Extract Content-Type from response headers
         $headers = $headResponse.Headers
         if ($headers) {
             # Try common case variations and use case-insensitive lookup
-            $contentTypeKey = $headers.Keys | Where-Object { $_ -ieq 'Content-Type' } | Select-Object -First 1
+            $contentTypeKey = $headers.Keys | Where-Object { $_ -ieq "Content-Type" } | Select-Object -First 1
             if ($contentTypeKey) {
                 $value = $headers[$contentTypeKey]
                 if ($value -is [array]) {
-                    return $value -join ', '
-                } else {
+                    return $value -join ", "
+                }
+                else {
                     return $value
                 }
             }
@@ -297,14 +378,26 @@ function Get-ContentTypeFromUri {
     }
 }
 
-# Common function for web requests with centralized configuration
+# Enhanced web request function with security and reliability improvements
 function Invoke-SecureWebRequest {
+    [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
         [string]$Uri,
+
+        [Parameter()]
         [string]$OutFile,
-        [string]$Method = 'Get',
+
+        [Parameter()]
+        [string]$Method = "Get",
+
+        [Parameter()]
         [int]$TimeoutSec = 60,
+
+        [Parameter()]
         [int]$OperationTimeoutSec = 30,
+
+        [Parameter()]
         [int]$MaxRetries = 5
     )
 
@@ -335,22 +428,21 @@ function Invoke-SecureWebRequest {
         UserAgent = $Script:UserAgent
     }
 
-    if ($Method -eq 'Get' -and $OutFile) {
+    if ($Method -eq "Get" -and $OutFile) {
         $requestParams.OutFile = $OutFile
     }
 
     # Add modern PowerShell parameters with graceful fallback
     if ($Script:IsModernPowerShell) {
-        @('SslProtocol', 'OperationTimeoutSeconds', 'MaximumRetryCount') | ForEach-Object {
-            $paramName = $_
-            $paramValue = switch ($paramName) {
-                'SslProtocol' { @('Tls12', 'Tls13') }
-                'OperationTimeoutSeconds' { $OperationTimeoutSec }
-                'MaximumRetryCount' { $MaxRetries }
-            }
+        $modernParams = @{
+            "SslProtocol" = @("Tls12", "Tls13")
+            "OperationTimeoutSeconds" = $OperationTimeoutSec
+            "MaximumRetryCount" = $MaxRetries
+        }
 
+        foreach ($paramName in $modernParams.Keys) {
             try {
-                $requestParams[$paramName] = $paramValue
+                $requestParams[$paramName] = $modernParams[$paramName]
             }
             catch {
                 Write-Message "$paramName parameter not available: $($_.Exception.Message)" -Level Verbose
@@ -366,22 +458,30 @@ function Invoke-SecureWebRequest {
     }
 }
 
-# Simplified file download wrapper
+# Enhanced file download wrapper with validation
 function Invoke-FileDownload {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Uri,
+
         [Parameter(Mandatory = $true)]
         [string]$OutputPath,
+
+        [Parameter()]
         [int]$TimeoutSec = 60,
+
+        [Parameter()]
         [int]$OperationTimeoutSec = 30,
+
+        [Parameter()]
         [int]$MaxRetries = 5
     )
 
     # Validate content type via HEAD request
     Write-Message "Validating content type for $Uri" -Level Verbose
     $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
-    Write-Message "Detected content type: '$contentType'" -Level Verbose
+    Write-Message "Detected content type: $contentType" -Level Verbose
 
     if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
         throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
@@ -393,14 +493,18 @@ function Invoke-FileDownload {
         Write-Message "Successfully downloaded file to: $OutputPath" -Level Verbose
     }
     catch {
-        throw "Failed to download $Uri to $OutputPath - $($_.Exception.Message)"
+        throw "Failed to download $Uri - $($_.Exception.Message)"
     }
 }
 
-# Validate the checksum of the downloaded file
+# Enhanced checksum validation with proper error handling
 function Test-FileChecksum {
+    [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
         [string]$ArchiveFile,
+
+        [Parameter(Mandatory = $true)]
         [string]$ChecksumFile
     )
 
@@ -409,8 +513,8 @@ function Test-FileChecksum {
         throw "Get-FileHash cmdlet not found. Please use PowerShell 4.0 or later to validate checksums."
     }
 
-    $expectedChecksum = (Get-Content $ChecksumFile -Raw).Trim().ToLower()
-    $actualChecksum = (Get-FileHash -Path $ArchiveFile -Algorithm SHA512).Hash.ToLower()
+    $expectedChecksum = (Get-Content $ChecksumFile -Raw -ErrorAction Stop).Trim().ToLowerInvariant()
+    $actualChecksum = (Get-FileHash -Path $ArchiveFile -Algorithm SHA512 -ErrorAction Stop).Hash.ToLowerInvariant()
 
     # Compare checksums
     if ($expectedChecksum -ne $actualChecksum) {
@@ -431,6 +535,7 @@ function Expand-AspireCliArchive {
     try {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
+            Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
             New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
         }
 
@@ -467,10 +572,22 @@ function Expand-AspireCliArchive {
 
 # Simplified installation path determination
 function Get-InstallPath {
-    param([string]$InstallPath)
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$InstallPath
+    )
 
     if (-not [string]::IsNullOrWhiteSpace($InstallPath)) {
-        return $InstallPath
+        # Validate that the path is not just whitespace and can be created
+        try {
+            $resolvedPath = [System.IO.Path]::GetFullPath($InstallPath)
+            return $resolvedPath
+        }
+        catch {
+            throw "Invalid installation path: $InstallPath - $($_.Exception.Message)"
+        }
     }
 
     # Get home directory cross-platform
@@ -498,15 +615,20 @@ function Get-InstallPath {
         throw "Unable to determine user home directory. Please specify -InstallPath parameter."
     }
 
-    return Join-Path (Join-Path $homeDirectory ".aspire") "bin"
+    $defaultPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
+    return [System.IO.Path]::GetFullPath($defaultPath)
 }
 
 # Simplified PATH environment update
 function Update-PathEnvironment {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$InstallPath,
+
         [Parameter(Mandatory = $true)]
+        [ValidateSet("win", "linux", "linux-musl", "osx")]
         [string]$TargetOS
     )
 
@@ -515,8 +637,10 @@ function Update-PathEnvironment {
     # Update current session PATH
     $currentPathArray = $env:PATH.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
     if ($currentPathArray -notcontains $InstallPath) {
-        $env:PATH = (@($InstallPath) + $currentPathArray) -join $pathSeparator
-        Write-Message "Added $InstallPath to PATH for current session" -Level Info
+        if ($PSCmdlet.ShouldProcess("PATH environment variable", "Add $InstallPath to current session")) {
+            $env:PATH = (@($InstallPath) + $currentPathArray) -join $pathSeparator
+            Write-Message "Added $InstallPath to PATH for current session" -Level Info
+        }
     }
 
     # Update persistent PATH for Windows
@@ -525,27 +649,30 @@ function Update-PathEnvironment {
             $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
             if (-not $userPath) { $userPath = "" }
             $userPathArray = if ($userPath) { $userPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries) } else { @() }
-
             if ($userPathArray -notcontains $InstallPath) {
-                $newUserPath = (@($InstallPath) + $userPathArray) -join $pathSeparator
-                [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
-                Write-Message "Added $InstallPath to user PATH environment variable" -Level Info
+                if ($PSCmdlet.ShouldProcess("User PATH environment variable", "Add $InstallPath")) {
+                    $newUserPath = (@($InstallPath) + $userPathArray) -join $pathSeparator
+                    [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
+                    Write-Message "Added $InstallPath to user PATH environment variable" -Level Info
+                }
             }
 
-            Write-Host ""
-            Write-Host "The aspire cli is now available for use in this and new sessions." -ForegroundColor Green
+            Write-Message "" -Level Info
+            Write-Message "The aspire cli is now available for use in this and new sessions." -Level Success
         }
         catch {
             Write-Message "Failed to update persistent PATH environment variable: $($_.Exception.Message)" -Level Warning
-            Write-Message "You may need to manually add '$InstallPath' to your PATH environment variable" -Level Info
+            Write-Message "You may need to manually add $InstallPath to your PATH environment variable" -Level Info
         }
     }
 
     # GitHub Actions support
     if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
         try {
-            Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
-            Write-Message "Added $InstallPath to GITHUB_PATH for GitHub Actions" -Level Success
+            if ($PSCmdlet.ShouldProcess("GITHUB_PATH environment variable", "Add $InstallPath to GITHUB_PATH")) {
+                Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
+                Write-Message "Added $InstallPath to GITHUB_PATH for GitHub Actions" -Level Success
+            }
         }
         catch {
             Write-Message "Failed to update GITHUB_PATH: $($_.Exception.Message)" -Level Warning
@@ -553,69 +680,88 @@ function Update-PathEnvironment {
     }
 }
 
-# Function to construct the base URL for the Aspire CLI download
+# Enhanced URL construction function with configuration-based URLs
 function Get-AspireCliUrl {
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param(
+        [Parameter()]
         [string]$Version,
+
+        [Parameter()]
         [string]$Quality,
+
+        [Parameter(Mandatory = $true)]
         [string]$RuntimeIdentifier,
-        [string]$Extension,
-        [bool]$IsChecksum = $false
+
+        [Parameter(Mandatory = $true)]
+        [string]$Extension
     )
 
-    # Default quality to "ga" if empty
-    if ([string]::IsNullOrWhiteSpace($Quality)) {
-        $Quality = "ga"
-    }
-
-    # Add .sha512 to extension if checksum is true
-    if ($IsChecksum) {
-        $Extension = "$Extension.sha512"
+    # Validate quality against supported values
+    if ($Quality -notin $Script:Config.SupportedQualities) {
+        throw "Unsupported quality '$Quality'. Supported values are: $($Script:Config.SupportedQualities -join ", ")."
     }
 
     if ([string]::IsNullOrWhiteSpace($Version)) {
         # When version is not set use aka.ms URLs based on quality
-        $baseUrl = switch ($Quality) {
-            "daily" { "https://aka.ms/dotnet/9/aspire/daily" }
-            "prerelease" { "https://aka.ms/dotnet/9/aspire/rc/daily" }
-            "ga" { "https://aka.ms/dotnet/9/aspire/ga/daily" }
-            default {
-                throw "Unsupported quality '$Quality'. Supported values are: daily, prerelease, ga."
-            }
+        $baseUrl = $Script:Config.BaseUrls[$Quality]
+        if (-not $baseUrl) {
+            throw "No base URL configured for quality: $Quality"
         }
 
-        return "$baseUrl/aspire-cli-$RuntimeIdentifier.$Extension"
-    } else {
+        $archiveFilename = "aspire-cli-$RuntimeIdentifier.$Extension"
+        $checksumFilename = "aspire-cli-$RuntimeIdentifier.$Extension.sha512"
+
+        return [PSCustomObject]@{
+            ArchiveUrl = "$baseUrl/$archiveFilename"
+            ArchiveFilename = $archiveFilename
+            ChecksumUrl = "$baseUrl/$checksumFilename"
+            ChecksumFilename = $checksumFilename
+        }
+    }
+    else {
         # When version is set, use ci.dot.net URL
-        if ($IsChecksum) {
-            # For checksum URLs, use the public-checksums URL
-            $baseUrl = "https://ci.dot.net/public-checksums/aspire"
-        } else {
-            $baseUrl = "https://ci.dot.net/public/aspire"
-        }
+        $archiveFilename = "aspire-cli-$RuntimeIdentifier-$Version.$Extension"
+        $checksumFilename = "$archiveFilename.sha512"
 
-        return "$baseUrl/$Version/aspire-cli-$RuntimeIdentifier-$Version.$Extension"
+        return [PSCustomObject]@{
+            ArchiveUrl = "$($Script:Config.BaseUrls["versioned"])/$Version/$archiveFilename"
+            ArchiveFilename = $archiveFilename
+            ChecksumUrl = "$($Script:Config.BaseUrls["versioned-checksums"])/$Version/$checksumFilename"
+            ChecksumFilename = $checksumFilename
+        }
     }
 }
 
 # Function to download and install the Aspire CLI
 function Install-AspireCli {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$InstallPath,
-        [Parameter(Mandatory = $true)]
         [string]$Version,
-        [Parameter(Mandatory = $true)]
         [string]$Quality,
         [string]$OS,
-        [string]$Architecture,
-        [switch]$KeepArchive
+        [string]$Architecture
     )
 
-    # Create a temporary directory for downloads
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "aspire-cli-download-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+    # Create a temporary directory for downloads with conflict resolution
+    $tempBaseName = "aspire-cli-download-$([System.Guid]::NewGuid().ToString("N").Substring(0, 8))"
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) $tempBaseName
 
-    if (-not (Test-Path $tempDir)) {
+    # Handle potential conflicts
+    $attempt = 1
+    while (Test-Path $tempDir) {
+        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "$tempBaseName-$attempt"
+        $attempt++
+        if ($attempt -gt 10) {
+            throw "Unable to create temporary directory after 10 attempts"
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess($InstallPath, "Create temporary directory")) {
         Write-Message "Creating temporary directory: $tempDir" -Level Verbose
         try {
             New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
@@ -634,34 +780,39 @@ function Install-AspireCli {
             throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
         }
 
-        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitectureFromArchitecture '<auto>' } else { Get-CLIArchitectureFromArchitecture $Architecture }
+        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitectureFromArchitecture "<auto>" } else { Get-CLIArchitectureFromArchitecture $Architecture }
 
         # Construct the runtime identifier and URLs
         $runtimeIdentifier = "$targetOS-$targetArch"
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
-        $url = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension -IsChecksum $false
-        $checksumUrl = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension -IsChecksum $true
+        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
 
-        $filename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension"
-        $checksumFilename = Join-Path $tempDir "aspire-cli-$runtimeIdentifier.$extension.sha512"
+        $archivePath = Join-Path $tempDir $urls.ArchiveFilename
+        $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
 
-        # Download the Aspire CLI archive
-        Write-Message "Downloading from: $url" -Level Info
-        Invoke-FileDownload -Uri $url -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $filename
+        if ($PSCmdlet.ShouldProcess($urls.ArchiveUrl, "Download CLI archive")) {
+            # Download the Aspire CLI archive
+            Write-Message "Downloading from: $($urls.ArchiveUrl)" -Level Info
+            Invoke-FileDownload -Uri $urls.ArchiveUrl -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $archivePath
+        }
 
-        # Download and test the checksum
-        Invoke-FileDownload -Uri $checksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumFilename
-        Test-FileChecksum -ArchiveFile $filename -ChecksumFile $checksumFilename
+        if ($PSCmdlet.ShouldProcess($urls.ChecksumUrl, "Download CLI archive checksum")) {
+            # Download and test the checksum
+            Invoke-FileDownload -Uri $urls.ChecksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumPath
+            Test-FileChecksum -ArchiveFile $archivePath -ChecksumFile $checksumPath
 
-        Write-Message "Successfully downloaded and validated: $filename" -Level Verbose
+            Write-Message "Successfully downloaded and validated: $($urls.ArchiveFilename)" -Level Verbose
+        }
 
-        # Unpack the archive
-        Expand-AspireCliArchive -ArchiveFile $filename -DestinationPath $InstallPath -OS $targetOS
+        if ($PSCmdlet.ShouldProcess($InstallPath, "Install CLI")) {
+            # Unpack the archive
+            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath -OS $targetOS
 
-        $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-        $cliPath = Join-Path $InstallPath $cliExe
+            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
+            $cliPath = Join-Path $InstallPath $cliExe
 
-        Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+            Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+        }
 
         # Return the target OS for the caller to use
         return $targetOS
@@ -685,26 +836,57 @@ function Install-AspireCli {
     }
 }
 
-# Main function
-function Main {
+# Main function with enhanced error handling and validation
+function Start-AspireCliInstallation {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([int])]
+    param()
+
     try {
         # Validate that both Version and Quality are not provided
         if (-not [string]::IsNullOrWhiteSpace($Version) -and $Quality -ne "ga") {
             throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
         }
 
+        # Additional parameter validation
+        if (-not [string]::IsNullOrWhiteSpace($OS) -and $OS -notin $Script:Config.SupportedOperatingSystems) {
+            throw "Unsupported OS '$OS'. Supported values are: $($Script:Config.SupportedOperatingSystems -join ', '))"
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($Architecture) -and $Architecture -notin $Script:Config.SupportedArchitectures) {
+            throw "Unsupported Architecture $Architecture. Supported values are: $($Script:Config.SupportedArchitectures -join ", ")"
+        }
+
         # Determine the installation path
-        $InstallPath = Get-InstallPath -InstallPath $InstallPath
+        $resolvedInstallPath = Get-InstallPath -InstallPath $InstallPath
+
+        # Ensure the installation directory exists
+        if (-not (Test-Path $resolvedInstallPath)) {
+            Write-Message "Creating installation directory: $resolvedInstallPath" -Level Info
+            if ($PSCmdlet.ShouldProcess($resolvedInstallPath, "Create installation directory")) {
+                try {
+                    New-Item -ItemType Directory -Path $resolvedInstallPath -Force | Out-Null
+                }
+                catch {
+                    throw "Failed to create installation directory: $resolvedInstallPath - $($_.Exception.Message)"
+                }
+            }
+        }
 
         # Download and install the Aspire CLI
-        $targetOS = Install-AspireCli -InstallPath $InstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture -KeepArchive:$KeepArchive
+        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
 
         # Update PATH environment variables
-        Update-PathEnvironment -InstallPath $InstallPath -TargetOS $targetOS
+        Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
     }
     catch {
-        Write-Message $_.Exception.Message -Level Error
-        throw
+        # Display clean error message without stack trace
+        Write-Message "Error: $($_.Exception.Message)" -Level Error
+        if ($InvokedFromFile) {
+            exit 1
+        } else {
+            return 1
+        }
     }
 }
 
@@ -715,12 +897,20 @@ try {
         Set-StrictMode -Off
     }
 
-    Main
+    Start-AspireCliInstallation
     $exitCode = 0
 }
 catch {
-    Write-Error $_
+    # Display clean error message without stack trace
+    Write-Message "Error: $($_.Exception.Message)" -Level Error
     $exitCode = 1
 }
 
-if ($InvokedFromFile) { exit $exitCode } else { if ($exitCode -ne 0) { return $exitCode } }
+if ($InvokedFromFile) {
+    exit $exitCode
+}
+else {
+    if ($exitCode -ne 0) {
+        return $exitCode
+    }
+}
