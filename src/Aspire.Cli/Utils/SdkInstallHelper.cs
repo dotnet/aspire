@@ -4,7 +4,7 @@
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 
-namespace Aspire.Cli;
+namespace Aspire.Cli.Utils;
 
 /// <summary>
 /// Helper class for managing SDK installation UX and user interaction.
