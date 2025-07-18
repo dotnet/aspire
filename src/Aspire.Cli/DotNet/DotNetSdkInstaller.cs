@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Semver;
 
 namespace Aspire.Cli.DotNet;
 
@@ -10,8 +11,19 @@ namespace Aspire.Cli.DotNet;
 /// </summary>
 internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
 {
+    /// <summary>
+    /// The minimum .NET SDK version required for Aspire.
+    /// </summary>
+    public const string MinimumSdkVersion = "9.0.302";
+
     /// <inheritdoc />
-    public async Task<bool> CheckAsync(CancellationToken cancellationToken = default)
+    public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
+    {
+        return CheckAsync(MinimumSdkVersion, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> CheckAsync(string minimumVersion, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -20,7 +32,7 @@ internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = "--version",
+                    Arguments = "--list-sdks",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -29,9 +41,40 @@ internal sealed class DotNetSdkInstaller : IDotNetSdkInstaller
             };
 
             process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
             
-            return process.ExitCode == 0;
+            if (process.ExitCode != 0)
+            {
+                return false;
+            }
+
+            // Parse the minimum version requirement
+            if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
+            {
+                return false;
+            }
+
+            // Parse each line of the output to find SDK versions
+            var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                // Each line is in format: "version [path]"
+                var spaceIndex = line.IndexOf(' ');
+                if (spaceIndex > 0)
+                {
+                    var versionString = line[..spaceIndex];
+                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
+                    {
+                        if (SemVersion.ComparePrecedence(sdkVersion, minVersion) >= 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
         catch
         {
