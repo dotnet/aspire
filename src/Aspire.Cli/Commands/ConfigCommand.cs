@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
