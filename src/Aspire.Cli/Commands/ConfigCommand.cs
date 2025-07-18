@@ -17,17 +17,20 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("config", ConfigCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _configuration = configuration;
         _configurationService = configurationService;
         _interactionService = interactionService;
+        _sdkInstaller = sdkInstaller;
 
         var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
         var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
