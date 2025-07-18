@@ -390,7 +390,7 @@ internal sealed class ResourceContainerImageBuilder(
     // .NET Container builds that push OCI images to a local file path do not need a runtime
     internal static bool ResourcesRequireContainerRuntime(IEnumerable<IResource> resources, ContainerBuildOptions? options)
     {
-        var hasDockerfileResources= resources.Any(resource =>
+        var hasDockerfileResources = resources.Any(resource =>
             resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
             resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
         var usesDocker = options == null || options.ImageFormat == ContainerImageFormat.Docker;
