@@ -25,7 +25,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storageResource = builder.AddAzureStorage("storage");
-        var blobResource = storageResource.AddBlobService("blobs").Resource;
+        var blobResource = storageResource.GetBlobService().Resource;
 
         // Act & Assert
         Assert.IsAssignableFrom<IResourceWithAzureFunctionsConfig>(blobResource);
@@ -145,7 +145,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var blobResource = storage.AddBlobService("blobs").Resource;
+        var blobResource = storage.GetBlobService().Resource;
         var target = new Dictionary<string, object>();
 
         // Act

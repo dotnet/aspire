@@ -126,14 +126,14 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Blob Storage connection and c
 
 ```csharp
 var blobs = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureStorage("storage").AddBlobService("blobs")
+    ? builder.AddAzureStorage("storage").GetBlobService()
     : builder.AddConnectionString("blobs");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(blobs);
+                       .WithReference(blobs, "blobs");
 ```
 
-The `AddBlobs` method adds an Azure Storage blob resource to the builder. Or `AddConnectionString` method can be used be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `GetBlobService()` method adds an Azure Storage blob service resource to the builder. Or `AddConnectionString` method can be used be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureBlobServiceClient("blobs");

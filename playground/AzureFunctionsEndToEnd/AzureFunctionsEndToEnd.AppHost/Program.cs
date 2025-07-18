@@ -4,7 +4,7 @@ builder.AddAzureContainerAppEnvironment("env");
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 var queue = storage.AddQueueService("queue");
-var blob = storage.AddBlobService("blob");
+var blob = storage.GetBlobService();
 var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
 var eventHub = builder.AddAzureEventHubs("eventhubs")
@@ -29,7 +29,7 @@ var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_F
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
     .WithReference(myBlobContainer).WaitFor(myBlobContainer)
-    .WithReference(blob)
+    .WithReference(blob, "blob")
     .WithReference(queue);
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
@@ -40,7 +40,7 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
     .WithReference(queue)
-    .WithReference(blob)
+    .WithReference(blob, "blob")
     .WithReference(funcApp);
 
 builder.Build().Run();

@@ -31,7 +31,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
                               .RunAsEmulator()
                               .WithHealthCheck("blocking_check");
 
-        var blobs = storage.AddBlobService("blobs");
+        var blobs = storage.GetBlobService();
         var queues = storage.AddQueueService("queues");
         var tables = storage.AddTableService("tables");
 
@@ -163,7 +163,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var blobs = storage.AddBlobService(blobsResourceName);
+        var blobs = storage.GetBlobService();
         var container = storage.AddBlobContainer(blobContainerName);
 
         var queues = storage.AddQueueService(queuesResourceName);
@@ -214,7 +214,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var blobs = storage.AddBlobService("BlobConnection");
+        var blobs = storage.GetBlobService();
         var blobContainer = storage.AddBlobContainer("testblobcontainer");
 
         using var app = builder.Build();

@@ -74,9 +74,9 @@ public static class AzureStorageExtensions
 
             var azureResource = (AzureStorageResource)infrastructure.AspireResource;
 
-            if (azureResource.BlobStorageResource is not null)
+            if (azureResource.BlobStorageBuilder is not null)
             {
-                var blobService = azureResource.BlobStorageResource.ToProvisioningEntity();
+                var blobService = azureResource.BlobStorageBuilder.Resource.ToProvisioningEntity();
                 blobService.Parent = storageAccount;
                 infrastructure.Add(blobService);
 
@@ -318,50 +318,46 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        return AddBlobService(builder, name);
+        if (name == builder.Resource.Name + "-blobs")
+        {
+            // If the name is the default name, use the AddBlobService method instead so we keep
+            // track of the default resource.
+            return GetBlobService(builder);
+        }
+
+        return CreateBlobService(builder, name);
     }
 
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageResource"/> which can be referenced to get the Azure Storage blob endpoint for the storage account.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
-    /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureBlobStorageResource> AddBlobService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
+    /// <remarks>
+    /// The name of the resource will be the default name of the blob service, which is <c>{builder.Resource.Name}-blobs</c>.
+    /// <para>
+    /// In order to register this resource using a custom name, use the <code>WithReference</code> method that takes a connection name.
+    /// </para>
+    /// <example>
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var blobs = builder.AddAzureStorage("storage").GetBlobService();
+    ///
+    /// var myService = builder.AddProject&lt;Projects.MyService&gt;()
+    ///                       .WithReference(blobs, "blobs");
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureBlobStorageResource> GetBlobService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        name ??= builder.Resource.Name + "-blobs";
+        var name = builder.Resource.Name + "-blobs";
 
-        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureBlobStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
-        if (existingResource != null)
-        {
-            // If the resource already exists, return it.
-            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
-        }
-
-        var resource = new AzureBlobStorageResource(name, builder.Resource);
-        builder.Resource.BlobStorageResource = resource;
-
-        string? connectionString = null;
-
-        // Add the "Blobs" resource health check. This is a separate health check from the "Storage" resource health check.
-        // Doing it on the storage is not sufficient as the WaitForHealthyAsync doesn't bubble up to the parent resources.
-        var healthCheckKey = $"{resource.Name}_check";
-
-        BlobServiceClient? blobServiceClient = null;
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
-        {
-            return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
-        }, name: healthCheckKey);
-
-        return builder.ApplicationBuilder
-            .AddResource(resource)
-            .WithHealthCheck(healthCheckKey)
-            .OnConnectionStringAvailable(async (blobs, @event, ct) =>
-            {
-                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            });
+        return builder.Resource.BlobStorageBuilder ??= CreateBlobService(builder, name);
     }
 
     /// <summary>
@@ -378,13 +374,7 @@ public static class AzureStorageExtensions
 
         blobContainerName ??= name;
 
-        // Create a Blob Service resource implicitly
-        if (builder.Resource.BlobStorageResource is null)
-        {
-            AddBlobService(builder);
-        }
-
-        AzureBlobStorageContainerResource resource = new(name, blobContainerName, builder.Resource.BlobStorageResource!);
+        AzureBlobStorageContainerResource resource = new(name, blobContainerName, GetBlobService(builder).Resource);
         builder.Resource.BlobContainers.Add(resource);
 
         string? connectionString = null;
@@ -619,7 +609,7 @@ public static class AzureStorageExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var storage = builder.AddAzureStorage("storage");
-    /// var blobs = storage.AddBlobService("blobs");
+    /// var blobs = storage.GetBlobService();
     /// 
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
@@ -634,5 +624,30 @@ public static class AzureStorageExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, StorageBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    private static IResourceBuilder<AzureBlobStorageResource> CreateBlobService(IResourceBuilder<AzureStorageResource> builder, string name)
+    {
+        var resource = new AzureBlobStorageResource(name, builder.Resource);
+
+        string? connectionString = null;
+
+        // Add the "Blobs" resource health check. This is a separate health check from the "Storage" resource health check.
+        // Doing it on the storage is not sufficient as the WaitForHealthyAsync doesn't bubble up to the parent resources.
+        var healthCheckKey = $"{resource.Name}_check";
+
+        BlobServiceClient? blobServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ??= CreateBlobServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+        }, name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (blobs, @event, ct) =>
+            {
+                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
     }
 }
