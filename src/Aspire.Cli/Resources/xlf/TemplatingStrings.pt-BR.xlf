@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>AppHost</source>
-        <target state="new">AppHost</target>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
-        <target state="new">AppHost and service defaults</target>
+        <target state="translated">AppHost e padrões de serviço</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
-        <target state="new">MSTest</target>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>NUnit</source>
-        <target state="new">NUnit</target>
+        <target state="translated">NUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
-        <target state="new">Service defaults</target>
+        <target state="translated">Padrões de serviço</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
-        <target state="new">Starter template</target>
+        <target state="translated">Modelo inicial</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>xUnit</source>
-        <target state="new">xUnit</target>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="GettingTemplates">
         <source>Getting templates...</source>
-        <target state="new">Getting templates...</target>
+        <target state="translated">Obtendo modelos...</target>
         <note />
       </trans-unit>
       <trans-unit id="IntegrationTestsTemplate_Description">
         <source>Integration tests</source>
-        <target state="new">Integration tests</target>
+        <target state="translated">Testes de integração</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
