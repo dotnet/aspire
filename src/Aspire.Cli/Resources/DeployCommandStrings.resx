@@ -112,13 +112,14 @@
   <data name="OutputPathArgumentDescription" xml:space="preserve">
     <value>The output path for deployment artifacts.</value>
   </data>
-  <data name="SuccessfullyDeployed" xml:space="preserve">
-    <value>Successfully deployed. Artifacts available at: {0}</value>
-  </data>
-  <data name="DeploymentFailed" xml:space="preserve">
-    <value>Deployment failed with exit code {0}. For more information run with --debug switch.</value>
-  </data>
+
   <data name="DeploymentCanceled" xml:space="preserve">
     <value>The deployment was canceled.</value>
+  </data>
+  <data name="OperationCompletedPrefix" xml:space="preserve">
+    <value>DEPLOYMENT COMPLETED</value>
+  </data>
+  <data name="OperationFailedPrefix" xml:space="preserve">
+    <value>DEPLOYMENT FAILED</value>
   </data>
 </root>

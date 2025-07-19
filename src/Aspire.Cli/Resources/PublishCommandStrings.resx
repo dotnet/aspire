@@ -121,10 +121,11 @@
   <data name="GeneratingArtifacts" xml:space="preserve">
     <value>Generating artifacts...</value>
   </data>
-  <data name="SuccessfullyPublishedArtifacts" xml:space="preserve">
-    <value>Successfully published artifacts to: {0}</value>
+
+  <data name="OperationCompletedPrefix" xml:space="preserve">
+    <value>PUBLISHING COMPLETED</value>
   </data>
-  <data name="FailedToPublishArtifacts" xml:space="preserve">
-    <value>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</value>
+  <data name="OperationFailedPrefix" xml:space="preserve">
+    <value>PUBLISHING FAILED</value>
   </data>
 </root>
