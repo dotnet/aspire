@@ -1,0 +1,255 @@
+#!/bin/bash
+
+# Extract API changes by building current branch and using git diff
+# Usage: ./extract-api-changes-parallel.sh [--core-only]
+
+set -e
+
+CORE_ONLY=false
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --core-only)
+            CORE_ONLY=true
+            shift
+            ;;
+    esac
+done
+
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANALYSIS_DIR="$TOOLS_DIR/analysis-output"
+API_CHANGES_DIR="$ANALYSIS_DIR/api-changes-build-current"
+
+echo "🔧 Extracting API changes by building current branch (parallel)"
+echo "⏱️  This will build the current branch and use git diff to detect changes..."
+
+# Start total timing
+SCRIPT_START_TIME=$(date +%s)
+
+mkdir -p "$API_CHANGES_DIR"
+
+# Get git root
+GIT_ROOT=$(git rev-parse --show-toplevel)
+cd "$GIT_ROOT"
+
+# Get current branch for reporting
+CURRENT_BRANCH=$(git branch --show-current)
+if [ -z "$CURRENT_BRANCH" ]; then
+    CURRENT_BRANCH=$(git rev-parse HEAD)
+fi
+
+echo "💾 Current branch: $CURRENT_BRANCH"
+
+# Check for uncommitted changes
+if ! git diff-index --quiet HEAD --; then
+    echo "❌ Error: You have uncommitted changes in your working directory."
+    echo "   Please commit or stash your changes before running this script."
+    echo ""
+    echo "📋 Uncommitted changes:"
+    git status --porcelain | sed 's/^/   /'
+    echo ""
+    echo "🔧 To fix this:"
+    echo "   git add . && git commit -m 'Save work'"
+    echo "   # OR"
+    echo "   git stash"
+    exit 1
+fi
+
+echo "✅ Working directory is clean"
+
+# Main function
+main() {
+    start_time=$(date +%s)
+    
+    echo "🚀 Starting API Changes Detection Script (Current Branch Build)"
+    echo "   Current Branch: $CURRENT_BRANCH"
+    echo "   Core Projects Only: $CORE_ONLY"
+    echo "   Output Dir: $API_CHANGES_DIR"
+    echo "   Timestamp: $(date)"
+    echo ""
+    
+    # Clean output directory
+    echo "🧹 Cleaning output directory..."
+    rm -rf "$API_CHANGES_DIR"
+    mkdir -p "$API_CHANGES_DIR"
+    echo "✅ Output directory ready: $API_CHANGES_DIR"
+    
+    echo " Building current branch: $CURRENT_BRANCH"
+    
+    # Use the existing APIDiff.proj file
+    local api_diff_proj="$TOOLS_DIR/APIDiff.proj"
+    
+    if [ ! -f "$api_diff_proj" ]; then
+        echo "❌ Error: APIDiff.proj not found at $api_diff_proj"
+        echo "   Please ensure the APIDiff.proj file exists in the tools/ReleaseNotes directory"
+        exit 1
+    fi
+    
+    echo "    📝 Using existing APIDiff.proj..."
+    echo "    🔨 Building all projects and generating API files..."
+    
+    local build_start_time=$(date +%s)
+    
+    # Build all projects using the dedicated project file with binary logging
+    echo "    📝 Binary log will be saved to: $API_CHANGES_DIR/build.binlog"
+    if dotnet build "$api_diff_proj" -t:BuildAndGenerateAPI /bl:"$API_CHANGES_DIR/build.binlog"; then
+        local build_end_time=$(date +%s)
+        local build_time=$((build_end_time - build_start_time))
+        echo "    ✅ All projects built successfully in ${build_time}s"
+    else
+        local build_end_time=$(date +%s)
+        local build_time=$((build_end_time - build_start_time))
+        echo "    ⚠️  Some projects failed to build (${build_time}s)"
+        echo "    📄 Check binary log: $API_CHANGES_DIR/build.binlog"
+    fi
+    
+    # Now check what changed after the build using git diff
+    echo "🔍 Checking for API changes after build..."
+    
+    # Get the diff of all changes in the working directory
+    local git_diff_output=$(git diff)
+    
+    if [ -z "$git_diff_output" ]; then
+        echo "    ℹ️  No API files were modified by the build"
+        echo "No changes detected" > "$API_CHANGES_DIR/api-changes-summary.md"
+        echo "No changes" > "$API_CHANGES_DIR/api-changes-diff.txt"
+    else
+        # Save the full diff to a file
+        echo "$git_diff_output" > "$API_CHANGES_DIR/api-changes-diff.txt"
+        
+        # Count ALL modified files (both modified and untracked)
+        local modified_api_files=$(git diff --name-only | grep "/api/" || true)
+        local untracked_api_files=$(git ls-files --others --exclude-standard | grep "/api/" || true)
+        local all_api_files=$(echo -e "$modified_api_files\n$untracked_api_files" | grep -v '^$' | sort -u)
+        local api_file_count=$(echo "$all_api_files" | grep -c . 2>/dev/null || echo "0")
+        
+        echo "    📄 Found changes in $api_file_count API files"
+        
+        if [ "$api_file_count" -gt 0 ]; then
+            echo "    📝 Modified/Created API files:"
+            echo "$all_api_files" | sed 's/^/       /'
+            
+            # Create uber file with all API files concatenated
+            echo "    📦 Creating uber API file with all changes..."
+            local uber_file="$API_CHANGES_DIR/all-api-changes.txt"
+            
+            # Clear the uber file
+            > "$uber_file"
+            
+            echo "# All API Changes - Uber File" >> "$uber_file"
+            echo "# Generated from: $CURRENT_BRANCH (after parallel build)" >> "$uber_file"
+            echo "# Generated at: $(date)" >> "$uber_file"
+            echo "# Total API files: $api_file_count" >> "$uber_file"
+            echo "" >> "$uber_file"
+            
+            # Concatenate all API files
+            for api_file in $all_api_files; do
+                if [ -n "$api_file" ] && [ -f "$api_file" ]; then
+                    local component_name=$(echo "$api_file" | sed 's|src/||' | sed 's|/api/.*||')
+                    echo "======================================" >> "$uber_file"
+                    echo "API FILE: $api_file" >> "$uber_file"
+                    echo "COMPONENT: $component_name" >> "$uber_file"
+                    echo "======================================" >> "$uber_file"
+                    echo "" >> "$uber_file"
+                    
+                    # Add the full content of the API file
+                    cat "$api_file" >> "$uber_file" 2>/dev/null || echo "# Error reading file $api_file" >> "$uber_file"
+                    echo "" >> "$uber_file"
+                    echo "" >> "$uber_file"
+                fi
+            done
+            
+            echo "    ✅ Uber API file created: $uber_file"
+        fi
+        
+        # Safely revert only the API files that were generated
+        echo "🔄 Reverting only generated API files to clean working directory..."
+        for api_file in $all_api_files; do
+            if [ -n "$api_file" ]; then
+                if git ls-files --error-unmatch "$api_file" >/dev/null 2>&1; then
+                    # File is tracked, revert it
+                    git checkout HEAD -- "$api_file" 2>/dev/null || true
+                else
+                    # File is untracked, remove it
+                    rm -f "$api_file" 2>/dev/null || true
+                fi
+            fi
+        done
+        echo "    ✅ Safely reverted $api_file_count API files only"
+        
+        # Create a summary report
+        cat > "$API_CHANGES_DIR/api-changes-summary.md" << EOF
+# API Changes Summary
+
+Generated from: $CURRENT_BRANCH (after parallel build)
+Generated at: $(date)
+
+## Overview
+
+This document contains API changes detected by:
+1. Building all projects in parallel using APIDiff.proj on current branch: \`$CURRENT_BRANCH\`
+2. Using \`git diff\` to capture working directory changes
+
+## Results
+
+- **API Files Modified**: $api_file_count
+
+EOF
+
+        if [ "$api_file_count" -gt 0 ]; then
+            echo "## Modified API Files" >> "$API_CHANGES_DIR/api-changes-summary.md"
+            echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+            
+            for api_file in $all_api_files; do
+                local component_name=$(echo "$api_file" | sed 's|src/||' | sed 's|/api/.*||')
+                echo "### $component_name" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                echo "**File**: \`$api_file\`" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                
+                # Extract the diff for this specific file
+                local file_diff=$(git diff -- "$api_file")
+                if [ -n "$file_diff" ]; then
+                    echo "\`\`\`diff" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    echo "$file_diff" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    echo "\`\`\`" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    
+                    # Count additions and deletions
+                    local additions=$(echo "$file_diff" | grep "^+" | grep -v "^+++" | wc -l)
+                    local deletions=$(echo "$file_diff" | grep "^-" | grep -v "^---" | wc -l)
+                    echo "- **Additions**: $additions lines" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    echo "- **Deletions**: $deletions lines" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                    echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                fi
+                
+                echo "---" >> "$API_CHANGES_DIR/api-changes-summary.md"
+                echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+            done
+        else
+            echo "## No API Changes" >> "$API_CHANGES_DIR/api-changes-summary.md"
+            echo "" >> "$API_CHANGES_DIR/api-changes-summary.md"
+            echo "No API files were modified by the build process." >> "$API_CHANGES_DIR/api-changes-summary.md"
+        fi
+        
+        echo "    ✅ API changes extracted successfully"
+    fi
+    
+    end_time=$(date +%s)
+    total_time=$((end_time - start_time))
+    
+    echo ""
+    echo "✅ API Changes Detection completed successfully!"
+    echo "   🎯 Current Branch: $CURRENT_BRANCH"
+    echo "   📁 Output: $API_CHANGES_DIR/"
+    echo "   ⏱️  Total Time: ${total_time}s"
+    echo "   📄 Summary: Check $API_CHANGES_DIR/api-changes-summary.md"
+    echo "   📄 Full Diff: Check $API_CHANGES_DIR/api-changes-diff.txt"
+    echo "   📦 Uber API File: Check $API_CHANGES_DIR/all-api-changes.txt"
+    echo "   📊 Build Log: Check $API_CHANGES_DIR/build.binlog"
+    echo ""
+}
+
+# Run the main function
+main "$@"

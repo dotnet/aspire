@@ -1,0 +1,84 @@
+{
+  "analysis_priorities": [
+    "src/*/",
+    "src/Components/*",
+    "extension/",
+    "eng/scripts/*.*"
+  ],
+  "analysis_patterns": {
+    "breaking_changes": {
+      "patterns": [
+        "^-.*public.*class",
+        "^-.*public.*interface", 
+        "^-.*public.*method",
+        "^-.*public.*property",
+        "^-.*public.*enum"
+      ],
+      "exclude_paths": [
+        "test",
+        "playground",
+        "example",
+        "sample",
+        "Grafana",
+        "Schema",
+        "Tools",
+        "Vendoring"
+      ]
+    },
+    "new_features": {
+      "patterns": [
+        "^\\+.*public.*class.*Add",
+        "^\\+.*public.*Add.*",
+        "^\\+.*public.*With.*",
+        "^\\+.*public.*Configure.*"
+      ]
+    },
+    "api_examples": {
+      "search_paths": [
+        "playground/*/Program.cs",
+        "playground/*/AppHost.cs",
+        "playground/*/*Host.cs", 
+        "tests/*Tests.cs",
+        "tests/*/Add*Tests.cs",
+        "tests/*/With*Tests.cs"
+      ]
+    }
+  },
+  "content_categories": {
+    "app_model": {
+      "emoji": "🖥️",
+      "title": "App model enhancements",
+      "folder_patterns": ["src/Aspire.Hosting"]
+    },
+    "dashboard": {
+      "emoji": "📊", 
+      "title": "Dashboard delights",
+      "folder_patterns": ["src/Aspire.Dashboard"]
+    },
+    "hosting_integrations": {
+      "emoji": "🌐",
+      "title": "Hosting integrations",
+      "folder_patterns": ["src/Aspire.Hosting.*"]
+    },
+    "client_integrations": {
+      "emoji": "🌐",
+      "title": "Client integrations",
+      "folder_patterns": ["src/Components/*"]
+    },
+    "cli": {
+      "emoji": "🖥️",
+      "title": "CLI enhancements",
+      "folder_patterns": ["src/Aspire.Cli"]
+    },
+    "azure": {
+      "emoji": "☁️",
+      "title": "Azure goodies",
+      "folder_patterns": ["src/Aspire.Hosting.Azure", "src/Aspire.Hosting.Azure.*", "src/Components/Aspire.Azure.*"]
+    },
+    "components": {
+      "emoji": "🧩",
+      "title": "Integration updates",
+      "folder_patterns": ["src/Components"]
+    }
+  }
+}
