@@ -212,31 +212,47 @@ internal sealed class ApplicationOrchestrator
                 Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
                 if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
+                    // The allocated endpoint is used for service discovery and is the primary URL displayed to
+                    // the user. In general, if valid for a particular service binding, the allocated endpoint
+                    // will be "localhost" as that's a valid address for the .NET developer certificate. However,
+                    // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
+                    // address.
                     var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
                     var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
+
                     urls.Add(url);
-                    if (allocatedEndpoint.BindingMode != EndpointBindingMode.SingleAddress && (endpoint.TargetHost is not "localhost" or "127.0.0.1"))
+
+                    // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
+                        // additional URLs to indicate to the user other ways their service can be reached. If the service
+                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                        // as an additional URL.
+                        var additionalUrl = allocatedEndpoint.BindingMode switch
                     {
-                        // Endpoint is listening on multiple addresses so add another URL based on the declared target hostname
-                        // For endpoints targeting all external addresses (IPv4 0.0.0.0 or IPv6 ::) use the machine name
-                        var address = endpoint.TargetHost is "0.0.0.0" or "::" ? Environment.MachineName : endpoint.TargetHost;
-                        url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{address}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
-                        urls.Add(url);
-                    }
-                    else if (endpoint.TargetHost.Length > 10 && endpoint.TargetHost.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+                        // The allocated address doesn't match the original target host, so include the target host as
+                        // an additional URL.
+                        EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                        // For other single address bindings ("localhost", specific IP), don't include an additional URL.
+                        EndpointBindingMode.SingleAddress => null,
+                        // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
+                        // name as an additional URL.
+                        _ => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                    };
+
+                    if (additionalUrl is not null)
                     {
-                        // Add the originally declared *.localhost URL
-                        url = new ResourceUrlAnnotation { Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}", Endpoint = endpointReference };
-                        urls.Add(url);
+                        urls.Add(additionalUrl);
                     }
                 }
             }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
-            urls.AddRange(existingUrls);
         }
 
         // Run the URL callbacks
@@ -252,17 +268,6 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
-        // Clear existing URLs
-        if (existingUrls is not null)
-        {
-            var existing = existingUrls.ToArray();
-            for (var i = existing.Length - 1; i >= 0; i--)
-            {
-                var url = existing[i];
-                resource.Annotations.Remove(url);
-            }
-        }
-
         // Convert relative endpoint URLs to absolute URLs
         foreach (var url in urls)
         {
@@ -271,6 +276,20 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            foreach (var existingUrl in existingUrls)
+            {
+                resource.Annotations.Remove(existingUrl);
+
+                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
+                {
+                    // Add existing URLs back that aren't duplicates
+                    urls.Add(existingUrl);
                 }
             }
         }
