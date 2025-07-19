@@ -102,6 +102,13 @@ public static class AzureStorageExtensions
                 }
             }
 
+            if (azureResource.TableStorageResource is not null)
+            {
+                var tableService = azureResource.TableStorageResource.ToProvisioningEntity();
+                tableService.Parent = storageAccount;
+                infrastructure.Add(tableService);
+            }
+
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
@@ -466,6 +473,8 @@ public static class AzureStorageExtensions
         name ??= builder.Resource.Name + "-tables";
 
         var resource = new AzureTableStorageResource(name, builder.Resource);
+        builder.Resource.TableStorageResource = resource;
+
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
