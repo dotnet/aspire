@@ -210,20 +210,20 @@ internal sealed class AspireEventSource : EventSource
     }
 
     [Event(23, Level = EventLevel.Informational, Message = "DCP Executable object creation starting...")]
-    public void DcpExecutablesCreateStart()
+    public void DcpExecutableCreateStart(string resourceName)
     {
         if (IsEnabled())
         {
-            WriteEvent(23);
+            WriteEvent(23, resourceName);
         }
     }
 
     [Event(24, Level = EventLevel.Informational, Message = "DCP Executable object creation completed")]
-    public void DcpExecutablesCreateStop()
+    public void DcpExecutableCreateStop(string resourceName)
     {
         if (IsEnabled())
         {
-            WriteEvent(24);
+            WriteEvent(24, resourceName);
         }
     }
 
@@ -278,6 +278,24 @@ internal sealed class AspireEventSource : EventSource
         if (IsEnabled())
         {
             WriteEvent(30);
+        }
+    }
+
+    [Event(31, Level = EventLevel.Informational, Message = "DCP Container Executable object creation starting...")]
+    public void DcpContainerExecutableCreateStart(string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(31, resourceName);
+        }
+    }
+
+    [Event(32, Level = EventLevel.Informational, Message = "DCP Container Executable object creation completed")]
+    public void DcpContainerExecutableCreateStop(string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(32, resourceName);
         }
     }
 }
