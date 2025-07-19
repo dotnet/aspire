@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="UsePrereleasePackages">
         <source>Use pre-release packages</source>
-        <target state="new">Use pre-release packages</target>
+        <target state="translated">使用發行前版本的套件</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
