@@ -1,0 +1,196 @@
+name: Cache Playwright Dependencies
+
+on:
+  # Run daily at 2:00 AM UTC to refresh the cache
+  schedule:
+    - cron: '0 2 * * *'
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  cache-ubuntu:
+    name: Cache Playwright Dependencies (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          key: playwright-deps-ubuntu-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-ubuntu-latest-
+
+      # Install with retries if cache miss
+      - name: Download and install Playwright dependencies with retries
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          NUGET_ENABLE_ENHANCED_HTTP_RETRY: true
+          NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: 6
+          NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: 1000
+          NUGET_RETRY_HTTP_429: true
+        run: |
+          retry_count=3
+          retry_delay=10
+          attempt=1
+          success=false
+
+          while [[ $attempt -le $retry_count && $success == false ]]; do
+            echo "Attempt $attempt of $retry_count to install Playwright browsers"
+            
+            ./build.sh -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true && success=true
+            
+            if [[ $success == false ]]; then
+              if [[ $attempt -lt $retry_count ]]; then
+                echo "Installation failed. Waiting $retry_delay seconds before retry..."
+                sleep $retry_delay
+                # Exponential backoff
+                retry_delay=$((retry_delay * 2))
+              else
+                echo "All attempts failed."
+                exit 1
+              fi
+            fi
+            
+            ((attempt++))
+          done
+          
+          echo "Playwright browsers installed successfully!"
+
+  cache-windows:
+    name: Cache Playwright Dependencies (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $env:GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\artifacts\bin\playwright-deps
+          key: playwright-deps-windows-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-windows-latest-
+
+      # Install with retries if cache miss
+      - name: Download and install Playwright dependencies with retries
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}\artifacts\bin\playwright-deps
+          NUGET_ENABLE_ENHANCED_HTTP_RETRY: true
+          NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: 6
+          NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: 1000
+          NUGET_RETRY_HTTP_429: true
+        run: |
+          $retryCount = 3
+          $retryDelay = 10
+          $attempt = 1
+          $success = $false
+
+          while ($attempt -le $retryCount -and -not $success) {
+              Write-Host "Attempt $attempt of $retryCount to install Playwright browsers"
+              
+              try {
+                  & .\build.cmd -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true
+                  if ($LASTEXITCODE -eq 0) {
+                      $success = $true
+                  }
+              }
+              catch {
+                  Write-Host "Exception occurred: $_"
+              }
+              
+              if (-not $success) {
+                  if ($attempt -lt $retryCount) {
+                      Write-Host "Installation failed. Waiting $retryDelay seconds before retry..."
+                      Start-Sleep -Seconds $retryDelay
+                      # Exponential backoff
+                      $retryDelay *= 2
+                  }
+                  else {
+                      Write-Host "All attempts failed."
+                      exit 1
+                  }
+              }
+              
+              $attempt++
+          }
+          
+          Write-Host "Playwright browsers installed successfully!"
+
+  cache-macos:
+    name: Cache Playwright Dependencies (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get date for cache key
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          key: playwright-deps-macos-latest-${{ steps.date.outputs.date }}
+          restore-keys: |
+            playwright-deps-macos-latest-
+
+      # Install with retries if cache miss
+      - name: Download and install Playwright dependencies with retries
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          CI: false
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/artifacts/bin/playwright-deps
+          NUGET_ENABLE_ENHANCED_HTTP_RETRY: true
+          NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: 6
+          NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: 1000
+          NUGET_RETRY_HTTP_429: true
+        run: |
+          retry_count=3
+          retry_delay=10
+          attempt=1
+          success=false
+
+          while [[ $attempt -le $retry_count && $success == false ]]; do
+            echo "Attempt $attempt of $retry_count to install Playwright browsers"
+            
+            ./build.sh -restore -build -projects tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj /p:InstallBrowsersForPlaywright=true && success=true
+            
+            if [[ $success == false ]]; then
+              if [[ $attempt -lt $retry_count ]]; then
+                echo "Installation failed. Waiting $retry_delay seconds before retry..."
+                sleep $retry_delay
+                # Exponential backoff
+                retry_delay=$((retry_delay * 2))
+              else
+                echo "All attempts failed."
+                exit 1
+              fi
+            fi
+            
+            ((attempt++))
+          done
+          
+          echo "Playwright browsers installed successfully!"
