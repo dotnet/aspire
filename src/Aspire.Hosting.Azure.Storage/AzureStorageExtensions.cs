@@ -332,7 +332,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
-    [Obsolete("Use AddBlobService on IResourceBuilder<AzureStorageResource> instead.")]
+    [Obsolete("Use GetBlobService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -340,7 +340,7 @@ public static class AzureStorageExtensions
 
         if (name == builder.Resource.Name + "-blobs")
         {
-            // If the name is the default name, use the AddBlobService method instead so we keep
+            // If the name is the default name, use the GetBlobService method instead so we keep
             // track of the default resource.
             return GetBlobService(builder);
         }
