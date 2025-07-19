@@ -71,13 +71,18 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="projectPath">The path to the project file or directory containing the project file.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file or directory. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <para>
+    /// If <paramref name="projectPath"/> is a directory, the method will automatically discover the .csproj file in that directory.
+    /// If exactly one .csproj file is found, it will be used. If multiple .csproj files are found, an exception will be thrown
+    /// with the names of the found files. If no .csproj files are found, an exception will be thrown.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// <example>
@@ -90,12 +95,44 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <example>
+    /// Add a project to the app model via a directory path (auto-discovers the .csproj file).
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddProject("inventoryservice", @"..\InventoryService");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(projectPath);
+
+        // Check if the path is a directory and auto-discover the project file
+        var normalizedPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
+        
+        if (Directory.Exists(normalizedPath))
+        {
+            var projectFiles = Directory.GetFiles(normalizedPath, "*.csproj");
+            
+            if (projectFiles.Length == 0)
+            {
+                throw new DistributedApplicationException($"No .csproj files found in directory '{projectPath}'.");
+            }
+            
+            if (projectFiles.Length > 1)
+            {
+                var fileNames = projectFiles.Select(Path.GetFileName).ToArray();
+                throw new DistributedApplicationException($"Multiple .csproj files found in directory '{projectPath}': {string.Join(", ", fileNames)}. Specify the exact project file path instead.");
+            }
+            
+            // Use the relative path from the original projectPath combined with the found project file name
+            projectPath = Path.Combine(projectPath, Path.GetFileName(projectFiles[0]));
+        }
 
         return builder.AddProject(name, projectPath, _ => { });
     }
