@@ -4,7 +4,7 @@ The Aspire CLI is used to create, run, and publish Aspire-based applications.
 
 ## Usage
 
-```
+```cli
 aspire [command] [options]
 ```
 
