@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
+using Microsoft.Extensions.Configuration;
 using Semver;
 
 namespace Aspire.Cli.DotNet;
@@ -10,7 +12,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -20,7 +22,11 @@ internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstall
     /// <inheritdoc />
     public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
     {
-        return CheckAsync(MinimumSdkVersion, cancellationToken);
+        // Check for configuration override first
+        var overrideVersion = configuration["overrideMinimumSdkVersion"];
+        var minimumVersion = !string.IsNullOrEmpty(overrideVersion) ? overrideVersion : MinimumSdkVersion;
+        
+        return CheckAsync(minimumVersion, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -34,12 +40,16 @@ internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstall
 
         try
         {
+            // Add --arch flag to ensure we only get SDKs that match the current architecture
+            var currentArch = GetCurrentArchitecture();
+            var arguments = $"--list-sdks --arch {currentArch}";
+
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = "--list-sdks",
+                    Arguments = arguments,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -95,5 +105,21 @@ internal sealed class DotNetSdkInstaller(IFeatures features) : IDotNetSdkInstall
     {
         // Reserved for future implementation
         throw new NotImplementedException("SDK installation is not yet implemented.");
+    }
+
+    /// <summary>
+    /// Gets the current architecture string in the format expected by dotnet --list-sdks --arch.
+    /// </summary>
+    /// <returns>The architecture string (e.g., "x64", "arm64", "x86", "arm").</returns>
+    private static string GetCurrentArchitecture()
+    {
+        return RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => "x64" // Default to x64 for unknown architectures
+        };
     }
 }
