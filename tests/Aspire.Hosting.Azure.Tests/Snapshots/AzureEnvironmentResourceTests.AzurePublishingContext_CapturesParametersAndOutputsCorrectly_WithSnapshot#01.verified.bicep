@@ -25,7 +25,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource storage_blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }

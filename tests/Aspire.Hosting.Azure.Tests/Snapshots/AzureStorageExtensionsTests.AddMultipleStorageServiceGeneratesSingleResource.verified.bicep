@@ -52,10 +52,6 @@ resource queue2 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-
 }
 
 resource tables 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
-  parent: storage
-}
-
-resource tableService2 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }
