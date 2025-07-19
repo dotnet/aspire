@@ -11,8 +11,6 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class InteractionsInputDialog
 {
-    internal const int MaxTextLength = 8000;
-
     [Parameter]
     public InteractionsInputsDialogViewModel Content { get; set; } = default!;
 
@@ -170,15 +168,5 @@ public partial class InteractionsInputDialog
     private async Task CancelAsync()
     {
         await Dialog.CancelAsync();
-    }
-
-    private static int GetMaxLength(InputViewModel inputModel)
-    {
-        if (inputModel.Input.MaxLength == 0)
-        {
-            return MaxTextLength;
-        }
-
-        return inputModel.Input.MaxLength;
     }
 }
