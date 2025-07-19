@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,6 +28,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -36,6 +38,7 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier
         )
@@ -48,6 +51,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -56,6 +60,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -70,6 +75,12 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 

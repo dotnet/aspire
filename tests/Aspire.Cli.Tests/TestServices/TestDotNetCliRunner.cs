@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
