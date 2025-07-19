@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
@@ -26,6 +27,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public NewCommand(
         IDotNetCliRunner runner,
@@ -35,6 +37,7 @@ internal sealed class NewCommand : BaseCommand
         ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier)
         : base("new", NewCommandStrings.Description, features, updateNotifier)
@@ -46,6 +49,7 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -53,6 +57,7 @@ internal sealed class NewCommand : BaseCommand
         _prompter = prompter;
         _interactionService = interactionService;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -101,6 +106,12 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);

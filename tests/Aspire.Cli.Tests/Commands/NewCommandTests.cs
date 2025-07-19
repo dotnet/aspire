@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
