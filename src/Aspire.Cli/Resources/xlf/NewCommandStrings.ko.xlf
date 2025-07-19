@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
         <source>(use pre-release templates)</source>
-        <target state="new">(use pre-release templates)</target>
+        <target state="translated">(사전 릴리스 템플릿 사용)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
