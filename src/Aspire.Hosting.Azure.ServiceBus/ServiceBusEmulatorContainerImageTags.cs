@@ -15,11 +15,11 @@ internal static class ServiceBusEmulatorContainerImageTags
     public const string Tag = "1.1.2";
 
     /// <remarks>mcr.microsoft.com</remarks>
-    public const string AzureSqlEdgeRegistry = "mcr.microsoft.com";
+    public const string SqlServerRegistry = "mcr.microsoft.com";
 
-    /// <remarks>azure-sql-edge</remarks>
-    public const string AzureSqlEdgeImage = "azure-sql-edge";
+    /// <remarks>mssql/server</remarks>
+    public const string SqlServerImage = "mssql/server";
 
     /// <remarks>latest</remarks>
-    public const string AzureSqlEdgeTag = "latest";
+    public const string SqlServerTag = "latest";
 }
