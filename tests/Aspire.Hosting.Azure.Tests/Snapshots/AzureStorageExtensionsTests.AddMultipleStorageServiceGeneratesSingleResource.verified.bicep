@@ -21,37 +21,37 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blobService2 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }
 
 resource container1 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'container1'
-  parent: blobService2
+  parent: blobs
 }
 
 resource container2 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'container2'
-  parent: blobService2
+  parent: blobs
 }
 
-resource queueService2 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
+resource queues 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }
 
 resource queue1 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = {
   name: 'queue1'
-  parent: queueService2
+  parent: queues
 }
 
 resource queue2 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = {
   name: 'queue2'
-  parent: queueService2
+  parent: queues
 }
 
-resource tableService2 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
+resource tables 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }

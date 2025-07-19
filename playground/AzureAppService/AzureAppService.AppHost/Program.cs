@@ -25,12 +25,12 @@ var storage = builder.AddAzureStorage("storage")
                          storage.AllowBlobPublicAccess = false;
                      })
                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.GetBlobService();
 
 // Testing projects
 builder.AddProject<Projects.AzureAppService_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(blobs)
+       .WithReference(blobs, "blobs")
        .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)

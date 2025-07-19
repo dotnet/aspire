@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
 
@@ -65,15 +64,5 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
             // Injected to support Aspire client integration for Azure Storage Queues.
             target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
-    }
-
-    /// <summary>
-    /// Converts the current instance to a provisioning entity.
-    /// </summary>
-    /// <returns>A <see cref="global::Azure.Provisioning.Storage.QueueService"/> instance.</returns>
-    internal global::Azure.Provisioning.Storage.QueueService ToProvisioningEntity()
-    {
-        global::Azure.Provisioning.Storage.QueueService service = new(Infrastructure.NormalizeBicepIdentifier(Name));
-        return service;
     }
 }

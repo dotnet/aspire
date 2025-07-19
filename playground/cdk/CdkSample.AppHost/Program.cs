@@ -22,7 +22,7 @@ var storage = builder.AddAzureStorage("storage")
         account.Location = locationOverride.AsProvisioningParameter(infrastructure);
     });
 
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.GetBlobService();
 
 var sqldb = builder.AddAzureSqlServer("sql").AddDatabase("sqldb");
 
@@ -108,7 +108,7 @@ var appInsights = builder.AddAzureApplicationInsights("appInsights", logAnalytic
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
     .WithReference(signalr)
-    .WithReference(blobs)
+    .WithReference(blobs, "blobs")
     .WithReference(sqldb)
     .WithReference(keyvault)
     .WithReference(cache)

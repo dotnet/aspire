@@ -184,7 +184,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.True(storage.Resource.IsContainer());
 
-        var blobs = storage.AddBlobService("blob");
+        var blobs = storage.GetBlobService();
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default));
     }
@@ -200,7 +200,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage");
         storage.Resource.Outputs["blobEndpoint"] = blobsConnectionString;
 
-        var blobs = storage.AddBlobService("blob");
+        var blobs = storage.GetBlobService();
 
         Assert.Equal(blobsConnectionString, await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default));
     }
@@ -211,7 +211,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobService("blob");
+        var blobs = storage.GetBlobService();
 
         Assert.Equal("{storage.outputs.blobEndpoint}", blobs.Resource.ConnectionStringExpression.ValueExpression);
     }
@@ -232,7 +232,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.True(storage.Resource.IsContainer());
 
-        var blobs = storage.AddBlobService("blob");
+        var blobs = storage.GetBlobService();
         var blobContainer = storage.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobConnectionString = await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default);
@@ -254,7 +254,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage");
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
 
-        var blobs = storage.AddBlobService("blob");
+        var blobs = storage.GetBlobService();
         var blobContainer = storage.AddBlobContainer(name: "myContainer", blobContainerName);
 
         string? blobsConnectionString = await ((IResourceWithConnectionString)blobs.Resource).ConnectionStringExpression.GetValueAsync(default);
@@ -290,7 +290,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.True(storage.Resource.IsContainer());
 
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
 
         Assert.Equal(expected, await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync());
     }
@@ -306,7 +306,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage");
         storage.Resource.Outputs["queueEndpoint"] = connectionString;
 
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
 
         Assert.Equal(connectionString, await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync());
     }
@@ -317,7 +317,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
 
         Assert.Equal("{storage.outputs.queueEndpoint}", queues.Resource.ConnectionStringExpression.ValueExpression);
     }
@@ -338,7 +338,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.True(storage.Resource.IsContainer());
 
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
         var queue = storage.AddQueue(name: "myqueue", queueName);
 
         string? connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
@@ -358,7 +358,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage");
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
 
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
         var queue = storage.AddQueue(name: "myqueue", queueName);
 
         string? connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
@@ -373,7 +373,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var queues = storage.AddQueueService("queues");
+        var queues = storage.GetQueueService();
         var queue = storage.AddQueue(name: "myqueue");
 
         Assert.Equal("Endpoint={storage.outputs.queueEndpoint};QueueName=myqueue", queue.Resource.ConnectionStringExpression.ValueExpression);
@@ -386,9 +386,9 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var storage = builder.AddAzureStorage("storage");
 
         var blob = storage.AddBlobContainer(name: "myContainer", blobContainerName: "my-blob-container");
-        var queues = storage.AddQueueService("myqueues");
+        var queues = storage.GetQueueService();
         var queue = storage.AddQueue(name: "myqueue", queueName: "my-queue");
-        var tables = storage.AddTableService("mytables");
+        var tables = storage.GetTableService();
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
@@ -409,9 +409,9 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
 
         Assert.True(storage.Resource.IsContainer());
 
-        var blob = storage.AddBlobService("blob");
-        var queue = storage.AddQueueService("queue");
-        var table = storage.AddTableService("table");
+        var blob = storage.GetBlobService();
+        var queue = storage.GetQueueService();
+        var table = storage.GetTableService();
 
         EndpointReference GetEndpointReference(string name, int port)
             => new(storage.Resource, new EndpointAnnotation(ProtocolType.Tcp, name: name, targetPort: port));
@@ -473,7 +473,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         await Verify(storageManifest.BicepText, extension: "bicep");
 
         // Check blob resource.
-        var blob = storage.AddBlobService("blob");
+        var blob = storage.GetBlobService();
 
         var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
 
@@ -488,7 +488,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBlobManifest, blobManifest.ToString());
 
         // Check queue resource.
-        var queue = storage.AddQueueService("queue");
+        var queue = storage.GetQueueService();
 
         var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
 
@@ -503,7 +503,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedQueueManifest, queueManifest.ToString());
 
         // Check table resource.
-        var table = storage.AddTableService("table");
+        var table = storage.GetTableService();
 
         var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
 
@@ -558,7 +558,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         await Verify(storageManifest.BicepText, extension: "bicep");
 
         // Check blob resource.
-        var blob = storage.AddBlobService("blob");
+        var blob = storage.GetBlobService();
 
         var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
 
@@ -573,7 +573,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBlobManifest, blobManifest.ToString());
 
         // Check queue resource.
-        var queue = storage.AddQueueService("queue");
+        var queue = storage.GetQueueService();
 
         var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
 
@@ -588,7 +588,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedQueueManifest, queueManifest.ToString());
 
         // Check table resource.
-        var table = storage.AddTableService("table");
+        var table = storage.GetTableService();
 
         var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
 
@@ -619,9 +619,9 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
                 };
             });
 
-        var blob = storage.AddBlobService("blob");
-        var queue = storage.AddQueueService("queue");
-        var table = storage.AddTableService("table");
+        var blob = storage.GetBlobService();
+        var queue = storage.GetQueueService();
+        var table = storage.GetTableService();
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -778,7 +778,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         await Verify(storageManifest.BicepText, extension: "bicep");
 
         // Check blob resource.
-        var blob = storage.AddBlobService("blob");
+        var blob = storage.GetBlobService();
 
         var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
 
@@ -793,7 +793,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedBlobManifest, blobManifest.ToString());
 
         // Check queue resource.
-        var queue = storage.AddQueueService("queue");
+        var queue = storage.GetQueueService();
 
         var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
 
@@ -808,7 +808,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedQueueManifest, queueManifest.ToString());
 
         // Check table resource.
-        var table = storage.AddTableService("table");
+        var table = storage.GetTableService();
 
         var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
 
@@ -824,34 +824,34 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddBlobService_Default_Name()
+    public void GetBlobService_Default_Name()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var blobService = storage.AddBlobService();
+        var blobService = storage.GetBlobService();
 
         Assert.Equal("storage-blobs", blobService.Resource.Name);
     }
 
     [Fact]
-    public void AddQueueService_Default_Name()
+    public void GetQueueService_Default_Name()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var queueService = storage.AddQueueService();
+        var queueService = storage.GetQueueService();
 
         Assert.Equal("storage-queues", queueService.Resource.Name);
     }
 
     [Fact]
-    public void AddTableService_Default_Name()
+    public void GetTableService_Default_Name()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var tableService = storage.AddTableService();
+        var tableService = storage.GetTableService();
 
         Assert.Equal("storage-tables", tableService.Resource.Name);
     }
@@ -865,26 +865,144 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage");
 
-        var blobService1 = storage.AddBlobService("blobService1");
+        var blobService1 = storage.GetBlobService();
         var container1 = storage.AddBlobContainer(name: "container1");
 
-        var blobService2 = storage.AddBlobService("blobService2");
+        var blobService2 = storage.GetBlobService();
         var container2 = storage.AddBlobContainer(name: "container2");
 
-        var queueService1 = storage.AddQueueService("queueService1");
+        var queueService1 = storage.GetQueueService();
         var queue1 = storage.AddQueue(name: "queue1");
 
-        var queueService2 = storage.AddQueueService("queueService2");
+        var queueService2 = storage.GetQueueService();
         var queue2 = storage.AddQueue(name: "queue2");
 
-        var tableService1 = storage.AddTableService("tableService1");
-        var tableService2 = storage.AddTableService("tableService2");
+        var tableService1 = storage.GetTableService();
+        var tableService2 = storage.GetTableService();
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
 
+    [Fact]
+    public void GetBlobServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+        var blobContainer = storage.AddBlobContainer("blobcontainer");
+        var blobStorageResource = builder.Resources.OfType<AzureBlobStorageResource>().FirstOrDefault();
+
+        var blobService = storage.GetBlobService();
+
+        Assert.NotNull(blobStorageResource);
+        Assert.Equal("storage-blobs", blobService.Resource.Name);
+        Assert.Equal(blobService.Resource, blobStorageResource);
+    }
+
+    [Fact]
+    public void GetQueueServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+        var queue = storage.AddQueue("queue");
+        var queueStorageResource = builder.Resources.OfType<AzureQueueStorageResource>().FirstOrDefault();
+
+        var queueService = storage.GetQueueService();
+
+        Assert.NotNull(queueStorageResource);
+        Assert.Equal("storage-queues", queueService.Resource.Name);
+        Assert.Equal(queueService.Resource, queueStorageResource);
+    }
+
+    [Fact]
+    public void GetTableServiceReturnsExistingResourceWhenNamesMatch()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        // There is no method to add a table directly, so we create a table service with the expected name instead.
+        var tableService1 = storage.GetTableService();
+
+        var tableService = storage.GetTableService();
+
+        Assert.NotNull(tableService1);
+        Assert.Equal("storage-tables", tableService1.Resource.Name);
+        Assert.Equal(tableService.Resource, tableService1.Resource);
+    }
+
+    [Fact]
+    public async Task AddBlobs_Preserves_BackwardCompatibility()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var blobService1 = storage.AddBlobs("blobService1");
+        var container1 = storage.AddBlobContainer(name: "container1");
+
+        var blobService2 = storage.AddBlobs("blobService2");
+        var container2 = storage.AddBlobContainer(name: "container2");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var blobService3 = storage.GetBlobService();
+
+        var manifest = await GetManifestWithBicep(storage.Resource);
+
+        Assert.Equal("storage-blobs", blobService3.Resource.Name);
+        Assert.Equal("blobService1", blobService1.Resource.Name);
+        Assert.Equal("blobService2", blobService2.Resource.Name);
+        
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddQueues_Preserves_BackwardCompatibility()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var queueService1 = storage.AddQueues("queueService1");
+        var queue1 = storage.AddQueue(name: "queue1");
+
+        var queueService2 = storage.AddQueues("queueService2");
+        var queue2 = storage.AddQueue(name: "queue2");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var queueService3 = storage.GetQueueService();
+
+        var manifest = await GetManifestWithBicep(storage.Resource);
+
+        Assert.Equal("storage-queues", queueService3.Resource.Name);
+        Assert.Equal("queueService1", queueService1.Resource.Name);
+        Assert.Equal("queueService2", queueService2.Resource.Name);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddTables_Preserves_BackwardCompatibility()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var tableService1 = storage.AddTables("tableService1");
+        var tableService2 = storage.AddTables("tableService2");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var tableService3 = storage.GetTableService();
+
+        var manifest = await GetManifestWithBicep(storage.Resource);
+
+        Assert.Equal("storage-tables", tableService3.Resource.Name);
+        Assert.Equal("tableService1", tableService1.Resource.Name);
+        Assert.Equal("tableService2", tableService2.Resource.Name);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+  
     [Fact]
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {

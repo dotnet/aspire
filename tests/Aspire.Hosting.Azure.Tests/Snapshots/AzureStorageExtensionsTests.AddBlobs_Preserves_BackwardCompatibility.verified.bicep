@@ -26,24 +26,14 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
   parent: storage
 }
 
-resource myContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
-  name: 'my-blob-container'
+resource container1 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  name: 'container1'
   parent: blobs
 }
 
-resource queues 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
-}
-
-resource myqueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = {
-  name: 'my-queue'
-  parent: queues
-}
-
-resource tables 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
+resource container2 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  name: 'container2'
+  parent: blobs
 }
 
 output blobEndpoint string = storage.properties.primaryEndpoints.blob

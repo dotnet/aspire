@@ -1,8 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var clusteringTable = storage.AddTableService("clustering");
-var grainStorage = storage.AddBlobService("grainstate");
+var clusteringTable = storage.GetTableService();
+var grainStorage = storage.GetBlobService();
 
 var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)
@@ -17,7 +17,9 @@ var orleans = builder.AddOrleans("my-app")
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans)
-       .WithReplicas(3);
+       .WithReplicas(3)
+       .WithReference(grainStorage, "grainstate")
+       .WithReference(clusteringTable, "clustering");
 
 builder.AddProject<Projects.OrleansClient>("frontend")
        .WithReference(orleans.AsClient())

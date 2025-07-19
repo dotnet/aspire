@@ -31,7 +31,7 @@ cosmosDb.AddCosmosDatabase("db");
 // Testing a connection string
 var storage = builder.AddAzureStorage("storage")
                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.GetBlobService();
 
 // Testing docker files
 
@@ -40,7 +40,7 @@ builder.AddDockerfile("pythonapp", "AppWithDocker");
 // Testing projects
 builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(blobs)
+       .WithReference(blobs, "blobs")
        .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
        .WithReference(redis)
        .WithReference(cosmosDb)
