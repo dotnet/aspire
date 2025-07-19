@@ -51,7 +51,7 @@
                                              Required="localItem.Input.Required"
                                              Immediate="true"
                                              aria-describedby="@descriptionId"
-                                             Maxlength="@GetMaxLength(localItem)" />
+                                             Maxlength="@InteractionHelpers.GetMaxLength(localItem.Input.MaxLength)" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
@@ -69,7 +69,7 @@
                                              AutoComplete="one-time-code"
                                              Immediate="true"
                                              aria-describedby="@descriptionId"
-                                             Maxlength="@GetMaxLength(localItem)" />
+                                             Maxlength="@InteractionHelpers.GetMaxLength(localItem.Input.MaxLength)" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
