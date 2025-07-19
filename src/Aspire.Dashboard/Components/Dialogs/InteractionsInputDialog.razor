@@ -33,10 +33,6 @@
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
             @foreach (var vm in _inputDialogInputViewModels)
             {
-                @*
-                * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
-                * Immediate value of true on text inputs ensures the value is set to the server token with every key press in textbox.
-                *@
                 var localItem = vm;
                 var descriptionId = !string.IsNullOrEmpty(localItem.Input.Description)
                     ? $"{_elementRefs[localItem]?.Id}-description"
@@ -45,6 +41,9 @@
                     @switch (vm.Input.InputType)
                     {
                         case InputType.Text:
+                            @*
+                            * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
+                            *@
                             <FluentTextField @ref="@_elementRefs[localItem]"
                                              @bind-Value="localItem.Value"
                                              Label="@localItem.Input.Label"
@@ -52,11 +51,15 @@
                                              Required="localItem.Input.Required"
                                              Immediate="true"
                                              aria-describedby="@descriptionId"
-                                             Maxlength="@MaxTextLength" />
+                                             Maxlength="@GetMaxLength(localItem)" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.SecretText:
+                            @*
+                            * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
+                            * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
+                            *@
                             <FluentTextField @ref="@_elementRefs[localItem]"
                                              @bind-Value="localItem.Value"
                                              Label="@localItem.Input.Label"
@@ -66,7 +69,7 @@
                                              AutoComplete="one-time-code"
                                              Immediate="true"
                                              aria-describedby="@descriptionId"
-                                             Maxlength="@MaxTextLength" />
+                                             Maxlength="@GetMaxLength(localItem)" />
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;

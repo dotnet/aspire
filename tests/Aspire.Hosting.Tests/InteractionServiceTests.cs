@@ -283,6 +283,45 @@ public class InteractionServiceTests
             error => Assert.Equal("Value must be a valid boolean.", error));
     }
 
+    [Theory]
+    [InlineData(InputType.Text, null)]
+    [InlineData(InputType.Text, 1)]
+    [InlineData(InputType.Text, 10)]
+    [InlineData(InputType.Text, InteractionHelpers.DefaultMaxLength)]
+    [InlineData(InputType.SecretText, 10)]
+    public async Task PromptInputsAsync_TextExceedsLimit_ReturnErrors(InputType inputType, int? maxLength)
+    {
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: true);
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: false);
+
+        static async Task TextExceedsLimitCoreAsync(InputType inputType, int? maxLength, bool success)
+        {
+            var interactionService = CreateInteractionService();
+
+            var input = new InteractionInput { Label = "Value", InputType = inputType, MaxLength = maxLength };
+            var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+            var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+            var resolvedMaxLength = InteractionHelpers.GetMaxLength(maxLength);
+
+            input.Value = new string('!', success ? resolvedMaxLength : resolvedMaxLength + 1);
+            await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+            if (!success)
+            {
+                // The interaction should still be in progress due to invalid data
+                Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+                Assert.Collection(input.ValidationErrors,
+                    error => Assert.Equal($"Value length exceeds {resolvedMaxLength} characters.", error));
+            }
+            else
+            {
+                Assert.True(interaction.CompletionTcs.Task.IsCompletedSuccessfully);
+            }
+        }
+    }
+
     [Fact]
     public void InteractionInput_WithDescription_SetsProperties()
     {
@@ -334,6 +373,36 @@ public class InteractionServiceTests
         // Assert
         Assert.Null(input.Description);
         Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(1, false)]
+    [InlineData(int.MaxValue, false)]
+    [InlineData(0, true)]
+    [InlineData(-1, true)]
+    [InlineData(int.MinValue, true)]
+    public void InteractionInput_WithLengths_ErrorOnInvalid(int? length, bool invalid)
+    {
+        // Arrange & Act
+        if (invalid)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => SetLength(length));
+        }
+        else
+        {
+            SetLength(length);
+        }
+
+        static void SetLength(int? length)
+        {
+            var input = new InteractionInput
+            {
+                Label = "Test Label",
+                InputType = InputType.Text,
+                MaxLength = length
+            };
+        }
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)

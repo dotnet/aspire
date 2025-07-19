@@ -264,9 +264,11 @@ internal class InteractionService : IInteractionService
                         {
                             case InputType.Text:
                             case InputType.SecretText:
-                                if (value.Length > InteractionInput.MaxTextLength)
+                                var maxLength = InteractionHelpers.GetMaxLength(input.MaxLength);
+
+                                if (value.Length > maxLength)
                                 {
-                                    context.AddValidationError(input, $"Value length exceeds {InteractionInput.MaxTextLength} characters.");
+                                    context.AddValidationError(input, $"Value length exceeds {maxLength} characters.");
                                 }
                                 break;
                             case InputType.Choice:
