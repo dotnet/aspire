@@ -4,6 +4,10 @@
 
   <Import Project="$(MSBuildThisFileDirectory)..\Playwright\Playwright.targets" />
 
+  <PropertyGroup>
+    <!-- needed for the RequiresDocker attribute, and discoverer -->
+    <IncludeTestUtilities>true</IncludeTestUtilities>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="TemplateTestingCommon" />
 
@@ -11,8 +15,5 @@
     <None Include="@(_DataFile)" />
 
     <PackageReference Include="Polly.Core" />
-
-    <!-- needed for the RequiresDocker attribute, and discoverer -->
-    <ProjectReference Include="$(RepoRoot)tests\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

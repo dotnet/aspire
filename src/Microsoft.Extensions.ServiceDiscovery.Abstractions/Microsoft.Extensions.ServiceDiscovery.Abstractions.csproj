@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(DefaultTargetFramework);net462</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsAotCompatible Condition=" '$(TargetFramework)' != 'net462' ">true</IsAotCompatible>
     <Description>Provides abstractions for service discovery. Interfaces defined in this package are implemented in Microsoft.Extensions.ServiceDiscovery and other service discovery packages.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
     <RootNamespace>Microsoft.Extensions.ServiceDiscovery</RootNamespace>
@@ -18,5 +18,11 @@
     <PackageReference Include="Microsoft.Extensions.Features" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+    <PackageReference Include="Microsoft.Bcl.Memory" /> 
+  </ItemGroup>
+  
+  <Import Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>

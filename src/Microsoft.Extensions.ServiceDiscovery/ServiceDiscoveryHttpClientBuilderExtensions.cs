@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Http;
+
+#if NET
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
+#endif
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -34,13 +37,15 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
             return new ResolvingHttpDelegatingHandler(registry, options);
         });
 
+#if NET
         // Configure the HttpClient to disable gRPC load balancing.
         // This is done on all HttpClient instances but only impacts gRPC clients.
         AddDisableGrpcLoadBalancingFilter(httpClientBuilder.Services, httpClientBuilder.Name);
-
+#endif
         return httpClientBuilder;
     }
 
+#if NET
     private static void AddDisableGrpcLoadBalancingFilter(IServiceCollection services, string? name)
     {
         // A filter is used because it will always run last. This is important because the disable
@@ -86,4 +91,5 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
             };
         }
     }
+#endif
 }
