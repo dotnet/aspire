@@ -58,6 +58,8 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference FullyQualifiedDomainName { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
