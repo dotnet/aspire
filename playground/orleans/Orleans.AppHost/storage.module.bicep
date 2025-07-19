@@ -21,7 +21,12 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+resource grainstate 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
+  name: 'default'
+  parent: storage
+}
+
+resource clustering 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
   name: 'default'
   parent: storage
 }
