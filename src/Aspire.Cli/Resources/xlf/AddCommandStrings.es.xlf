@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="UsePrereleasePackages">
         <source>Use pre-release packages</source>
-        <target state="new">Use pre-release packages</target>
+        <target state="translated">Utilizar paquetes de versiones preliminares</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
