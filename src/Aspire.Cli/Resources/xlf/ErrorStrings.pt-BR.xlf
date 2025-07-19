@@ -102,6 +102,11 @@
         <target state="translated">O caminho do soquete de extensão fornecido precisa de duas partes válidas.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MininumSdkVersionMissing">
+        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
+        <target state="new">The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
         <source>Multiple project files found.</source>
         <target state="translated">Vários arquivos de projeto encontrados.</target>
