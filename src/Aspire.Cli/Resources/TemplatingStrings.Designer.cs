@@ -240,5 +240,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoTemplateVersionsFound", resourceCulture);
             }
         }
+        
+        public static string ProjectAlreadyExists {
+            get {
+                return ResourceManager.GetString("ProjectAlreadyExists", resourceCulture);
+            }
+        }
     }
 }
