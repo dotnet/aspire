@@ -4,6 +4,7 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Microsoft.Extensions.Configuration;
+using Xunit;
 
 namespace Aspire.Cli.Tests;
 
