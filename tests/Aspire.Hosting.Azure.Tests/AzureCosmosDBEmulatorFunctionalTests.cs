@@ -266,7 +266,6 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7178")]
     public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
