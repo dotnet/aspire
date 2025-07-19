@@ -270,7 +270,8 @@
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
-    <Compile Include="..\Shared\KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

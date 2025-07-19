@@ -143,6 +143,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
+                                if (input.MaxLength != null)
+                                {
+                                    dto.MaxLength = input.MaxLength.Value;
+                                }
                                 dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;
                             }).ToList();

@@ -127,8 +127,8 @@ internal static class InteractionCommands
                var numberOfPeopleInput = new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
                var inputs = new List<InteractionInput>
                {
-                   new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
-                   new InteractionInput { InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true },
+                   new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true, MaxLength = 50 },
+                   new InteractionInput { InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true, MaxLength = 20 },
                    dinnerInput,
                    numberOfPeopleInput,
                    new InteractionInput { InputType = InputType.Boolean, Label = "Remember me", Placeholder = "What does this do?", Required = true },
