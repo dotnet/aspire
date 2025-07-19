@@ -6,6 +6,7 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Xun
 
 namespace Aspire.Hosting.Tests.Backchannel.Exec;
 
