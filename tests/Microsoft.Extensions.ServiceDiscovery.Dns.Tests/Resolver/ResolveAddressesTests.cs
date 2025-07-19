@@ -57,6 +57,9 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     [Theory]
     [InlineData("www.resolveipv4.com")]
     [InlineData("www.resolveipv4.com.")]
+    [InlineData("notlocalhost")]
+    [InlineData("notlocalhost.")]
+    [InlineData("notinvalid.")]
     [InlineData("www.ř.com")]
     public async Task ResolveIPv4_Simple_Success(string name)
     {
@@ -220,15 +223,39 @@ public class ResolveAddressesTests : LoopbackDnsTestBase
     }
 
     [Theory]
-    [InlineData(AddressFamily.InterNetwork, "127.0.0.1")]
-    [InlineData(AddressFamily.InterNetworkV6, "::1")]
-    public async Task ResolveIP_Localhost_ReturnsLoopback(AddressFamily family, string addressAsString)
+    [InlineData("localhost", AddressFamily.InterNetwork, "127.0.0.1")]
+    [InlineData("localhost", AddressFamily.InterNetworkV6, "::1")]
+    [InlineData("localhost.", AddressFamily.InterNetwork, "127.0.0.1")]
+    [InlineData("inner.localhost.", AddressFamily.InterNetwork, "127.0.0.1")]
+    [InlineData("inner.localhost", AddressFamily.InterNetwork, "127.0.0.1")]
+    [InlineData("invalid", AddressFamily.InterNetwork, null)]
+    [InlineData("invalid", AddressFamily.InterNetworkV6, null)]
+    [InlineData("invalid.", AddressFamily.InterNetwork, null)]
+    [InlineData("inner.invalid.", AddressFamily.InterNetwork, null)]
+    [InlineData("inner.invalid", AddressFamily.InterNetwork, null)]
+    public async Task ResolveIP_SpecialName(string localhost, AddressFamily family, string? addressAsString)
     {
-        IPAddress address = IPAddress.Parse(addressAsString);
-        AddressResult[] results = await Resolver.ResolveIPAddressesAsync("localhost", family);
-        AddressResult result = Assert.Single(results);
+        IPAddress? address = addressAsString != null ? IPAddress.Parse(addressAsString) : null;
 
-        Assert.Equal(address, result.Address);
+        bool serverCalled = false;
+        _ = DnsServer.ProcessUdpRequest(builder =>
+        {
+            serverCalled = true;
+            return Task.CompletedTask;
+        });
+
+        AddressResult[] results = await Resolver.ResolveIPAddressesAsync(localhost, family);
+        Assert.False(serverCalled, "Special name resolution should not call the DNS server.");
+
+        if (address == null)
+        {
+            Assert.Empty(results);
+        }
+        else
+        {
+            AddressResult result = Assert.Single(results);
+            Assert.Equal(address, result.Address);
+        }
     }
 
     [Fact]
