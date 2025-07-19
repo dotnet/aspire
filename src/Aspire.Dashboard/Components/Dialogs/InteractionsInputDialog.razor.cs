@@ -171,4 +171,14 @@ public partial class InteractionsInputDialog
     {
         await Dialog.CancelAsync();
     }
+
+    private static int GetMaxLength(InputViewModel inputModel)
+    {
+        if (inputModel.Input.MaxLength == 0)
+        {
+            return MaxTextLength;
+        }
+
+        return inputModel.Input.MaxLength;
+    }
 }

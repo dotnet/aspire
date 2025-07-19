@@ -103,8 +103,6 @@ public interface IInteractionService
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class InteractionInput
 {
-    internal const int MaxTextLength = 8000;
-
     /// <summary>
     /// Gets or sets the label for the input.
     /// </summary>
@@ -145,6 +143,23 @@ public sealed class InteractionInput
     /// Gets or sets the placeholder text for the input.
     /// </summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>
+    /// gets or sets the maximum length for text inputs.
+    /// </summary>
+    public int? MaxLength
+    {
+        get => field;
+        set
+        {
+            if (value is { } v)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(v, 0);
+            }
+
+            field = value;
+        }
+    }
 
     internal List<string> ValidationErrors { get; } = [];
 }
