@@ -3,7 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureContainerAppEnvironment("env");
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var queue = storage.AddQueueService("queue");
+var queue = storage.GetQueueService();
 var blob = storage.GetBlobService();
 var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
@@ -30,7 +30,7 @@ var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_F
 #endif
     .WithReference(myBlobContainer).WaitFor(myBlobContainer)
     .WithReference(blob, "blob")
-    .WithReference(queue);
+    .WithReference(queue, "queue");
 
 builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
@@ -39,7 +39,7 @@ builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
-    .WithReference(queue)
+    .WithReference(queue, "queue")
     .WithReference(blob, "blob")
     .WithReference(funcApp);
 
