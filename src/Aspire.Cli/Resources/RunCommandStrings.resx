@@ -122,7 +122,7 @@
     <value>Starting Aspire app host...</value>
   </data>
   <data name="StartingDashboard" xml:space="preserve">
-    <value>Starting Aspire dashboard...</value>
+    <value>Starting dashboard...</value>
   </data>
   <data name="Resource" xml:space="preserve">
     <value>Resource</value>
@@ -154,5 +154,8 @@
   </data>
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
+  </data>
+  <data name="ConnectingToAppHost" xml:space="preserve">
+    <value>Connecting to app host...</value>
   </data>
 </root>

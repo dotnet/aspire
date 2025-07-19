@@ -134,5 +134,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Logs", resourceCulture);
             }
         }
+        
+        public static string ConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
+            }
+        }
     }
 }
