@@ -47,7 +47,7 @@
 				"ms-azuretools.azure-dev",
 				"GitHub.copilot",
 				"ms-kubernetes-tools.vscode-kubernetes-tools",
-                "microsoft-aspire.aspire-vscode"
+        		"microsoft-aspire.aspire-vscode"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,

@@ -17,6 +17,7 @@ using Spectre.Console;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -46,7 +47,13 @@ public class Program
 
     private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder();
+        var settings = new HostApplicationBuilderSettings
+        {
+            Configuration = new ConfigurationManager()
+        };
+        settings.Configuration.AddEnvironmentVariables();
+
+        var builder = Host.CreateEmptyApplicationBuilder(settings);
 
         // Set up settings with appropriate paths.
         var globalSettingsFilePath = GetGlobalSettingsPath();
@@ -55,8 +62,6 @@ public class Program
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
 
         await TrySetLocaleOverrideAsync(builder.Configuration);
-
-        builder.Logging.ClearProviders();
 
         // Always configure OpenTelemetry.
         builder.Logging.AddOpenTelemetry(logging => {
@@ -102,6 +107,7 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
+        builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);

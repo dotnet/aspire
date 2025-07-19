@@ -78,6 +78,9 @@ public static class AzureCosmosExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         var scheme = useVNextPreview ? "http" : null;
         builder.WithEndpoint(name: "emulator", scheme: scheme, targetPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation

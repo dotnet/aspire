@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire Uygulama Ana İşlemi</target>
+        <source>AppHost</source>
+        <target state="needs-review-translation">Aspire Uygulama Ana İşlemi</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire Boş Uygulama</target>
+        <source>AppHost and service defaults</source>
+        <target state="needs-review-translation">Aspire Boş Uygulama</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire Test Projesi (MSTest)</target>
+        <source>MSTest</source>
+        <target state="needs-review-translation">Aspire Test Projesi (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire Test Projesi (NUnit)</target>
+        <source>NUnit</source>
+        <target state="needs-review-translation">Aspire Test Projesi (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire Hizmet Varsayılanları</target>
+        <source>Service defaults</source>
+        <target state="needs-review-translation">Aspire Hizmet Varsayılanları</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire Başlangıç Uygulaması</target>
+        <source>Starter template</source>
+        <target state="needs-review-translation">Aspire Başlangıç Uygulaması</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire Test Projesi (xUnit)</target>
+        <source>xUnit</source>
+        <target state="needs-review-translation">Aspire Test Projesi (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -62,9 +62,14 @@
         <target state="translated">Kullanılacak xUnit.net sürümünü girin</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">En son şablonlar alınıyor...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="new">Integration tests</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +85,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Hiçbiri</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

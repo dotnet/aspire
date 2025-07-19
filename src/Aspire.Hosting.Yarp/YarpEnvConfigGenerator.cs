@@ -36,7 +36,7 @@ internal class YarpEnvConfigGenerator
     {
         if (IsSimple(obj))
         {
-            environmentVariables.Add(prefix, obj);
+            environmentVariables.Add(prefix, obj.ToString() ?? "");
         }
         else if (obj is IReadOnlyDictionary<string, string> dict)
         {
@@ -74,7 +74,7 @@ internal class YarpEnvConfigGenerator
                 {
                     if ((sslProtocols & protocol) == protocol)
                     {
-                        environmentVariables.Add($"{prefix}__{counter}", protocol);
+                        environmentVariables.Add($"{prefix}__{counter}", protocol.ToString());
                         counter++;
                     }
                 }

@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="MininumSdkVersionMissing" xml:space="preserve">
+    <value>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</value>
+  </data>
   <data name="InvalidLocaleProvided" xml:space="preserve">
     <value>Invalid locale {0} provided will not be used.</value>
   </data>

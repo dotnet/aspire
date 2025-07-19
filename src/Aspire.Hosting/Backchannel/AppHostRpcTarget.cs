@@ -110,18 +110,6 @@ internal class AppHostRpcTarget(
         return Task.CompletedTask;
     }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        logger.LogTrace("Received ping from CLI with timestamp: {Timestamp}", timestamp);
-        return Task.FromResult(timestamp);
-    }
-
-    public Task<DashboardUrlsState> GetDashboardUrlsAsync()
-    {
-        return GetDashboardUrlsAsync(CancellationToken.None);
-    }
-
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         if (!options.DashboardEnabled)
@@ -210,7 +198,7 @@ internal class AppHostRpcTarget(
     }
 #pragma warning restore CA1822
 
-    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken = default)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
     }

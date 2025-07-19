@@ -55,6 +55,11 @@ resource tables 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
   parent: storage
 }
 
+resource tableService2 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
+  name: 'default'
+  parent: storage
+}
+
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
 output queueEndpoint string = storage.properties.primaryEndpoints.queue

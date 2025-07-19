@@ -3,38 +3,38 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../TemplatingStrings.resx">
     <body>
       <trans-unit id="AspireAppHost_Description">
-        <source>Aspire App Host</source>
-        <target state="translated">Aspire 應用程式主機</target>
+        <source>AppHost</source>
+        <target state="needs-review-translation">Aspire 應用程式主機</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
-        <source>Aspire Empty App</source>
-        <target state="translated">Aspire 空白應用程式</target>
+        <source>AppHost and service defaults</source>
+        <target state="needs-review-translation">Aspire 空白應用程式</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
-        <source>Aspire Test Project (MSTest)</source>
-        <target state="translated">Aspire 測試專案 (MSTest)</target>
+        <source>MSTest</source>
+        <target state="needs-review-translation">Aspire 測試專案 (MSTest)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
-        <source>Aspire Test Project (NUnit)</source>
-        <target state="translated">Aspire 測試專案 (NUnit)</target>
+        <source>NUnit</source>
+        <target state="needs-review-translation">Aspire 測試專案 (NUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
-        <source>Aspire Service Defaults</source>
-        <target state="translated">Aspire 服務預設值</target>
+        <source>Service defaults</source>
+        <target state="needs-review-translation">Aspire 服務預設值</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Aspire Starter App</source>
-        <target state="translated">Aspire 入門應用程式</target>
+        <source>Starter template</source>
+        <target state="needs-review-translation">Aspire 入門應用程式</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
-        <source>Aspire Test Project (xUnit)</source>
-        <target state="translated">Aspire 測試專案 (xUnit)</target>
+        <source>xUnit</source>
+        <target state="needs-review-translation">Aspire 測試專案 (xUnit)</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -62,9 +62,14 @@
         <target state="translated">輸入要使用的 xUnit.net 版本</target>
         <note />
       </trans-unit>
-      <trans-unit id="GettingLatestTemplates">
-        <source>Getting latest templates...</source>
-        <target state="translated">正在取得最新的範本...</target>
+      <trans-unit id="GettingTemplates">
+        <source>Getting templates...</source>
+        <target state="new">Getting templates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IntegrationTestsTemplate_Description">
+        <source>Integration tests</source>
+        <target state="new">Integration tests</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -80,6 +85,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">無</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectAlreadyExists">
+        <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
+        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

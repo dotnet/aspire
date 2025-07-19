@@ -4,6 +4,7 @@
 using System.CommandLine.Parsing;
 using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -14,8 +15,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DeployCommand : PublishCommandBase
 {
-    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
+    public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier)
     {
     }
 

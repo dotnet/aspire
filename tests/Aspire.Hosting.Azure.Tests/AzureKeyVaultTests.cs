@@ -178,6 +178,20 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
+    public void KvSecretResources_AreExcludedFromManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var parameter = builder.AddParameter("my-secret-param", secret: true);
+        var kv = builder.AddAzureKeyVault("mykv");
+        var secretResource = kv.AddSecret("my-secret", parameter);
+
+        Assert.True(secretResource.Resource.TryGetAnnotationsOfType<ManifestPublishingCallbackAnnotation>(out var manifestAnnotations));
+        var annotation = Assert.Single(manifestAnnotations);
+        Assert.Equal(ManifestPublishingCallbackAnnotation.Ignore, annotation);
+    }
+
+    [Fact]
     public async Task AddSecret_WithMultipleSecrets_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

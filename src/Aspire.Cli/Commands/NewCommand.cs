@@ -5,12 +5,14 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Semver;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -25,6 +27,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public NewCommand(
         IDotNetCliRunner runner,
@@ -34,6 +37,7 @@ internal sealed class NewCommand : BaseCommand
         ICertificateService certificateService,
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier)
         : base("new", NewCommandStrings.Description, features, updateNotifier)
@@ -45,6 +49,7 @@ internal sealed class NewCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -52,6 +57,7 @@ internal sealed class NewCommand : BaseCommand
         _prompter = prompter;
         _interactionService = interactionService;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -100,6 +106,12 @@ internal sealed class NewCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
@@ -125,12 +137,56 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 {
     public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
     {
-        return await interactionService.PromptForSelectionAsync(
-            NewCommandStrings.SelectATemplateVersion,
-            candidatePackages,
-            (p) => $"{p.Version} ({p.Source})",
-            cancellationToken
-            );
+        var packagesGroupedByReleaseStatus = candidatePackages.GroupBy(p => SemVersion.Parse(p.Version).IsPrerelease ? "Prerelease" : "Released");
+        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
+        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
+
+        var selections = new List<(string SelectionText, Func<Task<NuGetPackage>> PackageSelector)>();
+
+        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<NuGetPackage>())
+        {
+            selections.Add(($"{releasedPackage.Version} ({releasedPackage.Source})", () => Task.FromResult(releasedPackage!)));
+        }
+
+        if (releasedGroup is not null && prereleaseGroup is not null)
+        {
+            // If we have prerelease packages (and there are released packages) we
+            // want to show a sub-menu option which we will use to prompt the user.
+            // To make this work the first prompt returns a function which is invoke
+            // which will either return the package or trigger another prompt for
+            // sub-packages. This is the sub-prompt logic.
+            selections.Add((NewCommandStrings.UsePrereleaseTemplates, async () =>
+            {
+                return await interactionService.PromptForSelectionAsync(
+                     NewCommandStrings.SelectATemplateVersion,
+                     prereleaseGroup,
+                     (p) => $"{p.Version} ({p.Source})",
+                     cancellationToken
+                     );
+            }
+            ));
+        }
+        else if (prereleaseGroup is not null)
+        {
+            // Fallback behavior if we happen to have NuGet feeds configured such
+            // that we only have access to prerelease template packages - in this
+            // case we just want to display them rather than having a special
+            // expander menu.
+            foreach (var prereleasePackage in prereleaseGroup)
+            {
+                selections.Add(($"{prereleasePackage.Version} ({prereleasePackage.Source})", () => Task.FromResult(prereleasePackage)));
+            }
+        }
+
+        var selection = await interactionService.PromptForSelectionAsync(
+                    NewCommandStrings.SelectATemplateVersion,
+                    selections,
+                    s => s.SelectionText,
+                    cancellationToken
+                    );
+
+        var package = await selection.PackageSelector();
+        return package;
     }
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
@@ -158,7 +214,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForSelectionAsync(
             NewCommandStrings.SelectAProjectTemplate,
             validTemplates,
-            t => $"{t.Name} ({t.Description})",
+            t => t.Description,
             cancellationToken
         );
     }

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,6 +26,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
+    protected readonly IDotNetSdkInstaller _sdkInstaller;
 
     private static bool IsCompletionStateComplete(string completionState) =>
         completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
@@ -35,18 +37,20 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -76,6 +80,12 @@ internal abstract class PublishCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var operationOutputCollector = new OutputCollector();
 
@@ -432,7 +442,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         // Handle multiple inputs
-        var results = new string?[inputs.Count];
+        var answers = new PublishingPromptInputAnswer[inputs.Count];
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
@@ -456,11 +466,14 @@ internal abstract class PublishCommandBase : BaseCommand
                 result = input.Value;
             }
 
-            results[i] = result;
+            answers[i] = new PublishingPromptInputAnswer
+            {
+                Value = result
+            };
         }
 
         // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, results, cancellationToken);
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

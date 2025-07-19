@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Resources;
@@ -49,7 +50,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        yield return new CallbackTemplate(
+        // Folded into the last yieled template.
+        var msTestTemplate = new CallbackTemplate(
             "aspire-mstest",
             TemplatingStrings.AspireMSTest_Description,
             projectName => $"./{projectName}",
@@ -57,7 +59,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        yield return new CallbackTemplate(
+        // Folded into the last yielded template.
+        var nunitTemplate = new CallbackTemplate(
             "aspire-nunit",
             TemplatingStrings.AspireNUnit_Description,
             projectName => $"./{projectName}",
@@ -65,13 +68,32 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        yield return new CallbackTemplate(
+        // Folded into the last yielded template.
+        var xunitTemplate = new CallbackTemplate(
             "aspire-xunit",
             TemplatingStrings.AspireXUnit_Description,
             projectName => $"./{projectName}",
             _ => { },
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
             );
+
+        // Prepends a test framework selection step then calls the
+        // underlying test template.
+        yield return new CallbackTemplate(
+            "aspire-test",
+            TemplatingStrings.IntegrationTestsTemplate_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            async (template, parseResult, ct) =>
+            {
+                var testTemplate = await prompter.PromptForTemplateAsync(
+                    [msTestTemplate, xunitTemplate, nunitTemplate],
+                    ct
+                );
+
+                var testCallbackTemplate = (CallbackTemplate)testTemplate;
+                return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
+            });
     }
 
     private async Task<string[]> PromptForExtraAspireStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
@@ -121,7 +143,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var createTestProject = await interactionService.PromptForSelectionAsync(
                 TemplatingStrings.PromptForTFMOptions_Prompt,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
+                [TemplatingStrings.No, TemplatingStrings.Yes],
                 choice => choice,
                 cancellationToken);
 
@@ -207,7 +229,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
-                $":ice:  {TemplatingStrings.GettingLatestTemplates}",
+                $":ice:  {TemplatingStrings.GettingTemplates}",
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions()
@@ -253,6 +275,14 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (newProjectExitCode != 0)
             {
+                // Exit code 73 indicates that the output directory already contains files from a previous project
+                // See: https://github.com/dotnet/aspire/issues/9685
+                if (newProjectExitCode == 73)
+                {
+                    interactionService.DisplayError(TemplatingStrings.ProjectAlreadyExists);
+                    return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
+                }
+
                 interactionService.DisplayLines(newProjectCollector.GetLines());
                 interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreationFailed, newProjectExitCode));
                 return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);

@@ -121,25 +121,28 @@
     <value>At least one template factory must be provided.</value>
   </data>
   <data name="AspireStarter_Description" xml:space="preserve">
-    <value>Aspire Starter App</value>
+    <value>Starter template</value>
   </data>
   <data name="AspireEmpty_Description" xml:space="preserve">
-    <value>Aspire Empty App</value>
+    <value>AppHost and service defaults</value>
   </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
-    <value>Aspire App Host</value>
+    <value>AppHost</value>
   </data>
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
-    <value>Aspire Service Defaults</value>
+    <value>Service defaults</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
-    <value>Aspire Test Project (MSTest)</value>
+    <value>MSTest</value>
   </data>
   <data name="AspireNUnit_Description" xml:space="preserve">
-    <value>Aspire Test Project (NUnit)</value>
+    <value>NUnit</value>
   </data>
   <data name="AspireXUnit_Description" xml:space="preserve">
-    <value>Aspire Test Project (xUnit)</value>
+    <value>xUnit</value>
+  </data>
+  <data name="IntegrationTestsTemplate_Description" xml:space="preserve">
+    <value>Integration tests</value>
   </data>
   <data name="UseRedisCache_Prompt" xml:space="preserve">
     <value>Use Redis Cache</value>
@@ -183,8 +186,8 @@
   <data name="EnterXUnitVersion_Description" xml:space="preserve">
     <value>The version of xUnit.net to use for the test project.</value>
   </data>
-  <data name="GettingLatestTemplates" xml:space="preserve">
-    <value>Getting latest templates...</value>
+  <data name="GettingTemplates" xml:space="preserve">
+    <value>Getting templates...</value>
   </data>
   <data name="TemplateInstallationFailed" xml:space="preserve">
     <value>The template installation failed with exit code {0}. For more information run with --debug switch.</value>
@@ -213,5 +216,8 @@
   </data>
   <data name="NoTemplateVersionsFound" xml:space="preserve">
     <value>No template versions were found. Please check your internet connection or NuGet source configuration.</value>
+  </data>
+  <data name="ProjectAlreadyExists" xml:space="preserve">
+    <value>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</value>
   </data>
 </root>

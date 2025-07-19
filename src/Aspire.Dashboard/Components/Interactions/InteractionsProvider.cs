@@ -10,7 +10,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
-using Markdig;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -22,8 +21,6 @@ namespace Aspire.Dashboard.Components.Interactions;
 
 public class InteractionsProvider : ComponentBase, IAsyncDisposable
 {
-    private static readonly MarkdownPipeline s_markdownPipeline = MarkdownHelpers.CreateMarkdownPipelineBuilder().Build();
-
     internal record InteractionMessageBarReference(int InteractionId, Message Message, ComponentTelemetryContext TelemetryContext) : IDisposable
     {
         public void Dispose()
@@ -47,10 +44,24 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _messagesProcessed;
 
     // Internal for testing.
     internal bool? _enabled;
     internal InteractionDialogReference? _interactionDialogReference;
+    internal IEnumerable<InteractionMessageBarReference> OpenMessageBars => _openMessageBars;
+    internal async Task<int> GetMessagesProcessedAsync()
+    {
+        await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
+        try
+        {
+            return _messagesProcessed;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -305,10 +316,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
-        var hasNewline = item.Message.Contains('\n') || item.Message.Contains('\r');
-
-        return MarkdownHelpers.ToHtml(item.Message, s_markdownPipeline, suppressSurroundingParagraph: !hasNewline);
+        return InteractionMarkdownHelper.ToHtml(item.Message);
     }
 
     private async Task WatchInteractionsAsync()
@@ -324,11 +332,11 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     case WatchInteractionsResponseUpdate.KindOneofCase.MessageBox:
                     case WatchInteractionsResponseUpdate.KindOneofCase.InputsDialog:
                         if (_interactionDialogReference != null &&
-                            _interactionDialogReference.InteractionId == item.InteractionId)
+                            _interactionDialogReference.InteractionId == item.InteractionId &&
+                            _interactionDialogReference.Dialog.Instance.Content is InteractionsInputsDialogViewModel inputsVM)
                         {
                             // If the dialog is already open for this interaction, update it with the new data.
-                            var c = (InteractionsInputsDialogViewModel)_interactionDialogReference.Dialog.Instance.Content;
-                            await c.UpdateInteractionAsync(item);
+                            await inputsVM.UpdateInteractionAsync(item);
                         }
                         else
                         {
@@ -349,8 +357,15 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             NotifyInteractionAvailable();
                         }
                         break;
-                    case WatchInteractionsResponseUpdate.KindOneofCase.MessageBar:
-                        var messageBar = item.MessageBar;
+                    case WatchInteractionsResponseUpdate.KindOneofCase.Notification:
+                        var notification = item.Notification;
+
+                        // Check if the message bar is already open for this interaction.
+                        // This can happen if the connection is lost and then restored, which will replay pending interactions.
+                        if (_openMessageBars.Contains(item.InteractionId))
+                        {
+                            break;
+                        }
 
                         Message? message = null;
                         await InvokeAsync(async () =>
@@ -359,23 +374,23 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                             {
                                 options.Title = WebUtility.HtmlEncode(item.Title);
                                 options.Body = GetMessageHtml(item);
-                                options.Intent = MapMessageIntent(messageBar.Intent);
+                                options.Intent = MapMessageIntent(notification.Intent);
                                 options.Section = DashboardUIHelpers.MessageBarSection;
                                 options.AllowDismiss = item.ShowDismiss;
-                                if (!string.IsNullOrEmpty(messageBar.LinkText))
+                                if (!string.IsNullOrEmpty(notification.LinkText))
                                 {
                                     options.Link = new()
                                     {
-                                        Text = messageBar.LinkText,
-                                        Href = messageBar.LinkUrl
+                                        Text = notification.LinkText,
+                                        Href = notification.LinkUrl
                                     };
                                 }
 
                                 var primaryButtonText = item.PrimaryButtonText;
                                 var secondaryButtonText = item.ShowSecondaryButton ? item.SecondaryButtonText : null;
-                                if (messageBar.Intent == MessageIntentDto.Confirmation)
+                                if (notification.Intent == MessageIntentDto.Confirmation)
                                 {
-                                    primaryButtonText = ResolvedPrimaryButtonText(item, messageBar.Intent);
+                                    primaryButtonText = ResolvedPrimaryButtonText(item, notification.Intent);
                                     secondaryButtonText = ResolvedSecondaryButtonText(item);
                                 }
 
@@ -424,8 +439,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                                         }
                                         else
                                         {
-                                            messageBar.Result = result.Value;
-                                            request.MessageBar = messageBar;
+                                            notification.Result = result.Value;
+                                            request.Notification = notification;
                                         }
 
                                         _openMessageBars.Remove(item.InteractionId);
@@ -476,6 +491,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                         Logger.LogWarning("Unexpected interaction kind: {Kind}", item.KindCase);
                         break;
                 }
+                _messagesProcessed++;
             }
             finally
             {

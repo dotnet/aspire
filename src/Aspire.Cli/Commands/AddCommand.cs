@@ -3,8 +3,8 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Text;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -24,8 +24,9 @@ internal sealed class AddCommand : BaseCommand
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -34,6 +35,7 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -41,6 +43,7 @@ internal sealed class AddCommand : BaseCommand
         _projectLocator = projectLocator;
         _prompter = prompter;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
@@ -62,6 +65,12 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var outputCollector = new OutputCollector();
@@ -96,7 +105,7 @@ internal sealed class AddCommand : BaseCommand
 
             var version = parseResult.GetValue<string?>("--version");
 
-            var packagesWithShortName = packages.Select(GenerateFriendlyName);
+            var packagesWithShortName = packages.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
             if (!packagesWithShortName.Any())
             {
@@ -233,26 +242,13 @@ internal sealed class AddCommand : BaseCommand
         return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
     }
 
-    private static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
+    internal static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
     {
-        var shortNameBuilder = new StringBuilder();
-
-        if (package.Id.StartsWith("Aspire.Hosting.Azure."))
-        {
-            shortNameBuilder.Append("az-");
-        }
-        else if (package.Id.StartsWith("Aspire.Hosting.AWS."))
-        {
-            shortNameBuilder.Append("aws-");
-        }
-        else if (package.Id.StartsWith("CommunityToolkit.Aspire.Hosting."))
-        {
-            shortNameBuilder.Append("ct-");
-        }
-
-        var lastSegment = package.Id.Split('.').Last().ToLower();
-        shortNameBuilder.Append(lastSegment);
-        return (shortNameBuilder.ToString(), package);
+        // Remove 'Aspire.Hosting' segment from anywhere in the package name
+        var packageId = package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
+        var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
+        
+        return (friendlyName, package);
     }
 }
 
@@ -267,12 +263,57 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
     {
         var selectedPackage = packages.First();
-        var version = await interactionService.PromptForSelectionAsync(
+
+        var packagesGroupedByReleaseStatus = packages.GroupBy(p => SemVersion.Parse(p.Package.Version).IsPrerelease ? "Prerelease" : "Released");
+        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
+        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
+
+        var selections = new List<(string SelectionText, Func<Task<(string, NuGetPackage)>> PackageSelector)>();
+
+        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<(string FriendlyName, NuGetPackage Package)>())
+        {
+            selections.Add(($"{releasedPackage.Package.Version} ({releasedPackage.Package.Source})", () => Task.FromResult(releasedPackage)));
+        }
+
+        if (releasedGroup is not null && prereleaseGroup is not null)
+        {
+            // If we have prerelease packages (and there are released packages) we
+            // want to show a sub-menu option which we will use to prompt the user.
+            // To make this work the first prompt returns a function which is invoke
+            // which will either return the package or trigger another prompt for
+            // sub-packages. This is the sub-prompt logic.
+            selections.Add((AddCommandStrings.UsePrereleasePackages, async () =>
+            {
+                return await interactionService.PromptForSelectionAsync(
+                     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
+                     prereleaseGroup,
+                     (p) => $"{p.Package.Version} ({p.Package.Source})",
+                     cancellationToken
+                     );
+            }
+            ));
+        }
+        else if (prereleaseGroup is not null)
+        {
+            // Fallback behavior if we happen to have NuGet feeds configured such
+            // that we only have access to prerelease packages - in this
+            // case we just want to display them rather than having a special
+            // expander menu.
+            foreach (var prereleasePackage in prereleaseGroup)
+            {
+                selections.Add(($"{prereleasePackage.Package.Version} ({prereleasePackage.Package.Source})", () => Task.FromResult(prereleasePackage)));
+            }
+        }
+
+        var selection = await interactionService.PromptForSelectionAsync(
             string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-            packages.DistinctBy(p => p.Package.Version),
-            p => p.Package.Version,
-            cancellationToken);
-        return version;
+            selections,
+            s => s.SelectionText,
+            cancellationToken
+            );
+
+        var package = await selection.PackageSelector();
+        return package;
     }
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
@@ -295,5 +336,25 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
         {
             return packageWithFriendlyName.Package.Id;
         }
+    }
+}
+
+internal sealed class CommunityToolkitFirstComparer : IComparer<string>
+{
+    public int Compare(string? x, string? y)
+    {
+        ArgumentNullException.ThrowIfNull(x);
+        ArgumentNullException.ThrowIfNull(y);
+
+        var prefix = "communitytoolkit-";
+        var xStarts = x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+        var yStarts = y.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+
+        return (xStarts, yStarts) switch
+        {
+            (true, false) => 1,
+            (false, true) => -1,
+            _ => string.Compare(x, y, StringComparison.OrdinalIgnoreCase)
+        };
     }
 }
