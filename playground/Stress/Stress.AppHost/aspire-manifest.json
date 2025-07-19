@@ -257,6 +257,31 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
       }
     },
+    "executableWithSingleArg": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "--version"
+      ]
+    },
+    "executableWithSingleEscapedArg": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "one two"
+      ]
+    },
+    "executableWithMultipleArgs": {
+      "type": "executable.v0",
+      "workingDirectory": ".",
+      "command": "dotnet",
+      "args": [
+        "--version",
+        "one two"
+      ]
+    },
     "empty-0000": {
       "type": "project.v0",
       "path": "../Stress.Empty/Stress.Empty.csproj",

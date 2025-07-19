@@ -29,6 +29,55 @@
       "type": "value.v0",
       "connectionString": "sql={db.connectionString};rows={insertionrows.value}"
     },
+    "parameterFromConnectionStringConfig": {
+      "type": "parameter.v0",
+      "connectionString": "{parameterFromConnectionStringConfig.value}",
+      "value": "{parameterFromConnectionStringConfig.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "throwing": {
+      "type": "parameter.v0",
+      "value": "{throwing.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "parameterFromConnectionStringConfigMissing": {
+      "type": "parameter.v0",
+      "connectionString": "{parameterFromConnectionStringConfigMissing.value}",
+      "value": "{parameterFromConnectionStringConfigMissing.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "markdownDescription": {
+      "type": "parameter.v0",
+      "value": "{markdownDescription.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "customInput": {
+      "type": "parameter.v0",
+      "value": "{customInput.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../ParameterEndToEnd.ApiService/ParameterEndToEnd.ApiService.csproj",

@@ -21,11 +21,11 @@ param funcstorage67c6c_outputs_tableendpoint string
 
 param eventhubs_outputs_eventhubsendpoint string
 
-param storage_outputs_blobendpoint string
-
 param messaging_outputs_servicebusendpoint string
 
 param cosmosdb_outputs_connectionstring string
+
+param storage_outputs_blobendpoint string
 
 param storage_outputs_queueendpoint string
 
@@ -158,10 +158,6 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: 'myhub'
             }
             {
-              name: 'ConnectionStrings__myblobcontainer'
-              value: 'Endpoint=${storage_outputs_blobendpoint};ContainerName=myblobcontainer'
-            }
-            {
               name: 'messaging__fullyQualifiedNamespace'
               value: messaging_outputs_servicebusendpoint
             }
@@ -180,6 +176,10 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'Aspire__Microsoft__Azure__Cosmos__cosmosdb__AccountEndpoint'
               value: cosmosdb_outputs_connectionstring
+            }
+            {
+              name: 'ConnectionStrings__myblobcontainer'
+              value: 'Endpoint=${storage_outputs_blobendpoint};ContainerName=myblobcontainer'
             }
             {
               name: 'blob__blobServiceUri'
