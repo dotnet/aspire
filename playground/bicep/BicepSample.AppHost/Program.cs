@@ -31,7 +31,7 @@ var storage = builder.AddAzureStorage("storage");
 
 var blobs = storage.GetBlobService();
 var tables = storage.GetTableService();
-var queues = storage.GetTableService();
+var queues = storage.GetQueueService();
 
 var sqlServer = builder.AddAzureSqlServer("sql").AddDatabase("db");
 
