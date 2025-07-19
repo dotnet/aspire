@@ -18,7 +18,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Or resource and consume the c
 
 ```csharp
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var clusteringTable = storage.AddTableService("clustering");
+var clusteringTable = storage.GetTableService();
 var grainStorage = storage.GetBlobService();
 
 var orleans = builder.AddOrleans("my-app")
@@ -27,7 +27,8 @@ var orleans = builder.AddOrleans("my-app")
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans)
-       .WithReference(grainStorage, "grainstate");
+       .WithReference(grainStorage, "grainstate")
+       .WithReference(clusteringTable, "clustering");
 
 builder.AddProject<Projects.OrleansClient>("frontend")
        .WithReference(orleans.AsClient());

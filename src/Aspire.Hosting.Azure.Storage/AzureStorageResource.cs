@@ -24,7 +24,8 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
     internal IResourceBuilder<AzureBlobStorageResource>? BlobStorageBuilder { get; set; }
-    internal AzureQueueStorageResource? QueueStorageResource { get; set; }
+    internal IResourceBuilder<AzureQueueStorageResource>? QueueStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureTableStorageResource>? TableStorageBuilder { get; set; }
 
     internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
 

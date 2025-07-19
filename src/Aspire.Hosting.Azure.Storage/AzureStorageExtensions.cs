@@ -76,8 +76,12 @@ public static class AzureStorageExtensions
 
             if (azureResource.BlobStorageBuilder is not null)
             {
-                var blobService = azureResource.BlobStorageBuilder.Resource.ToProvisioningEntity();
-                blobService.Parent = storageAccount;
+                // The provisioned resource uses "blobs" as the name for backward compatibility.
+                var blobService = new BlobService("blobs")
+                {
+                    Parent = storageAccount
+                };
+
                 infrastructure.Add(blobService);
 
                 foreach (var blobContainer in azureResource.BlobContainers)
@@ -88,10 +92,13 @@ public static class AzureStorageExtensions
                 }
             }
 
-            if (azureResource.QueueStorageResource is not null)
+            if (azureResource.QueueStorageBuilder is not null)
             {
-                var queueService = azureResource.QueueStorageResource.ToProvisioningEntity();
-                queueService.Parent = storageAccount;
+                var queueService = new QueueService("queues")
+                {
+                    Parent = storageAccount
+                };
+
                 infrastructure.Add(queueService);
 
                 foreach (var queue in azureResource.Queues)
@@ -100,6 +107,16 @@ public static class AzureStorageExtensions
                     cdkQueue.Parent = queueService;
                     infrastructure.Add(cdkQueue);
                 }
+            }
+
+            if (azureResource.TableStorageBuilder is not null)
+            {
+                var tableService = new TableService("tables")
+                {
+                    Parent = storageAccount
+                };
+
+                infrastructure.Add(tableService);
             }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
@@ -438,36 +455,34 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
-    [Obsolete("Use AddTableService on IResourceBuilder<AzureStorageResource> instead.")]
+    [Obsolete("Use GetTableService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        return AddTableService(builder, name);
+        if (name == builder.Resource.Name + "-tables")
+        {
+            // If the name is the default name, use the GetTableService method instead so we keep
+            // track of the default resource.
+            return GetTableService(builder);
+        }
+
+        return CreateTableService(builder, name);
     }
 
     /// <summary>
-    /// Creates a builder for the <see cref="AzureTableStorageResource"/> which can be referenced to get the Azure Storage tables endpoint for the storage account.
+    /// Gets a builder for the <see cref="AzureTableStorageResource"/> which can be referenced to get the Azure Storage tables endpoint for the storage account.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
-    /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureTableStorageResource> AddTableService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
+    public static IResourceBuilder<AzureTableStorageResource> GetTableService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        name ??= builder.Resource.Name + "-tables";
+        var name = builder.Resource.Name + "-tables";
 
-        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureTableStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
-        if (existingResource != null)
-        {
-            // If the resource already exists, return it.
-            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
-        }
-
-        var resource = new AzureTableStorageResource(name, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(resource);
+        return builder.Resource.TableStorageBuilder ??= CreateTableService(builder, name);
     }
 
     /// <summary>
@@ -476,56 +491,34 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
-    [Obsolete("Use AddQueueService on IResourceBuilder<AzureStorageResource> instead.")]
+    [Obsolete("Use GetQueueService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        return AddQueueService(builder, name);
+        if (name == builder.Resource.Name + "-queues")
+        {
+            // If the name is the default name, use the GetQueueService method instead so we keep
+            // track of the default resource.
+            return GetQueueService(builder);
+        }
+
+        return CreateQueueService(builder, name);
     }
 
     /// <summary>
-    /// Creates a builder for the <see cref="AzureQueueStorageResource"/> which can be referenced to get the Azure Storage queues endpoint for the storage account.
+    /// Gets a builder for the <see cref="AzureQueueStorageResource"/> which can be referenced to get the Azure Storage queues endpoint for the storage account.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
-    /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
-    public static IResourceBuilder<AzureQueueStorageResource> AddQueueService(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string? name = null)
+    public static IResourceBuilder<AzureQueueStorageResource> GetQueueService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        name ??= builder.Resource.Name + "-queues";
+        var name = builder.Resource.Name + "-queues";
 
-        var existingResource = builder.ApplicationBuilder.Resources.OfType<AzureQueueStorageResource>().FirstOrDefault(x => string.Equals(name, x.Name, StringComparisons.ResourceName));
-        if (existingResource != null)
-        {
-            // If the resource already exists, return it.
-            return builder.ApplicationBuilder.CreateResourceBuilder(existingResource);
-        }
-
-        var resource = new AzureQueueStorageResource(name, builder.Resource);
-        builder.Resource.QueueStorageResource = resource;
-
-        string? connectionString = null;
-
-        // Add the "Queues" resource health check. This is a separate health check from the "Storage" resource health check.
-        // Doing it on the storage is not sufficient as the WaitForHealthyAsync doesn't bubble up to the parent resources.
-        var healthCheckKey = $"{resource.Name}_check";
-
-        QueueServiceClient? queueServiceClient = null;
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureQueueStorage(sp =>
-        {
-            return queueServiceClient ??= CreateQueueServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
-        }, name: healthCheckKey);
-
-        return builder.ApplicationBuilder
-            .AddResource(resource)
-            .WithHealthCheck(healthCheckKey)
-            .OnConnectionStringAvailable(async (blobs, @event, ct) =>
-            {
-                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            });
+        return builder.Resource.QueueStorageBuilder ??= CreateQueueService(builder, name);
     }
 
     /// <summary>
@@ -542,13 +535,7 @@ public static class AzureStorageExtensions
 
         queueName ??= name;
 
-        // Create a Queue Service resource implicitly
-        if (builder.Resource.QueueStorageResource is null)
-        {
-            AddQueueService(builder);
-        }
-
-        AzureQueueStorageQueueResource resource = new(name, queueName, builder.Resource.QueueStorageResource!);
+        AzureQueueStorageQueueResource resource = new(name, queueName, builder.GetQueueService().Resource);
         builder.Resource.Queues.Add(resource);
 
         string? connectionString = null;
@@ -646,6 +633,39 @@ public static class AzureStorageExtensions
             .AddResource(resource)
             .WithHealthCheck(healthCheckKey)
             .OnConnectionStringAvailable(async (blobs, @event, ct) =>
+            {
+                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
+    }
+
+    private static IResourceBuilder<AzureTableStorageResource> CreateTableService(IResourceBuilder<AzureStorageResource> builder, string? name = null)
+    {
+        name ??= builder.Resource.Name + "-tables";
+
+        var resource = new AzureTableStorageResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    private static IResourceBuilder<AzureQueueStorageResource> CreateQueueService(IResourceBuilder<AzureStorageResource> builder, string name)
+    {
+        var resource = new AzureQueueStorageResource(name, builder.Resource);
+
+        string? connectionString = null;
+
+        // Add the "Queues" resource health check. This is a separate health check from the "Storage" resource health check.
+        // Doing it on the storage is not sufficient as the WaitForHealthyAsync doesn't bubble up to the parent resources.
+        var healthCheckKey = $"{resource.Name}_check";
+
+        QueueServiceClient? queueServiceClient = null;
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureQueueStorage(sp =>
+        {
+            return queueServiceClient ??= CreateQueueServiceClient(connectionString ?? throw new InvalidOperationException("Connection string is not initialized."));
+        }, name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (queues, @event, ct) =>
             {
                 connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });

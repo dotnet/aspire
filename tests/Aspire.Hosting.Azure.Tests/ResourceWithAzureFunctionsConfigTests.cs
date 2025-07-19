@@ -37,7 +37,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storageResource = builder.AddAzureStorage("storage");
-        var queueResource = storageResource.AddQueueService("queues").Resource;
+        var queueResource = storageResource.GetQueueService().Resource;
 
         // Act & Assert
         Assert.IsAssignableFrom<IResourceWithAzureFunctionsConfig>(queueResource);
@@ -162,7 +162,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var tableResource = storage.AddTableService("tables").Resource;
+        var tableResource = storage.GetTableService().Resource;
         var target = new Dictionary<string, object>();
 
         // Act
@@ -179,7 +179,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var queueResource = storage.AddQueueService("queues").Resource;
+        var queueResource = storage.GetQueueService().Resource;
         var target = new Dictionary<string, object>();
 
         // Act
