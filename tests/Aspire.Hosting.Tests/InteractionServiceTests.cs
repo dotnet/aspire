@@ -172,7 +172,7 @@ public class InteractionServiceTests
     }
 
     [Fact]
-    public async Task PromptInputAsync_InvalidData()
+    public async Task PromptInputAsync_ValidationCallbackInvalidData_ReturnErrors()
     {
         var interactionService = CreateInteractionService();
 
@@ -194,10 +194,132 @@ public class InteractionServiceTests
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new [] { input } });
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
 
         // The interaction should still be in progress due to validation error
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(
+            input.ValidationErrors,
+            error => Assert.Equal("Invalid value", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_MissingRequiredData_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, Required = true };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value is required.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_ChoiceHasNonOptionValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Choice, Options = [KeyValuePair.Create("first", "First option!"), KeyValuePair.Create("second", "Second option!")] };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "not-in-options";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be one of the provided options.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_NumberHasNonNumberValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Number };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "one";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be a valid number.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_BooleanHasNonBooleanValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Label = "Value", InputType = InputType.Boolean };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "maybe";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be a valid boolean.", error));
+    }
+
+    [Theory]
+    [InlineData(InputType.Text, null)]
+    [InlineData(InputType.Text, 1)]
+    [InlineData(InputType.Text, 10)]
+    [InlineData(InputType.Text, InteractionHelpers.DefaultMaxLength)]
+    [InlineData(InputType.SecretText, 10)]
+    public async Task PromptInputsAsync_TextExceedsLimit_ReturnErrors(InputType inputType, int? maxLength)
+    {
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: true);
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: false);
+
+        static async Task TextExceedsLimitCoreAsync(InputType inputType, int? maxLength, bool success)
+        {
+            var interactionService = CreateInteractionService();
+
+            var input = new InteractionInput { Label = "Value", InputType = inputType, MaxLength = maxLength };
+            var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+            var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+            var resolvedMaxLength = InteractionHelpers.GetMaxLength(maxLength);
+
+            input.Value = new string('!', success ? resolvedMaxLength : resolvedMaxLength + 1);
+            await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+            if (!success)
+            {
+                // The interaction should still be in progress due to invalid data
+                Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+                Assert.Collection(input.ValidationErrors,
+                    error => Assert.Equal($"Value length exceeds {resolvedMaxLength} characters.", error));
+            }
+            else
+            {
+                Assert.True(interaction.CompletionTcs.Task.IsCompletedSuccessfully);
+            }
+        }
     }
 
     [Fact]
@@ -251,6 +373,36 @@ public class InteractionServiceTests
         // Assert
         Assert.Null(input.Description);
         Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(1, false)]
+    [InlineData(int.MaxValue, false)]
+    [InlineData(0, true)]
+    [InlineData(-1, true)]
+    [InlineData(int.MinValue, true)]
+    public void InteractionInput_WithLengths_ErrorOnInvalid(int? length, bool invalid)
+    {
+        // Arrange & Act
+        if (invalid)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => SetLength(length));
+        }
+        else
+        {
+            SetLength(length);
+        }
+
+        static void SetLength(int? length)
+        {
+            var input = new InteractionInput
+            {
+                Label = "Test Label",
+                InputType = InputType.Text,
+                MaxLength = length
+            };
+        }
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
