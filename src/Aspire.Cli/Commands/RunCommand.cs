@@ -294,6 +294,15 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        catch (ResourceFailedException ex)
+        {
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, 
+                "Dashboard failed to start: Resource '{0}' entered the '{1}' state and cannot become healthy.", 
+                ex.ResourceName.EscapeMarkup(), 
+                ex.FailedState.EscapeMarkup()));
+            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
         catch (Exception ex)
         {
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));

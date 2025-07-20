@@ -27,6 +27,7 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(ValidationResult))]
 [JsonSerializable(typeof(IAsyncEnumerable<CommandOutput>))]
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<CommandOutput>))]
+[JsonSerializable(typeof(ResourceFailedException))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
