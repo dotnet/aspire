@@ -40,7 +40,9 @@ public class AddNatsTests
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4222));
 
         Assert.NotNull(nats.Resource.PasswordParameter);
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.False(string.IsNullOrEmpty(nats.Resource.PasswordParameter!.Value));
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = appBuilder.Build();
 
@@ -51,7 +53,9 @@ public class AddNatsTests
         Assert.NotNull(connectionStringResource);
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"nats://nats:{natsResource.PasswordParameter?.Value}@localhost:4222", connectionString);
+#pragma warning restore CS0618 // Type or member is obsolete
         Assert.Equal("nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -68,8 +72,10 @@ public class AddNatsTests
         Assert.NotNull(nats.Resource.UserNameParameter);
         Assert.NotNull(nats.Resource.PasswordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal("usr", nats.Resource.UserNameParameter!.Value);
         Assert.Equal("password", nats.Resource.PasswordParameter!.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = appBuilder.Build();
 
