@@ -896,4 +896,19 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.True(storage.Resource.IsEmulator());
         Assert.Contains(storage.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureStorageResource()
+    {
+        // Arrange
+        var storageResource = new AzureStorageResource("test-storage", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(storageResource, "test-storage");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = storageResource.AddAsExistingResource(infrastructure);
+        var secondResult = storageResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

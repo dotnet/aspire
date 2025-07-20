@@ -617,4 +617,19 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         Assert.True(eventHubs.Resource.IsEmulator());
         Assert.Contains(eventHubs.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureEventHubsResource()
+    {
+        // Arrange
+        var eventHubsResource = new AzureEventHubsResource("test-eventhubs", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(eventHubsResource, "test-eventhubs");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = eventHubsResource.AddAsExistingResource(infrastructure);
+        var secondResult = eventHubsResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }
