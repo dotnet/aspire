@@ -796,6 +796,70 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(KnownRelationshipTypes.WaitFor, relationshipAnnotation.Type);
     }
 
+    [Theory]
+    [InlineData(nameof(KnownResourceStates.Exited))]
+    [InlineData(nameof(KnownResourceStates.FailedToStart))]
+    [InlineData(nameof(KnownResourceStates.RuntimeUnhealthy))]
+    [InlineData(nameof(KnownResourceStates.Finished))]
+    public async Task WaitForResourceHealthyAsync_DashboardFailureThrowsResourceFailedException(string failedState)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        
+        var dashboard = builder.AddResource(new CustomResource(KnownResourceNames.AspireDashboard));
+        
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        // Set the dashboard to the failed state
+        await app.ResourceNotifications.PublishUpdateAsync(dashboard.Resource, s => s with
+        {
+            State = failedState,
+            HealthReports = [new HealthReportSnapshot("Test", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy, "Test failure", null)]
+        });
+
+        // WaitForResourceHealthyAsync should throw ResourceFailedException for dashboard failures
+        var ex = await Assert.ThrowsAsync<ResourceFailedException>(async () =>
+        {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(
+                KnownResourceNames.AspireDashboard,
+                WaitBehavior.StopOnResourceUnavailable
+            ).WaitAsync(TimeSpan.FromSeconds(5));
+        });
+
+        Assert.Equal(KnownResourceNames.AspireDashboard, ex.ResourceName);
+        Assert.Equal(failedState, ex.FailedState);
+        Assert.Contains($"Resource '{KnownResourceNames.AspireDashboard}' entered the '{failedState}' state and cannot become healthy.", ex.Message);
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsync_NonDashboardFailureThrowsDistributedApplicationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        
+        var customResource = builder.AddResource(new CustomResource("test-resource"));
+        
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        // Set the non-dashboard resource to a failed state
+        await app.ResourceNotifications.PublishUpdateAsync(customResource.Resource, s => s with
+        {
+            State = KnownResourceStates.FailedToStart,
+            HealthReports = [new HealthReportSnapshot("Test", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy, "Test failure", null)]
+        });
+
+        // WaitForResourceHealthyAsync should throw DistributedApplicationException for non-dashboard failures
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(
+                "test-resource",
+                WaitBehavior.StopOnResourceUnavailable
+            ).WaitAsync(TimeSpan.FromSeconds(5));
+        });
+
+        Assert.Equal("Stopped waiting for resource 'test-resource' to become healthy because it failed to start.", ex.Message);
+    }
+
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
     {
         public CustomResource Parent => parent;

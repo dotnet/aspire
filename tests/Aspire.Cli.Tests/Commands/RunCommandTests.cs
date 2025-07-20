@@ -283,4 +283,80 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await pendingRun.WaitAsync(CliTestConstants.LongTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public async Task RunCommand_WhenDashboardFailsToStart_ReturnsNonZeroExitCodeWithClearErrorMessage()
+    {
+        var errorMessages = new List<string>();
+        
+        var backchannelFactory = (IServiceProvider sp) => {
+            var backchannel = new TestAppHostBackchannel();
+            // Configure the backchannel to throw ResourceFailedException when GetDashboardUrlsAsync is called
+            backchannel.GetDashboardUrlsAsyncCallback = (ct) =>
+            {
+                throw new ResourceFailedException("aspire-dashboard", "FailedToStart", 
+                    "Dashboard failed to start and entered a terminal state.");
+            };
+            return backchannel;
+        };
+
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+            // Fake apphost information to return a compatible app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            // Configure the runner to establish a backchannel but simulate dashboard failure
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                // Set up the backchannel
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+
+                // Just simulate the process running until the user cancels.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+        
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.DisplayErrorCallback = errorMessages.Add;
+                return interactionService;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Assert that the command returns the expected failure exit code
+        Assert.Equal(ExitCodeConstants.FailedToDotnetRunAppHost, exitCode);
+
+        // Check that the error message contains the expected text
+        Assert.Contains(errorMessages, msg => 
+            msg.Contains("Dashboard failed to start") && 
+            msg.Contains("aspire-dashboard") && 
+            msg.Contains("FailedToStart"));
+    }
 }
