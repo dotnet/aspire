@@ -138,7 +138,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             var sqlserver1 = builder1.AddSqlServer("sqlserver");
             var db1 = sqlserver1.AddDatabase(databaseName);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = sqlserver1.Resource.PasswordParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (useVolume)
             {
