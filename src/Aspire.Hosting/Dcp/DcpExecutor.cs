@@ -125,6 +125,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
+
+        // Subscribe to DCP events to log resource lifecycle events to resource-specific loggers
+        SubscribeToDcpEvents();
     }
 
     private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
@@ -1975,5 +1978,93 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return volumeMounts;
+    }
+
+    /// <summary>
+    /// Subscribes to DCP events to log resource lifecycle events to resource-specific loggers.
+    /// </summary>
+    private void SubscribeToDcpEvents()
+    {
+        _executorEvents.Subscribe<OnResourceStartingContext>(HandleResourceStarting);
+        _executorEvents.Subscribe<OnResourceFailedToStartContext>(HandleResourceFailedToStart);
+        _executorEvents.Subscribe<OnResourceChangedContext>(HandleResourceChanged);
+    }
+
+    /// <summary>
+    /// Handles resource starting events by logging to the resource-specific logger.
+    /// </summary>
+    private Task HandleResourceStarting(OnResourceStartingContext context)
+    {
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var dcpResourceInfo = context.DcpResourceName is not null ? $" (DCP: {context.DcpResourceName})" : "";
+        
+        resourceLogger.LogInformation("Starting {ResourceType} resource '{ResourceName}'{DcpResourceInfo}.", 
+            context.ResourceType, context.Resource.Name, dcpResourceInfo);
+        
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles resource failed to start events by logging to the resource-specific logger.
+    /// </summary>
+    private Task HandleResourceFailedToStart(OnResourceFailedToStartContext context)
+    {
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var dcpResourceInfo = context.DcpResourceName is not null ? $" (DCP: {context.DcpResourceName})" : "";
+        
+        resourceLogger.LogError("Failed to start {ResourceType} resource '{ResourceName}'{DcpResourceInfo}.", 
+            context.ResourceType, context.Resource.Name, dcpResourceInfo);
+        
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles resource changed events by logging to the resource-specific logger.
+    /// </summary>
+    private Task HandleResourceChanged(OnResourceChangedContext context)
+    {
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var status = context.Status;
+        
+        // Log different levels based on the status
+        if (status.State is not null)
+        {
+            // Check for running states
+            if (status.State == KnownResourceStates.Running ||
+                status.State == ContainerState.Running ||
+                status.State == ExecutableState.Running)
+            {
+                resourceLogger.LogInformation("{ResourceType} resource '{ResourceName}' is now running (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, context.DcpResourceName);
+            }
+            // Check for failure/terminal states
+            else if (status.State == KnownResourceStates.Exited ||
+                     status.State == KnownResourceStates.FailedToStart ||
+                     status.State == ContainerState.Exited ||
+                     status.State == ContainerState.FailedToStart ||
+                     status.State == ExecutableState.Finished ||
+                     status.State == ExecutableState.Terminated ||
+                     status.State == ExecutableState.FailedToStart)
+            {
+                resourceLogger.LogWarning("{ResourceType} resource '{ResourceName}' has {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+            // Check for starting states
+            else if (status.State == KnownResourceStates.Starting ||
+                     status.State == ContainerState.Starting ||
+                     status.State == ContainerState.Building)
+            {
+                resourceLogger.LogInformation("{ResourceType} resource '{ResourceName}' status changed to {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+            // Default case for other states
+            else
+            {
+                resourceLogger.LogInformation("{ResourceType} resource '{ResourceName}' status changed to {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+        }
+        
+        return Task.CompletedTask;
     }
 }
