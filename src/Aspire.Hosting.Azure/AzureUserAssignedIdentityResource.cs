@@ -66,7 +66,19 @@ public sealed class AzureUserAssignedIdentityResource(string name)
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = UserAssignedIdentity.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a UserAssignedIdentity with the same identifier already exists
+        var existingStore = resources.OfType<UserAssignedIdentity>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = UserAssignedIdentity.FromExisting(bicepIdentifier);
         store.Name = PrincipalName.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;

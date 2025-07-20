@@ -117,7 +117,19 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = CosmosDBAccount.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a CosmosDBAccount with the same identifier already exists
+        var existingStore = resources.OfType<CosmosDBAccount>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = CosmosDBAccount.FromExisting(bicepIdentifier);
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;
