@@ -90,4 +90,19 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
         output.WriteLine(appConfigRolesManifest.BicepText);
         Assert.Equal(expectedBicep, appConfigRolesManifest.BicepText);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAppConfigurationResource()
+    {
+        // Arrange
+        var appConfigurationResource = new AzureAppConfigurationResource("test-app-config", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(appConfigurationResource, "test-app-config");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = appConfigurationResource.AddAsExistingResource(infrastructure);
+        var secondResult = appConfigurationResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

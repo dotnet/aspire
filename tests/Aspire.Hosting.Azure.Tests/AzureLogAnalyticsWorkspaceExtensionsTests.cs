@@ -28,4 +28,19 @@ public class AzureLogAnalyticsWorkspaceExtensionsTests
 
         await Verify(appInsightsManifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureLogAnalyticsWorkspaceResource()
+    {
+        // Arrange
+        var logAnalyticsWorkspaceResource = new AzureLogAnalyticsWorkspaceResource("test-log-workspace", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(logAnalyticsWorkspaceResource, "test-log-workspace");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = logAnalyticsWorkspaceResource.AddAsExistingResource(infrastructure);
+        var secondResult = logAnalyticsWorkspaceResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

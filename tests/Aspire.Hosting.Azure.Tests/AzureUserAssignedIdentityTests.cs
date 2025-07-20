@@ -329,6 +329,21 @@ public class AzureUserAssignedIdentityTests
             .AppendContentAsFile(roleBicep2, "bicep");
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureUserAssignedIdentityResource()
+    {
+        // Arrange
+        var userAssignedIdentityResource = new AzureUserAssignedIdentityResource("test-identity");
+        var infrastructure = new AzureResourceInfrastructure(userAssignedIdentityResource, "test-identity");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = userAssignedIdentityResource.AddAsExistingResource(infrastructure);
+        var secondResult = userAssignedIdentityResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "some-path";
