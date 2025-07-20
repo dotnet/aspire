@@ -104,7 +104,19 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = StorageAccount.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a StorageAccount with the same identifier already exists
+        var existingAccount = resources.OfType<StorageAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
+        
+        if (existingAccount is not null)
+        {
+            return existingAccount;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var account = StorageAccount.FromExisting(bicepIdentifier);
         account.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(account);
         return account;
