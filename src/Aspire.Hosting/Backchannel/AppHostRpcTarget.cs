@@ -125,6 +125,7 @@ internal class AppHostRpcTarget(
         {
             await resourceNotificationService.WaitForResourceHealthyAsync(
                 KnownResourceNames.AspireDashboard,
+                WaitBehavior.StopOnResourceUnavailable,
                 cancellationToken).ConfigureAwait(false);
         }
         catch (DistributedApplicationException ex)
