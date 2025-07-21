@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -1230,6 +1231,44 @@ public class DcpExecutorTests
 
         // Assert
         Assert.True(tokenSource.IsCancellationRequested);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1", "127.0.0.1")]
+    [InlineData("[::1]", "[::1]")]
+    [InlineData("localhost", "localhost")]
+    [InlineData("0.0.0.0", "localhost")]
+    [InlineData("[::]", "localhost")]
+    [InlineData("machine-name", "localhost")]
+    [InlineData("10.0.0.1", "10.0.0.1")]
+    public async Task ServiceProducerHasCorrectAddress(string bindingAddress, string serviceAddress)
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("CustomName", "container")
+            .WithHttpEndpoint(port: 5000, targetPort: 5000, name: "customendpoint")
+            .WithEndpoint("customendpoint", (endpoint) =>
+            {
+                endpoint.TargetHost = bindingAddress;
+            });
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        var annotations = container.Metadata.EnsureAnnotations();
+        var serviceProducers = JsonSerializer.Deserialize<List<ServiceProducerAnnotation>>(annotations[CustomResource.ServiceProducerAnnotation]);
+        Assert.NotNull(serviceProducers);
+        var serviceProducer = Assert.Single(serviceProducers);
+        Assert.Equal(serviceAddress, serviceProducer.Address);
     }
 
     private static void HasKnownCommandAnnotations(IResource resource)
