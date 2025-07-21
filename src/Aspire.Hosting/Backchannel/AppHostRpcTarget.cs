@@ -121,9 +121,17 @@ internal class AppHostRpcTarget(
         // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
         // endpoint for the resource is available and the dashboard is ready to be used. This helps
         // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
-        await resourceNotificationService.WaitForResourceHealthyAsync(
-            KnownResourceNames.AspireDashboard,
-            cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await resourceNotificationService.WaitForResourceHealthyAsync(
+                KnownResourceNames.AspireDashboard,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (DistributedApplicationException ex)
+        {
+            // For dashboard failures, translate to DashboardStartupException for better CLI error handling
+            throw new DashboardStartupException(KnownResourceNames.AspireDashboard, "Unknown", ex.Message, ex);
+        }
 
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
