@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
         <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
-        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
+        <target state="translated">새 프로젝트는 출력 폴더의 기존 파일을 덮어쓰게 되므로 만들 수 없습니다. 충돌하는 파일을 제거하거나 이동하거나 다른 위치를 선택하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
