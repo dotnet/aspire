@@ -151,6 +151,12 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
+        // Log resource starting event to resource-specific logger
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var dcpResourceInfo = context.DcpResourceName is not null ? $" (DCP: {context.DcpResourceName})" : "";
+        resourceLogger.LogInformation("Starting {ResourceType} resource '{ResourceName}'{DcpResourceInfo}.", 
+            context.ResourceType, context.Resource.Name, dcpResourceInfo);
+
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:
@@ -358,10 +364,48 @@ internal sealed class ApplicationOrchestrator
         {
             await SetChildResourceAsync(context.Resource, context.Status.State, context.Status.StartupTimestamp, context.Status.FinishedTimestamp).ConfigureAwait(false);
         }
+
+        // Log resource state changes to resource-specific logger
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var status = context.Status;
+        
+        if (status.State is not null)
+        {
+            // Log positive states as Information
+            if (status.State == KnownResourceStates.Running ||
+                status.State == KnownResourceStates.Starting ||
+                status.State == KnownResourceStates.Active)
+            {
+                resourceLogger.LogInformation("{ResourceType} resource '{ResourceName}' is now {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+            // Log terminal/failure states as Warning
+            else if (status.State == KnownResourceStates.Exited ||
+                     status.State == KnownResourceStates.FailedToStart ||
+                     status.State == KnownResourceStates.Finished ||
+                     status.State == KnownResourceStates.RuntimeUnhealthy ||
+                     status.State == KnownResourceStates.Stopping)
+            {
+                resourceLogger.LogWarning("{ResourceType} resource '{ResourceName}' has {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+            // Log other states (Waiting, NotStarted) as Information
+            else
+            {
+                resourceLogger.LogInformation("{ResourceType} resource '{ResourceName}' state changed to {State} (DCP: {DcpResourceName}).", 
+                    context.ResourceType, context.Resource.Name, status.State, context.DcpResourceName);
+            }
+        }
     }
 
     private async Task OnResourceFailedToStart(OnResourceFailedToStartContext context)
     {
+        // Log resource failure to resource-specific logger
+        var resourceLogger = _loggerService.GetLogger(context.Resource.Name);
+        var dcpResourceInfo = context.DcpResourceName is not null ? $" (DCP: {context.DcpResourceName})" : "";
+        resourceLogger.LogError("Failed to start {ResourceType} resource '{ResourceName}'{DcpResourceInfo}.", 
+            context.ResourceType, context.Resource.Name, dcpResourceInfo);
+
         if (context.DcpResourceName != null)
         {
             await _notificationService.PublishUpdateAsync(context.Resource, context.DcpResourceName, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
