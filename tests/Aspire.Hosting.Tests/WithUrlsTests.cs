@@ -390,6 +390,52 @@ public class WithUrlsTests
     }
 
     [Fact]
+    public async Task ExpectedNumberOfUrlsForReplicatedResource()
+    {
+        // This test creates a single project resource with a custom URL and
+        // a replica count of 3. It then checks that the number of URLs
+        // generated isn't impacted by the number of replicas.
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithUrl("https://example.com/project")
+            .WithReplicas(3);
+
+        var app = await builder.BuildAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var cts = new CancellationTokenSource();
+        var projectRunning = false;
+
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            {
+                if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running)
+                {
+                    projectRunning = true;
+                    Assert.Equal(2, notification.Snapshot.Urls.Length);
+                    Assert.Collection(notification.Snapshot.Urls,
+                        url => Assert.StartsWith("http://localhost:", url.Url), // The default project URL
+                        url => Assert.Equal("https://example.com/project", url.Url) // Static URL
+                    );
+                    break;
+                }
+            }
+        });
+
+        await app.StartAsync();
+
+        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        cts.Cancel();
+
+        await app.StopAsync();
+
+    }
+
+    [Fact]
     public async Task UrlsAreInExpectedStateForResourcesGivenTheirLifecycle()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
