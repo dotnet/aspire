@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="MininumSdkVersionMissing">
         <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="new">The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</target>
+        <target state="translated">未安裝最低 .NET SDK 版本 ({0})。請造訪 https://get.dot.net 下載並安裝 .NET SDK。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
