@@ -67,8 +67,8 @@ EXAMPLES:
     ./get-aspire-cli.sh --help
 
     # Piped execution (like wget <url> | bash or curl <url> | bash):
-    curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash
-    curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash -s -- --install-path "~/bin"
+    curl -sSL https://aka.ms/aspire/get/install.sh | bash
+    curl -sSL https://aka.ms/aspire/get/install.sh | bash -s -- --install-path "~/bin"
 
 EOF
 }
