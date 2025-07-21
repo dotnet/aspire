@@ -25,6 +25,7 @@ SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
+DEFAULT_QUALITY="release"
 
 # Function to show help
 show_help() {
@@ -39,7 +40,7 @@ DESCRIPTION:
     Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
 
-    The default quality is `release`.
+    The default quality is `${DEFAULT_QUALITY}`.
 
     Pass a specific version to get CLI for that version.
 
@@ -47,7 +48,7 @@ USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
-    -q, --quality QUALITY       Quality to download (default: release). Supported values: dev, staging, release
+    -q, --quality QUALITY       Quality to download (default: ${DEFAULT_QUALITY}). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
@@ -701,8 +702,8 @@ fi
 
 # Initialize default values after parsing arguments
 if [[ -z "$QUALITY" ]]; then
-    # Default quality to "release" if not provided
-    QUALITY="release"
+    # Default quality if not provided
+    QUALITY="${DEFAULT_QUALITY}"
 fi
 
 # Set default install path if not provided

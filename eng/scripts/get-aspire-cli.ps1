@@ -35,6 +35,7 @@ $Script:ChecksumDownloadTimeoutSec = 120
 
 # Configuration constants
 $Script:Config = @{
+    DefaultQuality = "release"
     MinimumPowerShellVersion = 4
     SupportedQualities = @("release", "staging", "dev")
     SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
@@ -119,13 +120,13 @@ DESCRIPTION:
     Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
     Running with `-Quality dev` will download the latest dev build from `main`.
 
-    The default quality is `release`.
+    The default quality is '$($Script:Config.DefaultQuality)'.
 
     Pass a specific version to get CLI for that version.
 
 PARAMETERS:
-    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, $HOME/.aspire/bin on Unix)
-    -Quality <string>           Quality to download (default: staging)
+    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
+    -Quality <string>           Quality to download (default: $($Script:Config.DefaultQuality))
     -Version <string>           Version of the Aspire CLI to download (default: unset)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
@@ -848,9 +849,9 @@ function Start-AspireCliInstallation {
             throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
         }
 
-        # Set default quality to staging if not specified and no version is provided
+        # Set default quality if not specified and no version is provided
         if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
-            $Quality = "release"
+            $Quality = $Script:Config.DefaultQuality
         }
 
         # Additional parameter validation
