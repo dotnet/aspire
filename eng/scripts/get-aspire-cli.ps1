@@ -63,6 +63,50 @@ if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion)
     }
 }
 
+# Consolidated output function with fallback for platforms that don't support Write-Host
+function Write-Message {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$Message,
+
+        [Parameter()]
+        [ValidateSet("Verbose", "Info", "Success", "Warning", "Error")]
+        [string]$Level = "Info"
+    )
+
+    $hasWriteHost = Get-Command Write-Host -ErrorAction SilentlyContinue
+
+    switch ($Level) {
+        "Verbose" {
+            if ($VerbosePreference -ne "SilentlyContinue") {
+                Write-Verbose $Message
+            }
+        }
+        "Info" {
+            if ($hasWriteHost) {
+                Write-Host $Message -ForegroundColor White
+            } else {
+                Write-Output $Message
+            }
+        }
+        "Success" {
+            if ($hasWriteHost) {
+                Write-Host $Message -ForegroundColor Green
+            } else {
+                Write-Output "SUCCESS: $Message"
+            }
+        }
+        "Warning" {
+            Write-Warning $Message
+        }
+        "Error" {
+            Write-Error $Message
+        }
+    }
+}
+
 if ($Help) {
     Write-Message @"
 Aspire CLI Download Script
@@ -115,50 +159,6 @@ EXAMPLES:
 
 "@
     if ($InvokedFromFile) { exit 0 } else { return }
-}
-
-# Consolidated output function with fallback for platforms that don't support Write-Host
-function Write-Message {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [string]$Message,
-
-        [Parameter()]
-        [ValidateSet("Verbose", "Info", "Success", "Warning", "Error")]
-        [string]$Level = "Info"
-    )
-
-    $hasWriteHost = Get-Command Write-Host -ErrorAction SilentlyContinue
-
-    switch ($Level) {
-        "Verbose" {
-            if ($VerbosePreference -ne "SilentlyContinue") {
-                Write-Verbose $Message
-            }
-        }
-        "Info" {
-            if ($hasWriteHost) {
-                Write-Host $Message -ForegroundColor White
-            } else {
-                Write-Output $Message
-            }
-        }
-        "Success" {
-            if ($hasWriteHost) {
-                Write-Host $Message -ForegroundColor Green
-            } else {
-                Write-Output "SUCCESS: $Message"
-            }
-        }
-        "Warning" {
-            Write-Warning $Message
-        }
-        "Error" {
-            Write-Error $Message
-        }
-    }
 }
 
 # Helper function for PowerShell version-specific operations
