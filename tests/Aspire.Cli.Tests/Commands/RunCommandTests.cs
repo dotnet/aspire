@@ -291,11 +291,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         
         var backchannelFactory = (IServiceProvider sp) => {
             var backchannel = new TestAppHostBackchannel();
-            // Configure the backchannel to throw ResourceFailedException when GetDashboardUrlsAsync is called
+            // Configure the backchannel to throw DashboardStartupException when GetDashboardUrlsAsync is called
             backchannel.GetDashboardUrlsAsyncCallback = (ct) =>
             {
-                throw new ResourceFailedException("aspire-dashboard", "FailedToStart", 
-                    "Dashboard failed to start and entered a terminal state.");
+                throw new DashboardStartupException("aspire-dashboard", "FailedToStart", 
+                    "Dashboard failed to start: Resource 'aspire-dashboard' entered the 'FailedToStart' state and cannot become healthy.");
             };
             return backchannel;
         };

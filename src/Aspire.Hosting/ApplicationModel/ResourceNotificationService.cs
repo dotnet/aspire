@@ -280,14 +280,6 @@ public class ResourceNotificationService : IDisposable
         if (resourceEvent.Snapshot.HealthStatus != HealthStatus.Healthy)
         {
             _logger.LogError("Stopped waiting for resource '{ResourceName}' to become healthy because it failed to start.", resourceName);
-            
-            // For dashboard resource specifically, throw ResourceFailedException for better error handling in CLI
-            if (string.Equals(resourceName, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
-            {
-                var failedState = resourceEvent.Snapshot.State?.Text ?? "Unknown";
-                throw new ResourceFailedException(resourceName, failedState, $"Dashboard resource '{resourceName}' entered the '{failedState}' state and cannot become healthy.");
-            }
-            
             throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to become healthy because it failed to start.");
         }
 
