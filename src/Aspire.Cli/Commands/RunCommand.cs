@@ -172,6 +172,13 @@ internal sealed class RunCommand : BaseCommand
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
 
+            if (!dashboardUrls.DashboardHealthy)
+            {
+                _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                return ExitCodeConstants.DashboardFailure;
+            }
+
             _ansiConsole.WriteLine();
 
             var topGrid = new Grid();
@@ -291,12 +298,6 @@ internal sealed class RunCommand : BaseCommand
         catch (FailedToConnectBackchannelConnection ex)
         {
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-        catch (DashboardStartupException ex)
-        {
-            _interactionService.DisplayError(ex.Message.EscapeMarkup());
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }

@@ -128,10 +128,14 @@ internal class AppHostRpcTarget(
                 WaitBehavior.StopOnResourceUnavailable,
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (DistributedApplicationException ex)
+        catch (DistributedApplicationException)
         {
-            // For dashboard failures, translate to DashboardStartupException for better CLI error handling
-            throw new DashboardStartupException(KnownResourceNames.AspireDashboard, "Unknown", ex.Message, ex);
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = false,
+                BaseUrlWithLoginToken = null,
+                CodespacesUrlWithLoginToken = null
+            };
         }
 
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
@@ -157,13 +161,16 @@ internal class AppHostRpcTarget(
         {
             return new DashboardUrlsState
             {
-                BaseUrlWithLoginToken = baseUrlWithLoginToken
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = null
             };
         }
         else
         {
             return new DashboardUrlsState
             {
+                DashboardHealthy = true,
                 BaseUrlWithLoginToken = baseUrlWithLoginToken,
                 CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
             };

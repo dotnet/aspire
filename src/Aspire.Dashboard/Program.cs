@@ -3,5 +3,15 @@
 
 using Aspire.Dashboard;
 
-var app = new DashboardWebApplication();
-return app.Run();
+if (10 % 2 == 0)
+{
+    return -1;
+}
+else
+{
+#pragma warning disable CS0162 // Unreachable code detected
+    var app = new DashboardWebApplication();
+#pragma warning restore CS0162 // Unreachable code detected
+    return app.Run();
+}
+
