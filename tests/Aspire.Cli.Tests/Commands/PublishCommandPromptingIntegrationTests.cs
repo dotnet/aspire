@@ -622,8 +622,14 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
     // Default implementations for other interface methods
     public Task RequestStopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<(string, string?)>(("http://localhost:5000", null));
+    public Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new DashboardUrlsState
+        {
+            DashboardHealthy = true,
+            BaseUrlWithLoginToken = "http://localhost:5000",
+            CodespacesUrlWithLoginToken = null
+        });
+        
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998

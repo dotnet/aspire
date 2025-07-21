@@ -294,8 +294,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             // Configure the backchannel to throw DashboardStartupException when GetDashboardUrlsAsync is called
             backchannel.GetDashboardUrlsAsyncCallback = (ct) =>
             {
-                throw new DashboardStartupException("aspire-dashboard", "FailedToStart", 
-                    "Dashboard failed to start: Resource 'aspire-dashboard' entered the 'FailedToStart' state and cannot become healthy.");
+                return Task.FromResult(new DashboardUrlsState
+                {
+                    DashboardHealthy = false,
+                    BaseUrlWithLoginToken = null,
+                    CodespacesUrlWithLoginToken = null
+                });
             };
             return backchannel;
         };
@@ -351,12 +355,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         
         // Assert that the command returns the expected failure exit code
-        Assert.Equal(ExitCodeConstants.FailedToDotnetRunAppHost, exitCode);
-
-        // Check that the error message contains the expected text
-        Assert.Contains(errorMessages, msg => 
-            msg.Contains("Dashboard failed to start") && 
-            msg.Contains("aspire-dashboard") && 
-            msg.Contains("FailedToStart"));
+        Assert.Equal(ExitCodeConstants.DashboardFailure, exitCode);
     }
 }
