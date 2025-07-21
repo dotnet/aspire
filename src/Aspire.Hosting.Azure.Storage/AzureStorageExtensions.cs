@@ -339,7 +339,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (name == builder.Resource.Name + "-blobs")
+        if (string.Equals(name, builder.Resource.Name + "-blobs", StringComparisons.ResourceName))
         {
             // If the name is the default name, use the GetBlobService method instead so we keep
             // track of the default resource.
@@ -469,7 +469,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (name == builder.Resource.Name + "-tables")
+        if (string.Equals(name, builder.Resource.Name + "-tables", StringComparisons.ResourceName))
         {
             // If the name is the default name, use the GetTableService method instead so we keep
             // track of the default resource.
@@ -507,7 +507,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (name == builder.Resource.Name + "-queues")
+        if (string.Equals(name, builder.Resource.Name + "-queues", StringComparisons.ResourceName))
         {
             // If the name is the default name, use the GetQueueService method instead so we keep
             // track of the default resource.
