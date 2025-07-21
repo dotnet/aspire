@@ -40,7 +40,7 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 On Windows:
 
 ```powershell
-iex "& { $(irm https://aka.ms/aspire/get/install.ps1 } -Quality dev"
+iex "& { $(irm https://aka.ms/aspire/get/install.ps1) } -Quality dev"
 ```
 
 On Linux, or macOS:
