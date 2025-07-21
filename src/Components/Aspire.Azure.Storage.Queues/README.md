@@ -126,7 +126,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Storage Queue connection and 
 
 ```csharp
 var queue = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureStorage("storage").AddQueueService("queue")
+    ? builder.AddAzureStorage("storage").AddQueues("queue")
     : builder.AddConnectionString("queue");
 
 var myService = builder.AddProject<Projects.MyService>()

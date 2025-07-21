@@ -275,7 +275,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").GetBlobService();
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -288,7 +288,7 @@ public class AzureContainerAppsTests
             .WithHttpsEndpoint()
             .WithHttpEndpoint(name: "internal")
             .WithReference(db)
-            .WithReference(blob, "blobs")
+            .WithReference(blob)
             .WithReference(pgdb)
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
@@ -352,7 +352,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").GetBlobService();
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -365,7 +365,7 @@ public class AzureContainerAppsTests
             .WithHttpsEndpoint()
             .WithHttpEndpoint(name: "internal")
             .WithReference(db)
-            .WithReference(blob, "blobs")
+            .WithReference(blob)
             .WithReference(pgdb)
             .WithEnvironment("SecretVal", secretValue)
             .WithEnvironment("secret_value_1", secretValue)
@@ -924,7 +924,7 @@ public class AzureContainerAppsTests
 
         var storage = builder.AddAzureStorage("storage")
             .PublishAsExisting(storageName, storageRG);
-        var blobs = storage.GetBlobService();
+        var blobs = storage.AddBlobs("blobs");
 
         builder.AddProject<Project>("api", launchProfileName: null)
                .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);

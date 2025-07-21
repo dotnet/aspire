@@ -41,10 +41,10 @@ automatically.
 In the _AppHost.cs_ file of `AppHost`, add a Blob (can use tables or queues also) Storage connection and consume the connection using the following methods:
 
 ```csharp
-var blobs = builder.AddAzureStorage("storage").GetBlobService();
+var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(blobs, "blobs");
+                       .WithReference(blobs);
 ```
 
 The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Storage.Blobs](https://www.nuget.org/packages/Aspire.Azure.Storage.Blobs):

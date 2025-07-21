@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -74,7 +75,7 @@ public static class AzureStorageExtensions
 
             var azureResource = (AzureStorageResource)infrastructure.AspireResource;
 
-            if (azureResource.BlobStorageBuilder is not null)
+            if (azureResource.BlobContainers.Count > 0)
             {
                 // The provisioned resource uses "blobs" as the name for backward compatibility.
                 var blobService = new BlobService("blobs")
@@ -92,7 +93,7 @@ public static class AzureStorageExtensions
                 }
             }
 
-            if (azureResource.QueueStorageBuilder is not null)
+            if (azureResource.Queues.Count > 0)
             {
                 var queueService = new QueueService("queues")
                 {
@@ -109,6 +110,7 @@ public static class AzureStorageExtensions
                 }
             }
 
+            // TODO: When Tables are added, change this check to use Count > 0
             if (azureResource.TableStorageBuilder is not null)
             {
                 var tableService = new TableService("tables")
@@ -332,7 +334,6 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
-    [Obsolete("Use GetBlobService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -342,7 +343,9 @@ public static class AzureStorageExtensions
         {
             // If the name is the default name, use the GetBlobService method instead so we keep
             // track of the default resource.
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             return GetBlobService(builder);
+#pragma warning restore ASPIREAZURE002
         }
 
         return CreateBlobService(builder, name);
@@ -371,6 +374,7 @@ public static class AzureStorageExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureBlobStorageResource> GetBlobService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -394,7 +398,9 @@ public static class AzureStorageExtensions
 
         blobContainerName ??= name;
 
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, GetBlobService(builder).Resource);
+#pragma warning restore ASPIREAZURE002
         builder.Resource.BlobContainers.Add(resource);
 
         string? connectionString = null;
@@ -458,7 +464,6 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
-    [Obsolete("Use GetTableService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -468,7 +473,9 @@ public static class AzureStorageExtensions
         {
             // If the name is the default name, use the GetTableService method instead so we keep
             // track of the default resource.
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             return GetTableService(builder);
+#pragma warning restore ASPIREAZURE002
         }
 
         return CreateTableService(builder, name);
@@ -479,6 +486,7 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
+    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureTableStorageResource> GetTableService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -494,7 +502,6 @@ public static class AzureStorageExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
-    [Obsolete("Use GetQueueService on IResourceBuilder<AzureStorageResource> instead.")]
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -504,7 +511,9 @@ public static class AzureStorageExtensions
         {
             // If the name is the default name, use the GetQueueService method instead so we keep
             // track of the default resource.
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             return GetQueueService(builder);
+#pragma warning restore ASPIREAZURE002
         }
 
         return CreateQueueService(builder, name);
@@ -515,6 +524,7 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
+    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureQueueStorageResource> GetQueueService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -538,7 +548,9 @@ public static class AzureStorageExtensions
 
         queueName ??= name;
 
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         AzureQueueStorageQueueResource resource = new(name, queueName, builder.GetQueueService().Resource);
+#pragma warning restore ASPIREAZURE002
         builder.Resource.Queues.Add(resource);
 
         string? connectionString = null;
