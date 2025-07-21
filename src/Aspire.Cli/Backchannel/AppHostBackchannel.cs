@@ -14,7 +14,7 @@ namespace Aspire.Cli.Backchannel;
 internal interface IAppHostBackchannel
 {
     Task RequestStopAsync(CancellationToken cancellationToken);
-    Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
+    Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
@@ -46,19 +46,18 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             cancellationToken);
     }
 
-    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogDebug("Requesting dashboard URL");
 
-        var url = await rpc.InvokeWithCancellationAsync<DashboardUrlsState>(
+        var state = await rpc.InvokeWithCancellationAsync<DashboardUrlsState>(
             "GetDashboardUrlsAsync",
             [],
             cancellationToken);
-
-        return (url.BaseUrlWithLoginToken, url.CodespacesUrlWithLoginToken);
+        return state;
     }
 
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)

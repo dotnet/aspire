@@ -43,7 +43,6 @@
     <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
-    <Compile Include="$(SharedDir)DashboardStartupException.cs" Link="ApplicationModel\DashboardStartupException.cs" />
   </ItemGroup>
 
   <ItemGroup>
