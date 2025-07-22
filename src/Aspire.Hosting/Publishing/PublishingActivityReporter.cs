@@ -190,11 +190,12 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
+        var operationName = isDeploy ? "Deployment" : "Publishing";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
@@ -203,10 +204,10 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 Id = PublishingActivityTypes.PublishComplete,
                 StatusText = completionMessage ?? finalState switch
                 {
-                    CompletionState.Completed => "Publishing completed successfully",
-                    CompletionState.CompletedWithWarning => "Publishing completed with warnings",
-                    CompletionState.CompletedWithError => "Publishing completed with errors",
-                    _ => "Publishing completed"
+                    CompletionState.Completed => $"{operationName} completed successfully",
+                    CompletionState.CompletedWithWarning => $"{operationName} completed with warnings",
+                    CompletionState.CompletedWithError => $"{operationName} completed with errors",
+                    _ => $"{operationName} completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState)
             }
