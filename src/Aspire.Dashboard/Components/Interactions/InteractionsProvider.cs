@@ -560,7 +560,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             DialogType = DialogType.MessageBox,
             Alignment = HorizontalAlignment.Center,
             Title = content.Title,
-            ShowDismiss = false,
+            ShowDismiss = parameters.ShowDismiss,
             PrimaryAction = parameters.PrimaryAction,
             SecondaryAction = parameters.SecondaryAction,
             Width = parameters.Width,
