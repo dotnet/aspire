@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
-        <source>The name of the target resource to start and execute the command against.</source>
-        <target state="new">The name of the target resource to start and execute the command against.</target>
+        <source>The name of the target resource execute the command against. Command will be executed only after target resource starts.</source>
+        <target state="new">The name of the target resource execute the command against. Command will be executed only after target resource starts.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
