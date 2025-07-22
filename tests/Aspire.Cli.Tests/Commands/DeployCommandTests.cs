@@ -104,7 +104,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.EnabledFeatures = new[] { KnownFeatures.DeployCommandEnabled };
+            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
