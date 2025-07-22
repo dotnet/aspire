@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pl" original="../ExecCommandStrings.resx">
     <body>
+      <trans-unit id="CommandArgumentDescription">
+        <source>The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</source>
+        <target state="new">The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host to execute a command against the resource. (Preview)</source>
         <target state="new">Run an Aspire app host to execute a command against the resource. (Preview)</target>

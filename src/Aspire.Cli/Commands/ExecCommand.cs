@@ -67,6 +67,11 @@ internal class ExecCommand : BaseCommand
         startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
         Options.Add(startResourceOption);
 
+        // only for --help output
+        var commandOption = new Option<string>("--");
+        commandOption.Description = ExecCommandStrings.CommandArgumentDescription;
+        Options.Add(commandOption);
+
         TreatUnmatchedTokensAsErrors = false;
     }
 

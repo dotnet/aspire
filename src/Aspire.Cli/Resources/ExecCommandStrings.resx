@@ -124,7 +124,7 @@
     <value>The path to the Aspire app host project file.</value>
   </data>
   <data name="StartTargetResourceArgumentDescription" xml:space="preserve">
-    <value>The name of the target resource to start and execute the command against.</value>
+    <value>The name of the target resource execute the command against. Command will be executed only after target resource starts.</value>
   </data>
   <data name="TargetResourceArgumentDescription" xml:space="preserve">
     <value>The name of the target resource to execute the command against.</value>
@@ -134,5 +134,8 @@
   </data>
   <data name="FailedToParseCommand" xml:space="preserve">
     <value>Failed to parse command.</value>
+  </data>
+  <data name="CommandArgumentDescription" xml:space="preserve">
+    <value>The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</value>
   </data>
 </root>
