@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
@@ -339,15 +338,6 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (string.Equals(name, builder.Resource.Name + "-blobs", StringComparisons.ResourceName))
-        {
-            // If the name is the default name, use the GetBlobService method instead so we keep
-            // track of the default resource.
-#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            return GetBlobService(builder);
-#pragma warning restore ASPIREAZURE002
-        }
-
         return CreateBlobService(builder, name);
     }
 
@@ -374,8 +364,7 @@ public static class AzureStorageExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<AzureBlobStorageResource> GetBlobService(this IResourceBuilder<AzureStorageResource> builder)
+    private static IResourceBuilder<AzureBlobStorageResource> GetBlobService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -398,9 +387,7 @@ public static class AzureStorageExtensions
 
         blobContainerName ??= name;
 
-#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         AzureBlobStorageContainerResource resource = new(name, blobContainerName, GetBlobService(builder).Resource);
-#pragma warning restore ASPIREAZURE002
         builder.Resource.BlobContainers.Add(resource);
 
         string? connectionString = null;
@@ -469,31 +456,7 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (string.Equals(name, builder.Resource.Name + "-tables", StringComparisons.ResourceName))
-        {
-            // If the name is the default name, use the GetTableService method instead so we keep
-            // track of the default resource.
-#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            return GetTableService(builder);
-#pragma warning restore ASPIREAZURE002
-        }
-
         return CreateTableService(builder, name);
-    }
-
-    /// <summary>
-    /// Gets a builder for the <see cref="AzureTableStorageResource"/> which can be referenced to get the Azure Storage tables endpoint for the storage account.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
-    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
-    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<AzureTableStorageResource> GetTableService(this IResourceBuilder<AzureStorageResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var name = builder.Resource.Name + "-tables";
-
-        return builder.Resource.TableStorageBuilder ??= CreateTableService(builder, name);
     }
 
     /// <summary>
@@ -507,15 +470,6 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (string.Equals(name, builder.Resource.Name + "-queues", StringComparisons.ResourceName))
-        {
-            // If the name is the default name, use the GetQueueService method instead so we keep
-            // track of the default resource.
-#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            return GetQueueService(builder);
-#pragma warning restore ASPIREAZURE002
-        }
-
         return CreateQueueService(builder, name);
     }
 
@@ -524,8 +478,7 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
-    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<AzureQueueStorageResource> GetQueueService(this IResourceBuilder<AzureStorageResource> builder)
+    private static IResourceBuilder<AzureQueueStorageResource> GetQueueService(this IResourceBuilder<AzureStorageResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -548,9 +501,7 @@ public static class AzureStorageExtensions
 
         queueName ??= name;
 
-#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         AzureQueueStorageQueueResource resource = new(name, queueName, builder.GetQueueService().Resource);
-#pragma warning restore ASPIREAZURE002
         builder.Resource.Queues.Add(resource);
 
         string? connectionString = null;
@@ -611,7 +562,7 @@ public static class AzureStorageExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var storage = builder.AddAzureStorage("storage");
-    /// var blobs = storage.GetBlobService();
+    /// var blobs = storage.AddBlobs("blobs");
     /// 
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor)
