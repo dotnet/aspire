@@ -75,15 +75,21 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string SuccessfullyPublishedArtifacts {
+        /// <summary>
+        ///   Looks up a localized string similar to PUBLISHING COMPLETED.
+        /// </summary>
+        public static string OperationCompletedPrefix {
             get {
-                return ResourceManager.GetString("SuccessfullyPublishedArtifacts", resourceCulture);
+                return ResourceManager.GetString("OperationCompletedPrefix", resourceCulture);
             }
         }
         
-        public static string FailedToPublishArtifacts {
+        /// <summary>
+        ///   Looks up a localized string similar to PUBLISHING FAILED.
+        /// </summary>
+        public static string OperationFailedPrefix {
             get {
-                return ResourceManager.GetString("FailedToPublishArtifacts", resourceCulture);
+                return ResourceManager.GetString("OperationFailedPrefix", resourceCulture);
             }
         }
     }
