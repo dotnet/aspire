@@ -35,6 +35,7 @@ $Script:ChecksumDownloadTimeoutSec = 120
 
 # Configuration constants
 $Script:Config = @{
+    DefaultQuality = "release"
     MinimumPowerShellVersion = 4
     SupportedQualities = @("release", "staging", "dev")
     SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
@@ -61,60 +62,6 @@ if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion)
     else {
         return 1
     }
-}
-
-if ($Help) {
-    Write-Message @"
-Aspire CLI Download Script
-
-DESCRIPTION:
-    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
-    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
-
-    Running with `-Quality release` download the latest release version of the Aspire CLI for your platform and architecture.
-    Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
-    Running with `-Quality dev` will download the latest dev build from `main`.
-
-    The default quality is `release`.
-
-    Pass a specific version to get CLI for that version.
-
-PARAMETERS:
-    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, $HOME/.aspire/bin on Unix)
-    -Quality <string>           Quality to download (default: staging)
-    -Version <string>           Version of the Aspire CLI to download (default: unset)
-    -OS <string>                Operating system (default: auto-detect)
-    -Architecture <string>      Architecture (default: auto-detect)
-    -KeepArchive                Keep downloaded archive files and temporary directory after installation
-    -Help                       Show this help message
-
-ENVIRONMENT:
-    The script automatically updates the PATH environment variable for the current session.
-
-    Windows: The script will also add the installation path to the user's persistent PATH
-    environment variable and to the session PATH, making the aspire CLI available in the existing and new terminal sessions.
-
-    GitHub Actions Support:
-    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
-    append the installation path to the GITHUB_PATH file to make the CLI available in
-    subsequent workflow steps.
-
-EXAMPLES:
-    .\get-aspire-cli.ps1
-    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
-    .\get-aspire-cli.ps1 -Quality "staging"
-    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
-    .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
-    .\get-aspire-cli.ps1 -KeepArchive
-    .\get-aspire-cli.ps1 -WhatIf
-    .\get-aspire-cli.ps1 -Help
-
-    # Piped execution
-    Invoke-Expression "& { `$(Invoke-RestMethod https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
-    Invoke-Expression "& { `$(Invoke-RestMethod https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) } -Quality staging"
-
-"@
-    if ($InvokedFromFile) { exit 0 } else { return }
 }
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
@@ -159,6 +106,59 @@ function Write-Message {
             Write-Error $Message
         }
     }
+}
+
+if ($Help) {
+    Write-Message @"
+Aspire CLI Download Script
+
+DESCRIPTION:
+    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
+    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
+
+    Running with `-Quality release` download the latest release version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
+    Running with `-Quality dev` will download the latest dev build from `main`.
+
+    The default quality is '$($Script:Config.DefaultQuality)'.
+
+    Pass a specific version to get CLI for that version.
+
+PARAMETERS:
+    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
+    -Quality <string>           Quality to download (default: $($Script:Config.DefaultQuality))
+    -Version <string>           Version of the Aspire CLI to download (default: unset)
+    -OS <string>                Operating system (default: auto-detect)
+    -Architecture <string>      Architecture (default: auto-detect)
+    -KeepArchive                Keep downloaded archive files and temporary directory after installation
+    -Help                       Show this help message
+
+ENVIRONMENT:
+    The script automatically updates the PATH environment variable for the current session.
+
+    Windows: The script will also add the installation path to the user's persistent PATH
+    environment variable and to the session PATH, making the aspire CLI available in the existing and new terminal sessions.
+
+    GitHub Actions Support:
+    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
+    append the installation path to the GITHUB_PATH file to make the CLI available in
+    subsequent workflow steps.
+
+EXAMPLES:
+    .\get-aspire-cli.ps1
+    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
+    .\get-aspire-cli.ps1 -Quality "staging"
+    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
+    .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
+    .\get-aspire-cli.ps1 -KeepArchive
+    .\get-aspire-cli.ps1 -WhatIf
+    .\get-aspire-cli.ps1 -Help
+
+    # Piped execution
+    iex "& { `$(irm https://aka.ms/aspire/get/install.ps1) }"
+    iex "& { `$(irm https://aka.ms/aspire/get/install.ps1) } -Quality staging"
+"@
+    if ($InvokedFromFile) { exit 0 } else { return }
 }
 
 # Helper function for PowerShell version-specific operations
@@ -849,9 +849,9 @@ function Start-AspireCliInstallation {
             throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
         }
 
-        # Set default quality to staging if not specified and no version is provided
+        # Set default quality if not specified and no version is provided
         if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
-            $Quality = "release"
+            $Quality = $Script:Config.DefaultQuality
         }
 
         # Additional parameter validation
