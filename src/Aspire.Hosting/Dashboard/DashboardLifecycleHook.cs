@@ -39,6 +39,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              CodespacesUrlRewriter codespaceUrlRewriter
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
+    // Internal for testing
+    internal const string OtlpGrpcEndpointName = "otlp-grpc";
+    internal const string OtlpHttpEndpointName = "otlp-http";
+
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard's Dashboard:Otlp:Cors type
@@ -186,7 +190,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         if (otlpGrpcEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpGrpcEndpointUrl);
-            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "otlp-grpc", uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
             {
                 TargetHost = address.Host
             });
@@ -195,7 +199,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         if (otlpHttpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpHttpEndpointUrl);
-            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "otlp-http", uriScheme: address.Scheme, port: address.Port, isProxied: true)
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
             });
@@ -364,15 +368,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         static ReferenceExpression GetTargetUrlExpression(EndpointReference e) =>
             ReferenceExpression.Create($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
 
-        var otlpGrpc = dashboardResource.GetEndpoint("otlp-grpc");
-
+        var otlpGrpc = dashboardResource.GetEndpoint(OtlpGrpcEndpointName);
         if (otlpGrpc.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = GetTargetUrlExpression(otlpGrpc);
         }
 
-        var otlpHttp = dashboardResource.GetEndpoint("otlp-http");
-
+        var otlpHttp = dashboardResource.GetEndpoint(OtlpHttpEndpointName);
         if (otlpHttp.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = GetTargetUrlExpression(otlpHttp);

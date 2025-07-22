@@ -550,11 +550,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     {
         foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
         {
-            if (endpoint.Name == "otlp-grpc")
+            if (endpoint.Name == DashboardLifecycleHook.OtlpGrpcEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
             }
-            else if (endpoint.Name == "otlp-http")
+            else if (endpoint.Name == DashboardLifecycleHook.OtlpHttpEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
             }
