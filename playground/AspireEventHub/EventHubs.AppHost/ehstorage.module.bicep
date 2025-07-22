@@ -21,11 +21,6 @@ resource ehstorage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-  name: 'default'
-  parent: ehstorage
-}
-
 output blobEndpoint string = ehstorage.properties.primaryEndpoints.blob
 
 output queueEndpoint string = ehstorage.properties.primaryEndpoints.queue

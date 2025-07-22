@@ -3,8 +3,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureContainerAppEnvironment("env");
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var queue = storage.AddQueueService("queue");
-var blob = storage.AddBlobService("blob");
+var queue = storage.AddQueues("queue");
+var blob = storage.AddBlobs("blob");
 var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
 var eventHub = builder.AddAzureEventHubs("eventhubs")

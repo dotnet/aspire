@@ -18,8 +18,8 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Or resource and consume the c
 
 ```csharp
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var clusteringTable = storage.AddTableService("clustering");
-var grainStorage = storage.AddBlobService("grainstate");
+var clusteringTable = storage.AddTables("clustering");
+var grainStorage = storage.AddBlobs("grainstate");
 
 var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)

@@ -126,7 +126,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Table Storage connection and 
 
 ```csharp
 var tables = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureStorage("storage").AddTableService("tables")
+    ? builder.AddAzureStorage("storage").AddTables("tables")
     : builder.AddConnectionString("tables");
 
 var myService = builder.AddProject<Projects.MyService>()
