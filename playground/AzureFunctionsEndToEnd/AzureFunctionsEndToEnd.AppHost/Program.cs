@@ -24,11 +24,11 @@ database.AddContainer("mycontainer", "/id");
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
     .WithReference(eventHub).WaitFor(eventHub)
-    .WithReference(myBlobContainer).WaitFor(myBlobContainer)
 #if !SKIP_UNSTABLE_EMULATORS
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithReference(cosmosDb).WaitFor(cosmosDb)
 #endif
+    .WithReference(myBlobContainer).WaitFor(myBlobContainer)
     .WithReference(blob)
     .WithReference(queue);
 
