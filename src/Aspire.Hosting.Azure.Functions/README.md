@@ -35,8 +35,8 @@ using Aspire.Hosting.Azure.Functions;
 var builder = new DistributedApplicationBuilder();
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var queue = storage.AddQueueService("queue");
-var blob = storage.AddBlobService("blob");
+var queue = storage.AddQueues("queue");
+var blob = storage.AddBlobs("blob");
 
 builder.AddAzureFunctionsProject<Projects.Company_FunctionApp>("my-functions-project")
     .WithReference(queue)

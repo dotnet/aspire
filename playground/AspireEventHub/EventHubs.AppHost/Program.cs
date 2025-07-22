@@ -3,7 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // required for the event processor client which will use the connectionName to get the connectionString.
 var blob = builder.AddAzureStorage("ehstorage")
     .RunAsEmulator()
-    .AddBlobService("checkpoints");
+    .AddBlobs("checkpoints");
 
 var eventHub = builder.AddAzureEventHubs("eventhubns")
     .RunAsEmulator()
