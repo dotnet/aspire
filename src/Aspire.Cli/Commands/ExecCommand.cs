@@ -93,6 +93,14 @@ internal class ExecCommand : BaseCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
+        // unmatched tokens are those which will be tried to parse as command.
+        // if none - we should fail fast
+        if (parseResult.UnmatchedTokens.Count == 0)
+        {
+            _interactionService.DisplayError(ExecCommandStrings.NoCommandSpecified);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
         var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
 
         if (commandTokens is null || commandTokens.Count == 0)

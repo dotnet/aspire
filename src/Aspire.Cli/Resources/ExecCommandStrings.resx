@@ -135,4 +135,7 @@
   <data name="FailedToParseCommand" xml:space="preserve">
     <value>Failed to parse command.</value>
   </data>
+  <data name="NoCommandSpecified" xml:space="preserve">
+    <value>Command is not specified.</value>
+  </data>
 </root>

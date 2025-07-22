@@ -79,6 +79,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Command is not specified..
+        /// </summary>
+        internal static string NoCommandSpecified {
+            get {
+                return ResourceManager.GetString("NoCommandSpecified", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The path to the Aspire app host project file..
         /// </summary>
         internal static string ProjectArgumentDescription {
