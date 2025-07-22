@@ -38,7 +38,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <ToolbarGlobalActions HandleClearSignal="@ClearStructureLogs"
+            <SignalsActionsDisplay HandleClearSignal="@ClearStructureLogs"
                                   IsPaused="@PauseManager.AreStructuredLogsPaused(out _)"
                                   OnPausedChanged="@PauseManager.SetStructuredLogsPaused"
                                   SelectedResource="@PageViewModel.SelectedApplication" />
