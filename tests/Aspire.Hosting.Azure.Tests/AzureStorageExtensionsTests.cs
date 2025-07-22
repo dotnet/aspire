@@ -269,7 +269,6 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobs("blob");
         var blobContainer = storage.AddBlobContainer(name: "myContainer");
 
         Assert.Equal("Endpoint={storage.outputs.blobEndpoint};ContainerName=myContainer", blobContainer.Resource.ConnectionStringExpression.ValueExpression);
@@ -389,6 +388,7 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         var blobs = storage.AddBlobs("myblobs");
         var blob = storage.AddBlobContainer(name: "myContainer", blobContainerName: "my-blob-container");
         var queues = storage.AddQueues("myqueues");
+        var queue = storage.AddQueue(name: "myqueue", queueName: "my-queue");
         var tables = storage.AddTables("mytables");
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
