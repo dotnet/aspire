@@ -28,7 +28,7 @@
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
-            <ToolbarGlobalActions HandleClearSignal="@ClearConsoleLogs"
+            <SignalsActionsDisplay HandleClearSignal="@ClearConsoleLogs"
                                   IsPaused="@PauseManager.ConsoleLogsPaused"
                                   OnPausedChanged="@OnPausedChanged"
                                   SelectedResource="@PageViewModel.SelectedOption" />

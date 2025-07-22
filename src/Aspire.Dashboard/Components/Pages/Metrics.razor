@@ -48,7 +48,7 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <ToolbarGlobalActions IsPaused="@PauseManager.AreMetricsPaused(out _)"
+            <SignalsActionsDisplay IsPaused="@PauseManager.AreMetricsPaused(out _)"
                                   OnPausedChanged="@PauseManager.SetMetricsPaused"
                                   HandleClearSignal="ClearMetrics"
                                   SelectedResource="@PageViewModel.SelectedApplication"/>
