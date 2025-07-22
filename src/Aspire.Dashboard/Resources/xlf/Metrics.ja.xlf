@@ -67,11 +67,6 @@
         <target state="translated">{0} のメトリック</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="MetricsSelectADuration">
-        <source>Select a duration</source>
-        <target state="translated">期間を選択する</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
         <target state="translated">メトリックを表示するリソースの選択</target>
