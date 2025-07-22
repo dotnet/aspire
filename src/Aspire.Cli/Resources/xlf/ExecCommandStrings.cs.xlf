@@ -3,38 +3,50 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../ExecCommandStrings.resx">
     <body>
       <trans-unit id="CommandArgumentDescription">
-        <source>The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</source>
-        <target state="new">The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</target>
+        <source>The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</source>
+        <target state="new">The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host to execute a command against the resource. (Preview)</source>
-        <target state="new">Run an Aspire app host to execute a command against the resource. (Preview)</target>
+        <source>Execute commands in the context of an Aspire application resource. Starts the AppHost, waits for resources to initialize, then runs the specified command in the target resource's environment. (Preview)
+
+Examples:
+  aspire exec --resource api dotnet build
+  aspire exec --resource api -- dotnet test --logger console
+  aspire exec --start-resource worker pwsh -c "Get-Process"
+    </source>
+        <target state="new">Execute commands in the context of an Aspire application resource. Starts the AppHost, waits for resources to initialize, then runs the specified command in the target resource's environment. (Preview)
+
+Examples:
+  aspire exec --resource api dotnet build
+  aspire exec --resource api -- dotnet test --logger console
+  aspire exec --start-resource worker pwsh -c "Get-Process"
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
-        <source>Failed to parse command.</source>
-        <target state="new">Failed to parse command.</target>
+        <source>Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</source>
+        <target state="new">Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
+        <target state="new">The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
-        <source>The name of the target resource execute the command against. Command will be executed only after target resource starts.</source>
-        <target state="new">The name of the target resource execute the command against. Command will be executed only after target resource starts.</target>
+        <source>The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running.</source>
+        <target state="new">The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
-        <source>The name of the target resource to execute the command against.</source>
-        <target state="new">The name of the target resource to execute the command against.</target>
+        <source>The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready.</source>
+        <target state="new">The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceNotSpecified">
-        <source>Target resource is not specified.</source>
-        <target state="new">Target resource is not specified.</target>
+        <source>Target resource is not specified. Use --resource or --start-resource to specify the target.</source>
+        <target state="new">Target resource is not specified. Use --resource or --start-resource to specify the target.</target>
         <note />
       </trans-unit>
     </body>

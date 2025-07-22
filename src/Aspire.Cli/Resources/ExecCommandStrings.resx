@@ -118,24 +118,30 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Run an Aspire app host to execute a command line against the resource. (Preview)</value>
+    <value>Execute commands in the context of an Aspire application resource. Starts the AppHost, waits for resources to initialize, then runs the specified command in the target resource's environment. (Preview)
+
+Examples:
+  aspire exec --resource api dotnet build
+  aspire exec --resource api -- dotnet test --logger console
+  aspire exec --start-resource worker pwsh -c "Get-Process"
+    </value>
   </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
-    <value>The path to the Aspire app host project file.</value>
+    <value>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</value>
   </data>
   <data name="StartTargetResourceArgumentDescription" xml:space="preserve">
-    <value>The name of the target resource to execute the command against. Command will be executed only after target resource starts.</value>
+    <value>The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running.</value>
   </data>
   <data name="TargetResourceArgumentDescription" xml:space="preserve">
-    <value>The name of the target resource to execute the command against.</value>
+    <value>The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready.</value>
   </data>
   <data name="TargetResourceNotSpecified" xml:space="preserve">
-    <value>Target resource is not specified.</value>
+    <value>Target resource is not specified. Use --resource or --start-resource to specify the target.</value>
   </data>
   <data name="FailedToParseCommand" xml:space="preserve">
-    <value>Failed to parse command.</value>
+    <value>Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</value>
   </data>
   <data name="CommandArgumentDescription" xml:space="preserve">
-    <value>The command to execute on the target resource. (It must be specified after all other options or separator --). Example: aspire exec --resource api dotnet build . (command is dotnet build)</value>
+    <value>The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</value>
   </data>
 </root>
