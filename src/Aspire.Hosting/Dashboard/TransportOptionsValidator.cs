@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -27,7 +28,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
 
         var firstApplicationUrl = applicationUrls.Split(";").First();
 
-        if (!Uri.TryCreate(firstApplicationUrl, UriKind.Absolute, out var parsedFirstApplicationUrl))
+        if (!TryParseBindingAddress(firstApplicationUrl, out var parsedFirstApplicationUrl))
         {
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
@@ -72,6 +73,20 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         }
 
         return ValidateOptionsResult.Success;
+
+        static bool TryParseBindingAddress(string address, [NotNullWhen(true)] out BindingAddress? bindingAddress)
+        {
+            try
+            {
+                bindingAddress = BindingAddress.Parse(address);
+                return true;
+            }
+            catch
+            {
+                bindingAddress = null;
+                return false;
+            }
+        }
 
         static bool TryValidateGrpcEndpointUrl(string configName, string? value, [NotNullWhen(false)] out ValidateOptionsResult? result)
         {
