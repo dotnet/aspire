@@ -76,6 +76,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);

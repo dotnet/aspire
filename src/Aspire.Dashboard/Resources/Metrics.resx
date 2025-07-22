@@ -124,9 +124,6 @@
   <data name="MetricsHeader" xml:space="preserve">
     <value>Metrics</value>
   </data>
-  <data name="MetricsSelectADuration" xml:space="preserve">
-    <value>Select a duration</value>
-  </data>
   <data name="MetricsSelectInstrument" xml:space="preserve">
     <value>Select instrument.</value>
   </data>

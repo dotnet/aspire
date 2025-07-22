@@ -29,7 +29,7 @@
                     </h1>
                 </div>
             </PageTitleSection>
-            <ToolbarSection>
+            <DesktopToolbarSection>
                 <div slot="" class="trace-header">
                     <FluentOverflow Class="trace-header-details">
                         <ChildContent>
@@ -64,11 +64,30 @@
                                       Immediate="true"
                                       ImmediateDelay="@FluentUIExtensions.InputDelay"
                                       Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]" />
+                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
                         <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
                     </div>
                 </div>
-            </ToolbarSection>
+            </DesktopToolbarSection>
+            <MobilePageTitleToolbarSection>
+                <ul>
+                    <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong></li>
+                    <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong></li>
+                    <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong></li>
+                    <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong></li>
+                    <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong></li>
+                </ul>
+
+                <FluentToolbar>
+                    <FluentSearch @bind-Value="_filter"
+                                  @bind-Value:after="HandleAfterFilterBindAsync"
+                                  Immediate="true"
+                                  ImmediateDelay="@FluentUIExtensions.InputDelay"
+                                  Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                                  title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+                </FluentToolbar>
+            </MobilePageTitleToolbarSection>
             <MainSection>
                 <SummaryDetailsView
                     ShowDetails="SelectedData is not null"

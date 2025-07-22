@@ -22,6 +22,9 @@ public partial class AspirePageContentLayout : ComponentBase
     public RenderFragment? ToolbarSection { get; set; }
 
     [Parameter]
+    public RenderFragment? DesktopToolbarSection { get; set; }
+
+    [Parameter]
     public bool AddNewlineOnToolbar { get; set; }
 
     [Parameter]

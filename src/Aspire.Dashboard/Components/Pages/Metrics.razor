@@ -48,22 +48,22 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreMetricsPaused(out _)" IsPausedChanged="@PauseManager.SetMetricsPaused" />
-            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
-                                HandleClearSignal="ClearMetrics" />
+            <ToolbarGlobalActions IsPaused="@PauseManager.AreMetricsPaused(out _)"
+                                  OnPausedChanged="@PauseManager.SetMetricsPaused"
+                                  HandleClearSignal="ClearMetrics"
+                                  SelectedResource="@PageViewModel.SelectedApplication"/>
 
-            @if (!ViewportInformation.IsDesktop)
+            <FluentInputLabel slot="end"
+                              Label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"
+                              ForId="@_selectDurationId"
+                              Orientation="Orientation.Horizontal" />
+
+            @if (ViewportInformation.IsDesktop)
             {
-                <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
+                <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" />
             }
 
-            @* the label and select do not have margins applied to them due to have slot="end", so
-               we can just add right margin equal to the gap applied by the toolbar * 2 to the label *@
-            <FluentInputLabel slot="end"
-                              Label="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"
-                              ForId="@_selectDurationId"
-                              Orientation="Orientation.Horizontal"
-                              style="margin-right: calc(var(--toolbar-item-gap) * 2)" />
+            <DesktopToolbarDivider />
 
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                           Id="@_selectDurationId"
@@ -71,7 +71,7 @@
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedDuration"
                           @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
-                          AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
+                          AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"/>
 
             @if (!ViewportInformation.IsDesktop)
             {
