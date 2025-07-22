@@ -455,9 +455,7 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 // For multiple inputs, use the input label as the prompt
                 // For single input, use the activity status text as the prompt
-                var promptText = inputs.Count > 1
-                    ? $"{input.Label}: "
-                    : $"[bold]{activity.Data.StatusText}[/]";
+                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
@@ -474,6 +472,25 @@ internal abstract class PublishCommandBase : BaseCommand
 
         // Send all results as an array
         await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
+    }
+
+    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
+    {
+        if (inputCount > 1)
+        {
+            return $"{input.Label.EscapeMarkup()}: ";
+        }
+
+        // Single-input path
+        var header = statusText ?? string.Empty;
+        var label = input.Label ?? string.Empty;
+
+        if (header.Equals(label, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{label.EscapeMarkup()}: ";
+        }
+
+        return $"[bold]{header.EscapeMarkup()}[/] {label.EscapeMarkup()}: ";
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
