@@ -5,6 +5,7 @@ using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
