@@ -82,6 +82,24 @@ public class ExecCommandTests
     }
 
     [Fact]
+    public async Task ExecCommand_WhenTargetResourceNotSpecified_ReturnsInvalidCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("exec --project test.csproj echo hello");
+
+        // should not take long and fail fastly
+        var exitCode = await result.InvokeAsync().WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    [Fact]
     public async Task ExecCommand_ExecutesSuccessfully()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
