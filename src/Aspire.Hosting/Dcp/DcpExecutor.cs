@@ -779,11 +779,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
 
+        var allocatedResources = new HashSet<string>(StringComparer.Ordinal);
+
         // Fire the endpoints allocated event for all DCP managed resources with endpoints.
         foreach (var resource in toCreate.Select(r => r.ModelResource).OfType<IResourceWithEndpoints>())
         {
-            var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
-            await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
+            // Ensure we fire the event only once for each app model resource. There may be multiple physical replicas of
+            // the same app model resource which can result in the event being fired multiple times.
+            if (allocatedResources.Add(resource.Name))
+            {
+                var resourceEvent = new ResourceEndpointsAllocatedEvent(resource, _executionContext.ServiceProvider);
+                await _distributedApplicationEventing.PublishAsync(resourceEvent, EventDispatchBehavior.NonBlockingConcurrent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
