@@ -13,6 +13,7 @@ public class DashboardOptionsTests
     [Theory]
     [InlineData("true", true)]
     [InlineData("false", false)]
+    [InlineData("", null)]
     [InlineData("purplemonkeydishwasher", null)]
     [InlineData(null, null)]
     public void TelemetryOptOut_ConfiguredCorrectly(string? configurationValue, bool? expectedValue)
