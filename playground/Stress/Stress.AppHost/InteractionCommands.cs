@@ -165,11 +165,11 @@ internal static class InteractionCommands
 
                return CommandResults.Success();
            })
-           .WithCommand("dismiss-interaction", "Dismiss interaction tests", executeCommand: async commandContext =>
+           .WithCommand("dismiss-interaction", "Dismiss interaction tests", executeCommand: commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-               DoThing(nameof(IInteractionService.PromptNotificationAsync), (showDismiss, title) =>
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptNotificationAsync), (showDismiss, title) =>
                {
                    return interactionService.PromptNotificationAsync(
                        title: title,
@@ -177,7 +177,7 @@ internal static class InteractionCommands
                        options: new NotificationInteractionOptions { ShowDismiss = showDismiss },
                        cancellationToken: commandContext.CancellationToken);
                });
-               DoThing(nameof(IInteractionService.PromptConfirmationAsync), (showDismiss, title) =>
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptConfirmationAsync), (showDismiss, title) =>
                {
                    return interactionService.PromptConfirmationAsync(
                        title: title,
@@ -185,7 +185,7 @@ internal static class InteractionCommands
                        options: new MessageBoxInteractionOptions { ShowDismiss = showDismiss },
                        cancellationToken: commandContext.CancellationToken);
                });
-               DoThing(nameof(IInteractionService.PromptMessageBoxAsync), (showDismiss, title) =>
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptMessageBoxAsync), (showDismiss, title) =>
                {
                    return interactionService.PromptMessageBoxAsync(
                        title: title,
@@ -193,7 +193,7 @@ internal static class InteractionCommands
                        options: new MessageBoxInteractionOptions { ShowDismiss = showDismiss },
                        cancellationToken: commandContext.CancellationToken);
                });
-               DoThing(nameof(IInteractionService.PromptInputAsync), (showDismiss, title) =>
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptInputAsync), (showDismiss, title) =>
                {
                    return interactionService.PromptInputAsync(
                        title: title,
@@ -204,9 +204,7 @@ internal static class InteractionCommands
                        cancellationToken: commandContext.CancellationToken);
                });
 
-               await Task.Yield();
-
-               return CommandResults.Success();
+               return Task.FromResult(CommandResults.Success());
            })
            .WithCommand("many-values", "Many values", executeCommand: async commandContext =>
            {
@@ -246,8 +244,9 @@ internal static class InteractionCommands
         return resource;
     }
 
-    static void DoThing(string title, Func<bool?, string, Task> action)
+    private static void RunInteractionWithDismissValues(string title, Func<bool?, string, Task> action)
     {
+        // Don't wait for interactions to complete, i.e. await tasks.
         _ = action(null, $"{title} - ShowDismiss = null");
         _ = action(true, $"{title} - ShowDismiss = true");
         _ = action(false, $"{title} - ShowDismiss = false");
