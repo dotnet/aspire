@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -11,10 +12,11 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,12 +35,14 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              ILoggerFactory loggerFactory,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
-                                             CodespacesUrlRewriter codespaceUrlRewriter,
-                                             IOptions<CodespacesOptions> codespacesOptions,
-                                             IOptions<DevcontainersOptions> devcontainersOptions,
-                                             DevcontainerSettingsWriter settingsWriter
+                                             IDistributedApplicationEventing eventing,
+                                             CodespacesUrlRewriter codespaceUrlRewriter
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
+    // Internal for testing
+    internal const string OtlpGrpcEndpointName = "otlp-grpc";
+    internal const string OtlpHttpEndpointName = "otlp-http";
+
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard's Dashboard:Otlp:Cors type
@@ -138,26 +142,67 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
 
         // Remove endpoint annotations because we are directly configuring
-        // the dashboard app (it doesn't go through the proxy!).
+        // the dashboard app.
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
         foreach (var endpointAnnotation in endpointAnnotations)
         {
             dashboardResource.Annotations.Remove(endpointAnnotation);
         }
 
-        if (codespacesOptions.Value.IsCodespace || devcontainersOptions.Value.IsDevcontainer)
+        // Add the dashboard endpoints as non-proxied
+        var options = dashboardOptions.Value;
+
+        var dashboardUrls = options.DashboardUrl;
+        var otlpGrpcEndpointUrl = options.OtlpGrpcEndpointUrl;
+        var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
+
+        eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
         {
-            // We need to print out the url so that dotnet watch can launch the dashboard
-            // technically this is too early
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var firstDashboardUrl))
+            var browserToken = options.DashboardToken;
+
+            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
-                settingsWriter.AddPortForward(
-                                firstDashboardUrl.ToString(),
-                                firstDashboardUrl.Port,
-                                firstDashboardUrl.Scheme,
-                                $"aspire-dashboard-{firstDashboardUrl.Scheme}",
-                                openBrowser: true);
+                return Task.CompletedTask;
             }
+
+            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
+
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
+
+            if (!string.IsNullOrEmpty(browserToken))
+            {
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        foreach (var d in dashboardUrls?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [])
+        {
+            var address = BindingAddress.Parse(d);
+
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: address.Scheme, port: address.Port, isProxied: true)
+            {
+                TargetHost = address.Host
+            });
+        }
+
+        if (otlpGrpcEndpointUrl != null)
+        {
+            var address = BindingAddress.Parse(otlpGrpcEndpointUrl);
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
+            {
+                TargetHost = address.Host
+            });
+        }
+
+        if (otlpHttpEndpointUrl != null)
+        {
+            var address = BindingAddress.Parse(otlpHttpEndpointUrl);
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
+            {
+                TargetHost = address.Host
+            });
         }
 
         var showDashboardResources = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources);
@@ -211,16 +256,12 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
         context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
-        context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = options.DashboardUrl;
         context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-        if (options.OtlpGrpcEndpointUrl != null)
-        {
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = options.OtlpGrpcEndpointUrl;
-        }
+
+        PopulateDashboardUrls(context);
+
         if (options.OtlpHttpEndpointUrl != null)
         {
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = options.OtlpHttpEndpointUrl;
-
             // Use explicitly defined allowed origins if configured.
             var allowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
 
@@ -316,6 +357,48 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         if (!string.IsNullOrEmpty(browserToken))
         {
             LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
+        }
+    }
+
+    private static void PopulateDashboardUrls(EnvironmentCallbackContext context)
+    {
+        var dashboardResource = (IResourceWithEndpoints)context.Resource;
+
+        // We want to resolve the "target" URL for the dashboard to listen on.
+        static ReferenceExpression GetTargetUrlExpression(EndpointReference e) =>
+            ReferenceExpression.Create($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
+
+        var otlpGrpc = dashboardResource.GetEndpoint(OtlpGrpcEndpointName);
+        if (otlpGrpc.Exists)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = GetTargetUrlExpression(otlpGrpc);
+        }
+
+        var otlpHttp = dashboardResource.GetEndpoint(OtlpHttpEndpointName);
+        if (otlpHttp.Exists)
+        {
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = GetTargetUrlExpression(otlpHttp);
+        }
+
+        var aspnetCoreUrls = new ReferenceExpressionBuilder();
+        var first = true;
+
+        // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
+        foreach (var e in dashboardResource.GetEndpoints().Where(e => e.EndpointName is "http" or "https"))
+        {
+            if (!first)
+            {
+                aspnetCoreUrls.AppendLiteral(";");
+            }
+
+            aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
+            first = false;
+        }
+
+        if (!aspnetCoreUrls.IsEmpty)
+        {
+            // Combine into a single expression
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = aspnetCoreUrls.Build();
         }
     }
 

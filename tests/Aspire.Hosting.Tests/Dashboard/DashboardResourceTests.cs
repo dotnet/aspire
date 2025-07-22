@@ -104,6 +104,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003);
+
         Assert.Same(container.Resource, dashboard);
 
         var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout())
@@ -114,7 +116,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             e =>
             {
                 Assert.Equal(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, e.Key);
-                Assert.Equal("http://localhost", e.Value);
+                Assert.Equal("http://localhost:5001", e.Value);
             },
             e =>
             {
@@ -129,7 +131,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             e =>
             {
                 Assert.Equal(KnownConfigNames.AspNetCoreUrls, e.Key);
-                Assert.Equal("http://localhost", e.Value);
+                Assert.Equal("http://localhost:5003", e.Value);
             },
             e =>
             {
@@ -214,6 +216,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000);
+
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("BrowserToken", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
@@ -251,6 +255,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources);
 
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000);
+
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
@@ -284,6 +290,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
@@ -326,6 +334,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
 
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003);
+
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
         var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
@@ -364,6 +374,8 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
 
@@ -531,6 +543,25 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("aspire-dashboard", dashboard.Name);
         Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
         Assert.Null(manifest);
+    }
+
+    static void SetDashboardAllocatedEndpoints(IResource dashboard, int otlpGrpcPort, int otlpHttpPort, int httpPort)
+    {
+        foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
+        {
+            if (endpoint.Name == DashboardLifecycleHook.OtlpGrpcEndpointName)
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
+            }
+            else if (endpoint.Name == DashboardLifecycleHook.OtlpHttpEndpointName)
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
+            }
+            else if (endpoint.Name == "http")
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", httpPort, targetPortExpression: httpPort.ToString());
+            }
+        }
     }
 
     private sealed class DashboardProject : IProjectMetadata
