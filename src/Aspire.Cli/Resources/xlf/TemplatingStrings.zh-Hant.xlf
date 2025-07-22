@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>AppHost</source>
-        <target state="needs-review-translation">Aspire 應用程式主機</target>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
-        <target state="needs-review-translation">Aspire 空白應用程式</target>
+        <target state="translated">AppHost 和服務預設值</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
-        <target state="needs-review-translation">Aspire 測試專案 (MSTest)</target>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>NUnit</source>
-        <target state="needs-review-translation">Aspire 測試專案 (NUnit)</target>
+        <target state="translated">NUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
-        <target state="needs-review-translation">Aspire 服務預設值</target>
+        <target state="translated">服務預設值</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
-        <target state="needs-review-translation">Aspire 入門應用程式</target>
+        <target state="translated">入門範本</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>xUnit</source>
-        <target state="needs-review-translation">Aspire 測試專案 (xUnit)</target>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="GettingTemplates">
         <source>Getting templates...</source>
-        <target state="new">Getting templates...</target>
+        <target state="translated">正在取得範本...</target>
         <note />
       </trans-unit>
       <trans-unit id="IntegrationTestsTemplate_Description">
         <source>Integration tests</source>
-        <target state="new">Integration tests</target>
+        <target state="translated">整合測試</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
         <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
-        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
+        <target state="translated">無法建立新專案，因為它會覆寫輸出資料夾中的現有檔案。請移除或移動衝突的檔案，或選擇不同的位置。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">
