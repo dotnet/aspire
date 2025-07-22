@@ -124,7 +124,7 @@
     <value>The path to the Aspire app host project file.</value>
   </data>
   <data name="StartTargetResourceArgumentDescription" xml:space="preserve">
-    <value>The name of the target resource execute the command against. Command will be executed only after target resource starts.</value>
+    <value>The name of the target resource to execute the command against. Command will be executed only after target resource starts.</value>
   </data>
   <data name="TargetResourceArgumentDescription" xml:space="preserve">
     <value>The name of the target resource to execute the command against.</value>
