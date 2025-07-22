@@ -653,10 +653,8 @@ public static class AzureStorageExtensions
             });
     }
 
-    private static IResourceBuilder<AzureTableStorageResource> CreateTableService(IResourceBuilder<AzureStorageResource> builder, string? name = null)
+    private static IResourceBuilder<AzureTableStorageResource> CreateTableService(IResourceBuilder<AzureStorageResource> builder, string name)
     {
-        name ??= builder.Resource.Name + "-tables";
-
         var resource = new AzureTableStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource);
     }
