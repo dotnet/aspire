@@ -70,7 +70,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run an Aspire app host to execute a command against the resource. (Preview).
+        ///   Looks up a localized string similar to Run an Aspire app host to execute a command line against the resource. (Preview).
         /// </summary>
         internal static string Description {
             get {
