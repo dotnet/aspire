@@ -92,13 +92,13 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
         {
             if (!string.IsNullOrEmpty(value))
             {
-                if (!Uri.TryCreate(value, UriKind.Absolute, out var parsedUri))
+                if (!TryParseBindingAddress(value, out var parsedBindingAddress))
                 {
                     result = ValidateOptionsResult.Fail($"The {configName} setting with a value of '{value}' could not be parsed as a URI.");
                     return false;
                 }
 
-                if (parsedUri.Scheme == "http")
+                if (parsedBindingAddress.Scheme == "http")
                 {
                     result = ValidateOptionsResult.Fail($"The '{configName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
                     return false;
