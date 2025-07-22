@@ -342,7 +342,7 @@ public class InteractionOptions
     public bool? ShowSecondaryButton { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether show the dismiss button in the header.
+    /// Gets or sets a value indicating whether show the dismiss button.
     /// </summary>
     public bool? ShowDismiss { get; set; }
 
