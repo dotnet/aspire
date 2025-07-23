@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host to execute a command against the resource. (Preview)</source>
-        <target state="new">Run an Aspire app host to execute a command against the resource. (Preview)</target>
+        <target state="translated">Führen Sie einen Aspire-App-Host aus, um einen Befehl für die Ressource auszuführen. (Vorschau)</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
         <source>Failed to parse command.</source>
-        <target state="new">Failed to parse command.</target>
+        <target state="translated">Fehler beim Analysieren des Befehls.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Der Pfad zur Hostprojektdatei der Aspire-App.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
         <source>The name of the target resource to start and execute the command against.</source>
-        <target state="new">The name of the target resource to start and execute the command against.</target>
+        <target state="translated">Der Name der Zielressource, für die der Befehl gestartet und ausgeführt werden soll.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
         <source>The name of the target resource to execute the command against.</source>
-        <target state="new">The name of the target resource to execute the command against.</target>
+        <target state="translated">Der Name der Zielressource, für die der Befehl ausgeführt werden soll.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceNotSpecified">
         <source>Target resource is not specified.</source>
-        <target state="new">Target resource is not specified.</target>
+        <target state="translated">Die Zielressource wurde nicht angegeben.</target>
         <note />
       </trans-unit>
     </body>
