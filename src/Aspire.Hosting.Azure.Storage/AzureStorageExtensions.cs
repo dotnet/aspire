@@ -338,6 +338,13 @@ public static class AzureStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        if (string.Equals(name, builder.Resource.Name + "-blobs", StringComparisons.ResourceName))
+        {
+            // If the name is the default name, use the GetBlobService method instead so we keep
+            // track of the default resource.
+            return GetBlobService(builder);
+        }
+
         return CreateBlobService(builder, name);
     }
 
@@ -469,6 +476,13 @@ public static class AzureStorageExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
+
+        if (string.Equals(name, builder.Resource.Name + "-queues", StringComparisons.ResourceName))
+        {
+            // If the name is the default name, use the GetQueueService method instead so we keep
+            // track of the default resource.
+            return GetQueueService(builder);
+        }
 
         return CreateQueueService(builder, name);
     }
