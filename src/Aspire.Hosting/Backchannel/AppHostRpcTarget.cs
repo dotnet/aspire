@@ -128,8 +128,10 @@ internal class AppHostRpcTarget(
                 WaitBehavior.StopOnResourceUnavailable,
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (DistributedApplicationException)
+        catch (DistributedApplicationException ex)
         {
+            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
+            
             return new DashboardUrlsState
             {
                 DashboardHealthy = false,
