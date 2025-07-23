@@ -23,21 +23,6 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
-resource blob 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
-}
-
-resource queue 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
-}
-
-resource table 'Microsoft.Storage/storageAccounts/tableServices@2024-01-01' = {
-  name: 'default'
-  parent: storage
-}
-
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
 output queueEndpoint string = storage.properties.primaryEndpoints.queue
