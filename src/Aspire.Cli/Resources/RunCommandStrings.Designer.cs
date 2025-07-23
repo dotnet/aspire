@@ -140,5 +140,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
             }
         }
+        
+        public static string DashboardFailedToStart {
+            get {
+                return ResourceManager.GetString("DashboardFailedToStart", resourceCulture);
+            }
+        }
     }
 }
