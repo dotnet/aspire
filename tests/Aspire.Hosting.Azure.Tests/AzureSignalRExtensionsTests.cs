@@ -53,4 +53,16 @@ public class AzureSignalRExtensionsTests
               .AppendContentAsFile(signalrRolesBicep, "bicep");
               
     }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var signalR = builder.AddAzureSignalR("signalr")
+                            .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(signalR.Resource.IsEmulator());
+        Assert.Contains(signalR.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
 }

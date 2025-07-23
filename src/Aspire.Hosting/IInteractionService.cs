@@ -144,6 +144,23 @@ public sealed class InteractionInput
     /// </summary>
     public string? Placeholder { get; set; }
 
+    /// <summary>
+    /// gets or sets the maximum length for text inputs.
+    /// </summary>
+    public int? MaxLength
+    {
+        get => field;
+        set
+        {
+            if (value is { } v)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(v, 0);
+            }
+
+            field = value;
+        }
+    }
+
     internal List<string> ValidationErrors { get; } = [];
 }
 
@@ -325,7 +342,7 @@ public class InteractionOptions
     public bool? ShowSecondaryButton { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether show the dismiss button in the header.
+    /// Gets or sets a value indicating whether show the dismiss button.
     /// </summary>
     public bool? ShowDismiss { get; set; }
 

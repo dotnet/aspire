@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Configuration;
@@ -261,6 +262,41 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             );
 
         Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task NewProjectAsyncReturnsExitCode73WhenProjectAlreadyExists()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            (args, env, _, _, _) =>
+            {
+                // Verify the arguments are correct for dotnet new
+                Assert.Contains("new", args);
+                Assert.Contains("aspire", args);
+                Assert.Contains("--name", args);
+                Assert.Contains("TestProject", args);
+                Assert.Contains("--output", args);
+                Assert.Contains("/tmp/test", args);
+            },
+            73 // Return exit code 73 to simulate project already exists
+        );
+
+        // Act
+        var exitCode = await runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", [], options, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(73, exitCode);
     }
 }
 

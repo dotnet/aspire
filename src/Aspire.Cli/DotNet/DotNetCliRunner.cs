@@ -17,7 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
-namespace Aspire.Cli;
+namespace Aspire.Cli.DotNet;
 
 internal interface IDotNetCliRunner
 {
@@ -286,7 +286,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var exitCode = await ExecuteAsync(
             args: [.. cliArgs],
-            env: null,
+            env: new Dictionary<string, string>
+            {
+                // Force English output for consistent parsing.
+                // See NOTE: below
+                [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
+            },
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -591,13 +596,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string[] cliArgs = ["build", projectFilePath.FullName];
-        
+
         // Always inject DOTNET_CLI_USE_MSBUILD_SERVER for apphost builds
         var env = new Dictionary<string, string>
         {
             ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
         };
-        
+
         return await ExecuteAsync(
             args: cliArgs,
             env: env,

@@ -222,9 +222,9 @@ public static class ExternalServiceBuilderExtensions
                     path,
                     statusCode.Value,
                     () => serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(healthCheckKey)),
-                default,
-                default,
-                default));
+                failureStatus: default,
+                tags: default,
+                timeout: default));
         }
         else
         {

@@ -7,24 +7,24 @@
         <target state="translated">Le déploiement a été annulé.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Échec du déploiement avec le code de sortie {0}. Pour plus d’informations, exécutez avec le commutateur --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">Déployez un projet hôte d’application Aspire sur ses cibles de déploiement prises en charge. (Préversion)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="new">DEPLOYMENT FAILED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">Chemin de sortie des artefacts de déploiement.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">Déploiement réussi. Artifacts disponibles sur : {0}</target>
         <note />
       </trans-unit>
     </body>

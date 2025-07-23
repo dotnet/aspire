@@ -70,15 +70,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Deployment failed with exit code {0}. For more information run with --debug switch..
-        /// </summary>
-        public static string DeploymentFailed {
-            get {
-                return ResourceManager.GetString("DeploymentFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Deploy an Aspire app host project to its supported deployment targets. (Preview).
         /// </summary>
         public static string Description {
@@ -97,11 +88,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Successfully deployed. Artifacts available at: {0}.
+        ///   Looks up a localized string similar to DEPLOYMENT COMPLETED.
         /// </summary>
-        public static string SuccessfullyDeployed {
+        public static string OperationCompletedPrefix {
             get {
-                return ResourceManager.GetString("SuccessfullyDeployed", resourceCulture);
+                return ResourceManager.GetString("OperationCompletedPrefix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DEPLOYMENT FAILED.
+        /// </summary>
+        public static string OperationFailedPrefix {
+            get {
+                return ResourceManager.GetString("OperationFailedPrefix", resourceCulture);
             }
         }
     }
