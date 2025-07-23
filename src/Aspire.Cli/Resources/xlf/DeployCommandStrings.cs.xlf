@@ -7,24 +7,24 @@
         <target state="translated">Nasazení bylo zrušeno.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Nasazení se nezdařilo s ukončovacím kódem {0}. Další informace získáte spuštěním s přepínačem --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">Nasaďte projekt hostitele aplikace Aspire do svých podporovaných cílů nasazení. (Preview)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="new">DEPLOYMENT FAILED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">Výstupní cesta pro artefakty nasazení</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">Nasazení proběhlo úspěšně. Artifacts jsou k dispozici na: {0}</target>
         <note />
       </trans-unit>
     </body>

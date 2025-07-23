@@ -7,14 +7,19 @@
         <target state="translated">為 Aspire 應用程式主機專案產生部署成品。(預覽)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">發行成品失敗，結束代碼為 {0}。如需詳細資訊，請使用 --debug 切換執行。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">正在產生成品...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>PUBLISHING COMPLETED</source>
+        <target state="new">PUBLISHING COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>PUBLISHING FAILED</source>
+        <target state="new">PUBLISHING FAILED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
@@ -30,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">選取發行者：</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">已成功將成品發行至：{0}</target>
         <note />
       </trans-unit>
     </body>

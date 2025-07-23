@@ -7,14 +7,19 @@
         <target state="translated">Genera artefatti della distribuzione per un progetto host delle app Aspire. (Anteprima)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Pubblicazione degli artefatti non riuscita; codice di uscita {0}. Per altre informazioni, eseguire con l'opzione --debug.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">Generazione degli artefatti in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>PUBLISHING COMPLETED</source>
+        <target state="new">PUBLISHING COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>PUBLISHING FAILED</source>
+        <target state="new">PUBLISHING FAILED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
@@ -30,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">Seleziona un editore:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">Pubblicazione degli artefatti completata in: {0}</target>
         <note />
       </trans-unit>
     </body>
