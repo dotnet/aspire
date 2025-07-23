@@ -172,7 +172,7 @@ internal sealed class RunCommand : BaseCommand
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
 
-            if (!dashboardUrls.DashboardHealthy)
+            if (dashboardUrls.DashboardHealthy is false)
             {
                 _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
                 _interactionService.DisplayLines(runOutputCollector.GetLines());
