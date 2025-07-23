@@ -245,18 +245,29 @@ internal sealed class CliServiceCollectionTestOptions
     };
 }
 
-internal sealed class TestOutputTextWriter(ITestOutputHelper outputHelper) : TextWriter
+internal sealed class TestOutputTextWriter : TextWriter
 {
+    private readonly ITestOutputHelper _outputHelper;
+
+    public TestOutputTextWriter(ITestOutputHelper outputHelper) : this(outputHelper, null)
+    {
+    }
+
+    public TestOutputTextWriter(ITestOutputHelper outputHelper, IFormatProvider? formatProvider) : base(formatProvider)
+    {
+        _outputHelper = outputHelper;
+    }
+
     public override Encoding Encoding => Encoding.UTF8;
 
     public override void WriteLine(string? message)
     {
-        outputHelper.WriteLine(message!);
+        _outputHelper.WriteLine(message!);
     }
 
     public override void Write(string? message)
     {
-        outputHelper.Write(message!);
+        _outputHelper.Write(message!);
     }
 
 }
