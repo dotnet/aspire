@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
-    // [InlineData(true)] // "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820"
+    [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
     public async Task VerifyWaitForOnCosmosDBEmulatorBlocksDependentResources(bool usePreview)
@@ -27,10 +27,10 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        var healthCheckResult = HealthCheckResult.Unhealthy();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
-            return healthCheckTcs.Task;
+            return Task.FromResult(healthCheckResult);
         });
 
         var resource = builder.AddAzureCosmosDB("resource")
@@ -44,11 +44,11 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Starting, cts.Token);
 
         await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+        healthCheckResult = HealthCheckResult.Healthy();
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
@@ -59,7 +59,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StopAsync();
     }
 
-    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
@@ -128,7 +128,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }, cts.Token);
     }
 
-    [Theory(Skip = "Using CosmosDB emulator in integration tests leads to flaky tests - https://github.com/dotnet/aspire/issues/5820")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
