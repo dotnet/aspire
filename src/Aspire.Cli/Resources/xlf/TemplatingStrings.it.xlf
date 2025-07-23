@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AspireAppHost_Description">
         <source>AppHost</source>
-        <target state="needs-review-translation">Host delle app Aspire</target>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
-        <target state="needs-review-translation">App vuota Aspire</target>
+        <target state="translated">Impostazioni predefinite di AppHost e del servizio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
-        <target state="needs-review-translation">Progetto di test di Aspire (MSTest)</target>
+        <target state="translated">MSTest</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireNUnit_Description">
         <source>NUnit</source>
-        <target state="needs-review-translation">Progetto di test Aspire (NUnit)</target>
+        <target state="translated">NUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
-        <target state="needs-review-translation">Impostazioni predefinite del servizio Aspire</target>
+        <target state="translated">Impostazioni predefinite del servizio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
-        <target state="needs-review-translation">App Starter Aspire</target>
+        <target state="translated">Modello di avvio</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
         <source>xUnit</source>
-        <target state="needs-review-translation">Progetto di test di Aspire (xUnit)</target>
+        <target state="translated">xUnit</target>
         <note />
       </trans-unit>
       <trans-unit id="AtLeastOneTemplateFactoryMustBeProvided">
@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="GettingTemplates">
         <source>Getting templates...</source>
-        <target state="new">Getting templates...</target>
+        <target state="translated">Recupero dei modelli in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="IntegrationTestsTemplate_Description">
         <source>Integration tests</source>
-        <target state="new">Integration tests</target>
+        <target state="translated">Test di integrazione</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
         <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
-        <target state="new">The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</target>
+        <target state="translated">Non è possibile creare il nuovo progetto perché sovrascriverebbe i file esistenti nella cartella di output. Rimuovere o spostare i file in conflitto oppure scegliere un percorso diverso.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCreatedSuccessfully">

@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="Description">
         <source>Run an Aspire app host to execute a command against the resource. (Preview)</source>
-        <target state="new">Run an Aspire app host to execute a command against the resource. (Preview)</target>
+        <target state="translated">리소스에 대해 명령을 실행하려면 Aspire 앱 호스트를 실행하세요. (미리 보기)</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
         <source>Failed to parse command.</source>
-        <target state="new">Failed to parse command.</target>
+        <target state="translated">명령을 구문 분석하지 못했습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
-        <target state="new">The path to the Aspire app host project file.</target>
+        <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
         <source>The name of the target resource to start and execute the command against.</source>
-        <target state="new">The name of the target resource to start and execute the command against.</target>
+        <target state="translated">명령을 시작하고 실행할 대상 리소스의 이름입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
         <source>The name of the target resource to execute the command against.</source>
-        <target state="new">The name of the target resource to execute the command against.</target>
+        <target state="translated">명령을 실행할 대상 리소스의 이름입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceNotSpecified">
         <source>Target resource is not specified.</source>
-        <target state="new">Target resource is not specified.</target>
+        <target state="translated">대상 리소스가 지정되지 않았습니다.</target>
         <note />
       </trans-unit>
     </body>

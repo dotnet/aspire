@@ -25,7 +25,7 @@ var storage = builder.AddAzureStorage("storage")
                          storage.AllowBlobPublicAccess = false;
                      })
                      .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.AddBlobs("blobs");
 
 // Testing projects
 builder.AddProject<Projects.AzureAppService_ApiService>("api")

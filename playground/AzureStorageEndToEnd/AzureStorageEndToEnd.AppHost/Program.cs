@@ -8,7 +8,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
     container.WithDataBindMount();
 });
 
-var blobs = storage.AddBlobService("blobs");
+var blobs = storage.AddBlobs("blobs");
 storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
 storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 

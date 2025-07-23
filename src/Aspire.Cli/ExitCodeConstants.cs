@@ -17,4 +17,5 @@ internal static class ExitCodeConstants
     public const int AppHostIncompatible = 9;
     public const int ConfigNotFound = 10;
     public const int SdkNotInstalled = 11;
+    public const int DashboardFailure = 12;
 }
