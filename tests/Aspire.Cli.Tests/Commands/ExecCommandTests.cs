@@ -26,7 +26,10 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --help");
+        var commandLineConfiguration = new CommandLineConfiguration(command);
+        commandLineConfiguration.Output = new TestOutputTextWriter(_outputHelper);
+
+        var result = command.Parse("exec --help", commandLineConfiguration);
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
