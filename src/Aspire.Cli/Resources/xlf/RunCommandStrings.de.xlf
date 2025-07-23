@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="needs-review-translation">Aspire-Dashboard wird gestartet...</target>
+        <target state="new">Starting dashboard...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
