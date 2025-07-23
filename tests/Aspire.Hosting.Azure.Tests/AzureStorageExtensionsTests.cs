@@ -824,6 +824,60 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.Equal(expectedTableManifest, tableManifest.ToString());
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddBlobsReturnsExistingResourceWhenNamesMatch(bool addContainerFirst)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        if (addContainerFirst)
+        {
+            storage.AddBlobContainer("blobcontainer");
+        }
+
+        var blobService = storage.AddBlobs("storage-blobs");
+
+        if (!addContainerFirst)
+        {
+            storage.AddBlobContainer("blobcontainer");
+        }
+
+        var blobStorageResource = builder.Resources.OfType<AzureBlobStorageResource>().Single();
+
+        Assert.NotNull(blobStorageResource);
+        Assert.Equal("storage-blobs", blobService.Resource.Name);
+        Assert.Equal(blobService.Resource, blobStorageResource);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddQueuesServiceReturnsExistingResourceWhenNamesMatch(bool addQueueFirst)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("storage");
+
+        if (addQueueFirst)
+        {
+            storage.AddQueue("queue");
+        }
+
+        var queueService = storage.AddQueues("storage-queues");
+
+        if (!addQueueFirst)
+        {
+            storage.AddQueue("queue");
+        }
+
+        var queueStorageResource = builder.Resources.OfType<AzureQueueStorageResource>().Single();
+
+        Assert.NotNull(queueStorageResource);
+        Assert.Equal("storage-queues", queueService.Resource.Name);
+        Assert.Equal(queueService.Resource, queueStorageResource);
+    }
+
     [Fact]
     public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
     {
