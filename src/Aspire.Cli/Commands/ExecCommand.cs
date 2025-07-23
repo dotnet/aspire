@@ -67,6 +67,11 @@ internal class ExecCommand : BaseCommand
         startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
         Options.Add(startResourceOption);
 
+        // only for --help output
+        var commandOption = new Option<string>("--");
+        commandOption.Description = ExecCommandStrings.CommandArgumentDescription;
+        Options.Add(commandOption);
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -76,6 +81,37 @@ internal class ExecCommand : BaseCommand
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
+        }
+
+        // validate required arguments firstly to fail fast if not found
+        var targetResourceMode = "--resource";
+        var targetResource = parseResult.GetValue<string>("--resource");
+        if (string.IsNullOrEmpty(targetResource))
+        {
+            targetResourceMode = "--start-resource";
+            targetResource = parseResult.GetValue<string>("--start-resource");
+        }
+
+        if (targetResource is null)
+        {
+            _interactionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        // unmatched tokens are those which will be tried to parse as command.
+        // if none - we should fail fast
+        if (parseResult.UnmatchedTokens.Count == 0)
+        {
+            _interactionService.DisplayError(ExecCommandStrings.NoCommandSpecified);
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
+
+        if (commandTokens is null || commandTokens.Count == 0)
+        {
+            _interactionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
+            return ExitCodeConstants.InvalidCommand;
         }
 
         var buildOutputCollector = new OutputCollector();
@@ -117,28 +153,6 @@ internal class ExecCommand : BaseCommand
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
             };
-
-            var targetResourceMode = "--resource";
-            var targetResource = parseResult.GetValue<string>("--resource");
-            if (string.IsNullOrEmpty(targetResource))
-            {
-                targetResourceMode = "--start-resource";
-                targetResource = parseResult.GetValue<string>("--start-resource");
-            }
-
-            if (targetResource is null)
-            {
-                _interactionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
-                return ExitCodeConstants.InvalidCommand;
-            }
-
-            var (arbitraryFlags, commandTokens) = ParseCmdArgs(parseResult);
-
-            if (commandTokens is null || commandTokens.Count == 0)
-            {
-                _interactionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
-                return ExitCodeConstants.InvalidCommand;
-            }
 
             string[] args = [
                 "--operation", "run",
