@@ -283,7 +283,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
-                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
+                Assert.Equal("false", env["MSBUILDTERMINALLOGGER"]);
             },
             0
             );
@@ -319,8 +319,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
-                // Should always be "1" regardless of what was passed in
-                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
+                // Should always be "false" regardless of what was passed in
+                Assert.Equal("false", env["MSBUILDTERMINALLOGGER"]);
                 // Verify existing environment variable is preserved
                 Assert.True(env.ContainsKey("EXISTING_VAR"));
                 Assert.Equal("existing_value", env["EXISTING_VAR"]);
@@ -331,10 +331,10 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var existingEnv = new Dictionary<string, string>
         {
             ["EXISTING_VAR"] = "existing_value",
-            ["MSBUILDTERMINALLOGGER"] = "0" // This should be overridden to "1"
+            ["MSBUILDTERMINALLOGGER"] = "0" // This should be overridden to "false"
         };
 
-        // Call ExecuteAsync with existing environment to verify MSBUILDTERMINALLOGGER is always set to "1"
+        // Call ExecuteAsync with existing environment to verify MSBUILDTERMINALLOGGER is always set to "false"
         var exitCode = await runner.ExecuteAsync(
             args: ["version"],
             env: existingEnv,
@@ -373,7 +373,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 // Also verify MSBUILDTERMINALLOGGER is set
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
-                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
+                Assert.Equal("false", env["MSBUILDTERMINALLOGGER"]);
             },
             73 // Return exit code 73 to simulate project already exists
         );
