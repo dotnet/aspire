@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Commands;
+using System.CommandLine;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -41,7 +43,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --resource api");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
@@ -58,7 +60,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --resource api");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
@@ -75,7 +77,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --resource api");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
@@ -92,11 +94,17 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec --project test.csproj echo hello");
+        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var testOutputWriter = new TestOutputTextWriter(_outputHelper);
+        commandLineConfiguration.Output = testOutputWriter;
 
-        // should not take long and fail fastly
-        var exitCode = await result.InvokeAsync().WaitAsync(TimeSpan.FromSeconds(3));
+        var result = command.Parse("exec --project test.csproj echo hello", commandLineConfiguration);
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+
+        // attempt to find app host should not happen
+        Assert.DoesNotContain(testOutputWriter.Logs, x => x.Contains(InteractionServiceStrings.FindingAppHosts));
     }
 
     [Fact]

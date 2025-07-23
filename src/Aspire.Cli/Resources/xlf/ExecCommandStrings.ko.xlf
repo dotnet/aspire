@@ -12,6 +12,11 @@
         <target state="translated">명령을 구문 분석하지 못했습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCommandSpecified">
+        <source>Command is not specified.</source>
+        <target state="new">Command is not specified.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
         <target state="translated">Aspire 앱 호스트 프로젝트 파일의 경로입니다.</target>

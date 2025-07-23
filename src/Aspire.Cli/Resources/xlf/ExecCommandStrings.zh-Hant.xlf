@@ -12,6 +12,11 @@
         <target state="translated">無法剖析命令。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCommandSpecified">
+        <source>Command is not specified.</source>
+        <target state="new">Command is not specified.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire app host project file.</source>
         <target state="translated">Aspire 應用程式主機專案檔案的路徑。</target>
