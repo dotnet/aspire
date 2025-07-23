@@ -249,6 +249,7 @@ internal sealed class CliServiceCollectionTestOptions
 internal sealed class TestOutputTextWriter : TextWriter
 {
     private readonly ITestOutputHelper _outputHelper;
+    public List<string> Logs { get; } = new List<string>();
 
     public TestOutputTextWriter(ITestOutputHelper outputHelper) : this(outputHelper, null)
     {
@@ -264,11 +265,19 @@ internal sealed class TestOutputTextWriter : TextWriter
     public override void WriteLine(string? message)
     {
         _outputHelper.WriteLine(message!);
+        if (message is not null)
+        {
+            Logs.Add(message);
+        }
     }
 
     public override void Write(string? message)
     {
         _outputHelper.Write(message!);
+        if (message is not null)
+        {
+            Logs.Add(message);
+        }
     }
 
 }

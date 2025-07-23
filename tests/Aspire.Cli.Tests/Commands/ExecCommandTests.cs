@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,7 +46,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
@@ -62,7 +63,7 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
@@ -79,10 +80,34 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("exec");
+        var result = command.Parse("exec --resource api cmd");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
+    [Fact]
+    public async Task ExecCommand_WhenTargetResourceNotSpecified_ReturnsInvalidCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var testOutputWriter = new TestOutputTextWriter(_outputHelper);
+        commandLineConfiguration.Output = testOutputWriter;
+
+        var result = command.Parse("exec --project test.csproj echo hello", commandLineConfiguration);
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+
+        // attempt to find app host should not happen
+        Assert.DoesNotContain(testOutputWriter.Logs, x => x.Contains(InteractionServiceStrings.FindingAppHosts));
     }
 
     [Fact]
