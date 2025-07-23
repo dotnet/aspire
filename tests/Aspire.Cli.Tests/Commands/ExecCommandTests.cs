@@ -6,6 +6,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli.Tests.Commands;
