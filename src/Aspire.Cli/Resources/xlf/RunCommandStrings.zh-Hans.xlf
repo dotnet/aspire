@@ -7,6 +7,11 @@
         <target state="translated">仪表板</target>
         <note />
       </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="new">Aspire Dashboard failed to start.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">在开发模式下运行 Aspire 应用主机。</target>
