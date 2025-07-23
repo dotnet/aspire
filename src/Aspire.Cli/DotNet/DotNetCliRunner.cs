@@ -17,7 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
-namespace Aspire.Cli;
+namespace Aspire.Cli.DotNet;
 
 internal interface IDotNetCliRunner
 {

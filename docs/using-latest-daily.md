@@ -40,13 +40,13 @@ If you use [Package Source Mapping](https://learn.microsoft.com/en-us/nuget/cons
 On Windows:
 
 ```powershell
-iex "& { $(irm https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.ps1) }"
+iex "& { $(irm https://aspire.dev/install.ps1) } -Quality dev"
 ```
 
 On Linux, or macOS:
 
 ```sh
-curl -sSL https://github.com/dotnet/aspire/raw/refs/heads/main/eng/scripts/get-aspire-cli.sh | bash
+curl -sSL https://aspire.dev/install.sh | bash -s -- -q dev
 ```
 
 <!-- break between blocks -->

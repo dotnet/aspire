@@ -129,6 +129,9 @@ public static class GitHubModelsExtensions
         var healthCheckKey = $"{builder.Resource.Name}_check";
         GitHubModelsHealthCheck? healthCheck = null;
 
+        // Ensure IHttpClientFactory is available by registering HTTP client services
+        builder.ApplicationBuilder.Services.AddHttpClient();
+
         // Register the health check
         builder.ApplicationBuilder.Services.AddHealthChecks()
             .Add(new HealthCheckRegistration(

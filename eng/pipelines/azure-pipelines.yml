@@ -134,6 +134,8 @@ extends:
           agentOs: linux
           targetRidsForSameOS:
             - linux-x64
+            - linux-arm64
+            - linux-musl-x64
           # no need to sign ELF binaries on linux
           codeSign: false
           teamName: $(_TeamName)
@@ -222,8 +224,6 @@ extends:
                     - win-arm64
                     # non-aot - single file builds
                     - win-x86
-                    - linux-arm64
-                    - linux-musl-x64
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
@@ -232,4 +232,3 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
-

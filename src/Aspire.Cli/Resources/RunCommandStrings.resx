@@ -158,4 +158,7 @@
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to app host...</value>
   </data>
+  <data name="DashboardFailedToStart" xml:space="preserve">
+    <value>Aspire Dashboard failed to start.</value>
+  </data>
 </root>

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,6 +26,10 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
+    protected readonly IDotNetSdkInstaller _sdkInstaller;
+
+    protected abstract string OperationCompletedPrefix { get; }
+    protected abstract string OperationFailedPrefix { get; }
 
     private static bool IsCompletionStateComplete(string completionState) =>
         completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
@@ -35,18 +40,20 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -69,13 +76,17 @@ internal abstract class PublishCommandBase : BaseCommand
     protected abstract string GetOutputPathDescription();
     protected abstract string GetDefaultOutputPath(ArgumentResult result);
     protected abstract string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens);
-    protected abstract string GetSuccessMessage(string fullyQualifiedOutputPath);
-    protected abstract string GetFailureMessage(int exitCode);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var operationOutputCollector = new OutputCollector();
 
@@ -396,10 +407,10 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var prefix = hasErrors
-                ? "[red]✗ PUBLISHING FAILED:[/]"
-: hasWarnings
-                    ? "[yellow]⚠ PUBLISHING COMPLETED:[/]"
-                    : "[green]✓ PUBLISHING COMPLETED:[/]";
+                ? $"[red]✗ {OperationFailedPrefix}:[/]"
+                : hasWarnings
+                    ? $"[yellow]⚠ {OperationCompletedPrefix}:[/]"
+                    : $"[green]✓ {OperationCompletedPrefix}:[/]";
 
             AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }

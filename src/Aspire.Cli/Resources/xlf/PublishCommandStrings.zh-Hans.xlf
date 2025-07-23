@@ -7,14 +7,19 @@
         <target state="translated">生成 Aspire 应用主机项目的部署工件。(预览版)</target>
         <note />
       </trans-unit>
-      <trans-unit id="FailedToPublishArtifacts">
-        <source>Publishing artifacts failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">发布工件失败，退出代码为 {0}。有关详细信息，请使用 --debug 开关运行。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Generating artifacts...</source>
         <target state="translated">正在生成工件...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>PUBLISHING COMPLETED</source>
+        <target state="new">PUBLISHING COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>PUBLISHING FAILED</source>
+        <target state="new">PUBLISHING FAILED</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
@@ -30,11 +35,6 @@
       <trans-unit id="SelectAPublisher">
         <source>Select a publisher:</source>
         <target state="translated">选择发布者:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyPublishedArtifacts">
-        <source>Successfully published artifacts to: {0}</source>
-        <target state="translated">已将工件成功发布到: {0}</target>
         <note />
       </trans-unit>
     </body>

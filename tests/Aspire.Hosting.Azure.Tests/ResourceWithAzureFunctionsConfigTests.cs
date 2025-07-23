@@ -25,7 +25,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storageResource = builder.AddAzureStorage("storage");
-        var blobResource = storageResource.AddBlobService("blobs").Resource;
+        var blobResource = storageResource.AddBlobs("blobs").Resource;
 
         // Act & Assert
         Assert.IsAssignableFrom<IResourceWithAzureFunctionsConfig>(blobResource);
@@ -37,7 +37,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storageResource = builder.AddAzureStorage("storage");
-        var queueResource = storageResource.AddQueueService("queues").Resource;
+        var queueResource = storageResource.AddQueues("queues").Resource;
 
         // Act & Assert
         Assert.IsAssignableFrom<IResourceWithAzureFunctionsConfig>(queueResource);
@@ -145,7 +145,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var blobResource = storage.AddBlobService("blobs").Resource;
+        var blobResource = storage.AddBlobs("blobs").Resource;
         var target = new Dictionary<string, object>();
 
         // Act
@@ -162,7 +162,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var tableResource = storage.AddTableService("tables").Resource;
+        var tableResource = storage.AddTables("tables").Resource;
         var target = new Dictionary<string, object>();
 
         // Act
@@ -179,7 +179,7 @@ public class ResourceWithAzureFunctionsConfigTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-        var queueResource = storage.AddQueueService("queues").Resource;
+        var queueResource = storage.AddQueues("queues").Resource;
         var target = new Dictionary<string, object>();
 
         // Act
