@@ -69,6 +69,11 @@ internal interface IProvisioningContextProvider
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
     Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a provisioning context for Azure resource operations with optional parameter overrides.
+    /// </summary>
+    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, string? subscriptionId = null, string? resourceGroup = null, string? location = null, bool? allowResourceGroupCreation = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

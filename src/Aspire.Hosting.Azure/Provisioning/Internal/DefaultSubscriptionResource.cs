@@ -16,6 +16,7 @@ internal sealed class DefaultSubscriptionResource(SubscriptionResource subscript
     public ResourceIdentifier Id => subscriptionResource.Id;
     public string? DisplayName => subscriptionResource.Data.DisplayName;
     public Guid? TenantId => subscriptionResource.Data.TenantId;
+    public SubscriptionResource SubscriptionResource => subscriptionResource;
 
     public IResourceGroupCollection GetResourceGroups()
     {

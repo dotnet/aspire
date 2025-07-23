@@ -57,6 +57,10 @@ public sealed class AzurePublishingContext(
     /// </remarks>
     public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
 
+    internal string? MainBicepPath { get; private set; }
+
+    internal Dictionary<string, IResource> ComputeResources { get; } = [];
+
     /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
@@ -250,6 +254,11 @@ public sealed class AzurePublishingContext(
                     module.Parameters.Add(parameter.Key, principalId);
                     continue;
                 }
+                if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalId && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
 
                 var value = ResolveValue(Eval(parameter.Value));
 
@@ -319,6 +328,8 @@ public sealed class AzurePublishingContext(
                 }
 
                 CaptureBicepOutputsFromParameters(br);
+
+                ComputeResources.Add(modulePath, resource);
 
                 await task.SucceedAsync(
                     $"Wrote bicep module for deployment target {resource.Name} to {modulePath}",
@@ -412,7 +423,7 @@ public sealed class AzurePublishingContext(
 
         logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", MainInfrastructure.BicepName, outputDirectoryPath);
 
-        var bicepPath = Path.Combine(outputDirectoryPath, $"{MainInfrastructure.BicepName}.bicep");
-        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
+        MainBicepPath = Path.Combine(outputDirectoryPath, $"{MainInfrastructure.BicepName}.bicep");
+        await File.WriteAllTextAsync(MainBicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }
