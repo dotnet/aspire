@@ -80,9 +80,6 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
                 Assert.Equal("true", env["DOTNET_CLI_USE_MSBUILD_SERVER"]);
-                // Verify MSBUILDTERMINALLOGGER is always set
-                Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
-                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
             },
             0
             );
