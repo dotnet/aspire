@@ -24,7 +24,7 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 
-    protected override string GetDefaultOutputPath(ArgumentResult result) => Path.Combine(Environment.CurrentDirectory, "deploy");
+    protected override string GetDefaultOutputPath(ArgumentResult result) => Path.Combine(Path.GetTempPath(), $"aspire-deploy-{Guid.NewGuid():N}");
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
         ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, "--deploy", "true", ..unmatchedTokens];
