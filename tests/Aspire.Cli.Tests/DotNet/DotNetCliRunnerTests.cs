@@ -79,6 +79,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
                 Assert.Equal("true", env["DOTNET_CLI_USE_MSBUILD_SERVER"]);
+                // Verify MSBUILDTERMINALLOGGER is always set
+                Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
+                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
             },
             0
             );
@@ -265,6 +268,88 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ExecuteAsyncAlwaysSetsMsBuildTerminalLoggerEnvironmentVariable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            (args, env, _, _, _) => 
+            {
+                Assert.NotNull(env);
+                Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
+                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
+            },
+            0
+            );
+
+        // Call ExecuteAsync directly to verify the environment variable is always set
+        var exitCode = await runner.ExecuteAsync(
+            args: ["version"],
+            env: null,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task ExecuteAsyncPreservesMsBuildTerminalLoggerWhenProvidedInEnv()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            (args, env, _, _, _) => 
+            {
+                Assert.NotNull(env);
+                Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
+                // Should always be "1" regardless of what was passed in
+                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
+                // Verify existing environment variable is preserved
+                Assert.True(env.ContainsKey("EXISTING_VAR"));
+                Assert.Equal("existing_value", env["EXISTING_VAR"]);
+            },
+            0
+            );
+
+        var existingEnv = new Dictionary<string, string>
+        {
+            ["EXISTING_VAR"] = "existing_value",
+            ["MSBUILDTERMINALLOGGER"] = "0" // This should be overridden to "1"
+        };
+
+        // Call ExecuteAsync with existing environment to verify MSBUILDTERMINALLOGGER is always set to "1"
+        var exitCode = await runner.ExecuteAsync(
+            args: ["version"],
+            env: existingEnv,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
     public async Task NewProjectAsyncReturnsExitCode73WhenProjectAlreadyExists()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -288,6 +373,10 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 Assert.Contains("TestProject", args);
                 Assert.Contains("--output", args);
                 Assert.Contains("/tmp/test", args);
+                // Also verify MSBUILDTERMINALLOGGER is set
+                Assert.NotNull(env);
+                Assert.True(env.ContainsKey("MSBUILDTERMINALLOGGER"));
+                Assert.Equal("1", env["MSBUILDTERMINALLOGGER"]);
             },
             73 // Return exit code 73 to simulate project already exists
         );

@@ -437,6 +437,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // not exist the orphan detector will exit.
         startInfo.EnvironmentVariables[KnownConfigNames.CliProcessId] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
+        // Always set MSBUILDTERMINALLOGGER=1 for all dotnet command executions to ensure consistent terminal logger behavior
+        startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "1";
+
         var process = new Process { StartInfo = startInfo };
 
         logger.LogDebug("Running dotnet with args: {Args}", string.Join(" ", args));
