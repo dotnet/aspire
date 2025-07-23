@@ -29,6 +29,11 @@ Examples:
         <target state="new">Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCommandSpecified">
+        <source>Command is not specified.</source>
+        <target state="new">Command is not specified.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
         <target state="new">The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</target>

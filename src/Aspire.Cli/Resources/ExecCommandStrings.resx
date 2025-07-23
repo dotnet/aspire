@@ -144,4 +144,7 @@ Examples:
   <data name="CommandArgumentDescription" xml:space="preserve">
     <value>The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</value>
   </data>
+  <data name="NoCommandSpecified" xml:space="preserve">
+    <value>Command is not specified.</value>
+  </data>
 </root>
