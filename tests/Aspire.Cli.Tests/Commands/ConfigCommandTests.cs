@@ -93,7 +93,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         Assert.True(settings["foo"] is JsonObject);
         var fooObject = settings["foo"]!.AsObject();
         Assert.True(fooObject["bar"] is JsonObject);
@@ -109,7 +109,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        
+
         // First set a primitive value
         var result1 = command.Parse("config set foo primitive");
         var exitCode1 = await result1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -125,7 +125,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         Assert.True(settings["foo"] is JsonObject);
         var fooObject = settings["foo"]!.AsObject();
         Assert.Equal("nested", fooObject["bar"]?.ToString());
@@ -245,7 +245,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         // The deep object should be completely removed since it became empty
         Assert.False(settings.ContainsKey("deep"));
     }
@@ -340,19 +340,5 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Check the feature flag
         var featureFlags = provider.GetRequiredService<IFeatures>();
         Assert.False(featureFlags.IsFeatureEnabled("testFeature", defaultValue: true));
-    }
-
-    [Fact]
-    public void DeployCommand_IsAlwaysAvailable()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var rootCommand = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        
-        // Check that deploy command is always available
-        var hasDeployCommand = rootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
-        Assert.True(hasDeployCommand);
     }
 }
