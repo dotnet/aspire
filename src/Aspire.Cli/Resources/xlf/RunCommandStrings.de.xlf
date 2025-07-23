@@ -7,6 +7,11 @@
         <target state="translated">Dashboard</target>
         <note />
       </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="new">Aspire Dashboard failed to start.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">Führen Sie einen Aspire-App-Host im Entwicklungsmodus aus.</target>
