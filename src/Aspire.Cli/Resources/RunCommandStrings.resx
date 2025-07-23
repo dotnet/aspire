@@ -155,4 +155,7 @@
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
+  <data name="DashboardFailedToStart" xml:space="preserve">
+    <value>Aspire Dashboard failed to start.</value>
+  </data>
 </root>

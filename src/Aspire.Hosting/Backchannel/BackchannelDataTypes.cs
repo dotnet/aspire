@@ -47,10 +47,12 @@ internal sealed class RpcResourceState
 /// </summary>
 internal sealed class DashboardUrlsState
 {
+    public bool DashboardHealthy { get; init; }
+
     /// <summary>
     /// Gets the base dashboard URL with a login token.
     /// </summary>
-    public required string BaseUrlWithLoginToken { get; init; }
+    public string? BaseUrlWithLoginToken { get; init; }
 
     /// <summary>
     /// Gets the Codespaces dashboard URL with a login token, if available.
