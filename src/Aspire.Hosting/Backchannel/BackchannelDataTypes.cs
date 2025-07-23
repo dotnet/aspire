@@ -47,7 +47,7 @@ internal sealed class RpcResourceState
 /// </summary>
 internal sealed class DashboardUrlsState
 {
-    public bool DashboardHealthy { get; init; }
+    public bool DashboardHealthy { get; init; } = true;
 
     /// <summary>
     /// Gets the base dashboard URL with a login token.
