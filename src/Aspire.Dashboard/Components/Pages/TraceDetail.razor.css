@@ -79,6 +79,7 @@
     margin-right: 0.25rem;
     white-space: nowrap;
     grid-row: 1;
+    text-align: left;
 }
 
 ::deep .span-name-container {
