@@ -368,7 +368,7 @@ public sealed class TelemetryRepository : IDisposable
                         // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
                         // We don't increment the count if there are active read subscriptions because the count will be quickly decremented when the subscription callback is run.
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
-                        if (logEntry.Severity >= LogLevel.Error)
+                        if (logEntry.IsError)
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
                             {
