@@ -4,7 +4,6 @@
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -191,7 +190,7 @@ public class WithReferenceTests
                               .WithReference(missingResource);
 
         // Call environment variable callbacks.
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
         {
             var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         }).DefaultTimeout();

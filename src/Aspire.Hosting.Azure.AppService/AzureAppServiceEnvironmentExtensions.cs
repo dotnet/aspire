@@ -19,6 +19,18 @@ namespace Aspire.Hosting;
 /// </summary>
 public static partial class AzureAppServiceEnvironmentExtensions
 {
+    internal static IDistributedApplicationBuilder AddAzureAppServiceInfrastructureCore(this IDistributedApplicationBuilder builder)
+    {
+        // ensure AzureProvisioning is added first so the AzureResourcePreparer lifecycle hook runs before AzureAppServiceInfrastructure
+        builder.AddAzureProvisioning();
+
+        builder.Services.Configure<AzureProvisioningOptions>(options => options.SupportsTargetedRoleAssignments = true);
+
+        builder.Services.TryAddLifecycleHook<AzureAppServiceInfrastructure>();
+
+        return builder;
+    }
+
     /// <summary>
     /// Adds a azure app service environment resource to the distributed application builder.
     /// </summary>
@@ -27,13 +39,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.AddAzureProvisioning();
-        builder.Services.Configure<AzureProvisioningOptions>(options => options.SupportsTargetedRoleAssignments = true);
-
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            builder.Services.TryAddLifecycleHook<AzureAppServiceInfrastructure>();
-        }
+        builder.AddAzureAppServiceInfrastructureCore();
 
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
@@ -94,6 +100,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
             };
 
             infra.Add(plan);
+
+            infra.Add(new ProvisioningOutput("name", typeof(string))
+            {
+                Value = plan.Name
+            });
 
             infra.Add(new ProvisioningOutput("planId", typeof(string))
             {

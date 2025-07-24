@@ -5,21 +5,10 @@ using Xunit;
 
 namespace Aspire.Templates.Tests;
 
-public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
+public abstract class NewUpAndBuildSupportProjectTemplatesBase(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
-    [Theory]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-apphost")]
-    // [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: "aspire-servicedefaults")]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-mstest", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.2"])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.3"])]
     [Trait("category", "basic-build")]
-    public async Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    protected async Task CanNewAndBuildActual(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{FixupSymbolName(templateName)}");
         var topLevelDir = Path.Combine(BuildEnvironment.TestRootPath, id + "_root");
@@ -29,7 +18,9 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
         {
             TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
             TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
+            TestSdk.Next => BuildEnvironment.ForNextSdkOnly,
             TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
+            TestSdk.NextSdkAndCurrentRuntime => BuildEnvironment.ForNextSdkAndCurrentRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 
@@ -67,5 +58,113 @@ public class NewUpAndBuildSupportProjectTemplates(ITestOutputHelper testOutput) 
             Assert.NotNull(tce.Result);
             Assert.Contains(error, tce.Result.Value.Output);
         }
+    }
+}
+
+public class NUnit_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : NewUpAndBuildSupportProjectTemplatesBase(testOutput)
+{
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-nunit", ""])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_Default_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_Default_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", ""])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_V2_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_V2_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v2"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_V3_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_V3_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_V3MTP_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_V3MTP_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--xunit-version v3mtp"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_AspireVersion93_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_AspireVersion93_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.3"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class XUnit_AspireVersion94_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public XUnit_AspireVersion94_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.4"])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
+    }
+}
+
+public class MSTest_NewUpAndBuildSupportProjectTemplatesTests : NewUpAndBuildSupportProjectTemplatesBase
+{
+    public MSTest_NewUpAndBuildSupportProjectTemplatesTests(ITestOutputHelper testOutput) : base(testOutput)
+    {
+    }
+
+    [Theory]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-mstest", ""])]
+    public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
+    {
+        return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
     }
 }

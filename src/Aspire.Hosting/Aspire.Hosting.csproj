@@ -21,7 +21,6 @@
     <Compile Include="$(SharedDir)Model\KnownRelationshipTypes.cs" Link="Dashboard\KnownRelationshipTypes.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
-    <Compile Include="$(SharedDir)KnownHealthCheckNames.cs" Link="Utils\KnownHealthCheckNames.cs" />
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
@@ -41,6 +40,8 @@
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
     <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
+    <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
+    <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,12 +51,13 @@
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+    <PackageReference Include="Semver" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
+    <Protobuf Include="Dashboard\proto\dashboard_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>

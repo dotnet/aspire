@@ -8,8 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestExpressionProvider, IValueProvider
 {
-    private string? _value;
-    private bool _hasValue;
+    private readonly Lazy<string> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
     private string? _configurationKey;
 
@@ -25,24 +24,16 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         ArgumentNullException.ThrowIfNull(callback);
 
         _valueGetter = callback;
+        _lazyValue = new Lazy<string>(() => _valueGetter(Default));
         Secret = secret;
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value
-    {
-        get
-        {
-            if (!_hasValue)
-            {
-                _value = _valueGetter(Default);
-                _hasValue = true;
-            }
-            return _value!;
-        }
-    }
+    public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
+
+    internal string ValueInternal => _lazyValue.Value;
 
     /// <summary>
     /// Represents how the default value of the parameter should be retrieved.
@@ -74,5 +65,56 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         set => _configurationKey = value;
     }
 
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
+    /// <summary>
+    /// A task completion source that can be used to wait for the value of the parameter to be set.
+    /// </summary>
+    internal TaskCompletionSource<string>? WaitForValueTcs { get; set; }
+
+    /// <summary>
+    /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for the value.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the value of the parameter.</returns>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
+    {
+        if (WaitForValueTcs is not null)
+        {
+            // Wait for the value to be set if the task completion source is available.
+            return await WaitForValueTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // In publish mode, there's no WaitForValueTcs set.
+        return ValueInternal;
+    }
+
+    /// <summary>
+    /// Gets a description of the parameter resource.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// </summary>
+    public bool EnableDescriptionMarkdown { get; set; }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    internal InteractionInput CreateInput()
+    {
+        if (this.TryGetLastAnnotation<InputGeneratorAnnotation>(out var annotation))
+        {
+            // If the annotation is present, use it to create the input.
+            return annotation.InputGenerator(this);
+        }
+
+        var input = new InteractionInput
+        {
+            InputType = Secret ? InputType.SecretText : InputType.Text,
+            Label = Name,
+            Description = Description,
+            EnableDescriptionMarkdown = EnableDescriptionMarkdown,
+            Placeholder = $"Enter value for {Name}"
+        };
+        return input;
+    }
+#pragma warning restore ASPIREINTERACTION001
 }

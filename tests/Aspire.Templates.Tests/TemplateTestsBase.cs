@@ -356,15 +356,26 @@ public partial class TemplateTestsBase
             { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Previous, null },
             // Current SDK, Current TFM
             { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Current, null },
+            // Current SDK, Next TFM
+            { templateName, extraArgs, TestSdk.Current, TestTargetFramework.Next, "The current .NET SDK does not support targeting .NET 10.0" },
+
+            // Next SDK, Previous TFM
+            { templateName, extraArgs, TestSdk.Next, TestTargetFramework.Previous, null },
+            // Next SDK, Current TFM
+            { templateName, extraArgs, TestSdk.Next, TestTargetFramework.Current, null },
+            // Next SDK, Next TFM
+            { templateName, extraArgs, TestSdk.Next, TestTargetFramework.Next, null },
 
             // Current SDK + previous runtime, Previous TFM
             { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, null },
             // Current SDK + previous runtime, Current TFM
             { templateName, extraArgs, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, null },
+            // Next SDK + current runtime, Current TFM
+            { templateName, extraArgs, TestSdk.NextSdkAndCurrentRuntime, TestTargetFramework.Current, null },
         };
 
     // Taken from dotnet/runtime src/tasks/Common/Utils.cs
-    private static readonly char[] s_charsToReplace = new[] { '.', '-', '+', '<', '>' };
+    private static readonly char[] s_charsToReplace = ['.', '-', '+', '<', '>'];
     public static string FixupSymbolName(string name)
     {
         UTF8Encoding utf8 = new();

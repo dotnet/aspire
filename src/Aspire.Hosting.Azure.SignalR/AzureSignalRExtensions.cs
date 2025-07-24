@@ -83,7 +83,8 @@ public static class AzureSignalRExtensions
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } },
+                DisableLocalAuth = true,
             });
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
@@ -120,6 +121,9 @@ public static class AzureSignalRExtensions
         {
             return builder;
         }
+
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
 
         builder
             .WithEndpoint(name: EmulatorEndpointName, targetPort: 8888, scheme: "http")

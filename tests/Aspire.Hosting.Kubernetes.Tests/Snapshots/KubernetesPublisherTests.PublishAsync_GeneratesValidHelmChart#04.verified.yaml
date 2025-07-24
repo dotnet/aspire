@@ -3,12 +3,17 @@ apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
   name: "myapp-deployment"
+  labels:
+    app.kubernetes.io/name: "aspire-hosting-tests"
+    app.kubernetes.io/component: "myapp"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 spec:
   template:
     metadata:
       labels:
-        app: "aspire"
-        component: "myapp"
+        app.kubernetes.io/name: "aspire-hosting-tests"
+        app.kubernetes.io/component: "myapp"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
     spec:
       containers:
         - image: "mcr.microsoft.com/dotnet/aspnet:8.0"
@@ -24,7 +29,7 @@ spec:
           ports:
             - name: "http"
               protocol: "TCP"
-              containerPort: "8080"
+              containerPort: 8080
           volumeMounts:
             - name: "logs"
               mountPath: "/logs"
@@ -34,8 +39,9 @@ spec:
           emptyDir: {}
   selector:
     matchLabels:
-      app: "aspire"
-      component: "myapp"
+      app.kubernetes.io/name: "aspire-hosting-tests"
+      app.kubernetes.io/component: "myapp"
+      app.kubernetes.io/instance: "{{.Release.Name}}"
   replicas: 1
   revisionHistoryLimit: 3
   strategy:

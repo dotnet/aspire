@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param env_outputs_azure_container_registry_endpoint string
@@ -17,7 +17,7 @@ param api_identity_outputs_id string
 
 param api_identity_outputs_clientid string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
@@ -28,16 +28,16 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
   parent: webapp
 }
 
-resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
 
-resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
   parent: mydb_kv_outputs_name_kv
 }
 
-resource webapp 'Microsoft.Web/sites@2024-04-01' = {
+resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {

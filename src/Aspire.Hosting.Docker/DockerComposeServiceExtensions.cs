@@ -44,9 +44,9 @@ public static class DockerComposeServiceExtensions
             return builder;
         }
 
-        builder.WithAnnotation(new DockerComposeServiceCustomizationAnnotation(configure));
+        builder.ApplicationBuilder.AddDockerComposeInfrastructureCore();
 
-        return builder;
+        return builder.WithAnnotation(new DockerComposeServiceCustomizationAnnotation(configure));
     }
 
     /// <summary>

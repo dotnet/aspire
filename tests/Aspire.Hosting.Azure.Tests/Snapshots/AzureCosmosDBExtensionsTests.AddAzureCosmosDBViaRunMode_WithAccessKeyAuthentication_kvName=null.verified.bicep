@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param cosmos_kv_outputs_name string
@@ -58,11 +58,11 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
   parent: db
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: cosmos_kv_outputs_name
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--cosmos'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
@@ -70,7 +70,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--db'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase'
@@ -78,7 +78,7 @@ resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--container'
   properties: {
     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=mydatabase;Container=mycontainer'

@@ -5,7 +5,7 @@ param applicationType string = 'web'
 
 param kind string = 'web'
 
-resource law_aiwithoutlaw 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource law_aiwithoutlaw 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: take('lawaiwithoutlaw-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {

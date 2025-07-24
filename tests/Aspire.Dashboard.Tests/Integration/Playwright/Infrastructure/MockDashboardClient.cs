@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
 
@@ -48,5 +49,15 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         await Task.CompletedTask;
         yield return [];
+    }
+
+    public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

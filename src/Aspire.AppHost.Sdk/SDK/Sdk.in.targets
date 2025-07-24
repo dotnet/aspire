@@ -23,7 +23,7 @@
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
   <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
-    
+
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
 
@@ -66,7 +66,7 @@
       <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
     </PropertyGroup>
 
-    <!-- If the version is still empty, then we assume the project is using Central Package Management, 
+    <!-- If the version is still empty, then we assume the project is using Central Package Management,
          and we try to extract the PackageVersion Items. -->
     <ItemGroup Condition="'$(_AppHostVersion)' == ''">
       <_AppHostPackageReference />
@@ -91,7 +91,7 @@
     </PropertyGroup>
 
     <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not. -->
-    <Error Condition="'$(_AppHostVersion)' == ''" 
+    <Error Condition="'$(_AppHostVersion)' == ''"
        Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
 
     <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
@@ -101,6 +101,7 @@
       <_DashboardAndDCPSupportedTargetingRIDs Include="win-arm64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-x64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="linux-arm64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="linux-musl-x64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="osx-x64" />
       <_DashboardAndDCPSupportedTargetingRIDs Include="osx-arm64" />
     </ItemGroup>
@@ -136,7 +137,7 @@
       <_DashboardAndDcpRID>@(_AspireRidToolOutput)</_DashboardAndDcpRID>
     </PropertyGroup>
 
-    
+
     <!-- Now that we have the version, we add the package references -->
     <ItemGroup>
       <PackageReference Include="Aspire.Dashboard.Sdk.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />

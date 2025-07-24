@@ -3,12 +3,13 @@
 
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -491,7 +492,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestInteractionService();
+                var testInteractionService = new TestConsoleInteractionService();
                 testInteractionService.DisplayErrorCallback = (message) => {
                     displayedErrorMessage = message;
                 };
@@ -569,6 +570,59 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToTrustCertificates, exitCode);
+    }
+
+    [Fact]
+    public async Task NewCommandWithExitCode73ShowsUserFriendlyError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+
+            // Set of options that we'll give when prompted.
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, options, cancellationToken) =>
+                {
+                    return (0, version); // Success, return the template version
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                {
+                    return 73; // Simulate exit code 73 (directory already contains files)
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
     }
 
     private sealed class ThrowingCertificateService : ICertificateService

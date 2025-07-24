@@ -17,6 +17,7 @@
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppConfiguration" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />

@@ -4,6 +4,7 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
@@ -12,6 +13,7 @@ internal sealed partial class DnsServiceEndpointProvider(
     string hostName,
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
@@ -29,17 +31,14 @@ internal sealed partial class DnsServiceEndpointProvider(
         var endpoints = new List<ServiceEndpoint>();
         var ttl = DefaultRefreshPeriod;
         Log.AddressQuery(logger, ServiceName, hostName);
-        var addresses = await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
+
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var addresses = await resolver.ResolveIPAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
+
         foreach (var address in addresses)
         {
-            var serviceEndpoint = ServiceEndpoint.Create(new IPEndPoint(address, 0));
-            serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
-            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
-            {
-                serviceEndpoint.Features.Set<IHostNameFeature>(this);
-            }
-
-            endpoints.Add(serviceEndpoint);
+            ttl = MinTtl(now, address.ExpiresAt, ttl);
+            endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, port: 0)));
         }
 
         if (endpoints.Count == 0)
@@ -48,5 +47,23 @@ internal sealed partial class DnsServiceEndpointProvider(
         }
 
         SetResult(endpoints, ttl);
+
+        static TimeSpan MinTtl(DateTime now, DateTime expiresAt, TimeSpan existing)
+        {
+            var candidate = expiresAt - now;
+            return candidate < existing ? candidate : existing;
+        }
+
+        ServiceEndpoint CreateEndpoint(EndPoint endPoint)
+        {
+            var serviceEndpoint = ServiceEndpoint.Create(endPoint);
+            serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
+            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
+            {
+                serviceEndpoint.Features.Set<IHostNameFeature>(this);
+            }
+
+            return serviceEndpoint;
+        }
     }
 }

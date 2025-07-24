@@ -72,6 +72,11 @@
         <target state="translated">Ver opciones</target>
         <note>An icon allowing the user to expand or collapse all child resources.</note>
       </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">Cadena de conexión</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="translated">Argumentos de contenedor</target>
@@ -135,6 +140,11 @@
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health state</source>
         <target state="translated">Estado de mantenimiento</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">Valor</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">

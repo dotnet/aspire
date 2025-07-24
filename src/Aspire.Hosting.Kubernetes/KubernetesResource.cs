@@ -28,20 +28,8 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
 
     /// <summary>
-    /// Gets or sets the Kubernetes <see cref="Deployment"/> associated with this resource.
     /// </summary>
-    /// <remarks>
-    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
-    /// </remarks>
-    public Deployment? Deployment { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Kubernetes <see cref="StatefulSet"/> associated with this resource.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="KubernetesResource"/> instances can be associated with either a <see cref="StatefulSet"/> or a <see cref="Deployment"/> resource.
-    /// </remarks>
-    public StatefulSet? StatefulSet { get; set; }
+    public Workload? Workload { get; set; }
 
     /// <summary>
     /// Gets or sets the Kubernetes ConfigMap associated with this resource.
@@ -59,20 +47,22 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     public Service? Service { get; set; }
 
     /// <summary>
+    /// Additional resources that are part of this Kubernetes service.
+    /// </summary>
+    public List<BaseKubernetesResource> AdditionalResources { get; } = [];
+
+    /// <summary>
     /// Gets the resource that is the target of this Kubernetes service.
     /// </summary>
     internal IResource TargetResource => resource;
 
     internal IEnumerable<BaseKubernetesResource> GetTemplatedResources()
     {
-        if (Deployment is not null)
+        if (Workload is not null)
         {
-            yield return Deployment;
+            yield return Workload;
         }
-        if (StatefulSet is not null)
-        {
-            yield return StatefulSet;
-        }
+
         if (ConfigMap is not null)
         {
             yield return ConfigMap;
@@ -95,6 +85,16 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         {
             yield return volumeClaim;
         }
+
+        foreach (var resource in AdditionalResources)
+        {
+            foreach(var label in Labels)
+            {
+                resource.Metadata.Labels.TryAdd(label.Key, label.Value);
+            }
+
+            yield return resource;
+        }
     }
 
     private void BuildKubernetesResources()
@@ -110,8 +110,9 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         Labels = new()
         {
-            ["app"] = "aspire",
-            ["component"] = resource.Name,
+            ["app.kubernetes.io/name"] = Parent.HelmChartName,
+            ["app.kubernetes.io/component"] = resource.Name,
+            ["app.kubernetes.io/instance"] = "{{.Release.Name}}",
         };
     }
 
@@ -119,11 +120,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         if (resource is IResourceWithConnectionString)
         {
-            StatefulSet = resource.ToStatefulSet(this);
+            Workload = resource.ToStatefulSet(this);
             return;
         }
 
-        Deployment = resource.ToDeployment(this);
+        Workload = resource.ToDeployment(this);
     }
 
     internal string GetContainerImageName(IResource resourceInstance)
@@ -136,7 +137,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             }
         }
 
-        var imageEnvName = $"{resourceInstance.Name.ToManifestFriendlyResourceName()}_image";
+        var imageEnvName = $"{resourceInstance.Name.ToHelmValuesSectionName()}_image";
         var value = $"{resourceInstance.Name}:latest";
         var expression = imageEnvName.ToHelmParameterExpression(resource.Name);
 
@@ -172,7 +173,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
             var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, portValue, endpoint.Name);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
         }
     }
 
@@ -180,7 +181,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         const string defaultPort = "8080";
 
-        var paramName = $"port_{endpoint.Name}".ToManifestFriendlyResourceName();
+        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
 
         var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
@@ -188,7 +189,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
         EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
 
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name, helmExpression, endpoint.Name, helmExpression);
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
     }
 
     private void ProcessVolumes()
@@ -259,7 +260,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
             foreach (var environmentVariable in context.EnvironmentVariables)
             {
-                var key = environmentVariable.Key.ToManifestFriendlyResourceName();
+                var key = environmentVariable.Key;
                 var value = await this.ProcessValueAsync(environmentContext, executionContext, environmentVariable.Value).ConfigureAwait(false);
 
                 switch (value)

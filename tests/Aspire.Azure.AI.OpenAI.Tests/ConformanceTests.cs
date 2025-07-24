@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.ConformanceTests;
+using Aspire.TestUtilities;
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.DotNet.RemoteExecutor;
@@ -87,6 +88,7 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9916")]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
 

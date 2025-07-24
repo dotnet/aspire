@@ -229,7 +229,7 @@
       </trans-unit>
       <trans-unit id="HideHiddenResources">
         <source>Hide hidden resources</source>
-        <target state="new">Hide hidden resources</target>
+        <target state="translated">隱藏隱藏的資源</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelAll">
@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(取消設定)</target>
         <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
@@ -429,7 +429,7 @@
       </trans-unit>
       <trans-unit id="ShowHiddenResources">
         <source>Show hidden resources</source>
-        <target state="new">Show hidden resources</target>
+        <target state="translated">顯示隱藏的資源</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">

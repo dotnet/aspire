@@ -13,6 +13,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class DockerComposeEnvironmentExtensions
 {
+    internal static IDistributedApplicationBuilder AddDockerComposeInfrastructureCore(this IDistributedApplicationBuilder builder)
+    {
+        builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
+
+        return builder;
+    }
+
     /// <summary>
     /// Adds a Docker Compose environment to the application model.
     /// </summary>
@@ -26,6 +33,8 @@ public static class DockerComposeEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        builder.AddDockerComposeInfrastructureCore();
+
         var resource = new DockerComposeEnvironmentResource(name)
         {
             // Initialize the dashboard resource
@@ -35,8 +44,6 @@ public static class DockerComposeEnvironmentExtensions
                                    service.Restart = "always";
                                })
         };
-
-        builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
 
         if (builder.ExecutionContext.IsRunMode)
         {

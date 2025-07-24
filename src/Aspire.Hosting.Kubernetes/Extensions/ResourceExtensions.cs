@@ -15,6 +15,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToDeploymentName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {
@@ -43,6 +44,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToStatefulSetName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {
@@ -125,6 +127,7 @@ internal static class ResourceExtensions
             Metadata =
             {
                 Name = resource.Name.ToServiceName(),
+                Labels = context.Labels.ToDictionary(),
             },
             Spec =
             {

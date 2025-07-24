@@ -1,14 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class StructuredLogDetails
+public partial class StructuredLogDetails : IDisposable
 {
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
@@ -18,6 +20,9 @@ public partial class StructuredLogDetails
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Where(ApplyFilter).AsQueryable();
@@ -39,6 +44,11 @@ public partial class StructuredLogDetails
     private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
+
+    protected override void OnInitialized()
+    {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+    }
 
     protected override void OnParametersSet()
     {
@@ -137,5 +147,13 @@ public partial class StructuredLogDetails
         }
 
         return false;
+    }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.StructuredLogDetails);
+
+    public void Dispose()
+    {
+        TelemetryContext.Dispose();
     }
 }

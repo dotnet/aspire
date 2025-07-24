@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Resources;
+
 namespace Aspire.Cli.Templating;
 
 internal sealed class TemplateProvider : ITemplateProvider
@@ -11,7 +13,7 @@ internal sealed class TemplateProvider : ITemplateProvider
     {
         if (factories == null || !factories.Any())
         {
-            throw new ArgumentException("At least one template factory must be provided.", nameof(factories));
+            throw new ArgumentException(TemplatingStrings.AtLeastOneTemplateFactoryMustBeProvided, nameof(factories));
         }
 
         _factories = factories;

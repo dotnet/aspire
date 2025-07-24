@@ -1,0 +1,91 @@
+﻿{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "env1": {
+      "type": "azure.bicep.v0",
+      "path": "env1.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "env2": {
+      "type": "azure.bicep.v0",
+      "path": "env2.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "ServiceA": {
+      "type": "project.v1",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "ServiceA.module.bicep",
+        "params": {
+          "env1_outputs_azure_container_registry_endpoint": "{env1.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env1_outputs_planid": "{env1.outputs.planId}",
+          "env1_outputs_azure_container_registry_managed_identity_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "env1_outputs_azure_container_registry_managed_identity_client_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
+          "servicea_containerimage": "{ServiceA.containerImage}",
+          "servicea_containerport": "{ServiceA.containerPort}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{ServiceA.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "ServiceB": {
+      "type": "project.v1",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "ServiceB.module.bicep",
+        "params": {
+          "env2_outputs_azure_container_registry_endpoint": "{env2.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env2_outputs_planid": "{env2.outputs.planId}",
+          "env2_outputs_azure_container_registry_managed_identity_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "env2_outputs_azure_container_registry_managed_identity_client_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
+          "serviceb_containerimage": "{ServiceB.containerImage}",
+          "serviceb_containerport": "{ServiceB.containerPort}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{ServiceB.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

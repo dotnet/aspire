@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 
 param existingResourceName string
 
-resource redis 'Microsoft.Cache/redis@2024-03-01' existing = {
+resource redis 'Microsoft.Cache/redis@2024-11-01' existing = {
   name: existingResourceName
 }
 

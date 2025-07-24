@@ -25,7 +25,6 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
             "AzureCli" => new AzureCliCredential(),
             "AzurePowerShell" => new AzurePowerShellCredential(),
             "VisualStudio" => new VisualStudioCredential(),
-            "VisualStudioCode" => new VisualStudioCodeCredential(),
             "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
             "InteractiveBrowser" => new InteractiveBrowserCredential(),
             _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()

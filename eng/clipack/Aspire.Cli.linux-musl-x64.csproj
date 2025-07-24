@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <CliRuntime>linux-musl-x64</CliRuntime>
+    <CliPlatformType>Unix</CliPlatformType>
+    <!-- need to be on a linux-musl machine to native AOT for linux-musl-->
+    <PublishNativeAot>false</PublishNativeAot>
+  </PropertyGroup>
+
+  <Import Project="Common.projitems" />
+
+</Project>

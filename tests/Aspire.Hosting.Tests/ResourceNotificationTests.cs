@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
