@@ -16,7 +16,6 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 using DashboardServiceImpl = Aspire.Hosting.Dashboard.DashboardService;
 using Resource = Aspire.Hosting.ApplicationModel.Resource;
 
@@ -315,7 +314,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var resultTask = interactionService.PromptInputAsync(
             title: "Title!",
             message: "Message!",
-            new ApplicationModel.InteractionInput { InputType = ApplicationModel.InputType.Text, Label = "Input" });
+            new Aspire.Hosting.InteractionInput { InputType = Aspire.Hosting.InputType.Text, Label = "Input" });
 
         // Assert
         logger.LogInformation("Reading result from writer.");

@@ -158,14 +158,14 @@ public static class RedisBuilderExtensions
                                       .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, async (e, ct) =>
             {
                 var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
 
                 if (!redisInstances.Any())
                 {
                     // No-op if there are no Redis resources present.
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 var hostsVariableBuilder = new StringBuilder();
@@ -177,14 +177,13 @@ public static class RedisBuilderExtensions
                     var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
                     if (redisInstance.PasswordParameter is not null)
                     {
-                        hostString += $":{redisInstance.PasswordParameter.Value}";
+                        var password = await redisInstance.PasswordParameter.GetValueAsync(ct).ConfigureAwait(false);
+                        hostString += $":{password}";
                     }
                     hostsVariableBuilder.Append(hostString);
                 }
 
                 resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
-
-                return Task.CompletedTask;
             });
 
             configureContainer?.Invoke(resourceBuilder);
@@ -244,7 +243,7 @@ public static class RedisBuilderExtensions
                         context.EnvironmentVariables.Add($"RI_REDIS_ALIAS{counter}", redisInstance.Name);
                         if (redisInstance.PasswordParameter is not null)
                         {
-                            context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter.Value);
+                            context.EnvironmentVariables.Add($"RI_REDIS_PASSWORD{counter}", redisInstance.PasswordParameter);
                         }
 
                         counter++;

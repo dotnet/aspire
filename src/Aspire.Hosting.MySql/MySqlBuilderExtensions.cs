@@ -205,14 +205,14 @@ public static class MySqlBuilderExtensions
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .ExcludeFromManifest();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, (e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, async (e, ct) =>
         {
             var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
 
             if (!mySqlInstances.Any())
             {
                 // No-op if there are no MySql resources present.
-                return Task.CompletedTask;
+                return;
             }
 
             if (mySqlInstances.Count() == 1)
@@ -225,12 +225,12 @@ public static class MySqlBuilderExtensions
                     // This will need to be refactored once updated service discovery APIs are available
                     context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter);
                 });
             }
             else
             {
-                var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
+                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -258,8 +258,6 @@ public static class MySqlBuilderExtensions
                     }
                 }
             }
-
-            return Task.CompletedTask;
         });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
@@ -346,7 +344,7 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)
+    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
@@ -360,6 +358,8 @@ public static class MySqlBuilderExtensions
         foreach (var mySqlInstance in mySqlInstances)
         {
             var endpoint = mySqlInstance.PrimaryEndpoint;
+            var pwd = await mySqlInstance.PasswordParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
             writer.WriteLine("$i++;");
             // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
@@ -367,7 +367,7 @@ public static class MySqlBuilderExtensions
             writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
             writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
             writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{pwd}';");
             writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
             writer.WriteLine();
         }

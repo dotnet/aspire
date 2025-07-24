@@ -62,7 +62,7 @@ internal sealed class ParameterProcessor(
     {
         try
         {
-            var value = parameterResource.Value ?? "";
+            var value = parameterResource.ValueInternal ?? "";
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
@@ -86,7 +86,7 @@ internal sealed class ParameterProcessor(
                 _unresolvedParameters.Add(parameterResource);
 
                 loggerService.GetLogger(parameterResource)
-                    .LogWarning(ex, "Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
+                    .LogWarning("Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
             }
             else
             {
@@ -106,8 +106,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     State = new(stateText, KnownResourceStateStyles.Error),
-                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                    IsHidden = false
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
             .ConfigureAwait(false);
@@ -127,10 +126,10 @@ internal sealed class ParameterProcessor(
         while (unresolvedParameters.Count > 0)
         {
             // First we show a notification that there are unresolved parameters.
-            var result = await interactionService.PromptMessageBarAsync(
+            var result = await interactionService.PromptNotificationAsync(
                  "Unresolved parameters",
                  "There are unresolved parameters that need to be set. Please provide values for them.",
-                 new MessageBarInteractionOptions
+                 new NotificationInteractionOptions
                  {
                      Intent = MessageIntent.Warning,
                      PrimaryButtonText = "Enter values"
@@ -145,12 +144,7 @@ internal sealed class ParameterProcessor(
                 foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    var input = new InteractionInput
-                    {
-                        InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
-                        Label = parameter.Name,
-                        Placeholder = $"Enter value for {parameter.Name}",
-                    };
+                    var input = parameter.CreateInput();
                     resourceInputs.Add((parameter, input));
                 }
 
@@ -198,6 +192,10 @@ internal sealed class ParameterProcessor(
                             };
                         })
                         .ConfigureAwait(false);
+
+                        // Log that the parameter has been resolved
+                        loggerService.GetLogger(parameter)
+                            .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
                         // Persist the parameter value to user secrets if requested.
                         if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)

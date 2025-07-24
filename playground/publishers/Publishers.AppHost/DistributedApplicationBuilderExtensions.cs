@@ -24,7 +24,7 @@ internal static class IDistributedApplicationBuilderExtensions
 
         private async Task PublishAsync(PublishingContext context)
         {
-            var reporter = context.ProgressReporter;
+            var reporter = context.ActivityReporter;
             var interactionService = context.Services.GetRequiredService<IInteractionService>();
 
             // ALL PROMPTS FIRST - before any tasks are created

@@ -203,18 +203,18 @@ public static class PostgresBuilderExtensions
 
             pgAdminContainerBuilder.WithContainerFiles(
                 destinationPath: "/pgadmin4",
-                callback: (context, _) =>
+                callback: async (context, cancellationToken) =>
                 {
                     var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
                     var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresServerResource>();
 
-                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                    return [
                         new ContainerFile
                         {
                             Name = "servers.json",
-                            Contents = WritePgAdminServerJson(postgresInstances),
+                            Contents = await WritePgAdminServerJson(postgresInstances, cancellationToken).ConfigureAwait(false),
                         },
-                    ]);
+                    ];
                 });
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
@@ -313,13 +313,13 @@ public static class PostgresBuilderExtensions
 
             pgwebContainerBuilder.WithContainerFiles(
                 destinationPath: "/",
-                callback: (context, _) =>
+                callback: async (context, ct) =>
                 {
                     var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
                     var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
 
                     // Add the bookmarks to the pgweb container
-                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                    return [
                         new ContainerDirectory
                         {
                             Name = ".pgweb",
@@ -327,11 +327,11 @@ public static class PostgresBuilderExtensions
                                 new ContainerDirectory
                                 {
                                     Name = "bookmarks",
-                                    Entries = WritePgWebBookmarks(postgresInstances),
+                                    Entries = await WritePgWebBookmarks(postgresInstances, ct).ConfigureAwait(false)
                                 },
                             ],
                         },
-                    ]);
+                    ];
                 });
 
             return builder;
@@ -489,13 +489,17 @@ public static class PostgresBuilderExtensions
         });
     }
 
-    private static IEnumerable<ContainerFileSystemItem> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances)
+    private static async Task<IEnumerable<ContainerFileSystemItem>> WritePgWebBookmarks(IEnumerable<PostgresDatabaseResource> postgresInstances, CancellationToken cancellationToken)
     {
         var bookmarkFiles = new List<ContainerFileSystemItem>();
 
         foreach (var postgresDatabase in postgresInstances)
         {
-            var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
+            var user = postgresDatabase.Parent.UserNameParameter is null
+            ? "postgres"
+            : await postgresDatabase.Parent.UserNameParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+            var password = await postgresDatabase.Parent.PasswordParameter.GetValueAsync(cancellationToken).ConfigureAwait(false) ?? "password";
 
             // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
@@ -503,7 +507,7 @@ public static class PostgresBuilderExtensions
                     host = "{postgresDatabase.Parent.Name}"
                     port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
                     user = "{user}"
-                    password = "{postgresDatabase.Parent.PasswordParameter.Value}"
+                    password = "{password}"
                     database = "{postgresDatabase.DatabaseName}"
                     sslmode = "disable"
                     """;
@@ -518,7 +522,7 @@ public static class PostgresBuilderExtensions
         return bookmarkFiles;
     }
 
-    private static string WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances)
+    private static async Task<string> WritePgAdminServerJson(IEnumerable<PostgresServerResource> postgresInstances, CancellationToken cancellationToken)
     {
         using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
@@ -531,6 +535,10 @@ public static class PostgresBuilderExtensions
         foreach (var postgresInstance in postgresInstances)
         {
             var endpoint = postgresInstance.PrimaryEndpoint;
+            var userName = postgresInstance.UserNameParameter is null
+                ? "postgres"
+                : await postgresInstance.UserNameParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var password = await postgresInstance.PasswordParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
             writer.WriteStartObject($"{serverIndex}");
             writer.WriteString("Name", postgresInstance.Name);
@@ -539,10 +547,10 @@ public static class PostgresBuilderExtensions
             // This will need to be refactored once updated service discovery APIs are available
             writer.WriteString("Host", endpoint.Resource.Name);
             writer.WriteNumber("Port", (int)endpoint.TargetPort!);
-            writer.WriteString("Username", postgresInstance.UserNameParameter?.Value ?? "postgres");
+            writer.WriteString("Username", userName);
             writer.WriteString("SSLMode", "prefer");
             writer.WriteString("MaintenanceDB", "postgres");
-            writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
+            writer.WriteString("PasswordExecCommand", $"echo '{password}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
             writer.WriteEndObject();
 
             serverIndex++;

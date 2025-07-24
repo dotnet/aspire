@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
@@ -9,11 +11,41 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
+        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+
+        // Add platform support if specified
+        if (options?.TargetPlatform is not null)
+        {
+            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
+        }
+
+        // Add format support if specified
+        if (options?.ImageFormat is not null)
+        {
+            var format = options.ImageFormat.Value switch
+            {
+                ContainerImageFormat.Oci => "oci",
+                ContainerImageFormat.Docker => "docker",
+                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+            };
+            arguments += $" --format \"{format}\"";
+        }
+
+        // Add output support if specified
+        if (!string.IsNullOrEmpty(options?.OutputPath))
+        {
+            // Extract resource name from imageName for the file name
+            var resourceName = imageName.Split('/').Last().Split(':').First();
+            arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
+        }
+
+        arguments += $" \"{contextPath}\"";
+
         var spec = new ProcessSpec("podman")
         {
-            Arguments = $"build --file {dockerfilePath} --tag {imageName} {contextPath}",
+            Arguments = arguments,
             OnOutputData = output =>
             {
                 logger.LogInformation("podman build (stdout): {Output}", output);
@@ -46,12 +78,13 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
+            options,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)
@@ -64,14 +97,14 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
     {
         var spec = new ProcessSpec("podman")
         {
-            Arguments = "info",
+            Arguments = "container ls -n 1",
             OnOutputData = output =>
             {
-                logger.LogInformation("podman info (stdout): {Output}", output);
+                logger.LogInformation("podman container ls (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("podman info (stderr): {Error}", error);
+                logger.LogInformation("podman container ls (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -90,7 +123,7 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
 
                 if (processResult.ExitCode != 0)
                 {
-                    logger.LogError("Podman info failed with exit code {ExitCode}.", processResult.ExitCode);
+                    logger.LogError("Podman container ls failed with exit code {ExitCode}.", processResult.ExitCode);
                     return false;
                 }
 

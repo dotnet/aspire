@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,6 +28,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
 
     public RunCommand(
@@ -37,6 +39,7 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider)
@@ -49,6 +52,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -58,6 +62,7 @@ internal sealed class RunCommand : BaseCommand
         _telemetry = telemetry;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -72,6 +77,12 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
@@ -161,7 +172,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
+            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
@@ -170,10 +181,17 @@ internal sealed class RunCommand : BaseCommand
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () =>
             {
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
+
+            if (dashboardUrls.DashboardHealthy is false)
+            {
+                _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                return ExitCodeConstants.DashboardFailure;
+            }
 
             _ansiConsole.WriteLine();
 
@@ -202,8 +220,12 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(topPadder);
 
-            var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
+            // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
+            // than environment variables since it comes from the same backend detection logic
+            var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+
+            AppendCtrlCMessage(longestLocalizedLength);
 
             if (isCodespaces || isRemoteContainers)
             {
@@ -216,6 +238,13 @@ internal sealed class RunCommand : BaseCommand
                     {
                         ProcessResourceState(resourceState, (resource, endpoint) =>
                         {
+                            // When we are appending endpoints we need
+                            // to remove the CTRL-C message that was appended
+                            // previously. So we can write the endpoint.
+                            // We will append the CTRL-C message again after
+                            // writing the endpoint.
+                            ClearLines(2);
+
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
@@ -234,6 +263,8 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
                             _ansiConsole.Write(endpointsPadder);
                             firstEndpoint = false;
+
+                            AppendCtrlCMessage(longestLocalizedLength);
                         });
                     }
                 }
@@ -290,6 +321,34 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+    }
+
+    private void ClearLines(int lines)
+    {
+        if (lines <= 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < lines; i++)
+        {
+            _ansiConsole.Write("\u001b[1A");
+            _ansiConsole.Write("\u001b[2K"); // Clear the line
+        }
+    }
+
+    private void AppendCtrlCMessage(int longestLocalizedLength)
+    {
+
+        var ctrlCGrid = new Grid();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+        ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+
+        var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
+        _ansiConsole.Write(ctrlCPadder);
     }
 
     private static FileInfo GetAppHostLogFile()

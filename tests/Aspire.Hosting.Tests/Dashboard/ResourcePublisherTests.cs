@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 

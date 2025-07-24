@@ -124,8 +124,13 @@ internal class ExecResourceManager
             }
         }
 
+        if (!_resourceNotificationService.TryGetCurrentState(dcpExecResourceName, out var resourceEvent))
+        {
+            yield break;
+        }
+
         int? exitCode;
-        if (_resourceNotificationService.TryGetCurrentState(dcpExecResourceName, out var resourceEvent) && (exitCode = resourceEvent?.Snapshot?.ExitCode) is not null)
+        if ((exitCode = resourceEvent?.Snapshot?.ExitCode) is not null)
         {
             yield return new CommandOutput
             {
@@ -133,6 +138,17 @@ internal class ExecResourceManager
                 IsErrorMessage = false,
                 Type = "exitCode",
                 ExitCode = exitCode.Value
+            };
+        }
+
+        if (resourceEvent?.Snapshot.State == KnownResourceStates.FailedToStart)
+        {
+            yield return new CommandOutput
+            {
+                Text = "Aspire exec failed to start",
+                IsErrorMessage = true,
+                Type = "failedToStart",
+                ExitCode = -1 // -1 indicates a failure
             };
         }
     }

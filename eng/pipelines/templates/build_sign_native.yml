@@ -1,0 +1,81 @@
+parameters:
+  # values: windows/mac/linux
+  agentOs: 'windows'
+  targetRidsForSameOS:
+    - linux-x64
+  extraBuildArgs: ''
+  codeSign: false
+  teamName: ''
+
+jobs:
+
+- ${{ each targetRid in parameters.targetRidsForSameOS }}:
+  - template: /eng/common/templates-official/jobs/jobs.yml@self
+    parameters:
+      enableMicrobuild: ${{ eq(parameters.codeSign, true) }}
+      enableMicrobuildForMacAndLinux: ${{ and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}
+      enableTelemetry: true
+      # Publish build logs
+      enablePublishBuildArtifacts: true
+
+      jobs:
+      - job: BuildNative_${{ replace(targetRid, '-', '_') }}
+        displayName: ${{ replace(targetRid, '-', '_') }}
+        timeoutInMinutes: 40
+
+        variables:
+        - TeamName: ${{ parameters.teamName }}
+        - ${{ if eq(parameters.codeSign, true) }}:
+          - _buildArgs: '--sign'
+        - ${{ else }}:
+          - _buildArgs: ''
+
+        - ${{ if eq(parameters.agentOs, 'windows') }}:
+          - scriptName: build.cmd
+        - ${{ else }}:
+          - scriptName: build.sh
+
+        pool:
+          ${{ if eq(parameters.agentOs, 'windows') }}:
+            name: NetCore1ESPool-Internal
+            image: windows.vs2022preview.amd64
+            os: windows
+          ${{ if eq(parameters.agentOs, 'linux') }}:
+            name: NetCore1ESPool-Internal
+            image: 1es-mariner-2
+            os: linux
+          ${{ if eq(parameters.agentOs, 'macos') }}:
+            name: Azure Pipelines
+            vmImage: macOS-latest-internal
+            os: macOS
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+          # Installing Microbuild plugin fails due to https://github.com/dotnet/arcade/issues/15946#issuecomment-3045780552
+          # because of the preview sdk. To fix that `restore` from `global.json` so the above step
+          # does not have to install anything.
+          - script: $(Build.SourcesDirectory)/$(scriptName) -restore /p:Configuration=$(_BuildConfig)
+            displayName: 🟣Restore
+
+        steps:
+          - script: >-
+              $(Build.SourcesDirectory)/$(scriptName)
+              --ci
+              --build
+              --restore
+              /p:SkipManagedBuild=true
+              /p:TargetRids=${{ targetRid }}
+              $(_buildArgs)
+              ${{ parameters.extraBuildArgs }}
+              /bl:$(Build.Arcade.LogsPath)Build.binlog
+            displayName: 🟣Build native packages
+
+          - task: 1ES.PublishBuildArtifacts@1
+            displayName: 🟣Publish Artifacts
+            condition: always()
+            inputs:
+              PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+              ArtifactName: native_archives_${{ replace(targetRid, '-', '_') }}

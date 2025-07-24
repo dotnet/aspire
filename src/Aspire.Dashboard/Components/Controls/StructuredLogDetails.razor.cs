@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -149,7 +150,7 @@ public partial class StructuredLogDetails : IDisposable
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, nameof(StructuredLogDetails));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.StructuredLogDetails);
 
     public void Dispose()
     {

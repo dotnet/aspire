@@ -23,6 +23,7 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<PublishingActivity>))]
 [JsonSerializable(typeof(RequestId))]
 [JsonSerializable(typeof(IEnumerable<DisplayLineState>))]
+[JsonSerializable(typeof(PublishingPromptInputAnswer[]))]
 [JsonSerializable(typeof(ValidationResult))]
 [JsonSerializable(typeof(IAsyncEnumerable<CommandOutput>))]
 [JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<CommandOutput>))]

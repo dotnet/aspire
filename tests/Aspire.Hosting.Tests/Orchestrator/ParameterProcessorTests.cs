@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -191,7 +190,7 @@ public class ParameterProcessorTests
         Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(true)); // Data = true (user clicked Enter Values)
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -225,11 +224,11 @@ public class ParameterProcessorTests
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[0].SetValue("value1");
-        inputsInteraction.Inputs[1].SetValue("value2");
-        inputsInteraction.Inputs[2].SetValue("secretValue");
+        inputsInteraction.Inputs[0].Value = "value1";
+        inputsInteraction.Inputs[1].Value = "value2";
+        inputsInteraction.Inputs[2].Value = "secretValue";
 
-        inputsInteraction.CompletionTcs.SetResult(InteractionResultFactory.Ok(inputsInteraction.Inputs));
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
         await handleTask;
@@ -276,7 +275,7 @@ public class ParameterProcessorTests
         Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResultFactory.Cancel<bool>());
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -295,6 +294,182 @@ public class ParameterProcessorTests
 
         // Act & Assert - Should not throw
         await parameterProcessor.InitializeParametersAsync([]);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithMissingParameterValue_LogsWarningWithoutException()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(
+            loggerService: loggerService,
+            interactionService: interactionService);
+        var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithMissingValue);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log warning without exception details
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Parameter resource missingParam could not be initialized. Waiting for user input.", logEntry.Content);
+        Assert.False(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithNonMissingParameterException_LogsErrorWithException()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var parameterProcessor = CreateParameterProcessor(loggerService: loggerService);
+        var parameterWithError = CreateParameterWithGenericError("errorParam");
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithError);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithError]);
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log error message
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Failed to initialize parameter resource errorParam.", logEntry.Content);
+        Assert.True(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithResolvedParameter_LogsResolutionViaInteraction()
+    {
+        // Arrange
+        var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var testInteractionService = new TestInteractionService();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            loggerService: loggerService,
+            interactionService: testInteractionService);
+        var parameter = CreateParameterWithMissingValue("testParam");
+
+        parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Set up log watching
+        var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameter);
+
+        // Act - Start handling unresolved parameters
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([parameter]);
+
+        // Wait for the message bar interaction
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        inputsInteraction.Inputs[0].Value = "testValue";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        // Wait for the handle task to complete
+        await handleTask;
+
+        // Wait for logs to be written
+        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - Should log that parameter was resolved via user interaction
+        Assert.Single(logs);
+        var logEntry = logs[0];
+        Assert.Contains("Parameter resource testParam has been resolved via user interaction.", logEntry.Content);
+        Assert.False(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithParameterDescriptions_CreatesInputsWithDescriptions()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+
+        var param1 = CreateParameterWithMissingValue("param1");
+        param1.Description = "This is a test parameter";
+        param1.EnableDescriptionMarkdown = false;
+
+        var param2 = CreateParameterWithMissingValue("param2");
+        param2.Description = "This parameter has **markdown** formatting";
+        param2.EnableDescriptionMarkdown = true;
+
+        List<ParameterResource> parameters = [param1, param2];
+
+        foreach (var param in parameters)
+        {
+            param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert
+        Assert.Equal(3, inputsInteraction.Inputs.Count); // 2 parameters + 1 save option
+
+        var param1Input = inputsInteraction.Inputs[0];
+        Assert.Equal("param1", param1Input.Label);
+        Assert.Equal("This is a test parameter", param1Input.Description);
+        Assert.False(param1Input.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.Text, param1Input.InputType);
+
+        var param2Input = inputsInteraction.Inputs[1];
+        Assert.Equal("param2", param2Input.Label);
+        Assert.Equal("This parameter has **markdown** formatting", param2Input.Description);
+        Assert.True(param2Input.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.Text, param2Input.InputType);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithSecretParameterWithDescription_CreatesSecretInput()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+
+        var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
+        secretParam.Description = "This is a secret parameter";
+        secretParam.EnableDescriptionMarkdown = false;
+
+        List<ParameterResource> parameters = [secretParam];
+        secretParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert
+        Assert.Equal(2, inputsInteraction.Inputs.Count); // 1 secret parameter + 1 save option
+
+        var secretInput = inputsInteraction.Inputs[0];
+        Assert.Equal("secretParam", secretInput.Label);
+        Assert.Equal("This is a secret parameter", secretInput.Description);
+        Assert.False(secretInput.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.SecretText, secretInput.InputType);
     }
 
     private static ParameterProcessor CreateParameterProcessor(
