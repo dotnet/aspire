@@ -12,9 +12,6 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? ConnectAsyncCalled { get; set; }
     public Action? ConnectAsyncCallback { get; set; }
 
-    public TaskCompletionSource? PingAsyncCalled { get; set; }
-    public Func<long, Task<long>>? PingAsyncCallback { get; set; }
-
     public TaskCompletionSource? DisplayMessageAsyncCalled { get; set; }
     public Func<string, string, Task>? DisplayMessageAsyncCallback { get; set; }
 
@@ -70,12 +67,6 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         ConnectAsyncCalled?.SetResult();
         ConnectAsyncCallback?.Invoke();
         return Task.CompletedTask;
-    }
-
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        PingAsyncCalled?.SetResult();
-        return PingAsyncCallback?.Invoke(timestamp) ?? Task.FromResult(timestamp);
     }
 
     public Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken)

@@ -123,7 +123,7 @@ internal sealed class TestExtensionInteractionService : IExtensionInteractionSer
         LogMessageCallback?.Invoke(logLevel, message);
     }
 
-    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment)
+    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
     {
         LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;
