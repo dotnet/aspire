@@ -115,7 +115,7 @@ public static class AzureCosmosExtensions
             var retryPipeline = new ResiliencePipelineBuilder()
                 .AddRetry(new()
                 {
-                    MaxRetryAttempts = 600, // 5 minutes of retries
+                    MaxRetryAttempts = 1200, // 10 minutes of retries
                     Delay = TimeSpan.FromMilliseconds(500),
                     BackoffType = DelayBackoffType.Constant,
                     ShouldHandle = new PredicateBuilder().Handle<CosmosException>(),

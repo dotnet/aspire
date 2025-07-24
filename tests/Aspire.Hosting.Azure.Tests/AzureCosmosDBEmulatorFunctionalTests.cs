@@ -136,7 +136,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
     {
         // Use a volume to do a snapshot save
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20)); // double normal time because we create two applications with cosmos databases in a row
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
