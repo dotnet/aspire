@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="CommandArgumentDescription">
         <source>The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</source>
-        <target state="new">The command to execute in the target resource's context. Commands can be specified directly after options or after a -- separator.</target>
+        <target state="translated">Команда для выполнения в контексте целевого ресурса. Команды можно указывать непосредственно после параметров или после разделителя --.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -15,9 +15,9 @@ Examples:
   aspire exec --resource api -- dotnet test --logger console
   aspire exec --start-resource worker pwsh -c "Get-Process"
     </source>
-        <target state="new">Execute commands in the context of an Aspire application resource. Starts the AppHost, waits for resources to initialize, then runs the specified command in the target resource's environment. (Preview)
+        <target state="translated">Выполнение команд в контексте ресурса приложения Aspire. Запускает AppHost, ждет инициализации ресурсов, затем запускает указанную команду в среде целевого ресурса. (Предварительная версия)
 
-Examples:
+Примеры
   aspire exec --resource api dotnet build
   aspire exec --resource api -- dotnet test --logger console
   aspire exec --start-resource worker pwsh -c "Get-Process"
@@ -26,7 +26,7 @@ Examples:
       </trans-unit>
       <trans-unit id="FailedToParseCommand">
         <source>Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</source>
-        <target state="new">Failed to parse the command. Ensure the command is specified after all options or after the -- separator.</target>
+        <target state="translated">Не удалось анализировать команду. Убедитесь, что команда указана после всех параметров или после разделителя --.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoCommandSpecified">
@@ -36,7 +36,7 @@ Examples:
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
-        <target state="new">The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</target>
+        <target state="translated">Путь к файлу проекта Aspire AppHost. Если не указано иное, ищет файл проекта в текущем каталоге.</target>
         <note />
       </trans-unit>
       <trans-unit id="Running">
@@ -46,7 +46,7 @@ Examples:
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
         <source>The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running.</source>
-        <target state="new">The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running.</target>
+        <target state="translated">Имя целевого ресурса для выполнения команды. Команда будет выполнена только после успешного запуска и работы целевого ресурса.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">
@@ -56,12 +56,12 @@ Examples:
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
         <source>The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready.</source>
-        <target state="new">The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready.</target>
+        <target state="translated">Имя целевого ресурса для выполнения команды. Команда будет выполнена сразу после запуска AppHost, не дожидаясь готовности ресурса.</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceNotSpecified">
         <source>Target resource is not specified. Use --resource or --start-resource to specify the target.</source>
-        <target state="new">Target resource is not specified. Use --resource or --start-resource to specify the target.</target>
+        <target state="translated">Целевой ресурс не указан. Используйте --resource или --start-resource для указания цели.</target>
         <note />
       </trans-unit>
     </body>
