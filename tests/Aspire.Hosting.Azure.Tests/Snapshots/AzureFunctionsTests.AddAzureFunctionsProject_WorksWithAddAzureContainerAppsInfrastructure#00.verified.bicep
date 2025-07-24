@@ -21,11 +21,27 @@ param funcstorage634f8_outputs_tableendpoint string
 
 param funcapp_identity_outputs_clientid string
 
+@secure()
+param host_master string
+
+@secure()
+param host_function_default string
+
 resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'funcapp'
   location: location
   properties: {
     configuration: {
+      secrets: [
+        {
+          name: 'host-master'
+          value: host_master
+        }
+        {
+          name: 'host-function-default'
+          value: host_function_default
+        }
+      ]
       activeRevisionsMode: 'Single'
       ingress: {
         external: false
@@ -108,11 +124,33 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: funcapp_identity_outputs_clientid
             }
           ]
+          volumeMounts: [
+            {
+              volumeName: 'functions-keys'
+              mountPath: '/run/secrets/functions-keys'
+            }
+          ]
         }
       ]
       scale: {
         minReplicas: 1
       }
+      volumes: [
+        {
+          name: 'functions-keys'
+          storageType: 'Secret'
+          secrets: [
+            {
+              secretRef: 'host-master'
+              path: 'host-master'
+            }
+            {
+              secretRef: 'host-function-default'
+              path: 'host-function-default'
+            }
+          ]
+        }
+      ]
     }
   }
   identity: {
