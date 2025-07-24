@@ -2,10 +2,10 @@
   <PropertyGroup>
     <CliRuntime>linux-arm64</CliRuntime>
     <CliPlatformType>Unix</CliPlatformType>
-    <!-- linux builds on x64, but doesn't have arm64 native tools. So disable native AOT for now. -->
-    <PublishNativeAot>false</PublishNativeAot>
+
+    <!-- linux-arm64:    ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=8db97d6234306fc4d4da1c9a7275a2a9d9b3a21f, stripped -->
+    <FileSignatureRegex>ELF 64-bit LSB pie executable, ARM aarch64,.*/ld-linux-aarch64\.so</FileSignatureRegex>
   </PropertyGroup>
 
   <Import Project="Common.projitems" />
-
 </Project>
