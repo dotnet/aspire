@@ -36,7 +36,7 @@ public partial class ExemplarsDialog : IDisposable
 
     public async Task OnViewDetailsAsync(ChartExemplar exemplar)
     {
-        var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
+        var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
             traceId: exemplar.TraceId,
             spanId: exemplar.SpanId,
             getSpan: TelemetryRepository.GetSpan,

@@ -297,11 +297,11 @@
                     <Details>
                         @if (context?.SpanViewModel is { } spanVm)
                         {
-                            <SpanDetails ViewModel="spanVm" />
+                            <SpanDetails ViewModel="spanVm" CloseCallback="() => ClearSelectedSpanAsync(causedByUserAction: true)" />
                         }
                         else if (context?.LogEntryViewModel is { } logEntryVm)
                         {
-                            <StructuredLogDetails ViewModel="logEntryVm" />
+                            <StructuredLogDetails ViewModel="logEntryVm" CloseCallback="() => ClearSelectedSpanAsync(causedByUserAction: true)" />
                         }
                     </Details>
                 </SummaryDetailsView>

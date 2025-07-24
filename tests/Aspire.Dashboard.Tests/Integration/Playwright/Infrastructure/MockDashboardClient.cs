@@ -60,4 +60,9 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         throw new NotImplementedException();
     }
+
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        throw new NotImplementedException();
+    }
 }

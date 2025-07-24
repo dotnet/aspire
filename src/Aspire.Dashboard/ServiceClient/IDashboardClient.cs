@@ -41,6 +41,11 @@ public interface IDashboardClient : IAsyncDisposable
     /// </remarks>
     Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Gets a resource matching the specified name. This resource won't be updated with changes after it is fetched.
+    /// </summary>
+    ResourceViewModel? GetResource(string resourceName);
+
     IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken);
 
     Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken);
