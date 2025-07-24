@@ -64,7 +64,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var outputPath = new Option<string>("--output-path", "-o")
         {
             Description = GetOutputPathDescription(),
-            DefaultValueFactory = GetDefaultOutputPath
+            DefaultValueFactory = CreateDefaultOutputPath
         };
         Options.Add(outputPath);
 
@@ -74,7 +74,7 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string GetDefaultOutputPath(ArgumentResult result);
+    protected abstract string CreateDefaultOutputPath(ArgumentResult result);
     protected abstract string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
