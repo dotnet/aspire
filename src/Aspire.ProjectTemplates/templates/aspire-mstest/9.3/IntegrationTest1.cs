@@ -34,15 +34,15 @@ public class IntegrationTest1
     //     {
     //         clientBuilder.AddStandardResilienceHandler();
     //     });
-    
+    //
     //     await using var app = await appHost.BuildAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
     //     await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-    
+    //
     //     // Act
     //     using var httpClient = app.CreateHttpClient("webfrontend");
     //     await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
     //     using var response = await httpClient.GetAsync("/", cancellationToken);
-    
+    //
     //     // Assert
     //     Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
     // }
