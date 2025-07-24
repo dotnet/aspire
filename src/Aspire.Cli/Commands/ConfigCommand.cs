@@ -18,9 +18,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
-    private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("config", ConfigCommandStrings.Description, features, updateNotifier)
@@ -31,13 +29,11 @@ internal sealed class ConfigCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _configuration = configuration;
-        _configurationService = configurationService;
         _interactionService = interactionService;
-        _sdkInstaller = sdkInstaller;
 
         var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
         var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier, configuration);
+        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
         var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
 
         Subcommands.Add(getCommand);
@@ -59,7 +55,7 @@ internal sealed class ConfigCommand : BaseCommand
         // Prompt for the action that the user wants to perform
         var subcommand = await _interactionService.PromptForSelectionAsync(
             ConfigCommandStrings.ExtensionActionPrompt,
-            Subcommands.Cast<BaseSubcommand>(),
+            Subcommands.Cast<BaseConfigSubCommand>(),
             cmd =>
             {
                 Debug.Assert(cmd.Description is not null);
@@ -67,20 +63,14 @@ internal sealed class ConfigCommand : BaseCommand
             },
             cancellationToken);
 
-        return await subcommand.ExecuteAsync(cancellationToken);
+        return await subcommand.InteractiveExecuteAsync(cancellationToken);
     }
 
-    private sealed class GetCommand : BaseSubcommand
+    private sealed class GetCommand : BaseConfigSubCommand
     {
-        private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
-
         public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, interactionService)
         {
-            _configurationService = configurationService;
-            _interactionService = interactionService;
-
             var keyArgument = new Argument<string>("key")
             {
                 Description = ConfigCommandStrings.GetCommand_KeyArgumentDescription
@@ -95,47 +85,41 @@ internal sealed class ConfigCommand : BaseCommand
             var key = parseResult.GetValue<string>("key");
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
 
             return ExecuteAsync(key, cancellationToken);
         }
 
-        public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            var key = await _interactionService.PromptForStringAsync(ConfigCommandStrings.GetCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
+            var key = await InteractionService.PromptForStringAsync(ConfigCommandStrings.GetCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
             return await ExecuteAsync(key, cancellationToken);
         }
 
         private async Task<int> ExecuteAsync(string key, CancellationToken cancellationToken)
         {
-            var value = await _configurationService.GetConfigurationAsync(key, cancellationToken);
+            var value = await ConfigurationService.GetConfigurationAsync(key, cancellationToken);
 
             if (value is not null)
             {
-                _interactionService.DisplayPlainText(value);
+                InteractionService.DisplayPlainText(value);
                 return ExitCodeConstants.Success;
             }
             else
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
                 return ExitCodeConstants.ConfigNotFound;
             }
         }
     }
 
-    private sealed class SetCommand : BaseSubcommand
+    private sealed class SetCommand : BaseConfigSubCommand
     {
-        private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
-
         public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, interactionService)
         {
-            _configurationService = configurationService;
-            _interactionService = interactionService;
-
             var keyArgument = new Argument<string>("key")
             {
                 Description = ConfigCommandStrings.SetCommand_KeyArgumentDescription
@@ -165,24 +149,24 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
 
             if (value is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
 
             return ExecuteAsync(key, value, isGlobal, cancellationToken);
         }
 
-        public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            var key = await _interactionService.PromptForStringAsync(ConfigCommandStrings.SetCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
-            var value = await _interactionService.PromptForStringAsync(ConfigCommandStrings.SetCommand_PromptForValue, required: true, cancellationToken: cancellationToken);
-            var isGlobal = await _interactionService.PromptForSelectionAsync(
+            var key = await InteractionService.PromptForStringAsync(ConfigCommandStrings.SetCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
+            var value = await InteractionService.PromptForStringAsync(ConfigCommandStrings.SetCommand_PromptForValue, required: true, cancellationToken: cancellationToken);
+            var isGlobal = await InteractionService.PromptForSelectionAsync(
                 ConfigCommandStrings.SetCommand_PromptForGlobal,
                 [true, false],
                 g => g ? TemplatingStrings.Yes : TemplatingStrings.No,
@@ -195,8 +179,8 @@ internal sealed class ConfigCommand : BaseCommand
         {
             try
             {
-                await _configurationService.SetConfigurationAsync(key, value, isGlobal, cancellationToken);
-                _interactionService.DisplaySuccess(isGlobal
+                await ConfigurationService.SetConfigurationAsync(key, value, isGlobal, cancellationToken);
+                InteractionService.DisplaySuccess(isGlobal
                     ? string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetGlobally, key,
                         value)
                     : string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetLocally, key,
@@ -206,70 +190,52 @@ internal sealed class ConfigCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
         }
     }
 
-    private sealed class ListCommand : BaseSubcommand
+    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier) : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, interactionService)
     {
-        private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
-        private readonly IConfiguration _configuration;
-
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, IConfiguration configuration)
-            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
-        {
-            _configurationService = configurationService;
-            _interactionService = interactionService;
-            _configuration = configuration;
-        }
-
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            return ExecuteAsync(cancellationToken);
+            return InteractiveExecuteAsync(cancellationToken);
         }
 
-        public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            if (_interactionService is ExtensionInteractionService extensionInteractionService)
+            if (InteractionService is ExtensionInteractionService extensionInteractionService)
             {
-                var settingsFilePath = _configurationService.GetSettingsFilePath(isGlobal: false);
+                var settingsFilePath = ConfigurationService.GetSettingsFilePath(isGlobal: false);
                 if (Path.Exists(settingsFilePath))
                 {
-                    extensionInteractionService.OpenInIde(settingsFilePath);
+                    extensionInteractionService.OpenEditor(settingsFilePath);
                     return ExitCodeConstants.Success;
                 }
             }
 
-            var allConfig = await _configurationService.GetAllConfigurationAsync(cancellationToken);
+            var allConfig = await ConfigurationService.GetAllConfigurationAsync(cancellationToken);
 
             if (allConfig.Count == 0)
             {
-                _interactionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
+                InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
-            _interactionService.DisplayLines(allConfig.Select(kvp => ("stdout", $"{kvp.Key}={kvp.Value}")));
+            InteractionService.DisplayLines(allConfig.Select(kvp => ("stdout", $"{kvp.Key}={kvp.Value}")));
 
             return ExitCodeConstants.Success;
         }
     }
 
-    private sealed class DeleteCommand : BaseSubcommand
+    private sealed class DeleteCommand : BaseConfigSubCommand
     {
-        private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
-
         public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, interactionService)
         {
-            _configurationService = configurationService;
-            _interactionService = interactionService;
-
             var keyArgument = new Argument<string>("key")
             {
                 Description = ConfigCommandStrings.DeleteCommand_KeyArgumentDescription
@@ -292,25 +258,25 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return Task.FromResult(ExitCodeConstants.InvalidCommand);
             }
 
             return ExecuteAsync(key, isGlobal, cancellationToken);
         }
 
-        public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            var key = await _interactionService.PromptForStringAsync(ConfigCommandStrings.DeleteCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
+            var key = await InteractionService.PromptForStringAsync(ConfigCommandStrings.DeleteCommand_PromptForKey, required: true, cancellationToken: cancellationToken);
 
-            var value = await _configurationService.GetConfigurationAsync(key, cancellationToken);
+            var value = await ConfigurationService.GetConfigurationAsync(key, cancellationToken);
             if (value is null)
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
                 return ExitCodeConstants.ConfigNotFound;
             }
 
-            var isGlobal = await _interactionService.PromptForSelectionAsync(
+            var isGlobal = await InteractionService.PromptForSelectionAsync(
                 ConfigCommandStrings.DeleteCommand_PromptForGlobal,
                 [false, true],
                 g => g ? TemplatingStrings.Yes : TemplatingStrings.No,
@@ -323,30 +289,30 @@ internal sealed class ConfigCommand : BaseCommand
         {
             try
             {
-                var deleted = await _configurationService.DeleteConfigurationAsync(key, isGlobal, cancellationToken);
+                var deleted = await ConfigurationService.DeleteConfigurationAsync(key, isGlobal, cancellationToken);
 
                 if (deleted)
                 {
                     if (isGlobal)
                     {
-                        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedGlobally, key));
+                        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedGlobally, key));
                     }
                     else
                     {
-                        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
+                        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
                     }
 
                     return ExitCodeConstants.Success;
                 }
                 else
                 {
-                    _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
                     return ExitCodeConstants.InvalidCommand;
                 }
             }
             catch (Exception ex)
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
         }

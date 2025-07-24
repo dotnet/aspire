@@ -208,9 +208,9 @@ internal class ExtensionInteractionService : IInteractionService
         _consoleInteractionService.DisplayEmptyLine();
     }
 
-    public void OpenInIde(string path)
+    public void OpenEditor(string path)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenInIdeAsync(path, _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => _backchannel.OpenEditorAsync(path, _cancellationToken));
         Debug.Assert(result);
     }
 

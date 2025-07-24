@@ -24,7 +24,7 @@ export interface IInteractionService {
     displayLines: (lines: ConsoleLine[]) => void;
     displayPlainText: (message: string) => void;
     displayCancellationMessage: (message: string) => void;
-    openInIde: (path: string) => Promise<void>;
+    openEditor: (path: string) => Promise<void>;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
 }
 
@@ -184,7 +184,7 @@ export class InteractionService implements IInteractionService {
     }
 
     displayPlainText(message: string) {
-        this._outputChannelWriter.appendLine('interaction', `Displaying plain text: ${message}`);
+        extensionLogOutputChannel.info(`Displaying plain text: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
     }
 
@@ -225,7 +225,7 @@ export class InteractionService implements IInteractionService {
 
     async displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.Line).join('\n');
-        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.line)));
+        lines.forEach(line => extensionLogOutputChannel.info(formatText(line.Line)));
 
         // Open a new temp file with the displayText
         const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });
@@ -237,8 +237,8 @@ export class InteractionService implements IInteractionService {
         vscode.window.showWarningMessage(formatText(message));
     }
 
-    async openInIde(path: string) {
-        extensionLogOutputChannel.info(`Opening path: ${projectPath}`);
+    async openEditor(path: string) {
+        extensionLogOutputChannel.info(`Opening path: ${path}`);
 
         // check if is folder
         if (await isDirectory(path)) {
@@ -306,6 +306,6 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
     connection.onRequest("displayPlainText", withAuthentication(interactionService.displayPlainText.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
-    connection.onRequest("openInIde", withAuthentication(interactionService.openInIde.bind(interactionService)));
+    connection.onRequest("openEditor", withAuthentication(interactionService.openEditor.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
 }

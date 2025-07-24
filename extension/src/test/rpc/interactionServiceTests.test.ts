@@ -189,9 +189,6 @@ suite('InteractionService endpoints', () => {
 		]);
 
 		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
-		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		assert.ok(appendLineStub.calledWith('interaction', 'line1'));
-		assert.ok(appendLineStub.calledWith('interaction', 'line2'));
 		openTextDocumentStub.restore();
 	});
 
