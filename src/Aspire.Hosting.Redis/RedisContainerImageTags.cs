@@ -11,8 +11,8 @@ internal static class RedisContainerImageTags
     /// <remarks>library/redis</remarks>
     public const string Image = "library/redis";
 
-    /// <remarks>7.4</remarks>
-    public const string Tag = "7.4";
+    /// <remarks>8.0</remarks>
+    public const string Tag = "8.0";
 
     /// <remarks>RedisCommanderRegistry</remarks>
     public const string RedisCommanderRegistry = "docker.io";
