@@ -73,7 +73,7 @@
   </Target>
 
   <Target Name="_ValidateNativeBinaryFileSignatureOnUnix" Condition="'$(_CheckFileSignature)' == 'true'">
-    <Error Condition="$(FileSignatureRegex) == ''" Text="Missing %24(FileSignatureRegex)" />
+    <Error Condition="$(FileSignatureRegex) == ''" Text="Property %24(FileSignatureRegex) is unset." />
 
     <Exec Command="file -b $(_NativeBinaryPath)" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_FileCommandOutput" />
