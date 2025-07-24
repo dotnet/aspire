@@ -87,6 +87,52 @@ public class ExecCommandTests
     }
 
     [Fact]
+    public async Task ExecCommand_WhenFeatureFlagDisabled_CommandNotAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
+        {
+            options.DisabledFeatures = [KnownFeatures.ExecCommandEnabled];
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var testOutputWriter = new TestOutputTextWriter(_outputHelper);
+        commandLineConfiguration.Output = testOutputWriter;
+
+        var result = command.Parse("exec --help", commandLineConfiguration);
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Should fail because exec command is not registered when feature flag is disabled
+        Assert.NotEqual(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task ExecCommand_WhenFeatureFlagEnabled_CommandAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
+        {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var testOutputWriter = new TestOutputTextWriter(_outputHelper);
+        commandLineConfiguration.Output = testOutputWriter;
+
+        var result = command.Parse("exec --help", commandLineConfiguration);
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Should succeed because exec command is registered when feature flag is enabled
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
     public async Task ExecCommand_WhenTargetResourceNotSpecified_ReturnsInvalidCommand()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
