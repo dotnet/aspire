@@ -12,7 +12,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
-public static class MetricsHelpers
+public static class TraceLinkHelpers
 {
     public static async Task<bool> WaitForSpanToBeAvailableAsync(
         string traceId,
@@ -23,10 +23,27 @@ public static class MetricsHelpers
         IStringLocalizer<Dialogs> loc,
         CancellationToken cancellationToken)
     {
-        var span = getSpan(traceId, spanId);
+        return await WaitForDataToBeAvailableAsync(
+            (ct) => Task.FromResult(getSpan(traceId, spanId) != null),
+            string.Format(CultureInfo.InvariantCulture, loc[nameof(Dialogs.OpenSpanDialogMessage)], OtlpHelpers.ToShortenedId(spanId)),
+            dialogService,
+            dispatcher,
+            loc,
+            cancellationToken).ConfigureAwait(false);
+    }
 
-        // Exemplar span isn't loaded yet. Display a dialog until the data is ready or the user cancels the dialog.
-        if (span == null)
+    public static async Task<bool> WaitForDataToBeAvailableAsync(
+        Func<CancellationToken, Task<bool>> isAvailableCallback,
+        string unavailableText,
+        IDialogService dialogService,
+        Func<Func<Task>, Task> dispatcher,
+        IStringLocalizer<Dialogs> loc,
+        CancellationToken cancellationToken)
+    {
+        var isAvailable = await isAvailableCallback(cancellationToken).ConfigureAwait(false);
+
+        // Data isn't available yet. Display a dialog until the data is ready or the user cancels the dialog.
+        if (!isAvailable)
         {
             using var cts = new CancellationTokenSource();
             using var registration = cancellationToken.Register(cts.Cancel);
@@ -38,11 +55,11 @@ public static class MetricsHelpers
                     Intent = MessageBoxIntent.Info,
                     Icon = new Icons.Filled.Size24.Info(),
                     IconColor = Color.Info,
-                    MarkupMessage = new MarkupString(string.Format(CultureInfo.InvariantCulture, loc[nameof(Dialogs.OpenTraceDialogMessage)], OtlpHelpers.ToShortenedId(traceId))),
+                    MarkupMessage = new MarkupString(unavailableText),
                 },
                 DialogType = DialogType.MessageBox,
                 PrimaryAction = string.Empty,
-                SecondaryAction = loc[nameof(Dialogs.OpenTraceDialogCancelButtonText)]
+                SecondaryAction = loc[nameof(Dialogs.OpenSpanDialogCancelButtonText)]
             }).ConfigureAwait(false);
 
             // Task that polls for the span to be available.
@@ -50,8 +67,8 @@ public static class MetricsHelpers
             {
                 while (!cts.IsCancellationRequested)
                 {
-                    span = getSpan(traceId, spanId);
-                    if (span != null)
+                    isAvailable = await isAvailableCallback(cancellationToken).ConfigureAwait(false);
+                    if (isAvailable)
                     {
                         await dispatcher(async () =>
                         {

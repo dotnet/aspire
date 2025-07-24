@@ -23,7 +23,12 @@
             else
             {
                 @ContentBeforeValue
-                if (ValueTemplate is not null)
+                if (ComponentMetadata is not null)
+                {
+                    <DynamicComponent Type="@ComponentMetadata.Type"
+                                      Parameters="@BuildComponentParameters()" />
+                }
+                else if (ValueTemplate is not null)
                 {
                     @ValueTemplate(Value)
                 }

@@ -10,18 +10,18 @@ internal static class ResourceIconHelpers
     /// <summary>
     /// Maps a resource to a default icon.
     /// </summary>
-    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize)
+    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
     {
         var icon = resource.ResourceType switch
         {
-            KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("CloudArrowUp", desiredSize, IconVariant.Filled),
-            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, IconVariant.Filled),
-            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
+            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
+            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
+            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, desiredVariant),
+            KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
+            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("CloudArrowUp", desiredSize, desiredVariant),
+            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, desiredVariant),
+            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
         };
 
         if (icon == null)
