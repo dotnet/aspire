@@ -6,7 +6,7 @@ import { codespacesLink, directLink } from '../../loc/strings';
 import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
-import { IOutputChannelWriter } from '../../utils/logging';
+import { extensionLogOutputChannel } from '../../utils/logging';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -124,10 +124,11 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayEmptyLine endpoint", async () => {
+		const stub = sinon.stub(extensionLogOutputChannel, 'append');
 		const testInfo = await createTestRpcServer();
 		testInfo.interactionService.displayEmptyLine();
-		const appendSpy = testInfo.outputChannelWriter.append as sinon.SinonStub;
-		assert.ok(appendSpy.calledWith('\n'));
+		assert.ok(stub.calledWith('\n'));
+		stub.restore();
 	});
 
 	test("displayDashboardUrls shows correct actions and URLs", async () => {
@@ -159,8 +160,9 @@ suite('InteractionService endpoints', () => {
 	});
 
 	test("displayDashboardUrls writes URLs to output channel", async () => {
+		const stub = sinon.stub(extensionLogOutputChannel, 'info');
+		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
 		const testInfo = await createTestRpcServer();
-		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(undefined);
 
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
@@ -168,14 +170,16 @@ suite('InteractionService endpoints', () => {
 			baseUrlWithLoginToken: baseUrl,
 			codespacesUrlWithLoginToken: codespacesUrl
 		});
-		const appendLineStub = testInfo.outputChannelWriter.appendLine as sinon.SinonStub;
-		const outputLines = appendLineStub.getCalls().map(call => call.args[1]);
+		const outputLines = stub.getCalls().map(call => call.args[0]);
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
-		showInfoMessageStub.restore();
+		assert.equal(showInformationMessageStub.callCount, 1);
+		stub.restore();
+		showInformationMessageStub.restore();
 	});
 
 	test("displayLines endpoint", async () => {
+		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
 		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
 
@@ -202,16 +206,9 @@ suite('InteractionService endpoints', () => {
 
 type RpcServerTestInfo = {
 	rpcServerInfo: RpcServerInformation;
-	outputChannelWriter: IOutputChannelWriter;
 	rpcClient: ICliRpcClient;
 	interactionService: IInteractionService;
 };
-
-class TestOutputChannelWriter implements IOutputChannelWriter {
-	append = sinon.stub();
-	appendLine = sinon.stub();
-	show = sinon.stub();
-}
 
 class TestCliRpcClient implements ICliRpcClient {
 	getCliVersion(): Promise<string> {
@@ -232,14 +229,12 @@ class TestCliRpcClient implements ICliRpcClient {
 }
 
 async function createTestRpcServer(): Promise<RpcServerTestInfo> {
-	const outputChannel = new TestOutputChannelWriter();
 	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService(outputChannel);
+	const interactionService = new InteractionService();
 
 	const rpcServerInfo = await createRpcServer(
 		() => interactionService,
-		() => rpcClient,
-		outputChannel
+		() => rpcClient
 	);
 
 	if (!rpcServerInfo) {
@@ -248,7 +243,6 @@ async function createTestRpcServer(): Promise<RpcServerTestInfo> {
 
 	return {
 		rpcServerInfo,
-		outputChannelWriter: outputChannel,
 		rpcClient: rpcClient,
 		interactionService: interactionService
 	};

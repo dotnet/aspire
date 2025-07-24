@@ -122,7 +122,7 @@
     <value>Starting Aspire app host...</value>
   </data>
   <data name="StartingDashboard" xml:space="preserve">
-    <value>Starting Aspire dashboard...</value>
+    <value>Starting dashboard...</value>
   </data>
   <data name="Resource" xml:space="preserve">
     <value>Resource</value>
@@ -143,10 +143,22 @@
     <value>Endpoints</value>
   </data>
   <data name="PressCtrlCToStopAppHost" xml:space="preserve">
-    <value>Press [bold]Ctrl+C[/] to stop the app host and exit.</value>
+    <value>Press [bold]CTRL+C[/] to stop the apphost and exit.</value>
     <comment>[bold] should not be localized</comment>
   </data>
   <data name="ProjectCouldNotBeRun" xml:space="preserve">
     <value>The project could not be run. For more information run with --debug switch.</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="ConnectingToAppHost" xml:space="preserve">
+    <value>Connecting to app host...</value>
+  </data>
+  <data name="DashboardFailedToStart" xml:space="preserve">
+    <value>Aspire Dashboard failed to start.</value>
   </data>
 </root>

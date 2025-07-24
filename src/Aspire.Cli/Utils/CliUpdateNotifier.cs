@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging;
 using Semver;
 
@@ -31,7 +32,7 @@ internal class CliUpdateNotifier(
             }
 
             var availablePackages = await nuGetPackageCache.GetCliPackagesAsync(workingDirectory, prerelease: true, source: null, cancellationToken);
-            var newerVersion = GetNewerVersion(currentVersion, availablePackages);
+            var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
 
             if (newerVersion is not null)
             {
@@ -46,63 +47,6 @@ internal class CliUpdateNotifier(
 
     protected virtual SemVersion? GetCurrentVersion()
     {
-        try
-        {
-            var versionString = VersionHelper.GetDefaultTemplateVersion();
-            // Remove any build metadata (e.g., +sha.12345) for comparison
-            var cleanVersionString = versionString.Split('+')[0];
-            return SemVersion.Parse(cleanVersionString, SemVersionStyles.Strict);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static SemVersion? GetNewerVersion(SemVersion currentVersion, IEnumerable<NuGetPackage> availablePackages)
-    {
-        SemVersion? newestStable = null;
-        SemVersion? newestPrerelease = null;
-
-        foreach (var package in availablePackages)
-        {
-            if (SemVersion.TryParse(package.Version, SemVersionStyles.Strict, out var version))
-            {
-                if (version.IsPrerelease)
-                {
-                    newestPrerelease = newestPrerelease is null || SemVersion.PrecedenceComparer.Compare(version, newestPrerelease) > 0 ? version : newestPrerelease;
-                }
-                else
-                {
-                    newestStable = newestStable is null || SemVersion.PrecedenceComparer.Compare(version, newestStable) > 0 ? version : newestStable;
-                }
-            }
-        }
-
-        // Apply notification rules
-        if (currentVersion.IsPrerelease)
-        {
-            // Rule 1: If using a prerelease version where the version is lower than the latest stable version, prompt to upgrade
-            if (newestStable is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestStable) < 0)
-            {
-                return newestStable;
-            }
-
-            // Rule 2: If using a prerelease version and there is a newer prerelease version, prompt to upgrade
-            if (newestPrerelease is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestPrerelease) < 0)
-            {
-                return newestPrerelease;
-            }
-        }
-        else
-        {
-            // Rule 3: If using a stable version and there is a newer stable version, prompt to upgrade
-            if (newestStable is not null && SemVersion.PrecedenceComparer.Compare(currentVersion, newestStable) < 0)
-            {
-                return newestStable;
-            }
-        }
-
-        return null;
+        return PackageUpdateHelpers.GetCurrentPackageVersion();
     }
 }

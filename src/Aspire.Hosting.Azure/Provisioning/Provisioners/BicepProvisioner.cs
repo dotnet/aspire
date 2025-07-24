@@ -106,7 +106,7 @@ internal sealed class BicepProvisioner(
         if (BicepUtilities.GetExistingResourceGroup(resource) is { } existingResourceGroup)
         {
             var existingResourceGroupName = existingResourceGroup is ParameterResource parameterResource
-                ? parameterResource.Value
+                ? (await parameterResource.GetValueAsync(cancellationToken).ConfigureAwait(false))!
                 : (string)existingResourceGroup;
             var response = await context.Subscription.GetResourceGroups().GetAsync(existingResourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;

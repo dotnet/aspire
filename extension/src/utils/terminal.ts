@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { rpcServerInfo } from '../extension';
 import { aspireTerminalName } from '../loc/strings';
-import { vscOutputChannelWriter } from './logging';
+import { extensionLogOutputChannel } from './logging';
 
 let hasRunGetAspireTerminal = false;
 export function getAspireTerminal(): vscode.Terminal {
@@ -15,7 +15,7 @@ export function getAspireTerminal(): vscode.Terminal {
     if (existingTerminal) {
         if (!hasRunGetAspireTerminal) {
             existingTerminal.dispose();
-            vscOutputChannelWriter.appendLine("lifecycle", `Recreating existing Aspire terminal`);
+            extensionLogOutputChannel.info(`Recreating existing Aspire terminal`);
             hasRunGetAspireTerminal = true;
         }
         else {
@@ -23,7 +23,7 @@ export function getAspireTerminal(): vscode.Terminal {
         }
     }
 
-    vscOutputChannelWriter.appendLine("lifecycle", `Creating new Aspire terminal`);
+    extensionLogOutputChannel.info(`Creating new Aspire terminal`);
 
     const env = {
         ...process.env,
@@ -42,7 +42,7 @@ export function getAspireTerminal(): vscode.Terminal {
 
 export function sendToAspireTerminal(command: string) {
     const terminal = getAspireTerminal();
-    vscOutputChannelWriter.appendLine("command", `Sending command to Aspire terminal: ${command}`);
+    extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
     terminal.show();
 }

@@ -323,7 +323,7 @@ message WatchInteractionsRequestUpdate {
         InteractionComplete complete = 2;
         InteractionMessageBox message_box = 3;
         InteractionInputsDialog inputs_dialog = 4;
-        InteractionMessageBar message_bar = 5;
+        InteractionNotification notification = 5;
     }
 }
 // A message received from the server when watching interactions. Has multiple types of payload.
@@ -337,12 +337,13 @@ message WatchInteractionsResponseUpdate {
     string secondary_button_text = 5;
     bool show_secondary_button = 6;
     bool show_dismiss = 7;
+    bool enable_message_markdown = 8;
 
     oneof kind {
         InteractionComplete complete = 16;
         InteractionMessageBox message_box = 17;
         InteractionInputsDialog inputs_dialog = 18;
-        InteractionMessageBar message_bar = 19;
+        InteractionNotification notification = 19;
     }
 }
 // Represents the completion of an interaction.
@@ -353,12 +354,12 @@ message InteractionMessageBox {
     MessageIntent intent = 1;
     optional bool result = 2;
 }
-// Represents a message bar interaction, which is a non-modal message with an optional link.
-message InteractionMessageBar {
+// Represents a notification interaction, which is a non-modal message with an optional link.
+message InteractionNotification {
     MessageIntent intent = 1;
     optional bool result = 2;
-    string linkText = 3;
-    string linkUrl = 4;
+    string link_text = 3;
+    string link_url = 4;
 }
 // Represents a dialog that collects inputs from the user.
 message InteractionInputsDialog {
@@ -373,6 +374,9 @@ message InteractionInput {
     map<string, string> options = 5;
     string value = 6;
     repeated string validation_errors = 7;
+    string description = 8;
+    bool enable_description_markdown = 9;
+    int32 max_length = 10;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;

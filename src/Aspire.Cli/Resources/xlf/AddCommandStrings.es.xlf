@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="NoPackagesMatchedSearchTerm">
         <source>No packages matched your search term '{0}'. Showing all available packages.</source>
-        <target state="new">No packages matched your search term '{0}'. Showing all available packages.</target>
+        <target state="translated">No se encontraron paquetes que coincidan con el término de búsqueda "{0}". Mostrando todos los paquetes disponibles.</target>
         <note>{0} is the search term provided by the user.</note>
       </trans-unit>
       <trans-unit id="PackageAddedSuccessfully">
@@ -75,6 +75,11 @@
       <trans-unit id="UnexpectedNumberOfPackagesFound">
         <source>Unexpected number of packages found.</source>
         <target state="translated">Se encontró un número inesperado de paquetes.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">Utilizar paquetes de versiones preliminares</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

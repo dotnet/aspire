@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Yarp;
 
 namespace Aspire.Hosting;
@@ -27,7 +26,7 @@ public static class YarpResourceExtensions
         var resource = new YarpResource(name);
 
         var yarpBuilder = builder.AddResource(resource)
-                      .WithHttpEndpoint(targetPort: Port)
+                      .WithHttpEndpoint(name: "http", targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
                       .WithImageTag(YarpContainerImageTags.Tag)
@@ -36,29 +35,18 @@ public static class YarpResourceExtensions
                       .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter();
 
-        var configBuilder = new YarpConfigurationBuilder(yarpBuilder);
-
         if (builder.ExecutionContext.IsRunMode)
         {
             // YARP will not trust the cert used by Aspire otlp endpoint when running locally
             // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
             // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+        }
 
-            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(resource, (ctx, ct) =>
-            {
-                configBuilder.BuildAndPopulateEnvironment();
-                return Task.CompletedTask;
-            });
-        }
-        else
+        yarpBuilder.WithEnvironment(ctx =>
         {
-            yarpBuilder.ApplicationBuilder.Eventing.Subscribe<BeforePublishEvent>((ctx, ct) =>
-            {
-                configBuilder.BuildAndPopulateEnvironment();
-                return Task.CompletedTask;
-            });
-        }
+            YarpEnvConfigGenerator.PopulateEnvVariables(ctx.EnvironmentVariables, yarpBuilder.Resource.Routes, yarpBuilder.Resource.Clusters);
+        });
 
         return yarpBuilder;
     }
@@ -70,7 +58,23 @@ public static class YarpResourceExtensions
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
     public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
     {
-        builder.Resource.ConfigurationBuilderDelegates.Add(configurationBuilder);
+        var configBuilder = new YarpConfigurationBuilder(builder);
+        configurationBuilder(configBuilder);
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    public static IResourceBuilder<YarpResource> WithHostPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 }

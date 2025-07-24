@@ -45,6 +45,14 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string MininumSdkVersionMissing
+        {
+            get
+            {
+                return ResourceManager.GetString("MininumSdkVersionMissing", resourceCulture);
+            }
+        }
+        
         public static string InvalidLocaleProvided {
             get {
                 return ResourceManager.GetString("InvalidLocaleProvided", resourceCulture);

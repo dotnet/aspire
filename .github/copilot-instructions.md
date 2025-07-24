@@ -55,7 +55,7 @@ When running tests in automated environments (including Copilot agent), **always
 
 ```bash
 # Correct - excludes quarantined tests (use this in automation)
-dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter-not-trait "quarantined=true"
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
 
 # For specific test filters, combine with quarantine exclusion
 dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter "TestName" --filter-not-trait "quarantined=true"

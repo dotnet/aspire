@@ -11,8 +11,7 @@ namespace Aspire.Hosting.Yarp;
 /// <param name="name">The name of the resource.</param>
 public class YarpResource(string name) : ContainerResource(name), IResourceWithServiceDiscovery
 {
-    /// <summary>
-    /// Configuration builder used to build the config file for the YARP resource
-    /// </summary>
-    internal List<Action<IYarpConfigurationBuilder>> ConfigurationBuilderDelegates { get; } = new ();
+    internal List<YarpRoute> Routes { get; } = new ();
+
+    internal List<YarpCluster> Clusters { get; } = new ();
 }

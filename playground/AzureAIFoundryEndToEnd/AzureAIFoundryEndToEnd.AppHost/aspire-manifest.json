@@ -3,12 +3,12 @@
   "resources": {
     "foundry": {
       "type": "azure.bicep.v0",
-      "connectionString": "Endpoint={foundry.outputs.aiFoundryApiEndpoint};EndpointAIInference={foundry.outputs.aiFoundryApiEndpoint}models",
+      "connectionString": "Endpoint={foundry.outputs.endpoint};EndpointAIInference={foundry.outputs.aiFoundryApiEndpoint}models",
       "path": "foundry.module.bicep"
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "Endpoint={foundry.outputs.aiFoundryApiEndpoint};EndpointAIInference={foundry.outputs.aiFoundryApiEndpoint}models;DeploymentId=qwen2.5-0.5b;Model=qwen2.5-0.5b"
+      "connectionString": "Endpoint={foundry.outputs.endpoint};EndpointAIInference={foundry.outputs.aiFoundryApiEndpoint}models;DeploymentId=qwen2.5-0.5b;Model=qwen2.5-0.5b"
     },
     "webstory": {
       "type": "project.v0",
@@ -34,6 +34,15 @@
           "transport": "http",
           "external": true
         }
+      }
+    },
+    "foundry-roles": {
+      "type": "azure.bicep.v0",
+      "path": "foundry-roles.module.bicep",
+      "params": {
+        "foundry_outputs_name": "{foundry.outputs.name}",
+        "principalType": "",
+        "principalId": ""
       }
     }
   }

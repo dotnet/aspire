@@ -25,4 +25,5 @@ internal interface IInteractionService
     void DisplayEmptyLine();
 
     void DisplayVersionUpdateNotification(string newerVersion);
+    void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
 }

@@ -7,7 +7,7 @@ import { addInteractionServiceEndpoints, IInteractionService } from './interacti
 import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
 import { generateSelfSignedCert, generateToken } from '../utils/security';
-import { IOutputChannelWriter } from '../utils/logging';
+import { extensionLogOutputChannel } from '../utils/logging';
 
 export type RpcServerInformation = {
     address: string;
@@ -17,7 +17,7 @@ export type RpcServerInformation = {
     cert: string;
 };
 
-export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient, outputChannelWriter: IOutputChannelWriter): Promise<RpcServerInformation> {
+export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerInformation> {
     const token = generateToken();
     const { key, cert } = generateSelfSignedCert();
 
@@ -37,7 +37,7 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
 
     return new Promise<RpcServerInformation>((resolve, reject) => {
         const rpcServer = tls.createServer({ key, cert }, (socket) => {
-            outputChannelWriter.appendLine('rpc-server', 'Client connected to RPC server');
+            extensionLogOutputChannel.info('Client connected to RPC server');
             const connection = createMessageConnection(
                 new StreamMessageReader(socket),
                 new StreamMessageWriter(socket)
@@ -56,15 +56,15 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
             connection.listen();
         });
 
-        outputChannelWriter.appendLine(`rpc-server`, `Setting up RPC server with token: ${token}`);
+        extensionLogOutputChannel.info(`Setting up RPC server with token: ${token}`);
         rpcServer.listen(0, () => {
             const addressInfo = rpcServer?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 const fullAddress = `localhost:${addressInfo.port}`;
-                outputChannelWriter.appendLine(`rpc-server`, `RPC server listening on ${fullAddress}`);
+                extensionLogOutputChannel.info(`RPC server listening on ${fullAddress}`);
 
-                function disposeRpcServer(rpcServer: net.Server, outputChannelWriter: IOutputChannelWriter) {
-                    outputChannelWriter.appendLine("rpc-server", `Disposing RPC server`);
+                function disposeRpcServer(rpcServer: net.Server) {
+                    extensionLogOutputChannel.info(`Disposing RPC server`);
                     rpcServer.close();
                 }
 
@@ -72,19 +72,19 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
                     token: token,
                     server: rpcServer,
                     address: fullAddress,
-                    dispose: () => disposeRpcServer(rpcServer, outputChannelWriter),
+                    dispose: () => disposeRpcServer(rpcServer),
                     cert: cert
                 });
             }
             else {
-                outputChannelWriter.appendLine(`rpc-server`, rpcServerAddressError);
+                extensionLogOutputChannel.error(rpcServerAddressError);
                 vscode.window.showErrorMessage(rpcServerAddressError);
                 reject(new Error(rpcServerAddressError));
             }
         });
 
         rpcServer.on('error', (err) => {
-            outputChannelWriter.appendLine("rpc-server", rpcServerError(err));
+            extensionLogOutputChannel.error(rpcServerError(err));
             reject(err);
         });
     });

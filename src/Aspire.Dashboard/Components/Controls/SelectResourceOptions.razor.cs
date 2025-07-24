@@ -1,12 +1,25 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
 
 public partial class SelectResourceOptions<TValue>
 {
+    [Parameter, EditorRequired]
+    public required ConcurrentDictionary<TValue, bool> Values { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> OnAllValuesCheckedChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<TValue, bool, Task> OnValueVisibilityChangedAsync { get; set; }
+
+    [Parameter]
+    public string? Id { get; set; }
+
     private async Task OnAllValuesCheckedChangedInternalAsync(bool? newAreAllVisible)
     {
         SetCheckState(newAreAllVisible, Values);

@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,6 +28,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -36,6 +38,7 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier
         )
@@ -48,6 +51,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -56,6 +60,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -70,6 +75,12 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
@@ -147,7 +158,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
+            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
@@ -156,40 +167,91 @@ internal sealed class RunCommand : BaseCommand
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () =>
             {
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
 
+            if (dashboardUrls.DashboardHealthy is false)
+            {
+                _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                return ExitCodeConstants.DashboardFailure;
+            }
+
             _ansiConsole.WriteLine();
 
-            var grid = new Grid();
-            grid.AddColumn();
-            grid.AddColumn();
+            var topGrid = new Grid();
+            topGrid.AddColumn();
+            topGrid.AddColumn();
 
-            grid.AddRow(new Markup("[bold green]Dashboard[/]:"), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            var topPadder = new Padder(topGrid, new Padding(3, 0));
+
+            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
+            var logsLocalizedString = RunCommandStrings.Logs;
+            var endpointsLocalizedString = RunCommandStrings.Endpoints;
+
+            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString }
+                .Max(s => s.Length);
+
+            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                grid.AddRow(new Text(string.Empty), new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
-            grid.AddRow(new Markup("[bold green]Logs[/]:"), new Text(logFile.FullName));
+            topGrid.AddRow(Text.Empty, Text.Empty);
+            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
 
-            _ansiConsole.Write(grid);
+            _ansiConsole.Write(topPadder);
 
-            var isCodespaces = _configuration.GetValue<bool>("CODESPACES", false);
+            // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
+            // than environment variables since it comes from the same backend detection logic
+            var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+
+            AppendCtrlCMessage(longestLocalizedLength);
 
             if (isCodespaces || isRemoteContainers)
             {
-                _ansiConsole.WriteLine();
-                _ansiConsole.MarkupLine("[bold green]Endpoints:[/]");
+                bool firstEndpoint = true;
 
                 try
                 {
                     var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
                     await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                     {
-                        ProcessResourceState(resourceState);
+                        ProcessResourceState(resourceState, (resource, endpoint) =>
+                        {
+                            // When we are appending endpoints we need
+                            // to remove the CTRL-C message that was appended
+                            // previously. So we can write the endpoint.
+                            // We will append the CTRL-C message again after
+                            // writing the endpoint.
+                            ClearLines(2);
+
+                            var endpointsGrid = new Grid();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+                            if (firstEndpoint)
+                            {
+                                endpointsGrid.AddRow(Text.Empty, Text.Empty);
+                            }
+
+                            endpointsGrid.AddRow(
+                                firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
+                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                                );
+
+                            var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
+                            _ansiConsole.Write(endpointsPadder);
+                            firstEndpoint = false;
+
+                            AppendCtrlCMessage(longestLocalizedLength);
+                        });
                     }
                 }
                 catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
@@ -247,6 +309,34 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
+    private void ClearLines(int lines)
+    {
+        if (lines <= 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < lines; i++)
+        {
+            _ansiConsole.Write("\u001b[1A");
+            _ansiConsole.Write("\u001b[2K"); // Clear the line
+        }
+    }
+
+    private void AppendCtrlCMessage(int longestLocalizedLength)
+    {
+
+        var ctrlCGrid = new Grid();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.AddColumn();
+        ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+        ctrlCGrid.AddRow(Text.Empty, Text.Empty);
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+
+        var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
+        _ansiConsole.Write(ctrlCPadder);
+    }
+
     private static FileInfo GetAppHostLogFile()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -293,7 +383,7 @@ internal sealed class RunCommand : BaseCommand
 
     private readonly Dictionary<string, RpcResourceState> _resourceStates = new();
 
-    public void ProcessResourceState(RpcResourceState resourceState)
+    public void ProcessResourceState(RpcResourceState resourceState, Action<string, string> endpointWriter)
     {
         if (_resourceStates.TryGetValue(resourceState.Resource, out var existingResourceState))
         {
@@ -301,7 +391,7 @@ internal sealed class RunCommand : BaseCommand
             {
                 foreach (var endpoint in endpoints)
                 {
-                    DisplayEndpoint(resourceState.Resource, endpoint);
+                    endpointWriter(resourceState.Resource, endpoint);
                 }
             }
 
@@ -313,16 +403,11 @@ internal sealed class RunCommand : BaseCommand
             {
                 foreach (var endpoint in endpoints)
                 {
-                    DisplayEndpoint(resourceState.Resource, endpoint);
+                    endpointWriter(resourceState.Resource, endpoint);
                 }
             }
 
             _resourceStates[resourceState.Resource] = resourceState;
-        }
-
-        void DisplayEndpoint(string resourceName, string endpoint)
-        {
-            _ansiConsole.MarkupLine($"[bold]{resourceName}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]");
         }
     }
 }

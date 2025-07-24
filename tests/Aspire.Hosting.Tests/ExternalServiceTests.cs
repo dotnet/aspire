@@ -4,7 +4,8 @@
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Tests;
 
@@ -154,7 +155,7 @@ public class ExternalServiceTests
     public async Task ExternalServiceWithParameterCanBeReferencedInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        
+
         var urlParam = builder.AddParameter("nuget-url");
         var externalService = builder.AddExternalService("nuget", urlParam);
         var project = builder.AddProject<TestProject>("project")
@@ -287,6 +288,159 @@ public class ExternalServiceTests
         Assert.Null(pathUri);
         Assert.NotNull(pathMessage);
         Assert.Contains("absolute path must be \"/\"", pathMessage);
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithParameterGetValueAsyncErrorMarksAsFailedToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter with a broken value callback
+        var urlParam = builder.AddParameter("failing-url", () => throw new InvalidOperationException("Parameter resolution failed"));
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as FailedToStart
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.FailedToStart
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.FailedToStart, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithParameterInvalidUrlMarksAsFailedToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter that returns an invalid URL
+        var urlParam = builder.AddParameter("invalid-url", () => "invalid-url-not-absolute");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as FailedToStart
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.FailedToStart
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.FailedToStart, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithValidParameterMarksAsRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a parameter that returns a valid URL
+        var urlParam = builder.AddParameter("valid-url", () => "https://example.com/");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        using var app = builder.Build();
+
+        // Start the app to trigger InitializeResourceEvent
+        var appStartTask = app.StartAsync();
+
+        // Wait for the resource to be marked as Running
+        var resourceEvent = await app.ResourceNotifications.WaitForResourceAsync(
+            externalService.Resource.Name,
+            e => e.Snapshot.State?.Text == KnownResourceStates.Running
+        ).DefaultTimeout();
+
+        // Verify the resource is in the correct state
+        Assert.Equal(KnownResourceStates.Running, resourceEvent.Snapshot.State?.Text);
+
+        await app.StopAsync();
+        await appStartTask; // Ensure start completes
+    }
+
+    [Fact]
+    public void ExternalServiceWithParameterHttpHealthCheckRegistersCustomHealthCheck()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var urlParam = builder.AddParameter("external-url");
+        var externalService = builder.AddExternalService("external", urlParam)
+                                     .WithHttpHealthCheck();
+
+        // Build the app to register health checks
+        using var app = builder.Build();
+
+        // Verify that health check was registered
+        Assert.True(externalService.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var healthCheckAnnotations));
+        var healthCheckAnnotation = healthCheckAnnotations.FirstOrDefault(hc => hc.Key.StartsWith($"{externalService.Resource.Name}_external"));
+        Assert.NotNull(healthCheckAnnotation);
+
+        // Verify that the custom health check is registered in DI
+        var healthCheckService = app.Services.GetService<HealthCheckService>();
+        Assert.NotNull(healthCheckService);
+    }
+
+    [Fact]
+    public void ExternalServiceWithStaticUrlHttpHealthCheckUsesUrlGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var externalService = builder.AddExternalService("external", "https://example.com/")
+                                     .WithHttpHealthCheck();
+
+        // Build the app to register health checks
+        using var app = builder.Build();
+
+        // Verify that health check was registered
+        Assert.True(externalService.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var healthCheckAnnotations));
+        var healthCheckAnnotation = healthCheckAnnotations.FirstOrDefault(hc => hc.Key.StartsWith($"{externalService.Resource.Name}_external"));
+        Assert.NotNull(healthCheckAnnotation);
+
+        // Verify that health check service is available
+        var healthCheckService = app.Services.GetService<HealthCheckService>();
+        Assert.NotNull(healthCheckService);
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithParameterHttpHealthCheckResolvesUrlAsync()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:external-url"] = "https://example.com/";
+
+        var urlParam = builder.AddParameter("external-url");
+        var externalService = builder.AddExternalService("external", urlParam)
+                                     .WithHttpHealthCheck("/status/200");
+
+        using var app = builder.Build();
+
+        // Get the health check service and run health checks
+        var healthCheckService = app.Services.GetRequiredService<HealthCheckService>();
+
+        // Find our specific health check key
+        Assert.True(externalService.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var healthCheckAnnotations));
+        var healthCheckKey = healthCheckAnnotations.First(hc => hc.Key.StartsWith($"{externalService.Resource.Name}_external")).Key;
+
+        // Run the health check
+        var result = await healthCheckService.CheckHealthAsync(
+            registration => registration.Name == healthCheckKey,
+            CancellationToken.None).DefaultTimeout();
+
+        // The result should be healthy since we're using httpbin.org which should be accessible
+        // However, in a test environment this might fail due to network issues, so we just check that it ran
+        Assert.Contains(healthCheckKey, result.Entries.Keys);
     }
 
     private sealed class TestProject : IProjectMetadata

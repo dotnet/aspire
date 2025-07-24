@@ -489,7 +489,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, nameof(StructuredLogs));
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.StructuredLogs);
 
     public void UpdateTelemetryProperties()
     {

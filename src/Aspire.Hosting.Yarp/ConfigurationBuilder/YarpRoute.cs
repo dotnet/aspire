@@ -8,14 +8,25 @@ namespace Aspire.Hosting.Yarp;
 /// <summary>
 /// Represents a route for YARP
 /// </summary>
-public class YarpRoute(YarpCluster cluster)
+public class YarpRoute
 {
-    internal RouteConfig RouteConfig { get; private set; } = new RouteConfig
+    // Testing only
+    internal YarpRoute(RouteConfig routeConfig)
     {
-        RouteId = $"route_{Guid.NewGuid().ToString("N")}",
-        ClusterId = cluster.ClusterConfig.ClusterId,
-        Match = new RouteMatch(),
-    };
+        RouteConfig = routeConfig;
+    }
+
+    internal YarpRoute(YarpCluster cluster, string routeId)
+    {
+        RouteConfig = new RouteConfig
+        {
+            RouteId = routeId,
+            ClusterId = cluster.ClusterConfig.ClusterId,
+            Match = new RouteMatch(),
+        };
+    }
+
+    internal RouteConfig RouteConfig { get; private set; }
 
     internal void Configure(Func<RouteConfig, RouteConfig> configure)
     {

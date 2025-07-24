@@ -122,5 +122,29 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ProjectCouldNotBeRun", resourceCulture);
             }
         }
+        
+        public static string Dashboard {
+            get {
+                return ResourceManager.GetString("Dashboard", resourceCulture);
+            }
+        }
+        
+        public static string Logs {
+            get {
+                return ResourceManager.GetString("Logs", resourceCulture);
+            }
+        }
+        
+        public static string ConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
+            }
+        }
+        
+        public static string DashboardFailedToStart {
+            get {
+                return ResourceManager.GetString("DashboardFailedToStart", resourceCulture);
+            }
+        }
     }
 }

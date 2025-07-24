@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "env": {
+      "type": "azure.bicep.v0",
+      "path": "env.module.bicep",
+      "params": {
+        "userPrincipalId": ""
+      }
+    },
+    "chat": {
+      "type": "value.v0",
+      "connectionString": "Endpoint=https://models.github.ai/inference;Key={github-api-key.value};Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini"
+    },
+    "github-api-key": {
+      "type": "parameter.v0",
+      "value": "{github-api-key.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "webstory": {
+      "type": "project.v1",
+      "path": "../GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj",
+      "deployment": {
+        "type": "azure.bicep.v0",
+        "path": "webstory.module.bicep",
+        "params": {
+          "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+          "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+          "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+          "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+          "webstory_containerimage": "{webstory.containerImage}",
+          "webstory_containerport": "{webstory.containerPort}",
+          "github_api_key_value": "{github-api-key.value}"
+        }
+      },
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{webstory.bindings.http.targetPort}",
+        "ConnectionStrings__chat": "{chat.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

@@ -97,7 +97,7 @@ public static class AzureOpenAIExtensions
         var resource = new AzureOpenAIResource(name, configureInfrastructure);
         return builder.AddResource(resource)
             .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
-                CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor);
+                CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
     }
 
 #pragma warning disable CS0618 // Type or member is obsolete

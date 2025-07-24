@@ -3,12 +3,17 @@ apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
   name: "special-app-deployment"
+  labels:
+    app.kubernetes.io/name: "my-chart"
+    app.kubernetes.io/component: "SpeciaL-ApP"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
 spec:
   template:
     metadata:
       labels:
-        app: "aspire"
-        component: "SpeciaL-ApP"
+        app.kubernetes.io/name: "my-chart"
+        app.kubernetes.io/component: "SpeciaL-ApP"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
     spec:
       containers:
         - image: "{{ .Values.parameters.SpeciaL_ApP.SpeciaL_ApP_image }}"
@@ -21,8 +26,9 @@ spec:
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
-      app: "aspire"
-      component: "SpeciaL-ApP"
+      app.kubernetes.io/name: "my-chart"
+      app.kubernetes.io/component: "SpeciaL-ApP"
+      app.kubernetes.io/instance: "{{.Release.Name}}"
   replicas: 1
   revisionHistoryLimit: 3
   strategy:

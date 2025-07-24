@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="new">Connecting to app host...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">대시보드</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="new">Aspire Dashboard failed to start.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">개발 모드에서 Aspire 앱 호스트를 실행합니다.</target>
@@ -22,9 +37,14 @@
         <target state="translated">IsCompatibleAppHost가 null입니다</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">로그</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]Ctrl+C[/]를 누르세요.</target>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="translated">앱 호스트를 중지하고 종료하려면 [bold]CTRL+C[/]를 누르세요.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -48,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Aspire 대시보드 시작 중...</target>
+        <source>Starting dashboard...</source>
+        <target state="needs-review-translation">Aspire 대시보드 시작 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

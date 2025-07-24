@@ -5,7 +5,6 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -615,6 +614,72 @@ public class WithEndpointTests
         Assert.True(endpoint.IsProxied);
         Assert.True(endpoint.IsExternal);
         Assert.Equal(System.Net.Sockets.ProtocolType.Tcp, endpoint.Protocol);
+    }
+
+    [Fact]
+    public async Task LocalhostTopLevelDomainSetsAnnotationValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tcs = new TaskCompletionSource();
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpsEndpoint()
+            .WithEndpoint("https", e => e.TargetHost = "example.localhost", createIfNotExists: false)
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Collection(urls,
+            url => Assert.StartsWith("https://localhost:", url.Url),
+            url => Assert.StartsWith("https://example.localhost:", url.Url));
+
+        EndpointAnnotation endpoint = Assert.Single(projectA.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.NotNull(endpoint.AllocatedEndpoint);
+        Assert.Equal(EndpointBindingMode.SingleAddress, endpoint.AllocatedEndpoint.BindingMode);
+        Assert.Equal("localhost", endpoint.AllocatedEndpoint.Address);
+
+        await app.StopAsync();
+    }
+
+    [Theory]
+    [InlineData("0.0.0.0", EndpointBindingMode.IPv4AnyAddresses)]
+    //[InlineData("::", EndpointBindingMode.IPv6AnyAddresses)] // Need to figure out a good way to check that Ipv6 binding is supported
+    public async Task TopLevelDomainSetsAnnotationValues(string host, EndpointBindingMode endpointBindingMode)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tcs = new TaskCompletionSource();
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpsEndpoint()
+            .WithEndpoint("https", e => e.TargetHost = host, createIfNotExists: false)
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Collection(urls,
+            url => Assert.StartsWith("https://localhost:", url.Url),
+            url => Assert.StartsWith($"https://{Environment.MachineName}:", url.Url));
+
+        EndpointAnnotation endpoint = Assert.Single(projectA.Resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.NotNull(endpoint.AllocatedEndpoint);
+        Assert.Equal(endpointBindingMode, endpoint.AllocatedEndpoint.BindingMode);
+        Assert.Equal("localhost", endpoint.AllocatedEndpoint.Address);
+
+        await app.StopAsync();
     }
 
     private sealed class TestProject : IProjectMetadata

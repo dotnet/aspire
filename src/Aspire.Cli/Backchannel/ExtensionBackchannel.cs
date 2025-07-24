@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -20,7 +21,6 @@ namespace Aspire.Cli.Backchannel;
 internal interface IExtensionBackchannel
 {
     Task ConnectAsync(CancellationToken cancellationToken);
-    Task<long> PingAsync(long timestamp, CancellationToken cancellationToken);
     Task DisplayMessageAsync(string emoji, string message, CancellationToken cancellationToken);
     Task DisplaySuccessAsync(string message, CancellationToken cancellationToken);
     Task DisplaySubtleMessageAsync(string message, CancellationToken cancellationToken);
@@ -31,9 +31,9 @@ internal interface IExtensionBackchannel
     Task DisplayLinesAsync(IEnumerable<DisplayLineState> lines, CancellationToken cancellationToken);
     Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
-    Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
-    Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
-    Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
+    Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
+    Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenInIdeAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
@@ -50,24 +50,6 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
         ?? throw new InvalidOperationException(ErrorStrings.ExtensionTokenMustBeSet);
 
     private TaskCompletionSource? _connectionSetupTcs;
-
-    public async Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
-    {
-        await ConnectAsync(cancellationToken);
-
-        using var activity = _activitySource.StartActivity();
-
-        var rpc = await _rpcTaskCompletionSource.Task;
-
-        logger.LogDebug("Sent ping with timestamp {Timestamp}", timestamp);
-
-        var responseTimestamp = await rpc.InvokeWithCancellationAsync<long>(
-            "PingAsync",
-            [_token],
-            cancellationToken);
-
-        return responseTimestamp;
-    }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -399,7 +381,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
     }
 
-    public async Task<T?> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+    public async Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
         CancellationToken cancellationToken) where T : notnull
     {
         await ConnectAsync(cancellationToken);
@@ -421,11 +403,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             cancellationToken);
 
         return result is null
-            ? default
+            ? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText))
             : choicesByFormattedValue[result];
     }
 
-    public async Task<bool?> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
+    public async Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -440,11 +422,10 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             [_token, promptText, defaultValue],
             cancellationToken);
 
-        return result;
+        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
     }
 
-    public async Task<string?> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator,
-        bool required, CancellationToken cancellationToken)
+    public async Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -461,7 +442,7 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
             [_token, promptText, defaultValue, required],
             cancellationToken);
 
-        return result;
+        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
     }
 
     public async Task OpenInIdeAsync(string path, CancellationToken cancellationToken)
@@ -482,6 +463,11 @@ internal sealed class ExtensionBackchannel(ILogger<ExtensionBackchannel> logger,
 
     public async Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken)
     {
+        if (logLevel == LogLevel.None)
+        {
+            return;
+        }
+
         await ConnectAsync(cancellationToken);
 
         using var activity = _activitySource.StartActivity();

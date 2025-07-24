@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="new">Connecting to app host...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Dashboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="new">Aspire Dashboard failed to start.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">Führen Sie einen Aspire-App-Host im Entwicklungsmodus aus.</target>
@@ -22,8 +37,13 @@
         <target state="translated">IsCompatibleAppHost ist NULL.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Protokolle</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">Drücken Sie [bold]STRG+C[/], um den App-Host zu beenden und zu verlassen.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
@@ -48,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Aspire-Dashboard wird gestartet...</target>
+        <source>Starting dashboard...</source>
+        <target state="needs-review-translation">Aspire-Dashboard wird gestartet...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

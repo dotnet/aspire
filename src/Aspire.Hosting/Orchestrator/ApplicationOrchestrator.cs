@@ -24,6 +24,7 @@ internal sealed class ApplicationOrchestrator
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly DistributedApplicationExecutionContext _executionContext;
+    private readonly ParameterProcessor _parameterProcessor;
     private readonly CancellationTokenSource _shutdownCancellation = new();
 
     public ApplicationOrchestrator(DistributedApplicationModel model,
@@ -34,7 +35,8 @@ internal sealed class ApplicationOrchestrator
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,
                                    IServiceProvider serviceProvider,
-                                   DistributedApplicationExecutionContext executionContext)
+                                   DistributedApplicationExecutionContext executionContext,
+                                   ParameterProcessor parameterProcessor)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -45,6 +47,7 @@ internal sealed class ApplicationOrchestrator
         _eventing = eventing;
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
+        _parameterProcessor = parameterProcessor;
 
         dcpExecutorEvents.Subscribe<OnResourcesPreparedContext>(OnResourcesPrepared);
         dcpExecutorEvents.Subscribe<OnResourceChangedContext>(OnResourceChanged);
@@ -209,16 +212,47 @@ internal sealed class ApplicationOrchestrator
                 Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
                 if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
-                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
+                    // The allocated endpoint is used for service discovery and is the primary URL displayed to
+                    // the user. In general, if valid for a particular service binding, the allocated endpoint
+                    // will be "localhost" as that's a valid address for the .NET developer certificate. However,
+                    // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
+                    // address.
+                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
+                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
+
                     urls.Add(url);
+
+                    // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
+                        // additional URLs to indicate to the user other ways their service can be reached. If the service
+                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                        // as an additional URL.
+                        var additionalUrl = allocatedEndpoint.BindingMode switch
+                    {
+                        // The allocated address doesn't match the original target host, so include the target host as
+                        // an additional URL.
+                        EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                        // For other single address bindings ("localhost", specific IP), don't include an additional URL.
+                        EndpointBindingMode.SingleAddress => null,
+                        // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
+                        // name as an additional URL.
+                        _ => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                    };
+
+                    if (additionalUrl is not null)
+                    {
+                        urls.Add(additionalUrl);
+                    }
                 }
             }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
-            urls.AddRange(existingUrls);
         }
 
         // Run the URL callbacks
@@ -234,17 +268,6 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
-        // Clear existing URLs
-        if (existingUrls is not null)
-        {
-            var existing = existingUrls.ToArray();
-            for (var i = existing.Length - 1; i >= 0; i--)
-            {
-                var url = existing[i];
-                resource.Annotations.Remove(url);
-            }
-        }
-
         // Convert relative endpoint URLs to absolute URLs
         foreach (var url in urls)
         {
@@ -253,6 +276,20 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            foreach (var existingUrl in existingUrls)
+            {
+                resource.Annotations.Remove(existingUrl);
+
+                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
+                {
+                    // Add existing URLs back that aren't duplicates
+                    urls.Add(existingUrl);
                 }
             }
         }
@@ -269,49 +306,13 @@ internal sealed class ApplicationOrchestrator
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
+    private Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
     {
         var resource = @event.Resource;
 
-        if (resource is ParameterResource parameterResource)
-        {
-            await InitializeParameter(parameterResource).ConfigureAwait(false);
-        }
-        else if (resource is ConnectionStringResource connectionStringResource)
+        if (resource is ConnectionStringResource connectionStringResource)
         {
             InitializeConnectionString(connectionStringResource);
-        }
-
-        async Task InitializeParameter(ParameterResource parameterResource)
-        {
-            try
-            {
-                await _notificationService.PublishUpdateAsync(parameterResource, s =>
-                {
-                    return s with
-                    {
-                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, parameterResource.Value ?? "", parameterResource.Secret),
-                        State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info)
-                    };
-                })
-                .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await _notificationService.PublishUpdateAsync(parameterResource, s =>
-                {
-                    return s with
-                    {
-                        State = new("Value missing", KnownResourceStateStyles.Error),
-                        Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                        IsHidden = false
-                    };
-                })
-                .ConfigureAwait(false);
-
-                _loggerService.GetLogger(parameterResource)
-                    .LogError(ex, "Failed to initialize parameter resource {ResourceName}", parameterResource.Name);
-            }
         }
 
         void InitializeConnectionString(ConnectionStringResource connectionStringResource)
@@ -349,7 +350,7 @@ internal sealed class ApplicationOrchestrator
                         tcs.SetResult();
                         return Task.CompletedTask;
                     });
-                    
+
                     waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
                 }
             }
@@ -360,10 +361,12 @@ internal sealed class ApplicationOrchestrator
                 await PublishConnectionStringAvailableEvent(connectionStringResource, cancellationToken).ConfigureAwait(false);
                 await _notificationService.PublishUpdateAsync(connectionStringResource, s => s with
                 {
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info),
+                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success),
                 }).ConfigureAwait(false);
             }, cancellationToken);
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
@@ -467,6 +470,9 @@ internal sealed class ApplicationOrchestrator
 
     private async Task PublishResourcesInitialStateAsync(CancellationToken cancellationToken)
     {
+        // Initialize all parameter resources up front
+        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>()).ConfigureAwait(false);
+
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)
         {

@@ -45,6 +45,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(backend.Resource.Name, cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync(yarp.Resource.Name, cts.Token);
 
         var endpoint = yarp.Resource.GetEndpoint("http");

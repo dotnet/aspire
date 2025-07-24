@@ -22,7 +22,6 @@ export class RpcClient implements ICliRpcClient {
 
     getCliVersion(): Promise<string> {
         return logAsyncOperation(
-            "interaction",
             `Requesting CLI version from CLI`,
             (version: string) => `Received CLI version: ${version}`,
             async () => {
@@ -33,7 +32,6 @@ export class RpcClient implements ICliRpcClient {
 
     validatePromptInputString(input: string): Promise<ValidationResult | null> {
         return logAsyncOperation(
-            "interaction",
             `Validating prompt input string`,
             (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
             async () => {
