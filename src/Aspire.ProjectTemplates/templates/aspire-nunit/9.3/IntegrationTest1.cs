@@ -19,7 +19,8 @@ public class IntegrationTest1
     // public async Task GetWebResourceRootReturnsOkStatusCode()
     // {
     //     // Arrange
-    //     using var cancellationToken = TestContext.CurrentContext.CancellationToken;
+    //     using var cts = new CancellationTokenSource(DefaultTimeout);
+    //     var cancellationToken = cts.Token;
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
     //     appHost.Services.AddLogging(logging =>
     //     {
