@@ -698,6 +698,11 @@
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/normalize-package-data/-/normalize-package-data-2.4.4.tgz"
   integrity sha1-VuLMJsOXwDj6sOOpF6EtXFkJ6QE=
 
+"@types/retry@0.12.2":
+  version "0.12.2"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/retry/-/retry-0.12.2.tgz#ed279a64fa438bb69f2480eda44937912bb7480a"
+  integrity sha1-7SeaZPpDi7afJIDtpEk3kSu3SAo=
+
 "@types/sarif@^2.1.4":
   version "2.1.7"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/sarif/-/sarif-2.1.7.tgz"
@@ -3528,6 +3533,11 @@ is-negated-glob@^1.0.0:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-negated-glob/-/is-negated-glob-1.0.0.tgz"
   integrity sha1-aRC8pdqMleeEtXUbl2z1oQ/uNtI=
 
+is-network-error@^1.0.0:
+  version "1.1.0"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-network-error/-/is-network-error-1.1.0.tgz#d26a760e3770226d11c169052f266a4803d9c997"
+  integrity sha1-0mp2DjdwIm0RwWkFLyZqSAPZyZc=
+
 is-number@^3.0.0:
   version "3.0.0"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-number/-/is-number-3.0.0.tgz"
@@ -4626,6 +4636,15 @@ p-map@^4.0.0:
   dependencies:
     aggregate-error "^3.0.0"
 
+p-retry@^6.2.1:
+  version "6.2.1"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/p-retry/-/p-retry-6.2.1.tgz#81828f8dc61c6ef5a800585491572cc9892703af"
+  integrity sha1-gYKPjcYcbvWoAFhUkVcsyYknA68=
+  dependencies:
+    "@types/retry" "0.12.2"
+    is-network-error "^1.0.0"
+    retry "^0.13.1"
+
 p-try@^2.0.0:
   version "2.2.0"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/p-try/-/p-try-2.2.0.tgz"
@@ -5197,6 +5216,11 @@ ret@~0.1.10:
   version "0.1.15"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/ret/-/ret-0.1.15.tgz"
   integrity sha1-uKSCXVvbH8P29Twrwz+BOIaBx7w=
+
+retry@^0.13.1:
+  version "0.13.1"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/retry/-/retry-0.13.1.tgz#185b1587acf67919d63b357349e03537b2484658"
+  integrity sha1-GFsVh6z2eRnWOzVzSeA1N7JIRlg=
 
 reusify@^1.0.4:
   version "1.1.0"

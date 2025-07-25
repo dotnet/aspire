@@ -30,3 +30,12 @@ export const requiredCapability = (capability: string) => localize('aspire-vscod
 export const aspireTerminalName = localize('aspire-vscode.strings.aspireTerminalName', 'Aspire Terminal');
 export const aspireOutputChannelName = localize('aspire-vscode.strings.aspireOutputChannelName', 'Aspire Extension');
 export const fieldRequired = localize('aspire-vscode.strings.fieldRequired', 'This field is required');
+export const debugProject = (projectName: string) => localize('aspire-vscode.strings.debugProject', 'Debug {0}', projectName);
+export const watchProject = (projectName: string, projectType: string) => localize('aspire-vscode.strings.watchProject', 'Watch {0} ({1})', projectName, projectType);
+export const csharpDevKitNotInstalled = localize('csharpDevKitNotInstalled', 'C# Dev Kit is not installed. Please install it from the marketplace.');
+export const noCsharpBuildTask = localize('noCsharpBuildTask', 'No C# Dev Kit build task found.');
+export const noWatchTask = localize('noWatchTask', 'No watch task found. Please ensure a watch task is defined in your workspace.');
+export const buildFailedWithExitCode = (exitCode: number) => localize('buildFailedWithExitCode', 'Build failed with exit code {0}', exitCode);
+export const buildSucceeded = (projectFile: string) => localize('buildSucceeded', 'Build succeeded for project {0}. Attempting to locate output dll...', projectFile);
+export const noOutputFromMsbuild = localize('noOutputFromMsbuild', 'No output from msbuild');
+export const failedToGetTargetPath = (err: string) => localize('failedToGetTargetPath', 'Failed to get TargetPath: {0}', err);

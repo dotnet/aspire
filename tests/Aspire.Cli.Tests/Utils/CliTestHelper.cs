@@ -78,6 +78,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
+        services.AddSingleton(options.ExtensionRpcTargetFactory);
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
@@ -88,6 +89,7 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
+        services.AddTransient(options.ExtensionBackchannelFactory);
 
         return services;
     }
@@ -225,6 +227,20 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new AppHostBackchannel(logger, telemetry);
+    };
+
+    public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new ExtensionRpcTarget(configuration);
+    };
+
+    public Func<IServiceProvider, IExtensionBackchannel> ExtensionBackchannelFactory { get; set; } = serviceProvider =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ExtensionBackchannel>>();
+        var rpcTarget = serviceProvider.GetRequiredService<IExtensionRpcTarget>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new ExtensionBackchannel(logger, rpcTarget, configuration);
     };
 
     public Func<IServiceProvider, IFeatures> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -161,4 +161,7 @@
   <data name="DashboardFailedToStart" xml:space="preserve">
     <value>Aspire Dashboard failed to start.</value>
   </data>
+  <data name="PromptForDebugging" xml:space="preserve">
+    <value>Do you want to start a debugging session?</value>
+  </data>
 </root>
