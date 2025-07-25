@@ -32,11 +32,9 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
                 return false;
             }
             
-            // Check if the process start time matches the expected start time.
-            // We allow for a small tolerance (1 second) to account for timing differences.
+            // Check if the process start time matches the expected start time exactly.
             var actualStartTimeUnix = ((DateTimeOffset)process.StartTime).ToUnixTimeSeconds();
-            var timeDifference = Math.Abs(actualStartTimeUnix - expectedStartTimeUnix);
-            return timeDifference <= 1;
+            return actualStartTimeUnix == expectedStartTimeUnix;
         }
         catch
         {
