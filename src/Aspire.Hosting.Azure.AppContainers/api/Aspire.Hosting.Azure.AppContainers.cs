@@ -28,6 +28,10 @@ namespace Aspire.Hosting
         public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzureLogAnalyticsWorkspace(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureLogAnalyticsWorkspaceResource> workspaceBuilder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, bool enable = true) { throw null; }
     }
 
     public static partial class AzureContainerAppProjectExtensions
@@ -55,7 +59,7 @@ namespace Aspire.Hosting.Azure
 
 namespace Aspire.Hosting.Azure.AppContainers
 {
-    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
         public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -64,5 +68,9 @@ namespace Aspire.Hosting.Azure.AppContainers
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }

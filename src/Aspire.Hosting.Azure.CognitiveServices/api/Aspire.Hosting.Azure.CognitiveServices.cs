@@ -72,6 +72,8 @@ namespace Aspire.Hosting.ApplicationModel
         [System.Obsolete("AzureOpenAIDeployment is deprecated.")]
         public System.Collections.Generic.IReadOnlyList<AzureOpenAIDeployment> Deployments { get { throw null; } }
 
+        public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
     }
 }

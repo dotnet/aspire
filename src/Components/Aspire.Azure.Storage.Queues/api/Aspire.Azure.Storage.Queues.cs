@@ -8,7 +8,12 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Azure.Storage.Queues
 {
-    public sealed partial class AzureStorageQueuesSettings
+    public sealed partial class AzureStorageQueueSettings : AzureStorageQueuesSettings
+    {
+        public string? QueueName { get { throw null; } set { } }
+    }
+
+    public partial class AzureStorageQueuesSettings
     {
         public string? ConnectionString { get { throw null; } set { } }
 
@@ -26,8 +31,18 @@ namespace Microsoft.Extensions.Hosting
 {
     public static partial class AspireQueueStorageExtensions
     {
+        public static void AddAzureQueue(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueueSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
+
+        [System.Obsolete("Use AddAzureQueueServiceClient instead.")]
         public static void AddAzureQueueClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueuesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueServiceClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
 
+        public static void AddAzureQueueServiceClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueuesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueServiceClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
+
+        public static void AddKeyedAzureQueue(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueueSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
+
+        [System.Obsolete("Use AddKeyedAzureQueueServiceClient instead.")]
         public static void AddKeyedAzureQueueClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueuesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueServiceClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
+
+        public static void AddKeyedAzureQueueServiceClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.Storage.Queues.AzureStorageQueuesSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.Storage.Queues.QueueServiceClient, global::Azure.Storage.Queues.QueueClientOptions>>? configureClientBuilder = null) { }
     }
 }
