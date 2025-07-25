@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 public class TestProgram : IDisposable
 {
-    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+    private const string AspireTestContainerRegistry = "dotnetdhmirror-f8bzbjakh8cga6ab.azurecr.io";
 
     private TestProgram(
         string testName,

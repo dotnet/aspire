@@ -33,7 +33,7 @@ public class DistributedApplicationTests
     private readonly ITestOutputHelper _testOutputHelper;
 
     private const string ReplicaIdRegex = @"[\w]+"; // Matches a replica ID that is part of a resource name.
-    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+    private const string AspireTestContainerRegistry = "dotnetdhmirror-f8bzbjakh8cga6ab.azurecr.io";
     private const string RedisImageSource = $"{AspireTestContainerRegistry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}";
 
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)

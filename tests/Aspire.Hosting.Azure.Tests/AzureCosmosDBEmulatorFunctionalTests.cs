@@ -76,7 +76,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
             })
             .Build();
 
-        // @sebastienros: we won't use netaspireci.azurecr.io since the image is on mcr.microsoft.com, so Create is the way to go
+        // @sebastienros: we won't use dotnetdhmirror-f8bzbjakh8cga6ab.azurecr.io since the image is on mcr.microsoft.com, so Create is the way to go
         using var builder = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
 
         var databaseName = "db1";

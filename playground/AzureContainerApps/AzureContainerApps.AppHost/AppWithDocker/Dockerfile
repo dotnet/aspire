@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM netaspireci.azurecr.io/library/python:3.8-slim
+FROM dotnetdhmirror-f8bzbjakh8cga6ab.azurecr.io/library/python:3.8-slim
 
 # Set the working directory in the container
 WORKDIR /app
