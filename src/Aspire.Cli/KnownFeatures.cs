@@ -10,4 +10,5 @@ internal static class KnownFeatures
     public static string UpdateNotificationsEnabled => "updateNotificationsEnabled";
     public static string MinimumSdkCheckEnabled => "minimumSdkCheckEnabled";
     public static string DeployCommandEnabled => "deployCommandEnabled";
+    public static string ExecCommandEnabled => "execCommandEnabled";
 }
