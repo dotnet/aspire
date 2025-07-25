@@ -46,7 +46,7 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 
-    protected override string GetDefaultOutputPath(ArgumentResult result) => Path.Combine(Environment.CurrentDirectory);
+    protected override string CreateDefaultOutputPath(ArgumentResult result) => Path.Combine(Environment.CurrentDirectory);
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
         ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens];

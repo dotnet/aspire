@@ -256,6 +256,87 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task DeployCommandUsesTemporaryDirectoryAsDefaultOutputPath()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        string? capturedOutputPath = null;
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    // Simulate a successful build
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    // Simulate a successful app host information retrieval
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                        {
+                            return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                        },
+
+                    // Capture the output path used in the arguments
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                        {
+                            // Find the --output-path argument and capture its value
+                            var outputPathIndex = Array.IndexOf(args, "--output-path");
+                            if (outputPathIndex >= 0 && outputPathIndex + 1 < args.Length)
+                            {
+                                capturedOutputPath = args[outputPathIndex + 1];
+                            }
+
+                            var deployModeCompleted = new TaskCompletionSource();
+                            var backchannel = new TestAppHostBackchannel
+                            {
+                                RequestStopAsyncCalled = deployModeCompleted
+                            };
+                            backchannelCompletionSource?.SetResult(backchannel);
+                            await deployModeCompleted.Task;
+                            return 0;
+                        }
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestDeployCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act - run deploy without specifying --output-path
+        var result = command.Parse("deploy");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(capturedOutputPath);
+        
+        // Verify the output path is in the temporary directory
+        var tempPath = Path.GetTempPath();
+        Assert.StartsWith(tempPath, capturedOutputPath);
+        
+        // Verify it has the expected naming pattern
+        var outputDirName = Path.GetFileName(capturedOutputPath);
+        Assert.StartsWith("aspire-deploy-", outputDirName);
+        
+        // Verify it's not the old default (current directory + "deploy")
+        var currentDir = Environment.CurrentDirectory;
+        var oldDefaultPath = Path.Combine(currentDir, "deploy");
+        Assert.NotEqual(oldDefaultPath, capturedOutputPath);
+    }
 }
 
 internal sealed class TestDeployCommandPrompter(IInteractionService interactionService) : PublishCommandPrompter(interactionService)
