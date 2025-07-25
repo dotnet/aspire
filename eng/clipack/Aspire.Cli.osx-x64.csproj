@@ -2,6 +2,9 @@
   <PropertyGroup>
     <CliRuntime>osx-x64</CliRuntime>
     <CliPlatformType>Unix</CliPlatformType>
+
+    <!-- osx-x64:        Mach-O 64-bit executable x86_64 -->
+    <FileSignatureRegex>Mach-O 64-bit executable x86_64</FileSignatureRegex>
   </PropertyGroup>
 
   <Import Project="Common.projitems" />

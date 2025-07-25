@@ -31,6 +31,10 @@
     <PublishAot>false</PublishAot>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <LinkerArg Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'" Include="--target=x86_64-alpine-linux-musl" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="System.CommandLine" />
