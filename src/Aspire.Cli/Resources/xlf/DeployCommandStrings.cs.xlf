@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
-        <target state="new">DEPLOYMENT COMPLETED</target>
+        <target state="translated">NASAZENÍ SE DOKONČILO.</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>DEPLOYMENT FAILED</source>
-        <target state="new">DEPLOYMENT FAILED</target>
+        <target state="translated">NASAZENÍ SELHALO.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
