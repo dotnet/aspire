@@ -1,6 +1,6 @@
 # Aspire CLI Command Reference
 
-The Aspire CLI is used to create, run, and publish Aspire-based applications.
+The Aspire CLI is used to create, run, and publish Aspire-based applications. The CLI is primarily interactive, providing prompts and guidance for most operations.
 
 ## Usage
 
@@ -49,15 +49,8 @@ aspire new [command] [options]
 - `-s, --source` - The NuGet source to use for the project templates
 - `-v, --version` - The version of the project templates to use
 
-**Template Commands:**
-- `aspire-starter` - Starter template
-- `aspire` - AppHost and service defaults
-- `aspire-apphost` - AppHost
-- `aspire-servicedefaults` - Service defaults
-- `aspire-test` - Integration tests
-
 **Description:**
-Creates a new Aspire project using the specified template. If no template is specified, prompts for template selection. Pulls the latest Aspire templates and creates the project using `dotnet new`.
+Creates a new Aspire project through an interactive template selection process. Pulls the latest Aspire templates and creates the project using `dotnet new`.
 
 ### add
 
