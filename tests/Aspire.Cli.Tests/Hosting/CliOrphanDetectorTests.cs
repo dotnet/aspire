@@ -52,11 +52,12 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     public async Task CliOrphanDetectorUsesRobustDetectionWhenStartTimeProvided()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
+        var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> 
             { 
                 { "ASPIRE_CLI_PID", "1111" },
-                { "ASPIRE_CLI_STARTED", expectedStartTime.ToBinary().ToString() }
+                { "ASPIRE_CLI_STARTED", expectedStartTimeUnix.ToString() }
             })    
             .Build();
 
@@ -95,11 +96,12 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     public async Task CliOrphanDetectorContinuesRunningWhenProcessAliveWithCorrectStartTime()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
+        var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> 
             { 
                 { "ASPIRE_CLI_PID", "1111" },
-                { "ASPIRE_CLI_STARTED", expectedStartTime.ToBinary().ToString() }
+                { "ASPIRE_CLI_STARTED", expectedStartTimeUnix.ToString() }
             })    
             .Build();
         var fakeTimeProvider = new FakeTimeProvider(DateTimeOffset.Now);
@@ -138,11 +140,12 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     public async Task CliOrphanDetectorStopsWhenProcessHasDifferentStartTime()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
+        var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> 
             { 
                 { "ASPIRE_CLI_PID", "1111" },
-                { "ASPIRE_CLI_STARTED", expectedStartTime.ToBinary().ToString() }
+                { "ASPIRE_CLI_STARTED", expectedStartTimeUnix.ToString() }
             })    
             .Build();
 

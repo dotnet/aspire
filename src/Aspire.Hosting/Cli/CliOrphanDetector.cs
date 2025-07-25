@@ -22,7 +22,7 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
         }
     };
 
-    internal Func<int, DateTime, bool> IsProcessRunningWithStartTime { get; set; } = (int pid, DateTime expectedStartTime) =>
+    internal Func<int, long, bool> IsProcessRunningWithStartTime { get; set; } = (int pid, long expectedStartTimeUnix) =>
     {
         try
         {
@@ -34,9 +34,9 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             
             // Check if the process start time matches the expected start time.
             // We allow for a small tolerance (1 second) to account for timing differences.
-            var actualStartTime = process.StartTime;
-            var timeDifference = Math.Abs((actualStartTime - expectedStartTime).TotalSeconds);
-            return timeDifference <= 1.0;
+            var actualStartTimeUnix = ((DateTimeOffset)process.StartTime).ToUnixTimeSeconds();
+            var timeDifference = Math.Abs(actualStartTimeUnix - expectedStartTimeUnix);
+            return timeDifference <= 1;
         }
         catch (ArgumentException)
         {
@@ -69,19 +69,11 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             }
 
             // Try to get the CLI process start time for robust orphan detection
-            DateTime? expectedStartTime = null;
+            long? expectedStartTimeUnix = null;
             if (configuration[KnownConfigNames.CliProcessStarted] is { } startTimeString && 
-                long.TryParse(startTimeString, out var startTimeBinary))
+                long.TryParse(startTimeString, out var startTimeUnix))
             {
-                try
-                {
-                    expectedStartTime = DateTime.FromBinary(startTimeBinary);
-                }
-                catch
-                {
-                    // If we can't parse the start time, fall back to PID-only logic
-                    expectedStartTime = null;
-                }
+                expectedStartTimeUnix = startTimeUnix;
             }
 
             using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), timeProvider);
@@ -90,10 +82,10 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             {
                 bool isProcessStillRunning;
                 
-                if (expectedStartTime.HasValue)
+                if (expectedStartTimeUnix.HasValue)
                 {
                     // Use robust process checking with start time verification
-                    isProcessStillRunning = IsProcessRunningWithStartTime(pid, expectedStartTime.Value);
+                    isProcessStillRunning = IsProcessRunningWithStartTime(pid, expectedStartTimeUnix.Value);
                 }
                 else
                 {
