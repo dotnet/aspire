@@ -46,6 +46,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
+    internal Func<DateTime> GetCurrentProcessStartTime { get; set; } = () =>
+    {
+        try
+        {
+            return Process.GetCurrentProcess().StartTime;
+        }
+        catch
+        {
+            // Fallback to current time if unable to get process start time
+            return DateTime.Now;
+        }
+    };
+
     private string GetMsBuildServerValue()
     {
         return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
@@ -436,6 +449,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // the orphan detector will allow the CLI to keep running. If the environment variable does
         // not exist the orphan detector will exit.
         startInfo.EnvironmentVariables[KnownConfigNames.CliProcessId] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
+
+        // Set the CLI process start time for robust orphan detection to prevent PID reuse issues.
+        // The AppHost will verify both PID and start time to ensure it's monitoring the correct process.
+        startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTime().ToBinary().ToString(CultureInfo.InvariantCulture);
 
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";

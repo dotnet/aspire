@@ -22,6 +22,41 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
         }
     };
 
+    internal Func<int, DateTime, bool> IsProcessRunningWithStartTime { get; set; } = (int pid, DateTime expectedStartTime) =>
+    {
+        try
+        {
+            var process = Process.GetProcessById(pid);
+            if (process.HasExited)
+            {
+                return false;
+            }
+            
+            // Check if the process start time matches the expected start time.
+            // We allow for a small tolerance (1 second) to account for timing differences.
+            var actualStartTime = process.StartTime;
+            var timeDifference = Math.Abs((actualStartTime - expectedStartTime).TotalSeconds);
+            return timeDifference <= 1.0;
+        }
+        catch (ArgumentException)
+        {
+            // If Process.GetProcessById throws it means the process is not running.
+            return false;
+        }
+        catch
+        {
+            // If we can't get the start time for any reason, fall back to PID-only check
+            try
+            {
+                return !Process.GetProcessById(pid).HasExited;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+        }
+    };
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -33,11 +68,40 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
                 return;
             }
 
+            // Try to get the CLI process start time for robust orphan detection
+            DateTime? expectedStartTime = null;
+            if (configuration[KnownConfigNames.CliProcessStarted] is { } startTimeString && 
+                long.TryParse(startTimeString, out var startTimeBinary))
+            {
+                try
+                {
+                    expectedStartTime = DateTime.FromBinary(startTimeBinary);
+                }
+                catch
+                {
+                    // If we can't parse the start time, fall back to PID-only logic
+                    expectedStartTime = null;
+                }
+            }
+
             using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), timeProvider);
 
             do
             {
-                if (!IsProcessRunning(pid))
+                bool isProcessStillRunning;
+                
+                if (expectedStartTime.HasValue)
+                {
+                    // Use robust process checking with start time verification
+                    isProcessStillRunning = IsProcessRunningWithStartTime(pid, expectedStartTime.Value);
+                }
+                else
+                {
+                    // Fall back to PID-only logic for backwards compatibility
+                    isProcessStillRunning = IsProcessRunning(pid);
+                }
+
+                if (!isProcessStillRunning)
                 {
                     lifetime.StopApplication();
                     return;
