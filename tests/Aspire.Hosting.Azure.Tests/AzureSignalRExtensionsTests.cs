@@ -65,4 +65,19 @@ public class AzureSignalRExtensionsTests
         Assert.True(signalR.Resource.IsEmulator());
         Assert.Contains(signalR.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureSignalRResource()
+    {
+        // Arrange
+        var signalRResource = new AzureSignalRResource("test-signalr", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(signalRResource, "test-signalr");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = signalRResource.AddAsExistingResource(infrastructure);
+        var secondResult = signalRResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

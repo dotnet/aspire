@@ -95,4 +95,19 @@ public class AzureSearchExtensionsTests(ITestOutputHelper output)
         output.WriteLine(searchRolesManifest.BicepText);
         Assert.Equal(expectedBicep, searchRolesManifest.BicepText);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureSearchResource()
+    {
+        // Arrange
+        var searchResource = new AzureSearchResource("test-search", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(searchResource, "test-search");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = searchResource.AddAsExistingResource(infrastructure);
+        var secondResult = searchResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

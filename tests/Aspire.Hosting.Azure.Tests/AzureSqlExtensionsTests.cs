@@ -296,6 +296,21 @@ public class AzureSqlExtensionsTests
 
         await Verify(manifest.BicepText, extension: "bicep");
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureSqlServerResource()
+    {
+        // Arrange
+        var sqlResource = new AzureSqlServerResource("test-sql", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(sqlResource, "test-sql");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = sqlResource.AddAsExistingResource(infrastructure);
+        var secondResult = sqlResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
     
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);

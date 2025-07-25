@@ -61,7 +61,19 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var csa = CognitiveServicesAccount.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a CognitiveServicesAccount with the same identifier already exists
+        var existingCsa = resources.OfType<CognitiveServicesAccount>().SingleOrDefault(csa => csa.BicepIdentifier == bicepIdentifier);
+        
+        if (existingCsa is not null)
+        {
+            return existingCsa;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var csa = CognitiveServicesAccount.FromExisting(bicepIdentifier);
         csa.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(csa);
         return csa;

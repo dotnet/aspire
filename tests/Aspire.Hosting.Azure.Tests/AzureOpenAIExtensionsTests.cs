@@ -106,4 +106,19 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
         output.WriteLine(openaiRolesManifest.BicepText);
         Assert.Equal(expectedBicep, openaiRolesManifest.BicepText);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureOpenAIResource()
+    {
+        // Arrange
+        var openAIResource = new AzureOpenAIResource("test-openai", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(openAIResource, "test-openai");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = openAIResource.AddAsExistingResource(infrastructure);
+        var secondResult = openAIResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

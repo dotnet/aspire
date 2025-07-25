@@ -113,7 +113,19 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = PostgreSqlFlexibleServer.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a PostgreSqlFlexibleServer with the same identifier already exists
+        var existingStore = resources.OfType<PostgreSqlFlexibleServer>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = PostgreSqlFlexibleServer.FromExisting(bicepIdentifier);
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;

@@ -214,6 +214,21 @@ public class AzureRedisExtensionsTests
         await Verify(manifest.BicepText, extension: "bicep");
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureRedisCacheResource()
+    {
+        // Arrange
+        var redisResource = new AzureRedisCacheResource("test-redis", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(redisResource, "test-redis");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = redisResource.AddAsExistingResource(infrastructure);
+        var secondResult = redisResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

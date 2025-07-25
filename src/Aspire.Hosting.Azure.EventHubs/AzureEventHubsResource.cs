@@ -127,7 +127,19 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var hubs = EventHubsNamespace.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if an EventHubsNamespace with the same identifier already exists
+        var existingHubs = resources.OfType<EventHubsNamespace>().SingleOrDefault(hubs => hubs.BicepIdentifier == bicepIdentifier);
+        
+        if (existingHubs is not null)
+        {
+            return existingHubs;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var hubs = EventHubsNamespace.FromExisting(bicepIdentifier);
         hubs.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(hubs);
         return hubs;

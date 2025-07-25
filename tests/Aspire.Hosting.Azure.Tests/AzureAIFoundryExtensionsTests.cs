@@ -147,4 +147,19 @@ public class AzureAIFoundryExtensionsTests
         await Verify(manifest.BicepText, extension: "bicep")
             .AppendContentAsFile(rolesManifest.BicepText, "bicep");
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAIFoundryResource()
+    {
+        // Arrange
+        var aiFoundryResource = new AzureAIFoundryResource("test-foundry", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(aiFoundryResource, "test-foundry");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+        var secondResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

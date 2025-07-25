@@ -62,7 +62,19 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = KeyVaultService.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a KeyVaultService with the same identifier already exists
+        var existingStore = resources.OfType<KeyVaultService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = KeyVaultService.FromExisting(bicepIdentifier);
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;

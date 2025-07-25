@@ -485,4 +485,19 @@ public class AzurePostgresExtensionsTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzurePostgresFlexibleServerResource()
+    {
+        // Arrange
+        var postgresResource = new AzurePostgresFlexibleServerResource("test-postgres", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(postgresResource, "test-postgres");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = postgresResource.AddAsExistingResource(infrastructure);
+        var secondResult = postgresResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

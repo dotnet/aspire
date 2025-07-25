@@ -350,6 +350,21 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.BicepText, extension: "bicep");
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureWebPubSubResource()
+    {
+        // Arrange
+        var webPubSubResource = new AzureWebPubSubResource("test-webpubsub", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(webPubSubResource, "test-webpubsub");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = webPubSubResource.AddAsExistingResource(infrastructure);
+        var secondResult = webPubSubResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

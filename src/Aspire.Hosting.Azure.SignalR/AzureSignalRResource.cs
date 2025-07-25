@@ -43,7 +43,19 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = SignalRService.FromExisting(this.GetBicepIdentifier());
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a SignalRService with the same identifier already exists
+        var existingStore = resources.OfType<SignalRService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = SignalRService.FromExisting(bicepIdentifier);
         store.Name = NameOutputReference.AsProvisioningParameter(infra);
         infra.Add(store);
         return store;
