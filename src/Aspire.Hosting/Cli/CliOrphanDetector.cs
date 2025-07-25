@@ -38,22 +38,11 @@ internal sealed class CliOrphanDetector(IConfiguration configuration, IHostAppli
             var timeDifference = Math.Abs(actualStartTimeUnix - expectedStartTimeUnix);
             return timeDifference <= 1;
         }
-        catch (ArgumentException)
-        {
-            // If Process.GetProcessById throws it means the process is not running.
-            return false;
-        }
         catch
         {
-            // If we can't get the start time for any reason, fall back to PID-only check
-            try
-            {
-                return !Process.GetProcessById(pid).HasExited;
-            }
-            catch (ArgumentException)
-            {
-                return false;
-            }
+            // If we can't get the process and/or can't get the start time, 
+            // then we interpret both exceptions as the process not being there.
+            return false;
         }
     };
 
