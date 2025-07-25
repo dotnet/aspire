@@ -31,7 +31,7 @@ Examples:
       </trans-unit>
       <trans-unit id="NoCommandSpecified">
         <source>Command is not specified.</source>
-        <target state="new">Command is not specified.</target>
+        <target state="translated">コマンドが指定されていません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -41,7 +41,7 @@ Examples:
       </trans-unit>
       <trans-unit id="Running">
         <source>Running exec...</source>
-        <target state="new">Running exec...</target>
+        <target state="translated">exec を実行しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartTargetResourceArgumentDescription">
@@ -51,7 +51,7 @@ Examples:
       </trans-unit>
       <trans-unit id="StoppingAppHost">
         <source>Stopping app host...</source>
-        <target state="new">Stopping app host...</target>
+        <target state="translated">アプリ ホストを停止しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetResourceArgumentDescription">
