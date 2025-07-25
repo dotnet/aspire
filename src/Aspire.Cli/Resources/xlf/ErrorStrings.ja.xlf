@@ -152,6 +152,11 @@
         <target state="translated">指定されたサポート対象外のロケール {0} は使用されません。サポート対象のロケールは {1} です。</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
+      <trans-unit id="UnsupportedProjectFileType">
+        <source>The project file '{0}' is not supported. Only .csproj and .cs files are supported.</source>
+        <target state="new">The project file '{0}' is not supported. Only .csproj and .cs files are supported.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -152,6 +152,11 @@
         <target state="translated">Le impostazioni locali {0} non supportate specificate non verranno utilizzate. Le impostazioni locali supportate sono: {1}.</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
+      <trans-unit id="UnsupportedProjectFileType">
+        <source>The project file '{0}' is not supported. Only .csproj and .cs files are supported.</source>
+        <target state="new">The project file '{0}' is not supported. Only .csproj and .cs files are supported.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

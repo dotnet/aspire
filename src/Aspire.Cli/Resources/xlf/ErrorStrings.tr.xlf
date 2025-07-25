@@ -152,6 +152,11 @@
         <target state="translated">Sağlanan desteklenmeyen {0} yerel ayarı kullanılmayacaktır. Desteklenen yerel ayarlar: {1}.</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
+      <trans-unit id="UnsupportedProjectFileType">
+        <source>The project file '{0}' is not supported. Only .csproj and .cs files are supported.</source>
+        <target state="new">The project file '{0}' is not supported. Only .csproj and .cs files are supported.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

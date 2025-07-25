@@ -131,6 +131,14 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
 
+            // Validate that the file type is supported (.csproj or .cs)
+            var extension = projectFile.Extension.ToLowerInvariant();
+            if (extension != ".csproj" && extension != ".cs")
+            {
+                logger.LogError("Project file {ProjectFile} has unsupported extension {Extension}.", projectFile.FullName, extension);
+                throw new ProjectLocatorException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedProjectFileType, projectFile.FullName));
+            }
+
             logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
             return projectFile;
         }

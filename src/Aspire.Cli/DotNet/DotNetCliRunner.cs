@@ -24,6 +24,7 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> RunSingleFileAsync(FileInfo csFile, string[] args, IDictionary<string, string>? env, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -221,6 +222,21 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             env: finalEnv,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
+            options: options,
+            cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> RunSingleFileAsync(FileInfo csFile, string[] args, IDictionary<string, string>? env, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["run", csFile.FullName, "--", ..args];
+
+        return await ExecuteAsync(
+            args: cliArgs,
+            env: env,
+            workingDirectory: csFile.Directory!,
+            backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
     }

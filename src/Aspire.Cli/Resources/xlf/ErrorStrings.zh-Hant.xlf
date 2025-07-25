@@ -152,6 +152,11 @@
         <target state="translated">提供的不支援地區設定 {0} 將不會被使用。支援的地區設定為: {1}。</target>
         <note>{1} is a comma-separated list of locales.</note>
       </trans-unit>
+      <trans-unit id="UnsupportedProjectFileType">
+        <source>The project file '{0}' is not supported. Only .csproj and .cs files are supported.</source>
+        <target state="new">The project file '{0}' is not supported. Only .csproj and .cs files are supported.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

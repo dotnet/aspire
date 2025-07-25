@@ -97,6 +97,9 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
+            // Check if this is a .cs file (single-file apphost)
+            var isCsFile = effectiveAppHostProjectFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
+
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");
@@ -112,29 +115,40 @@ internal sealed class RunCommand : BaseCommand
 
             var watch = parseResult.GetValue<bool>("--watch");
 
-            if (!watch)
+            // For .cs files, watch mode is not supported  
+            if (isCsFile && watch)
             {
-                var buildOptions = new DotNetCliRunnerInvocationOptions
-                {
-                    StandardOutputCallback = buildOutputCollector.AppendOutput,
-                    StandardErrorCallback = buildOutputCollector.AppendError,
-                };
-
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                if (buildExitCode != 0)
-                {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
-                }
+                _interactionService.DisplayError("--watch is not supported for single-file .cs apphosts.");
+                return ExitCodeConstants.InvalidCommand;
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
-
-            if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
+            // For .cs files, skip build and compatibility checks
+            if (!isCsFile)
             {
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
+                if (!watch)
+                {
+                    var buildOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = buildOutputCollector.AppendOutput,
+                        StandardErrorCallback = buildOutputCollector.AppendError,
+                    };
+
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
+                    }
+                }
+
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+
+                if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
+                {
+                    return ExitCodeConstants.FailedToDotnetRunAppHost;
+                }
             }
 
             var runOptions = new DotNetCliRunnerInvocationOptions
@@ -143,9 +157,23 @@ internal sealed class RunCommand : BaseCommand
                 StandardErrorCallback = runOutputCollector.AppendError,
             };
 
-            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
-
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
+            // For .cs files, run directly without backchannel or dashboard features
+            if (isCsFile)
+            {
+                var exitCode = await _runner.RunSingleFileAsync(
+                    effectiveAppHostProjectFile,
+                    unmatchedTokens,
+                    env,
+                    runOptions,
+                    cancellationToken);
+
+                return exitCode;
+            }
+
+            // For .csproj files, use the full AppHost experience
+            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,

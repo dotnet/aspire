@@ -211,4 +211,7 @@
   <data name="NoSelectionMade" xml:space="preserve">
     <value>Input was required for prompt '{0}' but not provided.</value>
   </data>
+  <data name="UnsupportedProjectFileType" xml:space="preserve">
+    <value>The project file '{0}' is not supported. Only .csproj and .cs files are supported.</value>
+  </data>
 </root>

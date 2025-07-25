@@ -226,5 +226,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoSelectionMade", resourceCulture);
             }
         }
+        
+        public static string UnsupportedProjectFileType {
+            get {
+                return ResourceManager.GetString("UnsupportedProjectFileType", resourceCulture);
+            }
+        }
     }
 }
