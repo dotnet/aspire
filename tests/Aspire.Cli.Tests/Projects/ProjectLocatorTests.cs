@@ -290,7 +290,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var config = new ConfigurationBuilder().Build();
         var configurationService = new ConfigurationService(config, workspace.WorkspaceRoot, globalSettingsFile);
-        
+
         var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, interactionService, configurationService, new AspireCliTelemetry());
 
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
@@ -336,6 +336,11 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         {
             // For test purposes, just return null (not found)
             return Task.FromResult<string?>(null);
+        }
+
+        public string GetSettingsFilePath(bool isGlobal)
+        {
+            return string.Empty;
         }
     }
 }
