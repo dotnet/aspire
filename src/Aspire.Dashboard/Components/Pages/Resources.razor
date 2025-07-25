@@ -31,7 +31,8 @@
                           slot="end"
                           Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
                           @bind-Value:after="HandleSearchFilterChangedAsync" />
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+
+            <DesktopToolbarDivider />
 
             @if (ViewportInformation.IsDesktop)
             {
@@ -53,13 +54,12 @@
             }
             else
             {
-                @if (HasAnyChildResources())
+                foreach (var item in _resourcesMenuItems)
                 {
-                    var showExpandAllButton = HasCollapsedResources();
-
-                    <FluentButton IconStart="@(showExpandAllButton ? new Icons.Regular.Size16.Eye() : new Icons.Regular.Size16.EyeOff())"
-                                  OnClick="@(async () => { await OnToggleCollapseAll(); _contentLayout?.CloseMobileToolbarAsync(); })">
-                        @(showExpandAllButton ? Loc[nameof(Dashboard.Resources.Resources.ResourceExpandAllChildren)] : Loc[nameof(Dashboard.Resources.Resources.ResourceCollapseAllChildren)])
+                    <FluentButton IconStart="@item.Icon"
+                                  OnClick="@(async () => { await item.OnClick!(); _contentLayout?.CloseMobileToolbarAsync(); })"
+                                  Disabled="@item.IsDisabled">
+                        @item.Text
                     </FluentButton>
                 }
 

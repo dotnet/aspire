@@ -38,9 +38,10 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreStructuredLogsPaused(out _)" IsPausedChanged="@PauseManager.SetStructuredLogsPaused" />
-            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
-                                HandleClearSignal="ClearStructureLogs" />
+            <SignalsActionsDisplay HandleClearSignal="@ClearStructureLogs"
+                                  IsPaused="@PauseManager.AreStructuredLogsPaused(out _)"
+                                  OnPausedChanged="@PauseManager.SetStructuredLogsPaused"
+                                  SelectedResource="@PageViewModel.SelectedApplication" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
@@ -49,30 +50,22 @@
                           Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                           title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                           slot="end" />
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            @if (ViewportInformation.IsDesktop)
-            {
-                <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
-                    <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
-                    <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
 
-                    <LogLevelSelect IncludeLabel="false"
-                                    @bind-LogLevel="@PageViewModel.SelectedLogLevel"
-                                    LogLevels="@_logLevels"
-                                    HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
-                </div>
-            }
-            else
-            {
-                <LogLevelSelect IncludeLabel="true"
-                                @bind-LogLevel="@PageViewModel.SelectedLogLevel"
-                                LogLevels="@_logLevels"
-                                HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
-            }
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <DesktopToolbarDivider />
+
+            <LogLevelSelect slot="end"
+                            @bind-LogLevel="@PageViewModel.SelectedLogLevel"
+                            LogLevels="@_logLevels"
+                            HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
+
+            <DesktopToolbarDivider />
+
             @if (ViewModel.Filters.Count == 0)
             {
-                <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
+                if (ViewportInformation.IsDesktop)
+                {
+                    <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
+                }
             }
             else
             {
@@ -82,17 +75,22 @@
                     </FluentCounterBadge>
                 </div>
             }
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            @if (ViewportInformation.IsDesktop)
-            {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" /></FluentButton>
-            }
-            else
-            {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size20.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
-                </FluentButton>
-            }
+
+            <DesktopToolbarDivider />
+
+            <FluentButton slot="end" Appearance="Appearance.Stealth"
+                          aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]"
+                          OnClick="() => OpenFilterAsync(null)">
+                @if (ViewportInformation.IsDesktop)
+                {
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Filter())"/>
+                }
+                else
+                {
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size20.Filter())"/>
+                    @FilterLoc[nameof(StructuredFiltering.AddFilter)]
+                }
+            </FluentButton>
         </ToolbarSection>
 
         <MainSection>

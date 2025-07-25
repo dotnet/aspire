@@ -1,0 +1,9 @@
+﻿@if (ViewportInformation.IsDesktop)
+{
+    <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+}
+
+@code {
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+}

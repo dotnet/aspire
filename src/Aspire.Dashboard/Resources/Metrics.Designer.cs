@@ -57,12 +57,6 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string MetricsSelectADuration {
-            get {
-                return ResourceManager.GetString("MetricsSelectADuration", resourceCulture);
-            }
-        }
-        
         public static string MetricsSelectInstrument {
             get {
                 return ResourceManager.GetString("MetricsSelectInstrument", resourceCulture);
@@ -128,7 +122,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastTwelveHours", resourceCulture);
             }
         }
-
         
         public static string MetricsInsturementDescriptionGridNameColumnHeader {
             get {

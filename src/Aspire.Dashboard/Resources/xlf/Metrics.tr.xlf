@@ -67,11 +67,6 @@
         <target state="translated">{0} ölçümler</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="MetricsSelectADuration">
-        <source>Select a duration</source>
-        <target state="translated">Süre seçin</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
         <target state="translated">Ölçümleri görüntülemek için bir kaynak seçin</target>

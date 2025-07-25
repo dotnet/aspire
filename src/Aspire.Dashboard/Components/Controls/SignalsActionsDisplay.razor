@@ -1,0 +1,41 @@
+﻿@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Storage
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+@if (ViewportInformation.IsDesktop)
+{
+    <PauseIncomingDataSwitch IsPaused="@IsPaused" IsPausedChanged="@OnPausedChanged"/>
+    <ClearSignalsButton SelectedResource="@SelectedResource"
+                        HandleClearSignal="@HandleClearSignal"/>
+}
+else
+{
+    <FluentLabel>@ControlsStringsLoc[nameof(ControlsStrings.ResourceActions)]</FluentLabel>
+
+    <FluentStack Orientation="Orientation.Horizontal">
+        <PauseIncomingDataSwitch IsPaused="@IsPaused" IsPausedChanged="@OnPausedChanged" />
+        <ClearSignalsButton SelectedResource="@SelectedResource"
+                            HandleClearSignal="@HandleClearSignal"/>
+    </FluentStack>
+}
+
+@code {
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
+
+    [Parameter, EditorRequired]
+    public required bool IsPaused { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Action<bool> OnPausedChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<ApplicationKey?, Task> HandleClearSignal { get; set; }
+
+    [Parameter, EditorRequired]
+    public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
+}
