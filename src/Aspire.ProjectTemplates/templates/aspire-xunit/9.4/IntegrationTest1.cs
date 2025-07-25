@@ -20,7 +20,8 @@ public class IntegrationTest1
     // {
     //     // Arrange
 #if (XUnitVersion == "v2")
-    //     using var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+    //     using var cts = new CancellationTokenSource(DefaultTimeout);
+    //     var cancellationToken = cts.Token;
 #else // XunitVersion v3 or v3mtp
     //     var cancellationToken = TestContext.Current.CancellationToken;
 #endif
