@@ -474,6 +474,41 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
     }
 
+    [Fact]
+    public async Task BuildImageAsync_WithInvalidProject_ReturnsFalseWithoutThrowing()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a project resource with an invalid/non-existent project path
+        var invalidProject = builder.AddProject("invalid-project", "/nonexistent/path/invalid.csproj");
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // This should not throw an exception even though the project path is invalid
+        // Instead, it should complete gracefully and show the error in logs
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() =>
+            imageBuilder.BuildImageAsync(invalidProject.Resource, options: null, cts.Token));
+
+        Assert.Equal("Failed to build container image.", exception.Message);
+
+        // Validate that the build process handled the error gracefully without throwing during execution
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check that dotnet publish was attempted and failed
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource invalid-project"));
+        Assert.Contains(logs, log => log.Message.Contains("dotnet publish") && log.Level >= LogLevel.Error);
+    }
+
     private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
     {
         public string Name => "fake-runtime";
