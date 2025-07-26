@@ -1543,11 +1543,52 @@ aspire config get features.deployCommandEnabled
 ```
 
 **Important notes**:
-- Feature flags are **disabled by default** for both commands
-- When disabled, the commands will not appear in CLI help or be available for use
-- Configuration uses the `features.` prefix for all feature flag settings
-- This allows for controlled rollout and testing of new functionality
 
+[!NEW]
+### 🛠️ `aspire deploy`
+
+The `aspire deploy` command now supports extensible deployment workflows through the new `DeployingCallbackAnnotation`, enabling custom pre/post-deploy logic and richer integration with external systems during deployment operations.
+
+**Key capabilities:**
+- **Custom deployment hooks**: Use `DeployingCallbackAnnotation` to execute custom logic before, during, or after deployment steps
+- **Deployment workflow integration**: Hook into the `aspire deploy` command execution pipeline for advanced scenarios
+- **CI/CD extensibility**: Add custom deployment behaviors that integrate seamlessly with automated deployment pipelines
+
+**Example usage:**
+```csharp
+// Example: Database with deployment callback executed during aspire deploy
+var database = builder.AddPostgres("postgres");
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(database);
+
+// Add deployment callback for database migration
+database.WithAnnotation(new DeployingCallbackAnnotation(async context =>
+{
+    // Create a deployment step for database migration
+    var step = await context.ActivityReporter.CreateStepAsync("Migrating database schema", context.CancellationToken);
+    
+    // Create a task within the step for the actual migration work
+    var migrationTask = await step.CreateTaskAsync("Running database migrations", context.CancellationToken);
+    
+    context.Logger.LogInformation("Starting database migration during deployment...");
+    
+    // Access the output path and execution context
+    var outputPath = context.OutputPath;
+    var executionContext = context.ExecutionContext;
+    
+    // Simulate database migration logic
+    await Task.Delay(2000, context.CancellationToken);
+    
+    // Complete the task and step successfully
+    await migrationTask.SuccessAsync("Applied 3 pending migrations");
+    await step.SuccessAsync("Database schema updated successfully");
+}));
+```
+
+This enhancement enables more sophisticated `aspire deploy` workflows and provides a foundation for advanced deployment automation scenarios.
+
+> [!NOTE]
+> While the `DeployingCallbackAnnotation` API is available in .NET Aspire 9.4, there are currently no built-in resources that natively support deployment callbacks. Built-in resource support for deployment callbacks will be added in the next version of .NET Aspire.
 ### 🎯 Enhanced resource interaction capabilities
 
 The Aspire CLI in 9.4 introduces experimental support for rich user interactions, enabling more sophisticated automation and deployment workflows. This includes support for confirmation prompts, input collection, and validation workflows during resource operations.
