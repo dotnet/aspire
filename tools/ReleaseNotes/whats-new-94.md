@@ -276,6 +276,8 @@ The new client registration methods provide consistent naming across all Azure S
 Azure components now support granular tracing control with new `DisableTracing` options:
 
 ```csharp
+var builder = WebApplication.CreateBuilder(args);
+
 // Azure App Configuration with tracing disabled
 builder.AddAzureAppConfiguration("config", settings =>
 {
@@ -283,15 +285,17 @@ builder.AddAzureAppConfiguration("config", settings =>
 });
 
 // Other Azure services also support this configuration
-builder.AddAzureKeyVault("vault", settings =>
+builder.AddAzureKeyVaultClient("vault", settings =>
 {
     settings.DisableTracing = true;
 });
 
-builder.AddAzureServiceBus("servicebus", settings =>
+builder.AddAzureServiceBusClient("servicebus", settings =>
 {
     settings.DisableTracing = true;
 });
+
+var app = builder.Build();
 ```
 
 This is particularly useful for:
