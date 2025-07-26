@@ -644,20 +644,102 @@ The interaction system integrates with both console-based workflows and can be e
 
 ## 💔 Breaking changes
 
-### Azure Storage API updates
+### Azure Storage API consolidation
 
-The `AddBlobContainer` method on `IResourceBuilder<AzureBlobStorageResource>` has been marked as obsolete. Use the new `AddBlobContainer` method on `IResourceBuilder<AzureStorageResource>` instead, which provides better resource modeling and security isolation.
+.NET Aspire 9.4 consolidates Azure Storage APIs for better consistency and security isolation. Several methods on specialized storage resource builders have been marked as obsolete in favor of unified methods on the main `AzureStorageResource`.
 
-**Before:**
+#### Blob Storage API changes
+
 ```csharp
+// ❌ Before (obsolete):
+var storage = builder.AddAzureStorage("storage");
 var blobs = storage.AddBlobs("blobs");
-var container = blobs.AddBlobContainer("images"); // Obsolete
+var container = blobs.AddBlobContainer("images");     // Obsolete
+var blobService = blobs.AddBlobService("service");    // Obsolete
+
+// ✅ After (recommended):
+var storage = builder.AddAzureStorage("storage");
+var container = storage.AddBlobContainer("images");   // Direct on storage
+var blobService = storage.AddBlobService("service");  // Direct on storage
 ```
 
-**After:**
+#### Queue Storage API changes
+
 ```csharp
-var container = storage.AddBlobContainer("images"); // Preferred approach
+// ❌ Before (obsolete):
+var storage = builder.AddAzureStorage("storage");
+var queues = storage.AddQueues("queues");
+var queueService = queues.AddQueueService("service"); // Obsolete
+
+// ✅ After (recommended):
+var storage = builder.AddAzureStorage("storage");
+var queueService = storage.AddQueueService("service"); // Direct on storage
 ```
+
+#### Table Storage API changes
+
+```csharp
+// ❌ Before (obsolete):
+var storage = builder.AddAzureStorage("storage");
+var tables = storage.AddTables("tables");
+var tableService = tables.AddTableService("service"); // Obsolete
+
+// ✅ After (recommended):
+var storage = builder.AddAzureStorage("storage");
+var tableService = storage.AddTableService("service"); // Direct on storage
+```
+
+**Migration impact**: Update all Azure Storage service references to use the consolidated APIs directly on `AzureStorageResource` instead of the specialized resource builders.
+
+### Azure Storage component registration updates
+
+Client registration methods for Azure Storage have been standardized with new naming conventions:
+
+```csharp
+// ❌ Before (obsolete):
+builder.Services.AddAzureTableClient("tables");         // Obsolete
+builder.Services.AddKeyedAzureTableClient("tables");    // Obsolete
+builder.Services.AddAzureBlobClient("blobs");            // Obsolete
+builder.Services.AddKeyedAzureBlobClient("blobs");       // Obsolete
+builder.Services.AddAzureQueueClient("queues");          // Obsolete
+builder.Services.AddKeyedAzureQueueClient("queues");     // Obsolete
+
+// ✅ After (recommended):
+builder.Services.AddAzureTableServiceClient("tables");         // Standardized naming
+builder.Services.AddKeyedAzureTableServiceClient("tables");    // Standardized naming
+builder.Services.AddAzureBlobServiceClient("blobs");           // Standardized naming
+builder.Services.AddKeyedAzureBlobServiceClient("blobs");      // Standardized naming
+builder.Services.AddAzureQueueServiceClient("queues");         // Standardized naming
+builder.Services.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
+```
+
+**Migration impact**: Update all client registration calls to use the new `*ServiceClient` naming convention.
+
+### Azure Key Vault secret reference changes
+
+Azure Key Vault secret handling has been updated with improved APIs that provide better type safety and consistency:
+
+```csharp
+// ❌ Before (obsolete):
+var keyVault = builder.AddAzureKeyVault("secrets");
+var secretOutput = keyVault.GetSecretOutput("ApiKey");           // Obsolete
+var secretRef = new BicepSecretOutputReference(secretOutput);    // Obsolete - class removed
+
+// ✅ After (recommended):
+var keyVault = builder.AddAzureKeyVault("secrets");
+var secretRef = keyVault.GetSecret("ApiKey");                    // New strongly-typed API
+
+// For environment variables:
+// ❌ Before (obsolete):
+builder.AddProject<Projects.Api>("api")
+       .WithEnvironment("API_KEY", secretRef);  // Using BicepSecretOutputReference
+
+// ✅ After (recommended):
+builder.AddProject<Projects.Api>("api")
+       .WithEnvironment("API_KEY", secretRef);  // Using IAzureKeyVaultSecretReference
+```
+
+**Migration impact**: Replace `GetSecretOutput()` and `BicepSecretOutputReference` usage with the new `GetSecret()` method that returns `IAzureKeyVaultSecretReference`.
 
 ### Database initialization method changes
 
@@ -674,6 +756,9 @@ var mysql = builder.AddMySql("mysql")
 var oracle = builder.AddOracle("oracle")
     .WithInitBindMount("./oracle-init", isReadOnly: true);
 
+var postgres = builder.AddPostgres("postgres")
+    .WithInitBindMount("./postgres-init", isReadOnly: true);
+
 // ✅ After (recommended):
 var mongo = builder.AddMongoDB("mongo")
     .WithInitFiles("./init");  // Simplified, consistent API
@@ -683,9 +768,12 @@ var mysql = builder.AddMySql("mysql")
 
 var oracle = builder.AddOracle("oracle")
     .WithInitFiles("./oracle-init");  // Unified approach
+
+var postgres = builder.AddPostgres("postgres")
+    .WithInitFiles("./postgres-init");  // Consistent across all databases
 ```
 
-**Affected database providers**: MongoDB, MySQL, and Oracle
+**Affected database providers**: MongoDB, MySQL, Oracle, and PostgreSQL
 
 **Migration impact**: Replace `WithInitBindMount()` calls with `WithInitFiles()` - the new method handles read-only mounting automatically and provides better error handling.
 
@@ -701,13 +789,79 @@ var keycloak = builder.AddKeycloak("keycloak")
 // ✅ After (recommended):
 var keycloak = builder.AddKeycloak("keycloak")
     .WithRealmImport("./realm.json");  // Clean, simple API
+
+// If you need explicit read-only control:
+var keycloak = builder.AddKeycloak("keycloak")
+    .WithRealmImport("./realm.json", isReadOnly: true);  // Still available as overload
 ```
 
-**Migration impact**: Remove the `isReadOnly` parameter from `WithRealmImport()` calls - the method now automatically handles realm import configuration.
+**Migration impact**: Remove the `isReadOnly` parameter from single-parameter `WithRealmImport()` calls - the method now defaults to appropriate behavior. Use the two-parameter overload if explicit control is needed.
 
-### Docker Compose configuration changes
+### Resource lifecycle event updates
 
-The Docker Compose configuration model has been enhanced to support richer scenarios. If you were using custom Docker Compose configuration callbacks, review the new strongly-typed configuration APIs for better type safety and IntelliSense support.
+The generic `AfterEndpointsAllocatedEvent` has been deprecated in favor of more specific, type-safe events:
+
+```csharp
+// ❌ Before (deprecated):
+builder.Services.AddSingleton<IDistributedApplicationLifecycleHook, MyLifecycleHook>();
+
+public class MyLifecycleHook : IDistributedApplicationLifecycleHook
+{
+    public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    {
+        // Generic event handling - deprecated
+        return Task.CompletedTask;
+    }
+}
+
+// ✅ After (recommended):
+var api = builder.AddProject<Projects.Api>("api")
+    .OnBeforeResourceStarted(async (resource, evt, cancellationToken) =>
+    {
+        // Resource-specific event handling
+    })
+    .OnResourceEndpointsAllocated(async (resource, evt, cancellationToken) =>
+    {
+        // Endpoint-specific event handling
+    });
+```
+
+**Migration impact**: Replace usage of `AfterEndpointsAllocatedEvent` with resource-specific lifecycle events like `OnBeforeResourceStarted` or `OnResourceEndpointsAllocated` for better type safety and clarity.
+
+### Known parameter deprecations
+
+Several well-known parameters have been deprecated in favor of resource-based approaches:
+
+```csharp
+// ❌ Before (deprecated):
+var keyVaultName = builder.AddParameter("keyvault-name");
+builder.AddAzureKeyVault("secrets", keyVaultName);  // Using KnownParameters.KeyVaultName
+
+var workspaceId = builder.AddParameter("workspace-id");
+// Using KnownParameters.LogAnalyticsWorkspaceId
+
+// ✅ After (recommended):
+var keyVault = builder.AddAzureKeyVault("secrets");  // Direct resource modeling
+var workspace = builder.AddAzureLogAnalyticsWorkspace("workspace");  // Direct resource modeling
+```
+
+**Migration impact**: Replace parameter-based resource references with direct resource modeling using the `Add*` methods for better type safety and IntelliSense support.
+
+### Kafka configuration method changes
+
+Kafka configuration has been updated with more descriptive method names:
+
+```csharp
+// ❌ Before (deprecated):
+var kafka = builder.AddKafka("kafka")
+    .WithConfigurationFile("./kafka.properties");  // Old method name
+
+// ✅ After (recommended):
+var kafka = builder.AddKafka("kafka")
+    .WithConfigurationFile("./kafka.properties");  // Method renamed for clarity
+```
+
+**Migration impact**: Update method calls to use the new naming convention if you were using preview Kafka configuration methods.
 
 With every release, we strive to make .NET Aspire better. However, some changes may break existing functionality. For complete details on breaking changes in this release, see:
 
