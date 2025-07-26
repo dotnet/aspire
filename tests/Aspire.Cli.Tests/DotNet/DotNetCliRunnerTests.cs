@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.Utils;
@@ -34,6 +35,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -74,6 +76,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -116,6 +119,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -148,6 +152,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -189,6 +194,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 // When noBuild is true, the original env should be passed through unchanged
@@ -233,6 +239,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -279,6 +286,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
@@ -305,9 +313,10 @@ internal sealed class AssertingDotNetCliRunner(
     IServiceProvider serviceProvider,
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
+    IFeatures features,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {

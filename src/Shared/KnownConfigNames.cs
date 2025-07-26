@@ -27,6 +27,7 @@ internal static class KnownConfigNames
     public const string WaitForDebuggerTimeout = "ASPIRE_DEBUGGER_TIMEOUT";
     public const string UnixSocketPath = "ASPIRE_BACKCHANNEL_PATH";
     public const string CliProcessId = "ASPIRE_CLI_PID";
+    public const string CliProcessStarted = "ASPIRE_CLI_STARTED";
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
 
