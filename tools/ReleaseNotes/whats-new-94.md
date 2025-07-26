@@ -749,8 +749,46 @@ builder.Build().Run();
 - **Database maintenance** - Run migrations, backups, or cleanup operations
 - **Service management** - Reload configurations, restart workers, or trigger deployments
 - **Debugging operations** - Run diagnostic commands, dump logs, or collect metrics
+- **Testing scenarios** - Trigger test data setup, reset test environments, or execute test operations
 
 This enhancement provides a much more intuitive way to add operational commands to your resources, making them easily accessible through both the dashboard UI and programmatic APIs.
+
+**Testing scenario example:**
+
+```csharp
+[Fact]
+public async Task Should_ResetCache_WhenTestStarts()
+{
+    var builder = DistributedApplication.CreateBuilder();
+    
+    // Add cache with reset command for testing
+    var cache = builder.AddRedis("test-cache")
+        .WithHttpCommand("reset", "Reset Cache",
+            commandName: "reset-cache",
+            commandOptions: new HttpCommandOptions
+            {
+                Method = HttpMethod.Delete,
+                Description = "Clear all cached test data"
+            });
+
+    var api = builder.AddProject<Projects.TestApi>("test-api")
+        .WithReference(cache);
+
+    await using var app = builder.Build();
+    await app.StartAsync();
+    
+    // Reset cache before running test
+    var result = await app.ResourceCommands.ExecuteCommandAsync(
+        cache.Resource, 
+        "reset-cache", 
+        CancellationToken.None);
+        
+    Assert.True(result.Success, $"Failed to reset cache: {result.ErrorMessage}");
+    
+    // Now run your test with a clean cache
+    // ... test logic here
+}
+```
 
 ### �📁 Enhanced container file mounting
 
