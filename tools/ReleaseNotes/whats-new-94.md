@@ -89,8 +89,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
 
 // Add specific model deployments
-var gpt4 = aiFoundry.AddDeployment("gpt-4", "gpt-4", "2024-02-15-preview");
-var embedding = aiFoundry.AddDeployment("embedding", "text-embedding-ada-002", "2");
+var gpt4 = aiFoundry.AddDeployment("gpt-4", "gpt-4", "2024-02-15-preview", "OpenAI");
+var embedding = aiFoundry.AddDeployment("embedding", "text-embedding-ada-002", "2", "OpenAI");
 
 // Connect your services to AI capabilities
 var chatService = builder.AddProject<Projects.ChatService>("chat")
@@ -100,9 +100,39 @@ var chatService = builder.AddProject<Projects.ChatService>("chat")
 // For local development, you can run AI Foundry locally
 var localAiFoundry = builder.AddAzureAIFoundry("local-ai-foundry")
     .RunAsFoundryLocal(); // Run as local AI Foundry instance
+
+builder.Build().Run();
 ```
 
 The `RunAsFoundryLocal()` method enables local development scenarios using [Azure AI Foundry Local](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/), allowing you to test AI capabilities without requiring cloud resources during development.
+
+### 🐙 GitHub Models integration
+
+.NET Aspire 9.4 introduces support for GitHub Models, enabling easy integration with AI models hosted on GitHub's platform. This provides a simple way to incorporate AI capabilities into your applications using GitHub's model hosting service.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add GitHub Model with API key
+var apiKey = builder.AddParameter("github-api-key", secret: true);
+var organization = builder.AddParameter("github-org");
+
+var model = builder.AddGitHubModel("chat-model", "gpt-4o-mini", organization)
+    .WithApiKey(apiKey)
+    .WithHealthCheck();
+
+// Use the model in your services
+var chatService = builder.AddProject<Projects.ChatService>("chat")
+    .WithReference(model);
+
+builder.Build().Run();
+```
+
+GitHub Models integration provides:
+- **Simple model integration** with GitHub's hosted AI models
+- **Built-in health checks** for model availability
+- **Parameter-based configuration** for API keys and organizations
+- **Connection string support** for easy service integration
 
 ### 🗄️ Azure Cosmos DB hierarchical partition keys
 
@@ -237,7 +267,24 @@ builder.AddAzureAppConfiguration("config", settings =>
 {
     settings.DisableTracing = true; // Disable OpenTelemetry tracing
 });
+
+// Other Azure services also support this configuration
+builder.AddAzureKeyVault("vault", settings =>
+{
+    settings.DisableTracing = true;
+});
+
+builder.AddAzureServiceBus("servicebus", settings =>
+{
+    settings.DisableTracing = true;
+});
 ```
+
+This is particularly useful for:
+- **Performance optimization** in high-throughput scenarios
+- **Reducing telemetry noise** for auxiliary services
+- **Selective tracing** in complex applications
+- **Compliance scenarios** where certain traces should not be collected
 
 ### 🐳 Docker Compose with integrated Aspire Dashboard
 
@@ -444,10 +491,46 @@ public class DeploymentService
             // Proceed with deployment using the collected input
         }
         
+        // Collect multiple inputs with validation
+        var inputs = new List<InteractionInput>
+        {
+            new() { Label = "Region", InputType = InputType.Text, Required = true },
+            new() { Label = "Instance Count", InputType = InputType.Number, Required = true },
+            new() { Label = "Enable Monitoring", InputType = InputType.Boolean, Required = false }
+        };
+        
+        var multiInputResult = await _interactionService.PromptInputsAsync(
+            "Advanced Configuration",
+            "Configure deployment settings:",
+            inputs,
+            new InputsDialogInteractionOptions
+            {
+                ValidationCallback = async context =>
+                {
+                    var regionInput = context.Inputs.First(i => i.Label == "Region");
+                    if (!IsValidRegion(regionInput.Value))
+                    {
+                        context.AddValidationError(regionInput, "Invalid region specified");
+                    }
+                }
+            });
+        
         // Show progress notifications
         await _interactionService.PromptNotificationAsync(
             "Deployment Status",
-            "Deployment completed successfully!");
+            "Deployment completed successfully!",
+            new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Success,
+                LinkText = "View Dashboard",
+                LinkUrl = "https://portal.azure.com"
+            });
+    }
+    
+    private bool IsValidRegion(string? region) 
+    {
+        // Validation logic here
+        return !string.IsNullOrEmpty(region);
     }
 }
 ```
@@ -459,6 +542,20 @@ The `IInteractionService` interface provides several methods for user interactio
 - `PromptInputsAsync()` - Multiple input collection with validation
 - `PromptMessageBoxAsync()` - Informational message displays
 - `PromptNotificationAsync()` - Status notifications
+
+**Input types supported:**
+- `Text` - Standard text input
+- `SecretText` - Password/secret input (masked)
+- `Choice` - Dropdown selection
+- `Boolean` - Checkbox input
+- `Number` - Numeric input
+
+**Advanced features:**
+- **Validation callbacks** for complex input validation
+- **Markdown support** for rich text descriptions
+- **Custom button text** and dialog options
+- **Intent-based styling** for different message types
+- **Link support** in notifications
 
 These interactions work seamlessly whether you're running your application through the Aspire dashboard or deploying via the CLI with `aspire deploy` and `aspire publish` commands.
 
