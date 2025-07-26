@@ -659,7 +659,8 @@ This enhancement provides a more robust foundation for development scenarios req
 var builder = DistributedApplication.CreateBuilder(args);
 
 var database = builder.AddPostgres("postgres")
-    .WithHttpCommand("-admin-restart", "Restart Database", 
+    .WithHttpCommand("admin-restart", "Restart Database", 
+        commandName: "db-restart",
         commandOptions: new HttpCommandOptions
         {
             Method = HttpMethod.Post,
@@ -667,7 +668,8 @@ var database = builder.AddPostgres("postgres")
         });
 
 var cache = builder.AddRedis("cache")
-    .WithHttpCommand("-admin-flush", "Flush Cache",
+    .WithHttpCommand("admin-flush", "Flush Cache",
+        commandName: "cache-flush",
         commandOptions: new HttpCommandOptions
         {
             Method = HttpMethod.Delete,
@@ -687,15 +689,15 @@ var api = builder.AddProject<Projects.Api>("api")
         
         try
         {
-            // First flush the cache
-            var flushResult = await commandService.ExecuteCommandAsync(cache.Resource, "cache-http-delete--admin-flush", ct);
+            // Execute the cache flush command by name
+            var flushResult = await commandService.ExecuteCommandAsync(cache.Resource, "cache-flush", ct);
             if (!flushResult.Success)
             {
                 return CommandResults.Failure($"Failed to flush cache: {flushResult.ErrorMessage}");
             }
             
-            // Then restart the database
-            var restartResult = await commandService.ExecuteCommandAsync(database.Resource, "postgres-http-post--admin-restart", ct);
+            // Execute the database restart command by name
+            var restartResult = await commandService.ExecuteCommandAsync(database.Resource, "db-restart", ct);
             if (!restartResult.Success)
             {
                 return CommandResults.Failure($"Failed to restart database: {restartResult.ErrorMessage}");
