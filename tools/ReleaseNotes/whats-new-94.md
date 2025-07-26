@@ -418,6 +418,50 @@ builder.Build().Run();
 
 External services appear in the Aspire dashboard with health status, can be referenced like any other resource, and support the same configuration patterns as internal resources.
 
+### 🌐 Enhanced endpoint URL support
+
+.NET Aspire 9.4 introduces enhanced support for non-localhost URLs, making it easier to work with custom domains and network configurations. This includes support for `*.localhost` subdomains and automatic generation of multiple URL variants for endpoints listening on multiple addresses.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Endpoints targeting all addresses automatically get multiple URL variants
+var api = builder.AddProject<Projects.Api>("api")
+    .WithEndpoint("https", e => e.TargetHost = "0.0.0.0");
+
+// Machine name URLs for external access  
+var publicService = builder.AddProject<Projects.PublicService>("public")
+    .WithEndpoint("https", e => e.TargetHost = "0.0.0.0");
+
+builder.Build().Run();
+```
+
+**Key capabilities:**
+- **`*.localhost` subdomain support** - Use custom subdomains while maintaining localhost behavior
+- **Multiple URL generation** - Endpoints listening on multiple addresses automatically get localhost and machine name URLs
+- **Enhanced dashboard integration** - All URL variants appear in the Aspire dashboard for easy access
+- **Network flexibility** - Better support for development scenarios requiring specific network configurations
+- **Launch profile configuration** - For projects, custom URLs can also be configured via launch profiles in `launchSettings.json`
+
+**Launch profile configuration example:**
+```json
+{
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://*:7001;http://*:5001",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+This enhancement simplifies development workflows where custom domains or external network access is needed while maintaining the familiar localhost development experience.
+
 ### 📁 Enhanced container file mounting
 
 Configuring container file systems often requires understanding complex Docker volume syntax and managing file permissions manually. .NET Aspire 9.4 introduces enhanced file mounting APIs that handle common scenarios with sensible defaults.
