@@ -630,6 +630,26 @@ builder.Build().Run();
 
 The Aspire CLI is now **generally available** with significant improvements and new capabilities.
 
+### 🚀 New AOT-compiled CLI for superior performance
+
+The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahead-of-Time) versions** of the CLI that deliver dramatically better performance compared to traditional .NET Global Tools.
+
+**Why AOT matters for the CLI**:
+
+## 🖥️ CLI enhancements
+
+The Aspire CLI is now **generally available** with significant improvements and new capabilities.
+
+### 🚀 New AOT-compiled CLI for superior performance
+
+The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahead-of-Time) versions** of the CLI that deliver dramatically better performance compared to traditional .NET Global Tools.
+
+**Why AOT matters for the CLI**:
+
+## 🖥️ CLI enhancements
+
+The Aspire CLI is now **generally available** with significant improvements and new capabilities.
+
 ### � New AOT-compiled CLI for superior performance
 
 The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahead-of-Time) versions** of the CLI that deliver dramatically better performance compared to traditional .NET Global Tools.
