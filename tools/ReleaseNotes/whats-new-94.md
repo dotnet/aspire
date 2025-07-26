@@ -584,6 +584,69 @@ builder.Build().Run();
 
 This enhancement removes the previous hidden status of parameters and connection strings, making configuration state transparent and easier to debug.
 
+### 🔗 Enhanced dashboard peer visualization for uninstrumented resources
+
+.NET Aspire 9.4 introduces advanced peer visualization capabilities in the dashboard, enabling you to see connections between resources even when they aren't instrumented with telemetry. This includes support for parameters, connection strings, GitHub Models, and external services.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Parameters with URLs/connection strings are automatically visualized
+var apiUrl = builder.AddParameter("api-url")
+    .WithDescription("External API endpoint URL");
+
+var dbConnectionString = builder.AddParameter("database-url", secret: true)
+    .WithDescription("External database connection string");
+
+// GitHub Models show peer connections
+var apiKey = builder.AddParameter("github-api-key", secret: true);
+var organization = builder.AddParameter("github-org");
+
+var model = builder.AddGitHubModel("chat-model", "gpt-4o-mini", organization)
+    .WithApiKey(apiKey)
+    .WithHealthCheck();
+
+// External services with connection string references
+var externalDb = builder.AddExternalService("external-db", dbConnectionString)
+    .WithHttpHealthCheck("/health");
+
+var externalApi = builder.AddExternalService("external-api", apiUrl);
+
+// Dashboard visualizes all these connections automatically
+var myService = builder.AddProject<Projects.MyService>("my-service")
+    .WithReference(model)         // Shows connection to GitHub Models
+    .WithReference(externalDb)    // Shows connection to external database
+    .WithReference(externalApi)   // Shows connection to external API
+    .WithEnvironment("DB_URL", dbConnectionString);  // Shows parameter usage
+
+builder.Build().Run();
+```
+
+**Enhanced visualization capabilities:**
+- **Connection string parsing** - Comprehensive parser supports SQL Server, PostgreSQL, MySQL, MongoDB, Redis, and many other connection string formats
+- **Parameter visualization** - Shows how parameters with URLs or connection strings connect to services
+- **GitHub Models integration** - Visualizes connections to GitHub-hosted AI models with proper state management
+- **External service mapping** - Shows relationships between your services and external dependencies
+- **Uninstrumented peer detection** - Identifies connections even without OpenTelemetry instrumentation
+
+**Supported connection string formats:**
+- **Database connections** - SQL Server, PostgreSQL, MySQL, MongoDB, Oracle, SQLite
+- **Cache connections** - Redis, Memcached
+- **Message brokers** - Azure Service Bus, RabbitMQ, Apache Kafka
+- **HTTP/API endpoints** - REST APIs, GraphQL endpoints, webhooks
+- **Generic URL connections** - Any HTTP/HTTPS endpoint with automatic host/port extraction
+
+**Key benefits:**
+- **Complete dependency mapping** - See all service connections, not just instrumented ones
+- **Better debugging** - Understand how services connect to external dependencies
+- **Improved observability** - Visualize the complete application architecture
+- **Enhanced troubleshooting** - Identify connection issues and dependency problems
+- **Performance optimization** - Resource address caching improves dashboard responsiveness
+
+This enhancement makes the Aspire dashboard significantly more powerful for understanding complex distributed applications, especially those integrating with external services and legacy systems that may not have full telemetry instrumentation.
+
+**GitHub Issue:** [#10382](https://github.com/dotnet/aspire/issues/10382)
+
 ### � Enhanced dashboard infrastructure with proxied endpoints
 
 .NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that make dashboard launching more reliable by fixing port reuse problems. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
