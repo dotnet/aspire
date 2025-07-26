@@ -315,11 +315,8 @@ var compose = builder.AddDockerComposeEnvironment("production")
                     .WithDashboard(dashboard => dashboard.WithHostPort(8080)); // Configure dashboard with specific port
 
 // Add services that will automatically report to the dashboard
-builder.AddProject<Projects.Frontend>("frontend")
-       .WithComputeEnvironment(compose);
-
-builder.AddProject<Projects.Api>("api")
-       .WithComputeEnvironment(compose);
+builder.AddProject<Projects.Frontend>("frontend");
+builder.AddProject<Projects.Api>("api");
 
 builder.Build().Run();
 ```
@@ -407,48 +404,6 @@ builder.Build().Run();
 ```
 
 External services appear in the Aspire dashboard with health status, can be referenced like any other resource, and support the same configuration patterns as internal resources.
-
-### ✨ Enhanced emulator support
-
-.NET Aspire 9.4 introduces better support for **emulator resources** with improved detection and management:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add resources that might be emulators
-var storage = builder.AddAzureStorage("storage");
-var cosmos = builder.AddAzureCosmosDB("cosmos");
-var redis = builder.AddRedis("cache");
-
-// Check if resources are running as emulators
-builder.Services.AddHostedService<EmulatorDetectionService>();
-
-public class EmulatorDetectionService : BackgroundService
-{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // Use the new IsEmulator extension method
-        if (storage.Resource.IsEmulator())
-        {
-            Console.WriteLine("Storage is running in emulator mode");
-            // Configure for local development
-        }
-        
-        if (cosmos.Resource.IsEmulator())
-        {
-            Console.WriteLine("Cosmos DB is running in emulator mode");
-            // Skip certain production-only features
-        }
-    }
-}
-
-// You can also configure emulator-specific behavior
-var app = builder.AddProject<Projects.MyApp>("app")
-    .WithReference(storage)
-    .WithEnvironment("STORAGE_EMULATOR", storage.Resource.IsEmulator() ? "true" : "false");
-
-builder.Build().Run();
-```
 
 ### 📁 Enhanced container file mounting
 
