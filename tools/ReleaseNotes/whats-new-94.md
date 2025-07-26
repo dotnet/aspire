@@ -134,6 +134,17 @@ Hierarchical partition keys provide:
 - **Reduced hot partition issues** in large-scale applications
 - **More granular scaling** based on access patterns
 
+### ⚡ Serverless support
+
+You can now enable serverless mode for Azure Cosmos DB accounts, perfect for applications with intermittent or unpredictable traffic:
+
+```csharp
+var cosmos = builder.AddAzureCosmosDB("cosmos")
+    .WithDefaultAzureSku(); // Enables serverless capability
+```
+
+This is ideal for development, testing, and production workloads with variable traffic patterns where you want to pay only for the request units and storage you consume.
+
 ### 🆔 Enhanced Azure user-assigned managed identity support
 
 .NET Aspire 9.4 introduces comprehensive support for Azure user-assigned managed identities, providing enhanced security and consistent identity management across your Azure infrastructure:
@@ -541,6 +552,27 @@ builder.Build().Run();
 
 This ensures your applications can reliably reference Azure resources by their actual deployed names, improving coordination between services and external automation.
 
+The `NameOutputReference` property is now available on all Azure resources including:
+- Azure App Configuration
+- Azure App Containers Environment
+- Azure Application Insights
+- Azure Cosmos DB
+- Azure Event Hubs
+- Azure Key Vault
+- Azure PostgreSQL
+- Azure Redis Cache
+- Azure AI Search
+- Azure Service Bus
+- Azure SignalR
+- Azure SQL Database
+- Azure Storage
+- Azure Web PubSub
+- And many more Azure services
+
+### 🎯 Enhanced emulator consistency
+
+Azure emulator resources now include `EmulatorResourceAnnotation` for consistent tooling support across all emulator implementations, providing better development experience and tooling integration.
+
 ## 🔧 Integrations updates
 
 ### ✨ Database hosting improvements
@@ -641,6 +673,28 @@ These capabilities are particularly useful for:
 - Gathering configuration input during setup workflows
 
 The interaction system integrates with both console-based workflows and can be extended to work with IDE integrations and automated tooling.
+
+### 🎨 Enhanced CLI user experience
+
+Several CLI experience improvements have been added in 9.4:
+
+- **Purple styling** for default values in CLI prompts for better visual distinction
+- **Markup escaping** fixes for better rendering in various terminal environments
+- **User-friendly error handling** for `aspire new` when directories contain existing files
+- **Enhanced template selection** with pre-release package support
+- **Localization support** for better international user experience
+- **Improved `aspire deploy`** command with enhanced user experience (preview)
+
+```bash
+# Improved new project experience with better error handling
+aspire new
+
+# Enhanced package addition with better prompts and styling
+aspire add
+
+# Enhanced deployment capabilities (preview)
+aspire deploy --help
+```
 
 ## 💔 Breaking changes
 
