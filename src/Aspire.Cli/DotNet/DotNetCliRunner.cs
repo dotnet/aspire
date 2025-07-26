@@ -446,7 +446,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         // Set the CLI process start time for robust orphan detection to prevent PID reuse issues.
         // The AppHost will verify both PID and start time to ensure it's monitoring the correct process.
-        if (features.IsFeatureEnabled(KnownFeatures.RobustOrphanDetectionEnabled, true))
+        if (features.IsFeatureEnabled(KnownFeatures.OrphanDetectionWithTimestampEnabled, true))
         {
             startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTime().ToString(CultureInfo.InvariantCulture);
         }

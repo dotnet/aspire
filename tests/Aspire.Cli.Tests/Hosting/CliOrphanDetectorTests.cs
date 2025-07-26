@@ -49,7 +49,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task CliOrphanDetectorUsesRobustDetectionWhenStartTimeProvided()
+    public async Task CliOrphanDetectorUsesTimestampDetectionWhenStartTimeProvided()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
         var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
