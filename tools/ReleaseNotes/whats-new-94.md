@@ -224,17 +224,29 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var secrets = builder.AddAzureKeyVault("secrets");
 
-// Add a secret reference
-var connectionString = secrets.AddSecret("ConnectionString");
+// Add a secret from a parameter
+var connectionStringParam = builder.AddParameter("connectionString", secret: true);
+var connectionString = secrets.AddSecret("connection-string", connectionStringParam);
 
-// Get a secret for consumption
-var apiKey = secrets.GetSecret("ApiKey");
+// Add a secret with custom secret name in Key Vault
+var apiKeyParam = builder.AddParameter("api-key", secret: true);
+var apiKey = secrets.AddSecret("api-key", "ApiKey", apiKeyParam);
+
+// Get a secret reference for consumption (for existing secrets)
+var existingSecret = secrets.GetSecret("ExistingSecret");
 
 // Use in your services
 var webApi = builder.AddProject<Projects.WebAPI>("webapi")
-    .WithReference(connectionString)
-    .WithEnvironment("API_KEY", apiKey);
+    .WithEnvironment("CONNECTION_STRING", connectionString)
+    .WithEnvironment("API_KEY", apiKey)
+    .WithEnvironment("EXISTING_SECRET", existingSecret);
 ```
+
+**Key features**:
+- **`AddSecret()`** method for adding new secrets to Key Vault from parameters or expressions
+- **`GetSecret()`** method for referencing existing secrets in Key Vault
+- **Strongly-typed secret references** that can be used with `WithEnvironment()` for environment variables
+- **Custom secret naming** support with optional `secretName` parameter
 
 ### 📊 Azure Storage client improvements
 
