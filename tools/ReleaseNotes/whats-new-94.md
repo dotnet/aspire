@@ -80,31 +80,75 @@ This eliminates the need for complex YARP configuration files while providing co
 
 ### 🤖 Azure AI Foundry integration
 
-.NET Aspire 9.4 introduces comprehensive Azure AI Foundry support, bringing enterprise AI capabilities directly into your distributed applications. This integration simplifies working with AI models and deployments through the Azure AI platform.
+.NET Aspire 9.4 introduces comprehensive Azure AI Foundry support, bringing enterprise AI capabilities directly into your distributed applications. This integration simplifies working with AI models and deployments through the Azure AI platform, supporting both Azure-hosted deployments and local development with Foundry Local.
+
+#### Hosting configuration
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure AI Foundry project
-var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+var foundry = builder.AddAzureAIFoundry("foundry");
 
 // Add specific model deployments
-var gpt4 = aiFoundry.AddDeployment("gpt-4", "gpt-4", "2024-02-15-preview", "OpenAI");
-var embedding = aiFoundry.AddDeployment("embedding", "text-embedding-ada-002", "2", "OpenAI");
+var chat = foundry.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
+var embedding = foundry.AddDeployment("embedding", "text-embedding-ada-002", "2", "OpenAI");
 
 // Connect your services to AI capabilities
-var chatService = builder.AddProject<Projects.ChatService>("chat")
-    .WithReference(gpt4)
-    .WithReference(embedding);
+var webService = builder.AddProject<Projects.WebService>("webservice")
+    .WithReference(chat)
+    .WaitFor(chat);
 
-// For local development, you can run AI Foundry locally
-var localAiFoundry = builder.AddAzureAIFoundry("local-ai-foundry")
-    .RunAsFoundryLocal(); // Run as local AI Foundry instance
+// For local development, run with Foundry Local
+var localFoundry = builder.AddAzureAIFoundry("foundry")
+    .RunAsFoundryLocal()
+    .AddDeployment("chat", "phi-3.5-mini", "1", "Microsoft");
 
 builder.Build().Run();
 ```
 
-The `RunAsFoundryLocal()` method enables local development scenarios using [Azure AI Foundry Local](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/), allowing you to test AI capabilities without requiring cloud resources during development.
+#### Client integration
+
+Once you've configured the Azure AI Foundry resource in your app host, consume it in your services using the Azure AI Inference SDK or OpenAI SDK for compatible models:
+
+**Using Azure AI Inference SDK:**
+
+```csharp
+// In Program.cs
+builder.AddAzureChatCompletionsClient("chat")
+       .AddChatClient();
+
+var app = builder.Build();
+
+// Minimal API endpoint for chat completion
+app.MapPost("/generate", async (IChatClient chatClient, ChatRequest request) =>
+{
+    var messages = new List<ChatMessage>
+    {
+        new(ChatRole.System, "You are a helpful assistant."),
+        new(ChatRole.User, request.Prompt)
+    };
+
+    var response = await chatClient.GetResponseAsync(messages);
+    return Results.Ok(new { Response = response.Text });
+});
+
+app.Run();
+
+public record ChatRequest(string Prompt);
+```
+
+**Using OpenAI SDK (for compatible models):**
+
+```csharp
+// In Program.cs
+builder.AddOpenAIClient("chat")
+       .AddChatClient();
+
+// Usage is identical to the Azure AI Inference SDK example above
+```
+
+The `RunAsFoundryLocal()` method enables local development scenarios using [Azure AI Foundry Local](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/), allowing you to test AI capabilities without requiring cloud resources during development. This supports automatic model downloading, loading, and management through the integrated Foundry Local runtime.
 
 ### 🐙 GitHub Models integration
 
