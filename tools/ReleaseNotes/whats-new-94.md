@@ -668,6 +668,57 @@ This enhancement improves the console logs viewing experience by providing devel
 
 **GitHub Issue:** [#10314](https://github.com/dotnet/aspire/issues/10314)
 
+### 👁️ Show/hide hidden resources in dashboard
+
+.NET Aspire 9.4 introduces the ability to show or hide hidden resources in the dashboard, giving you complete visibility into your application's infrastructure components and internal resources that are normally hidden from view.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// These infrastructure components are normally hidden
+var postgres = builder.AddPostgres("postgres")
+    .WithPgAdmin(); // PgAdmin is typically hidden
+
+var redis = builder.AddRedis("redis");
+
+// DCP/Orchestrator components are hidden by default
+var app = builder.AddProject<Projects.MyApp>("myapp")
+    .WithReference(postgres)
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+**Key capabilities:**
+- **Toggle hidden resources** - New menu button to show/hide infrastructure and internal components
+- **Persistent preference** - Show/hide setting is saved in browser storage and restored between sessions
+- **Smart discovery** - Automatically detects when hidden resources exist in your application
+- **Complete visibility** - View all infrastructure components, orchestrator resources, and internal services
+- **Conditional display** - Menu option only appears when hidden resources are actually present
+
+**Hidden resource types include:**
+- **Infrastructure components** - Database admin tools (PgAdmin, phpMyAdmin, Redis Commander)
+- **Orchestrator resources** - DCP (Developer Control Plane) internal components
+- **Internal services** - Background services and worker processes
+- **Management tools** - Monitoring and management interfaces
+- **System resources** - Framework-level infrastructure components
+
+**Benefits:**
+- **Enhanced debugging** - See all components involved in your application's operation
+- **Infrastructure awareness** - Understand the complete resource topology
+- **Troubleshooting support** - Access to normally hidden components for diagnostics
+- **Development insights** - Better understanding of how Aspire orchestrates your application
+- **Resource management** - Complete view of all running services and dependencies
+
+**Usage:**
+- **Dashboard menu** - Use the eye icon in the resources page menu to toggle hidden resource visibility
+- **Console logs** - Hidden resources also appear in console log resource selection when enabled
+- **Resource graph** - Hidden resources are included in the visual resource dependency graph
+
+This feature is particularly useful for debugging complex applications, understanding infrastructure dependencies, and gaining insights into how Aspire manages your distributed application's complete resource topology.
+
+**GitHub Issue:** [#9180](https://github.com/dotnet/aspire/issues/9180)
+
 ### 🏗️ Enhanced dashboard infrastructure with proxied endpoints
 
 .NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that make dashboard launching more reliable by fixing port reuse problems. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
