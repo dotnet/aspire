@@ -547,7 +547,210 @@ builder.Build().Run();
 
 This enhancement simplifies development workflows where custom domains or external network access is needed while maintaining the familiar localhost development experience.
 
-### 📁 Enhanced container file mounting
+### � Parameters and connection strings visible in dashboard
+
+.NET Aspire 9.4 makes parameters and connection strings visible in the Aspire dashboard, providing better visibility into your application's configuration and connectivity status during development.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Parameters now appear in the dashboard
+var apiKey = builder.AddParameter("api-key", secret: true);
+var connectionString = builder.AddParameter("connection-string", secret: true);
+
+// Connection strings are also visible with status
+var postgres = builder.AddPostgres("postgres");
+var database = postgres.AddDatabase("mydb");
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", apiKey)
+    .WithReference(database);
+
+builder.Build().Run();
+```
+
+**Key benefits:**
+- **Parameter visibility** - All parameters appear in the dashboard with their resolved state
+- **Connection string status** - See the connection status and values for all database and service connections
+- **Configuration debugging** - Easily verify that parameters are correctly resolved and available
+- **Development experience** - No more guessing about configuration state during development
+
+This enhancement removes the previous hidden status of parameters and connection strings, making configuration state transparent and easier to debug.
+
+### 🔄 Interactive parameter prompting during run mode
+
+.NET Aspire 9.4 introduces interactive parameter prompting, automatically collecting missing parameter values during application startup through the dashboard interface.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Parameters without default values will trigger prompts
+var apiKey = builder.AddParameter("api-key", secret: true);
+var dbPassword = builder.AddParameter("db-password", secret: true);  
+var environment = builder.AddParameter("environment");
+
+// Application will prompt for these values if not provided
+var database = builder.AddPostgres("postgres", password: dbPassword);
+var api = builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", apiKey)
+    .WithEnvironment("ENVIRONMENT", environment)
+    .WithReference(database);
+
+builder.Build().Run();
+```
+
+**Interactive experience:**
+- **Automatic detection** - Aspire detects missing parameter values during startup
+- **Dashboard prompts** - Interactive forms appear in the dashboard for parameter collection
+- **Validation support** - Parameters can include validation rules and helpful descriptions
+- **Secure handling** - Secret parameters are properly masked during input
+- **Persistent storage** - Collected values can be saved to user secrets for future runs
+
+**Key improvements:**
+- **No more startup failures** - Missing parameters trigger prompts instead of errors
+- **Developer-friendly** - Clean interface for providing configuration values
+- **Security-conscious** - Secret parameters are handled appropriately
+- **Validation feedback** - Clear error messages for invalid parameter values
+
+This feature eliminates the need to pre-configure all parameters before running your Aspire application, making the development experience more fluid and user-friendly.
+
+### 🐳 Enhanced persistent container support
+
+.NET Aspire 9.4 improves support for persistent containers with better lifecycle management and networking capabilities, ensuring containers can persist across application restarts while maintaining proper connectivity.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Persistent containers with improved lifecycle support
+var database = builder.AddPostgres("postgres")
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithExplicitStart(); // Better support for explicit start with persistent containers
+
+// Persistent containers automatically get persistent networking
+var redis = builder.AddRedis("redis")
+    .WithLifetime(ContainerLifetime.Persistent);
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(database)
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+**Enhanced capabilities:**
+- **Improved lifecycle management** - Better coordination between `WithExplicitStart()` and `ContainerLifetime.Persistent`
+- **Persistent networking** - Automatic persistent network creation when persistent containers are detected
+- **Container delay start** - Uses orchestrator container delay start feature for more reliable startup sequencing
+- **Network isolation** - Persistent and session-scoped containers use separate networks for better resource management
+
+**Key benefits:**
+- **Data persistence** - Database and cache containers maintain state across application restarts
+- **Development efficiency** - No need to repeatedly seed databases or warm caches
+- **Network stability** - Consistent network topology for persistent infrastructure
+- **Resource optimization** - Separate networks prevent conflicts between persistent and ephemeral resources
+
+This enhancement provides a more robust foundation for development scenarios requiring stateful services that persist beyond individual application runs.
+
+### 🎛️ Enhanced resource command service
+
+.NET Aspire 9.4 introduces a centralized `ResourceCommandService` for executing commands against resources, along with enhanced APIs for adding custom commands to your resources. You can now easily add custom commands that appear in the Aspire dashboard and can be executed programmatically.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var database = builder.AddPostgres("postgres")
+    .WithHttpCommand("/admin/restart", "Restart Database", 
+        commandOptions: new HttpCommandOptions
+        {
+            Method = HttpMethod.Post,
+            Description = "Restart the PostgreSQL database"
+        });
+
+var cache = builder.AddRedis("cache")
+    .WithHttpCommand("/admin/flush", "Flush Cache",
+        commandOptions: new HttpCommandOptions
+        {
+            Method = HttpMethod.Delete,
+            Description = "Clear all cached data"
+        });
+
+// Add a composite command that coordinates multiple operations
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(database)
+    .WithReference(cache)
+    .WithCommand("reset-all", "Reset Everything", async (context, ct) =>
+    {
+        var logger = context.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var commandService = context.ServiceProvider.GetRequiredService<ResourceCommandService>();
+        
+        logger.LogInformation("Starting full system reset...");
+        
+        try
+        {
+            // First flush the cache
+            var flushResult = await commandService.ExecuteCommandAsync(cache.Resource, "cache-http-delete-/admin/flush", ct);
+            if (!flushResult.Success)
+            {
+                return CommandResults.Failure($"Failed to flush cache: {flushResult.ErrorMessage}");
+            }
+            
+            // Then restart the database
+            var restartResult = await commandService.ExecuteCommandAsync(database.Resource, "postgres-http-post-/admin/restart", ct);
+            if (!restartResult.Success)
+            {
+                return CommandResults.Failure($"Failed to restart database: {restartResult.ErrorMessage}");
+            }
+            
+            logger.LogInformation("System reset completed successfully");
+            return CommandResults.Success();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "System reset failed");
+            return CommandResults.Failure(ex);
+        }
+    },
+    updateState: (context) => 
+    {
+        // Only enable when all dependencies are running
+        return context.ResourceSnapshot.State == KnownResourceStates.Running 
+            ? ResourceCommandState.Enabled 
+            : ResourceCommandState.Disabled;
+    },
+    displayDescription: "Reset cache and restart database in coordinated sequence",
+    confirmationMessage: "This will clear all cached data and restart the database. Continue?",
+    iconName: "ArrowClockwise",
+    iconVariant: IconVariant.Filled,
+    isHighlighted: true);
+
+builder.Build().Run();
+```
+
+**Key capabilities:**
+- **Fluent command APIs** - Add commands directly to resource builders with `WithCommand()`
+- **HTTP command support** - Built-in `WithHttpCommand()` for REST API-based operations
+- **Dashboard integration** - All commands appear in the Aspire dashboard with custom icons and descriptions
+- **State management** - Commands can be enabled/disabled based on resource state
+- **Confirmation dialogs** - Built-in support for confirmation prompts for destructive operations
+- **Programmatic execution** - Execute any command through `ResourceCommandService`
+
+**Command customization options:**
+- **Custom icons** - Choose from built-in Fluent UI icons or use custom variants
+- **Descriptions and help text** - Provide contextual information for each command
+- **State-based availability** - Enable/disable commands based on resource state
+- **Confirmation prompts** - Require user confirmation for potentially dangerous operations
+- **Highlighting** - Mark important commands as highlighted in the dashboard
+
+**Common use cases:**
+- **Container restarts** - Restart specific containers or services
+- **Cache operations** - Clear cache, warm up data, or refresh content
+- **Database maintenance** - Run migrations, backups, or cleanup operations
+- **Service management** - Reload configurations, restart workers, or trigger deployments
+- **Debugging operations** - Run diagnostic commands, dump logs, or collect metrics
+
+This enhancement provides a much more intuitive way to add operational commands to your resources, making them easily accessible through both the dashboard UI and programmatic APIs.
+
+### �📁 Enhanced container file mounting
 
 Configuring container file systems often requires understanding complex Docker volume syntax and managing file permissions manually. .NET Aspire 9.4 introduces enhanced file mounting APIs that handle common scenarios with sensible defaults.
 
