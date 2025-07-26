@@ -333,17 +333,29 @@ var database = builder.AddPostgres("postgres");
 
 var api = builder.AddProject<Projects.Api>("api")
                 .WithReference(database)
-                .OnConnectionStringAvailable(async (resource, evt, cancellationToken) =>
+                .OnInitializeResource(async (resource, evt, cancellationToken) =>
                 {
-                    // Log when connection strings are resolved
+                    // Early resource initialization
                     var logger = evt.Services.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation("Connection string available for {Name}", resource.Name);
+                    logger.LogInformation("Initializing resource {Name}", resource.Name);
                 })
                 .OnBeforeResourceStarted(async (resource, evt, cancellationToken) =>
                 {
                     // Pre-startup validation or configuration
                     var serviceProvider = evt.Services;
                     // Additional validation logic here
+                })
+                .OnConnectionStringAvailable(async (resource, evt, cancellationToken) =>
+                {
+                    // Log when connection strings are resolved
+                    var logger = evt.Services.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("Connection string available for {Name}", resource.Name);
+                })
+                .OnResourceEndpointsAllocated(async (resource, evt, cancellationToken) =>
+                {
+                    // React to endpoint allocation
+                    var logger = evt.Services.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("Endpoints allocated for {Name}", resource.Name);
                 })
                 .OnResourceReady(async (resource, evt, cancellationToken) =>
                 {
@@ -354,6 +366,13 @@ var api = builder.AddProject<Projects.Api>("api")
 
 builder.Build().Run();
 ```
+
+**Available lifecycle events:**
+- **`OnInitializeResource()`** - Called during early resource initialization
+- **`OnBeforeResourceStarted()`** - Called before the resource starts
+- **`OnConnectionStringAvailable()`** - Called when connection strings are resolved
+- **`OnResourceEndpointsAllocated()`** - Called when resource endpoints are allocated
+- **`OnResourceReady()`** - Called when the resource is fully ready
 
 These events enable sophisticated startup orchestration, health validation, and initialization workflows without requiring complex external coordination mechanisms.
 
