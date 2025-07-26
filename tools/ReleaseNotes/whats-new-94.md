@@ -332,7 +332,7 @@ The enhanced APIs handle file permissions, ownership, and provide both static an
 
 ### 🎭 Experimental interaction services
 
-.NET Aspire 9.4 introduces experimental support for rich user interactions during resource operations. This enables more sophisticated automation and deployment workflows through a standardized interaction system.
+.NET Aspire 9.4 introduces experimental support for rich user interactions during resource operations. This enables more sophisticated automation and deployment workflows through a standardized interaction system that works across multiple scenarios including dashboard run mode and CLI deploy/publish operations.
 
 > [!IMPORTANT]
 > 🧪 This feature is experimental and may change in future releases.
@@ -343,8 +343,60 @@ The interaction system supports:
 - Input collection with validation
 - Multi-step workflows
 - Integration with both console and IDE environments
+- Dashboard interactions during run mode
+- CLI interactions during deploy and publish operations
 
-For more information on using interaction services, see the experimental API documentation.
+```csharp
+// Example usage of IInteractionService APIs
+public class DeploymentService
+{
+    private readonly IInteractionService _interactionService;
+    
+    public DeploymentService(IInteractionService interactionService)
+    {
+        _interactionService = interactionService;
+    }
+    
+    public async Task DeployAsync()
+    {
+        // Prompt for confirmation before destructive operations
+        var confirmResult = await _interactionService.PromptConfirmationAsync(
+            "Confirm Deployment", 
+            "This will overwrite the existing deployment. Continue?");
+            
+        if (!confirmResult.IsOk || !confirmResult.Data)
+            return;
+        
+        // Collect deployment parameters
+        var inputResult = await _interactionService.PromptInputAsync(
+            "Deployment Configuration",
+            "Enter the target environment:",
+            "Environment",
+            "production");
+            
+        if (inputResult.IsOk)
+        {
+            var environment = inputResult.Data.Value;
+            // Proceed with deployment using the collected input
+        }
+        
+        // Show progress notifications
+        await _interactionService.PromptNotificationAsync(
+            "Deployment Status",
+            "Deployment completed successfully!");
+    }
+}
+```
+
+The `IInteractionService` interface provides several methods for user interaction:
+
+- `PromptConfirmationAsync()` - Yes/No confirmation dialogs
+- `PromptInputAsync()` - Single input collection
+- `PromptInputsAsync()` - Multiple input collection with validation
+- `PromptMessageBoxAsync()` - Informational message displays
+- `PromptNotificationAsync()` - Status notifications
+
+These interactions work seamlessly whether you're running your application through the Aspire dashboard or deploying via the CLI with `aspire deploy` and `aspire publish` commands.
 
 ## ☁️ Azure goodies
 
