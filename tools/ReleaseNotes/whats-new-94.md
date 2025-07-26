@@ -706,23 +706,6 @@ This enhancement improves the console logs viewing experience by providing devel
 
 .NET Aspire 9.4 introduces the ability to show or hide hidden resources in the dashboard, giving you complete visibility into your application's infrastructure components and internal resources that are normally hidden from view.
 
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// These infrastructure components are normally hidden
-var postgres = builder.AddPostgres("postgres")
-    .WithPgAdmin(); // PgAdmin is typically hidden
-
-var redis = builder.AddRedis("redis");
-
-// DCP/Orchestrator components are hidden by default
-var app = builder.AddProject<Projects.MyApp>("myapp")
-    .WithReference(postgres)
-    .WithReference(redis);
-
-builder.Build().Run();
-```
-
 **Key capabilities:**
 - **Toggle hidden resources** - New menu button to show/hide infrastructure and internal components
 - **Persistent preference** - Show/hide setting is saved in browser storage and restored between sessions
