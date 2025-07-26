@@ -155,16 +155,15 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Create a user-assigned managed identity
 var appIdentity = builder.AddAzureUserAssignedIdentity("app-identity");
 
-// Apply the identity to various compute resources
-var containerApp = builder.AddAzureContainerApp("api")
-    .WithAzureUserAssignedIdentity(appIdentity);
+// Create the container app environment
+var containerEnv = builder.AddAzureContainerAppEnvironment("container-env");
 
+// Apply the identity to compute resources
 var functionApp = builder.AddAzureFunctionsProject<Projects.Functions>("functions")
     .WithAzureUserAssignedIdentity(appIdentity);
 
 // The identity can be shared across multiple resources
 var webApp = builder.AddProject<Projects.WebApp>("webapp")
-    .PublishAsAzureWebApp()
     .WithAzureUserAssignedIdentity(appIdentity);
 
 // Use the same identity for accessing Azure services
@@ -227,23 +226,6 @@ builder.AddKeyedAzureBlobServiceClient("primary-blobs");
 ```
 
 The new client registration methods provide consistent naming across all Azure Storage services and full support for keyed dependency injection scenarios.
-
-### 🔧 Azure resource infrastructure improvements
-
-.NET Aspire 9.4 introduces enhanced Azure resource provisioning capabilities with the `AddAsExistingResource` pattern and new infrastructure annotations:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Use existing Azure resources
-var existingStorage = builder.AddAzureStorage("storage")
-    .AddAsExistingResource(); // Reference existing Azure Storage account
-
-// Enhanced emulator support with annotations
-var cosmosDb = builder.AddAzureCosmosDB("cosmos")
-    .WithEmulatorResourceAnnotation() // Mark as emulator-compatible
-    .WithAzureLogAnalyticsWorkspaceReference(); // Link to Log Analytics
-```
 
 ### 🔧 Enhanced tracing configuration
 
