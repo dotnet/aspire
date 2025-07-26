@@ -38,7 +38,7 @@ internal static class ResourceIconHelpers
     {
         return healthStatus switch
         {
-            HealthStatus.Healthy => ((Icon)new Icons.Filled.Size16.Heart(), Color.Success),
+            HealthStatus.Healthy => (new Icons.Filled.Size16.Heart(), Color.Success),
             HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
             HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
             _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)

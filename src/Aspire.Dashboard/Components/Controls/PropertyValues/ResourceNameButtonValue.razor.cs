@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls.PropertyValues;
 
@@ -27,19 +27,28 @@ public partial class ResourceNameButtonValue
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
+    private ResourceViewModel? _resource;
     private Icon? _resourceIcon;
 
     protected override void OnParametersSet()
     {
-        var resource = DashboardClient.GetResource(Resource.ApplicationKey.ToString());
-        _resourceIcon = resource != null
-            ? ResourceIconHelpers.GetIconForResource(resource, IconSize.Size16, IconVariant.Regular)
-            : new Icons.Regular.Size16.AppFolder();
+        _resourceIcon = null;
+
+        if (DashboardClient.IsEnabled)
+        {
+            _resource = DashboardClient.GetResource(Resource.ApplicationKey.ToString());
+            if (_resource != null)
+            {
+                _resourceIcon = ResourceIconHelpers.GetIconForResource(_resource, IconSize.Size16, IconVariant.Regular);
+            }
+        }
     }
 
     private Task OnClickAsync()
     {
-        NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(Resource.ApplicationKey.ToString()));
+        Debug.Assert(_resource != null, "Should only get here if there is a matched resource.");
+
+        NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(_resource.Name));
         return Task.CompletedTask;
     }
 }
