@@ -586,12 +586,12 @@ This enhancement removes the previous hidden status of parameters and connection
 
 ### � Enhanced dashboard infrastructure with proxied endpoints
 
-.NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that provide better reliability and startup resilience. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
+.NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that make dashboard launching more reliable by fixing port reuse problems. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
 
 **Key improvements:**
-- **Proxied endpoint architecture** - Dashboard endpoints are now modeled as first-class proxied resources in the DCP (Distributed Application Platform)
+- **Proxied endpoint architecture** - Dashboard endpoints are now modeled as first-class proxied resources in the DCP (Developer Control Plane)
 - **Startup retry resilience** - Automatic retry handling during DCP proxy startup eliminates connection failures from unclean dashboard shutdowns
-- **Consistent endpoint management** - Dashboard endpoints follow the same patterns as other application resources
+- **Port reuse problem resolution** - Fixes issues where dashboard ports weren't properly released from previous runs
 - **Improved reliability** - Better handling of cases where the dashboard wasn't cleanly shut down from a previous run
 
 **Technical benefits:**
@@ -600,7 +600,7 @@ This enhancement removes the previous hidden status of parameters and connection
 - **Environment variable optimization** - Streamlined configuration of `ASPNETCORE_URLS` and OTLP endpoint URLs
 - **Reference expression support** - Dashboard URLs are now properly handled through the reference expression system
 
-This infrastructure enhancement provides a more robust foundation for dashboard operations, particularly in complex development environments and deployment scenarios where network connectivity can be challenging.
+This infrastructure enhancement provides a more robust foundation for dashboard operations, particularly in complex development environments and deployment scenarios where network connectivity can be challenging. The primary benefit is making dashboard launching more reliable by eliminating the common port reuse issues that could prevent the dashboard from starting after previous application runs.
 
 **GitHub Issue:** [#10587](https://github.com/dotnet/aspire/issues/10587)
 
