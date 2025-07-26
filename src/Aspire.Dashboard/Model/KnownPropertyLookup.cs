@@ -24,10 +24,10 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             new(KnownProperties.Resource.DisplayName, loc => loc[nameof(ResourcesDetailsDisplayNameProperty)]),
             new(KnownProperties.Resource.State, loc => loc[nameof(ResourcesDetailsStateProperty)]),
+            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.StartTime, loc => loc[nameof(ResourcesDetailsStartTimeProperty)]),
             new(KnownProperties.Resource.StopTime, loc => loc[nameof(ResourcesDetailsStopTimeProperty)]),
             new(KnownProperties.Resource.ExitCode, loc => loc[nameof(ResourcesDetailsExitCodeProperty)]),
-            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.ConnectionString, loc => loc[nameof(ResourcesDetailsConnectionStringProperty)])
         ];
 

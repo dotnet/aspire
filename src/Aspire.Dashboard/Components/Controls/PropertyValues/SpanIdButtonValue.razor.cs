@@ -10,7 +10,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls.PropertyValues;
 
-public partial class SpanIdValue
+public partial class SpanIdButtonValue
 {
     [Parameter, EditorRequired]
     public required string Value { get; set; }

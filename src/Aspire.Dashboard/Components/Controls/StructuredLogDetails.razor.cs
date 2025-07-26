@@ -101,17 +101,17 @@ public partial class StructuredLogDetails : IDisposable
             {
                 [KnownStructuredLogFields.TraceIdField] = new ComponentMetadata
                 {
-                    Type = typeof(TraceIdValue),
+                    Type = typeof(TraceIdButtonValue),
                     Parameters = { ["OnClick"] = CloseCallback }
                 },
                 [KnownStructuredLogFields.SpanIdField] = new ComponentMetadata
                 {
-                    Type = typeof(SpanIdValue),
+                    Type = typeof(SpanIdButtonValue),
                     Parameters = { ["TraceId"] = _viewModel.LogEntry.TraceId }
                 },
                 [KnownResourceFields.ServiceNameField] = new ComponentMetadata
                 {
-                    Type = typeof(ResourceNameValue),
+                    Type = typeof(ResourceNameButtonValue),
                     Parameters = { ["Resource"] = _viewModel.LogEntry.ApplicationView.Application }
                 },
                 [KnownStructuredLogFields.LevelField] = new ComponentMetadata

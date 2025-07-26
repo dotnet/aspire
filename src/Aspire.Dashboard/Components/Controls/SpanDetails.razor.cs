@@ -122,17 +122,17 @@ public partial class SpanDetails : IDisposable
             {
                 [KnownTraceFields.TraceIdField] = new ComponentMetadata
                 {
-                    Type = typeof(TraceIdValue),
+                    Type = typeof(TraceIdButtonValue),
                     Parameters = { ["OnClick"] = CloseCallback }
                 },
                 [KnownTraceFields.ParentIdField] = new ComponentMetadata
                 {
-                    Type = typeof(SpanIdValue),
+                    Type = typeof(SpanIdButtonValue),
                     Parameters = { ["TraceId"] = _viewModel.Span.TraceId }
                 },
                 [KnownResourceFields.ServiceNameField] = new ComponentMetadata
                 {
-                    Type = typeof(ResourceNameValue),
+                    Type = typeof(ResourceNameButtonValue),
                     Parameters = { ["Resource"] = _viewModel.Span.Source.Application }
                 },
                 [KnownTraceFields.StatusField] = new ComponentMetadata

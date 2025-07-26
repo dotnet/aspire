@@ -3,11 +3,15 @@
 
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls.PropertyValues;
 
-public partial class ResourceNameValue
+public partial class ResourceHealthStateValue
 {
+    private Icon? _icon;
+    private Color _color;
+
     [Parameter, EditorRequired]
     public required string Value { get; set; }
 
@@ -17,6 +21,8 @@ public partial class ResourceNameValue
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
 
-    [Parameter, EditorRequired]
-    public required Func<ResourceViewModel, string> FormatName { get; set; }
+    protected override void OnParametersSet()
+    {
+        (_icon, _color) = ResourceIconHelpers.GetHealthStatusIcon(Resource.HealthStatus);
+    }
 }

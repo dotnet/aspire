@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls.PropertyValues;
 
-public partial class TraceIdValue
+public partial class TraceIdButtonValue
 {
     [Parameter, EditorRequired]
     public required string Value { get; set; }
