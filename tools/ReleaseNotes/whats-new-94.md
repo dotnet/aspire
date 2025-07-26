@@ -607,9 +607,9 @@ builder.Build().Run();
 
 The enhanced integration provides better cost control by reusing existing Log Analytics workspaces and improved resource coordination.
 
-### 🔗 Improved Azure resource naming
+### 🏷️ Azure resource name exposure
 
-Consistent resource naming across environments and deployments is crucial for Azure resource management, but has often required custom naming logic or post-deployment coordination. .NET Aspire 9.4 introduces improved output reference support that makes it easier to reference and coordinate Azure resources.
+.NET Aspire 9.4 now consistently exposes the actual names of deployed Azure resources through the `NameOutputReference` property. This enables applications to access the real Azure resource names that get generated during deployment, which is essential for scenarios requiring direct Azure resource coordination.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -617,7 +617,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var storage = builder.AddAzureStorage("appstorage");
 var signalr = builder.AddAzureSignalR("notifications");
 
-// The NameOutputReference provides consistent, deployment-time resource names
+// Access the actual deployed Azure resource names
 var api = builder.AddProject<Projects.Api>("api")
                 .WithEnvironment("STORAGE_NAME", storage.Resource.NameOutputReference)
                 .WithEnvironment("SIGNALR_NAME", signalr.Resource.NameOutputReference);
@@ -625,7 +625,11 @@ var api = builder.AddProject<Projects.Api>("api")
 builder.Build().Run();
 ```
 
-This ensures your applications can reliably reference Azure resources by their actual deployed names, improving coordination between services and external automation.
+This is particularly valuable for:
+- **External automation scripts** that need to interact with deployed Azure resources
+- **Monitoring and alerting systems** that reference resources by their actual names
+- **Cross-service coordination** where services need to know exact Azure resource identifiers
+- **Infrastructure as Code scenarios** where generated names must be referenced elsewhere
 
 The `NameOutputReference` property is now available on all Azure resources including:
 - Azure App Configuration
