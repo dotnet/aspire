@@ -1198,6 +1198,45 @@ var workspace = builder.AddAzureLogAnalyticsWorkspace("workspace");  // Direct r
 
 **Migration impact**: Replace parameter-based resource references with direct resource modeling using the `Add*` methods for better type safety and IntelliSense support.
 
+### ParameterResource.Value synchronous behavior change
+
+The `ParameterResource.Value` property now blocks synchronously when waiting for parameter value resolution, which can potentially cause deadlocks in async contexts. The new `GetValueAsync()` method should be used instead for proper async handling.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Parameters that need resolution
+var apiKey = builder.AddParameter("api-key", secret: true);
+var connectionString = builder.AddParameter("connection-string", secret: true);
+
+// ❌ Before (can cause deadlocks in async contexts):
+builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", apiKey.Resource.Value)  // Blocks synchronously - can deadlock
+    .WithEnvironment("CONNECTION_STRING", connectionString.Resource.Value);
+
+// ✅ After (recommended for async contexts):
+// Use the parameter resources directly with WithEnvironment - they handle async resolution internally
+builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", apiKey)  // Let Aspire handle async resolution
+    .WithEnvironment("CONNECTION_STRING", connectionString);
+
+// Or if you need the actual value in custom code with WithEnvironment callback:
+builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", async (context, cancellationToken) =>
+    {
+        return await apiKey.Resource.GetValueAsync(cancellationToken);  // Proper async handling
+    })
+    .WithEnvironment("CONNECTION_STRING", async (context, cancellationToken) =>
+    {
+        return await connectionString.Resource.GetValueAsync(cancellationToken);
+    });
+
+// For non-async contexts where blocking is acceptable:
+var syncValue = apiKey.Resource.Value;  // Still works but may block
+```
+
+**Migration impact**: When working with `ParameterResource` values in async contexts, use the new `GetValueAsync()` method instead of the `Value` property to avoid potential deadlocks. For `WithEnvironment()` calls, prefer passing the parameter resource directly rather than accessing `.Value` synchronously.
+
 ### Kafka configuration method changes
 
 Kafka configuration has been updated with more descriptive method names:
