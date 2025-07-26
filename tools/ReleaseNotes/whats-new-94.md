@@ -312,7 +312,7 @@ Managing observability in Docker Compose environments often requires running sep
 var builder = DistributedApplication.CreateBuilder(args);
 
 var compose = builder.AddDockerComposeEnvironment("production")
-                    .WithDashboard(enabled: true);
+                    .WithDashboard(dashboard => dashboard.WithHostPort(8080)); // Configure dashboard with specific port
 
 // Add services that will automatically report to the dashboard
 builder.AddProject<Projects.Frontend>("frontend")
@@ -324,7 +324,11 @@ builder.AddProject<Projects.Api>("api")
 builder.Build().Run();
 ```
 
-The dashboard automatically configures OTLP endpoints and service discovery, giving you the same rich observability experience in production Docker environments that you have during local development.
+**Key capabilities:**
+- **Dashboard integration** automatically configures OTLP endpoints and service discovery
+- **Port configuration** with `WithHostPort()` for predictable dashboard access
+- **Same observability experience** in production Docker environments as local development
+- **Seamless service discovery** for all containerized resources
 
 ### 🔧 Resource lifecycle events
 
