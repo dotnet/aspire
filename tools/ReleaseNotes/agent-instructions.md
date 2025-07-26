@@ -39,9 +39,76 @@ The primary objective is to generate a comprehensive `whats-new-{version}.md` do
    - Focus on developer impact with accurate code samples for API changes
    - Include CLI commands for CLI-related changes
 
-## 🚨 CRITICAL ANALYSIS AND ACCURACY REQUIREMENTS
+## � COMMIT ANALYSIS AND FEATURE EXTRACTION
 
-**All steps in this process must strictly follow these rules:**
+### Understanding Component Analysis Files
+
+Each component analysis file (`analysis-output/*.md`) contains:
+- **Change Summary**: File counts and statistics
+- **Complete Commit List**: All commits for that component between releases
+- **Top Contributors**: Who made the changes
+- **Categorized Commits**: Features, bug fixes, breaking changes
+
+### How to Analyze Commits for Features
+
+**Step 1: Read Commit Messages for Context**
+```markdown
+# Example from analysis file:
+6b5ef9919 [release/9.4] Add ContainerBuildOptions support to ResourceContainerImageBuilder for customizing dotnet publish (#10312)
+853c91898 Rename IPublishingActivityProgressReporter to IPublishingActivityReporter (#10253)
+c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
+4ee28c24b Only expose endpoint port in docker compose if external is set to true (#9604)
+```
+
+**Step 2: Identify Feature Types by Commit Message Patterns**
+- **"Add"** commits → New features or APIs
+- **"Rename"** commits → Breaking changes or API updates
+- **"Improve/Enhance"** commits → Enhancements to existing features
+- **"Fix"** commits → Bug fixes (usually not featured unless significant)
+- **"Support for"** commits → New platform/technology integrations
+
+**Step 3: Extract User-Facing Impact**
+For each significant commit, determine:
+- **What capability does this enable?** (new feature)
+- **What does this change for developers?** (API impact)
+- **What problem does this solve?** (use case)
+- **Is this breaking?** (migration needed)
+
+### Commit-to-Feature Translation Process
+
+**Example: Docker Compose Commits Analysis**
+
+From `Aspire.Hosting.Docker.md`:
+```markdown
+c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
+4ee28c24b Only expose endpoint port in docker compose if external is set to true (#9604)
+```
+
+**Translation Process:**
+1. **Commit c5e604f4b**: "Add dashboard resource to AddDockerComposeEnvironment"
+   - **Feature**: Docker Compose with integrated Aspire Dashboard
+   - **User Impact**: Developers can now add dashboard integration to Docker Compose environments
+   - **API Change**: New `.WithDashboard()` method on `AddDockerComposeEnvironment`
+
+2. **Commit 4ee28c24b**: "Only expose endpoint port in docker compose if external is set to true"
+   - **Feature**: Enhanced Docker Compose security
+   - **User Impact**: Better security by selective port exposure
+   - **Behavior Change**: Internal endpoints use `expose`, external endpoints use `ports`
+
+### Multi-Component Feature Identification
+
+**Look for Related Commits Across Components:**
+
+Example: Azure Storage API consolidation appears in multiple files:
+- `Aspire.Hosting.Azure.Storage.md`: API changes
+- `Aspire.Azure.Data.Tables.md`: Client registration changes
+- `Aspire.Azure.Storage.Blobs.md`: Service client updates
+
+**Synthesis Process:**
+1. **Identify the pattern**: Multiple storage components have similar "rename" commits
+2. **Find the theme**: API consolidation and standardization
+3. **Create unified feature**: "Azure Storage API consolidation" section
+4. **Show migration path**: Before/after examples for all affected components
 
 ## 🎯 COMPREHENSIVE ANALYSIS APPROACH
 
@@ -59,7 +126,59 @@ Use `analysis-output/api-changes-build-current/api-changes-summary.md` as the pr
 - **Method signature changes** and parameter updates
 - **New extension methods** and builder patterns
 
-### 3. **PRIMARY API SOURCE: THE UBER FILE**
+### 4. **GIT COMMIT ANALYSIS FOR MISSING FEATURES**
+
+Sometimes important features may not be immediately obvious from component analysis files. Use direct git analysis:
+
+```bash
+# Find commits with specific keywords
+git log --oneline --grep="Add.*support" --since="2024-01-01"
+git log --oneline --grep="container.*support" --since="2024-01-01"
+
+# Analyze specific commits mentioned by stakeholders
+git show --stat <commit-hash>
+git show <commit-hash> --name-only
+```
+
+**Example: Stakeholder-Identified Commits**
+When given specific commit hashes to analyze:
+```bash
+git show --stat bdd1d34c6  # Azure App Service container support
+git show --stat d4eacc676  # Enhanced publish/deploy output
+git show --stat 4ee28c24b  # Docker Compose security improvements
+git show --stat 039c42594  # Azure Functions Container Apps integration
+```
+
+**Process for Stakeholder Commits:**
+1. **Get commit details**: Use `git show --stat` to understand scope
+2. **Identify user impact**: What new capability or improvement does this enable?
+3. **Find related files**: Use `git show --name-only` to see what changed
+4. **Create feature section**: Write user-facing documentation based on the changes
+5. **Verify APIs**: Cross-reference any new APIs with the uber file
+
+### 5. **COMMIT PRIORITIZATION FOR RELEASE NOTES**
+
+**High Priority Commits (Must Include):**
+- New resource types (`Add.*Resource`)
+- New integration support (`Add.*support`, `Support for.*`)
+- Breaking API changes (`Rename.*`, `Remove.*`, `Change.*`)
+- Major CLI features (`Add.*command`, `.*exec.*`, `.*deploy.*`)
+- Security improvements (`security`, `expose.*port`)
+
+**Medium Priority Commits (Consider Including):**
+- Performance improvements (`Improve.*performance`, `Optimize.*`)
+- Enhanced configuration (`Add.*configuration`, `Support.*options`)
+- Better error handling (`Improve.*error`, `Add.*validation`)
+- Developer experience (`Enhance.*`, `Better.*`)
+
+**Low Priority Commits (Usually Skip):**
+- Bug fixes (`Fix.*`) unless critical or user-visible
+- Internal refactoring without user impact
+- Documentation updates
+- Test improvements
+- Code cleanup
+
+### 6. **PRIMARY API SOURCE: THE UBER FILE**
 
 The **UBER API FILE** is the single source of truth for all API references:
 ```
@@ -75,12 +194,33 @@ This file contains:
 ### Mandatory Workflow for Documentation
 
 1. **📋 ANALYZE ALL COMPONENT FILES**: Review every `analysis-output/*.md` file for commit-based changes
-2. **📊 CHECK API CHANGES SUMMARY**: Use `api-changes-build-current/api-changes-summary.md` for new API discoveries
-3. **🔍 VERIFY IN UBER FILE**: Before writing ANY code sample, search the uber file for exact API definitions
-4. **✅ USE ONLY CONFIRMED APIS**: If it's not in the uber file, it doesn't exist
-5. **💻 PROVIDE SAMPLES FOR API CHANGES**: Every API change mentioned should include a code sample
-6. **⚡ INCLUDE CLI COMMANDS**: Every CLI change should show the actual command syntax
-7. **❌ NEVER INVENT APIS**: No made-up methods, parameters, or fluent chains
+   - Read through ALL commits in each component file
+   - Look for patterns: "Add", "Rename", "Support", "Improve"
+   - Extract user-facing impact from commit messages
+   - Group related commits across components into unified features
+
+2. **🔍 EXTRACT FEATURES FROM COMMITS**: Transform commits into user-facing documentation
+   - Identify new capabilities enabled by each commit
+   - Determine API changes and their impact on developers
+   - Create feature sections based on commit analysis
+   - Synthesize related commits into cohesive feature stories
+
+3. **📊 CHECK API CHANGES SUMMARY**: Use `api-changes-build-current/api-changes-summary.md` for new API discoveries
+
+4. **🔬 ANALYZE STAKEHOLDER COMMITS**: When specific commits are mentioned, deep dive with git commands
+   - Use `git show --stat <commit>` to understand scope
+   - Use `git show <commit> --name-only` to see affected files
+   - Extract user-facing improvements from commit changes
+
+5. **🔍 VERIFY IN UBER FILE**: Before writing ANY code sample, search the uber file for exact API definitions
+
+6. **✅ USE ONLY CONFIRMED APIS**: If it's not in the uber file, it doesn't exist
+
+7. **💻 PROVIDE SAMPLES FOR API CHANGES**: Every API change mentioned should include a code sample
+
+8. **⚡ INCLUDE CLI COMMANDS**: Every CLI change should show the actual command syntax
+
+9. **❌ NEVER INVENT APIS**: No made-up methods, parameters, or fluent chains
 
 ### Component Coverage in Uber File
 
@@ -90,6 +230,108 @@ The uber file includes verified APIs for:
 - **Data Services**: MongoDB, MySql, Oracle, PostgreSQL  
 - **Infrastructure**: Azure (base), Hosting (base), Yarp
 - **Client Components**: Azure.Data.Tables, Azure.Storage.Blobs, Azure.Storage.Queues, Microsoft.Extensions.Configuration.AzureAppConfiguration
+
+## 📝 Writing Features from Commit Analysis
+
+### From Commits to Documentation Sections
+
+**Step-by-Step Process:**
+
+1. **Identify the Commit Pattern**
+   - Scan commit messages for keywords: "Add", "Support", "Improve", "Rename"
+   - Look for technology names: "Azure", "Docker", "Kubernetes", "Redis"
+   - Find capability words: "authentication", "configuration", "deployment"
+
+2. **Extract User Value**
+   - **What problem does this solve?** (the "why")
+   - **What can developers now do?** (the capability)
+   - **How do they use it?** (the API/CLI)
+
+3. **Create Feature Section Structure**
+   ```markdown
+   ### ✨ [Feature Name]
+   
+   [Brief description of the new capability and its value]
+   
+   ```csharp
+   // Code example using verified APIs from uber file
+   ```
+   
+   [Explanation of the example and key benefits]
+   ```
+
+### Real Examples of Commit-to-Feature Translation
+
+**Commit:** `c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)`
+
+**Feature Section:**
+```markdown
+### 🖥️ Docker Compose with Aspire Dashboard integration
+
+You can now integrate the Aspire Dashboard directly into your Docker Compose environments, providing a unified monitoring experience for both containerized and Aspire-managed resources.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddDockerComposeEnvironment("compose")
+    .WithDashboard()  // ✨ New integration capability
+    .WithComposeFile("docker-compose.yml");
+
+await builder.Build().RunAsync();
+```
+
+This enhancement allows you to monitor Docker Compose services alongside your Aspire resources in a single dashboard interface.
+```
+
+**Commit:** `bdd1d34c6 Add support for containers with Dockerfile to AzureAppServiceEnvironmentResource`
+
+**Feature Section:**
+```markdown
+### 🐳 Azure App Service container deployment with Dockerfile support
+
+Azure App Service environments now support deploying containerized applications directly from Dockerfile, making it easier to deploy custom container images to Azure.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var appService = builder.AddAzureAppService("myapp")
+    .WithDockerfile("./src/MyApp");  // ✨ New Dockerfile support
+
+await builder.Build().RunAsync();
+```
+
+This feature streamlines container deployment to Azure App Service by building and deploying directly from your Dockerfile without requiring pre-built container images.
+```
+
+### Grouping Related Commits into Unified Features
+
+When multiple commits contribute to a single user-facing capability:
+
+**Multiple Related Commits:**
+- `853c91898 Rename IPublishingActivityProgressReporter to IPublishingActivityReporter`
+- `d4eacc676 Improve the publish/deploy output with better progress reporting`
+- `a1b2c3d4e Add structured logging to publish operations`
+
+**Unified Feature Section:**
+```markdown
+### 🚀 Enhanced publish and deploy experience
+
+The publish and deploy experience has been significantly improved with better progress reporting, clearer output formatting, and enhanced logging.
+
+```bash
+# Enhanced output with structured progress
+aspire publish --interactive
+✅ Building project...
+✅ Publishing container images...
+✅ Deploying to Azure...
+📊 Deployment completed successfully in 2m 15s
+```
+
+Key improvements include:
+- **Structured progress reporting**: Clear status updates throughout the deployment process
+- **Better error messages**: More actionable error information when deployments fail  
+- **Enhanced logging**: Detailed logs for troubleshooting deployment issues
+```
 
 ## 📝 Writing Accurate Documentation
 
@@ -241,18 +483,28 @@ ms.date: {date}
 ## Success Criteria
 
 A successful `whats-new-{version}.md` document is achieved when:
-- ✅ ALL component analysis files have been reviewed for major features
-- ✅ ALL commits in component files have been analyzed for comprehensive coverage
+- ✅ ALL component analysis files have been reviewed for commit-based features
+- ✅ ALL significant commits have been analyzed and translated into user-facing features
+- ✅ Commit patterns have been identified and grouped into cohesive feature sections
+- ✅ Multi-component features have been synthesized from related commits across components
+- ✅ Stakeholder-identified commits have been analyzed and documented appropriately
 - ✅ API changes summary has been used to identify new APIs and changes
 - ✅ All code samples use APIs verified in uber file
 - ✅ All CLI commands exist in commit analysis and include actual command syntax
 - ✅ All API references are accurate and complete with working code samples
-- ✅ Breaking changes reflect actual API diffs
+- ✅ Breaking changes reflect actual API diffs and commits
 - ✅ No fictional features are documented
 - ✅ Document follows the established template structure from `data/whats-new-*.md` files
 
-## Remember: **Comprehensive Analysis + Accuracy over completeness**
+## Remember: **Comprehensive Commit Analysis + Accuracy over completeness**
 
-Better to have fewer, accurate examples than many incorrect ones. Analyze ALL component files and commits for complete coverage, then use the uber file as your source of truth for all API samples. Every API change needs a working code sample, every CLI change needs the actual command.
+The foundation of great release notes is thorough commit analysis. Every significant commit should be considered for inclusion, translated into developer-facing language, and verified with accurate API samples. Better to have fewer, accurate features that represent real commit-based improvements than many speculative ones.
 
-**End Goal**: A professional, accurate, and comprehensive `whats-new-{version}.md` document that developers can trust and use effectively.
+**Process Summary**: 
+1. **Analyze commits** → Identify patterns and capabilities
+2. **Extract user value** → What problems do these commits solve?  
+3. **Group related commits** → Create unified feature stories
+4. **Verify APIs** → Use uber file for all code samples
+5. **Write developer-focused** → Clear examples and migration paths
+
+**End Goal**: A professional, accurate, and comprehensive `whats-new-{version}.md` document that reflects the actual improvements made through commits, with verified APIs that developers can trust and use effectively.
