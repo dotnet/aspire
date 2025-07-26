@@ -39,7 +39,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
                 <div slot="end">
@@ -50,7 +51,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
@@ -61,7 +63,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="@_isSpanEventsExpanded">
                 <div slot="end">

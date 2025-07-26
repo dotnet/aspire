@@ -24,6 +24,7 @@ public class TestDashboardClient : IDashboardClient
 
     public TestDashboardClient(
         bool? isEnabled = false,
+        string? applicationName = null,
         Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? consoleLogsChannelProvider = null,
         Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? resourceChannelProvider = null,
         Func<Channel<WatchInteractionsResponseUpdate>>? interactionChannelProvider = null,
@@ -32,6 +33,7 @@ public class TestDashboardClient : IDashboardClient
         IList<ResourceViewModel>? initialResources = null)
     {
         IsEnabled = isEnabled ?? false;
+        ApplicationName = applicationName ?? "TestApp";
         _consoleLogsChannelProvider = consoleLogsChannelProvider;
         _resourceChannelProvider = resourceChannelProvider;
         _interactionChannelProvider = interactionChannelProvider;
@@ -123,5 +125,10 @@ public class TestDashboardClient : IDashboardClient
         }
 
         await _sendInteractionUpdateChannel.Writer.WriteAsync(request, cancellationToken);
+    }
+
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        return null;
     }
 }

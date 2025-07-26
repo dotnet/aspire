@@ -206,7 +206,7 @@ public partial class PlotlyChart : ChartBase
         [JSInvokable]
         public async Task ViewSpan(string traceId, string spanId)
         {
-            var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
+            var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
                 traceId,
                 spanId,
                 _plotlyChart.TelemetryRepository.GetSpan,

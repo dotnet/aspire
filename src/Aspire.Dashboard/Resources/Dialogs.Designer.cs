@@ -423,18 +423,18 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
-        public static string OpenTraceDialogCancelButtonText {
+        public static string OpenSpanDialogCancelButtonText {
             get {
-                return ResourceManager.GetString("OpenTraceDialogCancelButtonText", resourceCulture);
+                return ResourceManager.GetString("OpenSpanDialogCancelButtonText", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Waiting for trace {0} to load....
+        ///   Looks up a localized string similar to Waiting for span {0} to load....
         /// </summary>
-        public static string OpenTraceDialogMessage {
+        public static string OpenSpanDialogMessage {
             get {
-                return ResourceManager.GetString("OpenTraceDialogMessage", resourceCulture);
+                return ResourceManager.GetString("OpenSpanDialogMessage", resourceCulture);
             }
         }
         

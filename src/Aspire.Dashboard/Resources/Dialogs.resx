@@ -235,11 +235,11 @@
   <data name="ExemplarsDialogTrace" xml:space="preserve">
     <value>Trace</value>
   </data>
-  <data name="OpenTraceDialogMessage" xml:space="preserve">
-    <value>Waiting for trace {0} to load...</value>
-    <comment>{0} is a trace ID</comment>
+  <data name="OpenSpanDialogMessage" xml:space="preserve">
+    <value>Waiting for span {0} to load...</value>
+    <comment>{0} is a span ID</comment>
   </data>
-  <data name="OpenTraceDialogCancelButtonText" xml:space="preserve">
+  <data name="OpenSpanDialogCancelButtonText" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
