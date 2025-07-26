@@ -11,6 +11,7 @@ internal sealed class DcpResourceState(Dictionary<string, IResource> application
 {
     public readonly ConcurrentDictionary<string, Container> ContainersMap = [];
     public readonly ConcurrentDictionary<string, Executable> ExecutablesMap = [];
+    public readonly ConcurrentDictionary<string, ContainerExec> ContainerExecsMap = [];
     public readonly ConcurrentDictionary<string, Service> ServicesMap = [];
     public readonly ConcurrentDictionary<string, Endpoint> EndpointsMap = [];
     public readonly ConcurrentDictionary<(string, string), List<string>> ResourceAssociatedServicesMap = [];
