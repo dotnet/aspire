@@ -369,11 +369,44 @@ builder.Build().Run();
 
 .NET Aspire 9.4 improves Docker Compose security by implementing smarter port mapping behavior. The system now distinguishes between internal and external endpoints, only exposing truly external endpoints via port mappings while using Docker Compose's `expose` directive for internal service-to-service communication.
 
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var compose = builder.AddDockerComposeEnvironment("production");
+
+// Add a service with both internal and external endpoints
+var webService = builder.AddContainer("webservice", "nginx")
+    .WithEndpoint(scheme: "http", port: 8080, name: "internal")       // Internal endpoint
+    .WithEndpoint(scheme: "http", port: 8081, name: "api", isExternal: true); // External endpoint
+
+builder.Build().Run();
+```
+
+**Generated Docker Compose output:**
+
+```yaml
+services:
+  webservice:
+    image: "nginx:latest"
+    ports:
+      - "8081:8001"    # Only external endpoints get port mappings (host:container)
+    expose:
+      - "8000"         # Internal endpoints use expose (container port only)
+    networks:
+      - "aspire"
+```
+
 **Security improvements:**
-- **Selective port exposure** - Only endpoints marked as external are exposed to the host
+- **Selective port exposure** - Only endpoints marked as `isExternal: true` are exposed to the host
 - **Internal service isolation** - Internal endpoints use Docker's `expose` for container-to-container communication
 - **Reduced attack surface** - Fewer ports exposed to the host system
 - **Better network hygiene** - Clear separation between public and private endpoints
+
+**Key benefits:**
+- **Enhanced security** - Internal services can't be accessed directly from the host, reducing exposure
+- **Service mesh compatibility** - Internal services communicate through Docker's internal networking
+- **Clear intent** - Explicitly marking external endpoints makes architecture more obvious
+- **Production ready** - Better aligns with security best practices for containerized deployments
 
 This change enhances the security posture of Docker Compose deployments by ensuring that internal services are not inadvertently exposed to the host network, while maintaining proper connectivity for legitimate external access points.
 
