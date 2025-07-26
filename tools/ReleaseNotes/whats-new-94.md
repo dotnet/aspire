@@ -253,7 +253,7 @@ var webApi = builder.AddProject<Projects.WebAPI>("webapi")
 .NET Aspire 9.4 standardizes Azure Storage client registration with consistent naming conventions and enhanced keyed service support:
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // Azure Table Storage with new standardized naming
 builder.AddAzureTableServiceClient("tables");
@@ -265,6 +265,8 @@ builder.AddKeyedAzureQueueServiceClient("primary-queues");
 
 // Keyed Blob Storage (enhanced support)
 builder.AddKeyedAzureBlobServiceClient("primary-blobs");
+
+var app = builder.Build();
 ```
 
 The new client registration methods provide consistent naming across all Azure Storage services and full support for keyed dependency injection scenarios.
@@ -995,20 +997,20 @@ Client registration methods for Azure Storage have been standardized with new na
 
 ```csharp
 // ❌ Before (obsolete):
-builder.Services.AddAzureTableClient("tables");         // Obsolete
-builder.Services.AddKeyedAzureTableClient("tables");    // Obsolete
-builder.Services.AddAzureBlobClient("blobs");            // Obsolete
-builder.Services.AddKeyedAzureBlobClient("blobs");       // Obsolete
-builder.Services.AddAzureQueueClient("queues");          // Obsolete
-builder.Services.AddKeyedAzureQueueClient("queues");     // Obsolete
+builder.AddAzureTableClient("tables");         // Obsolete
+builder.AddKeyedAzureTableClient("tables");    // Obsolete
+builder.AddAzureBlobClient("blobs");            // Obsolete
+builder.AddKeyedAzureBlobClient("blobs");       // Obsolete
+builder.AddAzureQueueClient("queues");          // Obsolete
+builder.AddKeyedAzureQueueClient("queues");     // Obsolete
 
 // ✅ After (recommended):
-builder.Services.AddAzureTableServiceClient("tables");         // Standardized naming
-builder.Services.AddKeyedAzureTableServiceClient("tables");    // Standardized naming
-builder.Services.AddAzureBlobServiceClient("blobs");           // Standardized naming
-builder.Services.AddKeyedAzureBlobServiceClient("blobs");      // Standardized naming
-builder.Services.AddAzureQueueServiceClient("queues");         // Standardized naming
-builder.Services.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
+builder.AddAzureTableServiceClient("tables");         // Standardized naming
+builder.AddKeyedAzureTableServiceClient("tables");    // Standardized naming
+builder.AddAzureBlobServiceClient("blobs");           // Standardized naming
+builder.AddKeyedAzureBlobServiceClient("blobs");      // Standardized naming
+builder.AddAzureQueueServiceClient("queues");         // Standardized naming
+builder.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
 ```
 
 **Migration impact**: Update all client registration calls to use the new `*ServiceClient` naming convention.

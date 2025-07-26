@@ -123,6 +123,31 @@ builder.AddAzureAIFoundry("ai")
     .WithRoleAssignments(roles: KeyVaultBuiltInRole.SecretsUser) // INVENTED
 ```
 
+### Builder Context Matters
+
+**IDistributedApplicationBuilder vs IHostApplicationBuilder**: Pay attention to which builder interface the extension methods target:
+
+- **`IDistributedApplicationBuilder`** - Extension methods for app model resources and hosting
+  ```csharp
+  var builder = DistributedApplication.CreateBuilder(args);  // Returns IDistributedApplicationBuilder
+  builder.AddAzureStorage("storage");     // ✅ Extension method on IDistributedApplicationBuilder
+  builder.AddProject<Projects.Api>("api"); // ✅ Extension method on IDistributedApplicationBuilder
+  ```
+
+- **`IHostApplicationBuilder`** - Extension methods for service registration
+  ```csharp
+  var builder = WebApplication.CreateBuilder(args);  // Returns WebApplicationBuilder : IHostApplicationBuilder
+  builder.AddAzureTableServiceClient("tables");     // ✅ Extension method on IHostApplicationBuilder
+  builder.AddKeyedAzureBlobServiceClient("blobs");  // ✅ Extension method on IHostApplicationBuilder
+  ```
+
+**❌ Common Mistake**: Using service registration extension methods on `IDistributedApplicationBuilder`:
+```csharp
+// ❌ WRONG: AddAzureTableServiceClient is an extension method on IHostApplicationBuilder registration, not app hosting
+var builder = DistributedApplication.CreateBuilder(args);
+builder.AddAzureTableServiceClient("tables");  // Does not exist on IDistributedApplicationBuilder
+```
+
 ### CLI Changes Source
 
 For CLI-related content, use the commit analysis from:
