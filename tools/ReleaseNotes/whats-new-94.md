@@ -1414,30 +1414,6 @@ builder.Build().Run();
 - **Simplified API**: Replaces the more complex `WithInitBindMount()` method
 - **Better error handling**: The new method provides improved error handling
 
-### 🔐 Keycloak realm import simplification
-
-Keycloak integration has received a **breaking change** that simplifies the `WithRealmImport` method:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// ❌ Before (9.3 and earlier):
-var keycloak = builder.AddKeycloak("keycloak")
-    .WithRealmImport("./realm.json", isReadOnly: false);  // Required parameter
-
-// ✅ After (9.4):
-var keycloak = builder.AddKeycloak("keycloak")
-    .WithRealmImport("./realm.json");  // Simplified - parameter removed
-
-// The method now has two overloads:
-// 1. WithRealmImport(string import) - uses default behavior
-// 2. WithRealmImport(string import, bool isReadOnly) - explicit control when needed
-
-builder.Build().Run();
-```
-
-**What changed**: The `isReadOnly` parameter was removed as a default parameter and is now only available when explicitly needed, making the common case simpler while still allowing advanced scenarios.
-
 ## 🖥️ CLI enhancements
 
 The Aspire CLI is now **generally available** with significant improvements and new capabilities.
@@ -1991,27 +1967,7 @@ var postgres = builder.AddPostgres("postgres")
 
 **Migration impact**: Replace `WithInitBindMount()` calls with `WithInitFiles()` - the new method handles read-only mounting automatically and provides better error handling.
 
-### 🔐 Keycloak realm import simplification
-
-The `WithRealmImport` method signature has been **simplified by removing the confusing `isReadOnly` parameter**:
-
-```csharp
-// ❌ Before (deprecated):
-var keycloak = builder.AddKeycloak("keycloak")
-    .WithRealmImport("./realm.json", isReadOnly: false);  // Confusing parameter
-
-// ✅ After (recommended):
-var keycloak = builder.AddKeycloak("keycloak")
-    .WithRealmImport("./realm.json");  // Clean, simple API
-
-// If you need explicit read-only control:
-var keycloak = builder.AddKeycloak("keycloak")
-    .WithRealmImport("./realm.json", isReadOnly: true);  // Still available as overload
-```
-
-**Migration impact**: Remove the `isReadOnly` parameter from single-parameter `WithRealmImport()` calls - the method now defaults to appropriate behavior. Use the two-parameter overload if explicit control is needed.
-
-### 🔄 Resource lifecycle event updates
+###  Resource lifecycle event updates
 
 The generic `AfterEndpointsAllocatedEvent` has been deprecated in favor of more specific, type-safe events:
 
