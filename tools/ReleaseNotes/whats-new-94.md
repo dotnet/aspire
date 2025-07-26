@@ -104,6 +104,77 @@ var localAiFoundry = builder.AddAzureAIFoundry("local-ai-foundry")
 
 The `RunAsFoundryLocal()` method enables local development scenarios using [Azure AI Foundry Local](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/), allowing you to test AI capabilities without requiring cloud resources during development.
 
+### 🗄️ Azure Cosmos DB hierarchical partition keys
+
+.NET Aspire 9.4 introduces support for **hierarchical partition keys** in Azure Cosmos DB, enabling more efficient data distribution and querying across multiple partition key paths:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var cosmos = builder.AddAzureCosmosDB("cosmos");
+var database = cosmos.AddCosmosDatabase("ecommerce");
+
+// Traditional single partition key
+var ordersContainer = database.AddContainer("orders", "/customerId");
+
+// New hierarchical partition keys for better data distribution
+var productsContainer = database.AddContainer("products", 
+    new[] { "/category", "/subcategory", "/brand" });
+
+// Multi-level partitioning for complex scenarios
+var analyticsContainer = database.AddContainer("analytics",
+    new[] { "/year", "/month", "/region", "/department" });
+
+builder.Build().Run();
+```
+
+Hierarchical partition keys provide:
+- **Better data distribution** across multiple logical partitions
+- **Improved query performance** for multi-dimensional data
+- **Reduced hot partition issues** in large-scale applications
+- **More granular scaling** based on access patterns
+
+### 🆔 Enhanced Azure user-assigned managed identity support
+
+.NET Aspire 9.4 introduces comprehensive support for Azure user-assigned managed identities, providing enhanced security and consistent identity management across your Azure infrastructure:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Create a user-assigned managed identity
+var appIdentity = builder.AddAzureUserAssignedIdentity("app-identity");
+
+// Apply the identity to various compute resources
+var containerApp = builder.AddAzureContainerApp("api")
+    .WithAzureUserAssignedIdentity(appIdentity);
+
+var functionApp = builder.AddAzureFunctionsProject<Projects.Functions>("functions")
+    .WithAzureUserAssignedIdentity(appIdentity);
+
+// The identity can be shared across multiple resources
+var webApp = builder.AddProject<Projects.WebApp>("webapp")
+    .PublishAsAzureWebApp()
+    .WithAzureUserAssignedIdentity(appIdentity);
+
+// Use the same identity for accessing Azure services
+var keyVault = builder.AddAzureKeyVault("secrets");
+var storage = builder.AddAzureStorage("storage");
+
+// Services using the shared identity can access resources securely
+var processor = builder.AddProject<Projects.DataProcessor>("processor")
+    .WithAzureUserAssignedIdentity(appIdentity)
+    .WithReference(keyVault)
+    .WithReference(storage);
+
+builder.Build().Run();
+```
+
+This approach provides:
+- **Consistent identity management** across all compute resources
+- **Enhanced security** without storing connection strings or secrets
+- **Simplified access control** using Azure RBAC
+- **Better auditability** with centralized identity tracking
+
 ### 🔐 Azure Key Vault enhancements
 
 .NET Aspire 9.4 introduces significant improvements to Azure Key Vault integration with new secret management APIs that provide strongly typed access to secrets:
