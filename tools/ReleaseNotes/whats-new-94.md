@@ -647,6 +647,27 @@ This enhancement makes the Aspire dashboard significantly more powerful for unde
 
 **GitHub Issue:** [#10382](https://github.com/dotnet/aspire/issues/10382)
 
+### 📋 Console logs text wrapping control
+
+.NET Aspire 9.4 introduces a new toggle option in the dashboard console logs to control text wrapping behavior, giving you better control over how long log lines are displayed.
+
+**Key features:**
+- **Wrap toggle control** - New menu button to enable/disable text wrapping for log lines
+- **Persistent settings** - Wrap preference is saved in browser storage and restored between sessions
+- **Visual indicators** - Clear icons show current wrap state (text wrap on/off)
+- **Improved readability** - Choose between wrapped text for readability or unwrapped for preserving original formatting
+- **Flexible viewing** - Switch between modes based on log content and debugging needs
+
+**Benefits:**
+- **Better log analysis** - Choose the best viewing mode for different types of log content
+- **Preserved formatting** - Unwrapped mode maintains original log line structure for formatted output
+- **Enhanced readability** - Wrapped mode prevents horizontal scrolling for long lines
+- **User preference** - Customizable viewing experience saved across dashboard sessions
+
+This enhancement improves the console logs viewing experience by providing developers with control over how log content is displayed, making it easier to debug applications with varying log line lengths and formats.
+
+**GitHub Issue:** [#10314](https://github.com/dotnet/aspire/issues/10314)
+
 ### 🏗️ Enhanced dashboard infrastructure with proxied endpoints
 
 .NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that make dashboard launching more reliable by fixing port reuse problems. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
