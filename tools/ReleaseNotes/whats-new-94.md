@@ -1136,6 +1136,53 @@ var tableService = storage.AddTableService("service"); // Direct on storage
 
 **Migration impact**: Update all Azure Storage service references to use the consolidated APIs directly on `AzureStorageResource` instead of the specialized resource builders.
 
+### Azure Container Apps hybrid mode removal
+
+.NET Aspire 9.4 removes support for **hybrid mode Azure Container Apps** deployments, simplifying the infrastructure generation approach and removing legacy azd-based infrastructure patterns.
+
+**What was removed**:
+- **Hybrid infrastructure generation** where Azure Developer CLI (azd) was responsible for creating the Azure Container App Environment
+- **`BicepSecretOutput` APIs** in Azure Container Apps logic, which were only used in hybrid mode scenarios
+- **Legacy compatibility layer** between Aspire and azd for Container Apps infrastructure
+
+```csharp
+// ✅ Current approach (unified infrastructure generation):
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Aspire handles all infrastructure generation
+var containerEnv = builder.AddAzureContainerAppEnvironment("production");
+
+// WithComputeEnvironment is only needed when multiple compute environments exist
+var api = builder.AddProject<Projects.Api>("api");
+// If only one compute environment exists, it's automatically used
+
+// Example with multiple environments requiring disambiguation:
+var stagingEnv = builder.AddAzureContainerAppEnvironment("staging");
+var productionEnv = builder.AddAzureContainerAppEnvironment("production");
+
+var stagingApi = builder.AddProject<Projects.Api>("staging-api")
+    .WithComputeEnvironment(stagingEnv);  // Required for disambiguation
+
+var productionApi = builder.AddProject<Projects.Api>("production-api")
+    .WithComputeEnvironment(productionEnv);  // Required for disambiguation
+
+builder.Build().Run();
+```
+
+**Migration impact**: 
+- **`PublishAsAzureContainerApps()`** no longer provisions infrastructure - it only adds customization annotations
+- **All infrastructure generation** is now handled consistently by Aspire.Hosting.Azure.AppContainers
+- **Simplified deployment model** with cleaner separation between Aspire and azd responsibilities
+- **Removed dependencies** on azd-specific infrastructure patterns
+
+**Benefits of the change**:
+- **Unified infrastructure approach** - All Azure Container Apps infrastructure is managed by Aspire
+- **Simplified codebase** - Removal of dual-mode complexity and legacy compatibility code
+- **Better consistency** - Container Apps infrastructure generation aligns with other Azure resources
+- **Cleaner API surface** - Elimination of obsolete `BicepSecretOutput` patterns
+
+This change affects applications that were relying on the hybrid mode where azd generated the container app environment. All Azure Container Apps infrastructure is now consistently managed through Aspire's infrastructure generation.
+
 ### Azure Storage component registration updates
 
 Client registration methods for Azure Storage have been standardized with new naming conventions:
