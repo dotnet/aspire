@@ -571,9 +571,16 @@ builder.Build().Run();
 
 **Key benefits:**
 - **Parameter visibility** - All parameters appear in the dashboard with their resolved state
-- **Connection string status** - See the connection status and values for all database and service connections
+- **Connection string display** - Full connection strings are now shown in resource details as a sensitive property
+- **Real-time updates** - Connection strings automatically appear when resources become available
 - **Configuration debugging** - Easily verify that parameters are correctly resolved and available
 - **Development experience** - No more guessing about configuration state during development
+
+**Connection string details:**
+- Connection strings appear in the **resource details** panel for any resource that implements `IResourceWithConnectionString`
+- Values are marked as **sensitive** and can be toggled for visibility in the dashboard
+- The system automatically listens for `ConnectionStringAvailableEvent` and updates the dashboard in real-time
+- Supports all resource types including databases, message brokers, and custom resources
 
 This enhancement removes the previous hidden status of parameters and connection strings, making configuration state transparent and easier to debug.
 
