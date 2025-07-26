@@ -336,6 +336,151 @@ yarp.WithConfiguration(config =>
 
 This enhancement makes it much easier to set up complex routing scenarios in your distributed applications with clean, declarative configuration.
 
+### ⚙️ Advanced YARP cluster configuration
+
+YARP clusters now support extensive configuration options for fine-tuning reverse proxy behavior:
+
+```csharp
+yarp.WithConfiguration(config =>
+{
+    var cluster = config.AddCluster(backendService)
+        .WithLoadBalancingPolicy("PowerOfTwoChoices")
+        .WithHealthCheckConfig(new HealthCheckConfig 
+        { 
+            Active = new ActiveHealthCheckConfig 
+            { 
+                Enabled = true, 
+                Interval = TimeSpan.FromSeconds(30) 
+            } 
+        })
+        .WithHttpClientConfig(new HttpClientConfig 
+        { 
+            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+            MaxConnectionsPerServer = 100
+        })
+        .WithSessionAffinityConfig(new SessionAffinityConfig 
+        { 
+            Enabled = true, 
+            Policy = "Cookie" 
+        });
+});
+```
+
+## 🔐 Enhanced Azure identity and security
+
+### 🆔 User-assigned managed identity support
+
+You can now easily configure Azure resources with user-assigned managed identities for enhanced security:
+
+```csharp
+var identity = builder.AddAzureUserAssignedIdentity("app-identity");
+
+// Apply the identity to compute resources
+var containerApp = builder.AddAzureContainerApp("api")
+    .WithAzureUserAssignedIdentity(identity);
+```
+
+This feature works with any `IComputeResource` and provides consistent identity management across your Azure infrastructure.
+
+## 📊 Enhanced Azure monitoring and observability
+
+### 📈 Improved Application Insights integration
+
+Azure Application Insights now supports flexible Log Analytics workspace configuration:
+
+```csharp
+var workspace = builder.AddAzureLogAnalyticsWorkspace("workspace");
+var appInsights = builder.AddAzureApplicationInsights("insights")
+    .WithLogAnalyticsWorkspace(workspace);
+
+// Or use an existing workspace reference
+var appInsights2 = builder.AddAzureApplicationInsights("insights2")
+    .WithLogAnalyticsWorkspace(existingWorkspaceId);
+```
+
+### 📊 Container Apps dashboard support
+
+Azure Container App environments now include built-in dashboard support and enhanced Log Analytics integration:
+
+```csharp
+var workspace = builder.AddAzureLogAnalyticsWorkspace("workspace");
+
+// Create a container app environment with dashboard enabled
+var containerEnv = builder.AddAzureContainerAppEnvironment("container-env")
+    .WithAzureLogAnalyticsWorkspace(workspace)
+    .WithDashboard(enable: true);
+```
+
+## 🏗️ Enhanced Azure infrastructure capabilities
+
+### 🏢 Azure Compute Environment interface
+
+A new `IAzureComputeEnvironmentResource` interface provides a consistent abstraction for Azure compute environments, implemented by:
+
+- `AzureContainerAppEnvironmentResource`
+- `AzureAppServiceEnvironmentResource`
+
+This enables better tooling and consistent patterns across different Azure compute platforms.
+
+### 📦 Enhanced Azure Queue Storage
+
+Azure Storage now supports direct queue creation with full connection string support:
+
+```csharp
+var storage = builder.AddAzureStorage("storage");
+
+// Create individual queues directly
+var notificationQueue = storage.AddQueue("notifications", "notification-queue");
+var processingQueue = storage.AddQueue("processing", "task-processing");
+
+// Each queue has its own connection string
+var queueConnection = notificationQueue.ConnectionStringExpression;
+```
+
+## 🔧 Advanced Kubernetes enhancements
+
+### 📋 Additional Kubernetes resources
+
+Kubernetes resources now support additional resource management through the `AdditionalResources` property:
+
+```csharp
+var k8sResource = builder.AddKubernetesResource("myapp");
+// Access additional Kubernetes resources that can be deployed alongside the main resource
+var additionalResources = k8sResource.Resource.AdditionalResources;
+```
+
+### 🏗️ Workload abstraction improvements
+
+The Kubernetes hosting package now provides a cleaner `Workload` abstraction that supports both `Deployment` and `StatefulSet` resources with consistent `PodTemplate` access.
+
+## 📁 Enhanced Docker Compose capabilities
+
+### ⚙️ Configuration management
+
+Docker Compose now supports advanced configuration management:
+
+```csharp
+var compose = builder.AddDockerComposeEnvironment("app")
+    .ConfigureComposeFile(composeFile =>
+    {
+        // Add configurations with content
+        var config = new Config 
+        { 
+            Content = "app.setting=value\nother.setting=true",
+            Mode = UnixFileMode.UserRead | UnixFileMode.GroupRead
+        };
+        composeFile.AddConfig(config);
+        
+        // Services can reference configurations
+        composeFile.Services["web"].AddConfig(new ConfigReference 
+        { 
+            Source = "app-config",
+            Target = "/app/config.properties",
+            Mode = UnixFileMode.UserRead
+        });
+    });
+```
+
 ---
 
 This release represents a significant step forward in .NET Aspire's capabilities, with major improvements to Azure service integration, CLI tooling, and developer experience. The enhanced Key Vault integration, new Azure AI Foundry support, and improved storage APIs make it easier than ever to build sophisticated cloud-native applications with .NET Aspire.
