@@ -215,7 +215,44 @@ This approach provides:
 - **Simplified access control** using Azure RBAC
 - **Better auditability** with centralized identity tracking
 
-### 🔐 Azure Key Vault enhancements
+### � Enhanced Azure security with disabled local authentication
+
+.NET Aspire 9.4 automatically disables local authentication for Azure EventHubs and Azure Web PubSub resources, enforcing the use of managed identity for enhanced security by default.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Azure EventHubs with automatic local auth disabled
+var eventHubs = builder.AddAzureEventHubs("eventhubs");
+var hub = eventHubs.AddEventHub("orders");
+
+// Azure Web PubSub with automatic local auth disabled  
+var webPubSub = builder.AddAzureWebPubSub("webpubsub");
+
+// Services connect using managed identity automatically
+var processor = builder.AddProject<Projects.EventProcessor>("processor")
+    .WithReference(hub)
+    .WithReference(webPubSub);
+
+builder.Build().Run();
+```
+
+**Security improvements:**
+- **Local authentication disabled** by default on Azure EventHubs and Web PubSub
+- **Managed identity enforcement** - applications must use Azure AD-based authentication
+- **Reduced attack surface** - eliminates connection string-based authentication vulnerabilities
+- **Zero configuration required** - security enhancement is applied automatically
+- **Compliance alignment** - meets enterprise security requirements for password-less authentication
+
+**Key benefits:**
+- **No breaking changes** - existing applications continue to work with managed identity
+- **Enhanced security posture** - eliminates risks associated with connection string leaks
+- **Simplified credential management** - no secrets to rotate or manage
+- **Audit trail improvements** - all access is tied to Azure AD identities
+
+This change automatically applies to all Azure EventHubs and Web PubSub resources created through Aspire, ensuring secure-by-default behavior without requiring additional configuration.
+
+### �🔐 Azure Key Vault enhancements
 
 .NET Aspire 9.4 introduces significant improvements to Azure Key Vault integration with new secret management APIs that provide strongly typed access to secrets:
 
