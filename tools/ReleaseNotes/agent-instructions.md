@@ -60,7 +60,27 @@ c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
 4ee28c24b Only expose endpoint port in docker compose if external is set to true (#9604)
 ```
 
-**Step 2: Identify Feature Types by Commit Message Patterns**
+**Step 2: Look Up GitHub Issues for Additional Context**
+When commit messages include GitHub issue references (e.g., `#10587`), look up the issue for deeper understanding:
+- **Use GitHub API tools** to fetch issue details: `mcp_github_get_issue`
+- **Extract issue descriptions** to understand the problem being solved
+- **Review customer impact** statements and use cases from the issue
+- **Identify related issues** if the commit references a backport or duplicate
+- **Incorporate issue context** into feature descriptions for better developer understanding
+
+**Example: Enhancing commit understanding with GitHub issues**
+```markdown
+# Commit message:
+036b4bfa6 [release/9.4] Use proxied endpoints for aspire dashboard (#10587)
+
+# After looking up GitHub issue #10587:
+- Problem: Dashboard port conflicts during rapid restart cycles
+- Solution: Switch from fixed ports to DCP proxies with automatic retry
+- Customer impact: Eliminates port conflicts with Aspire CLI fast restart scenarios
+- Use this context to write more comprehensive feature documentation
+```
+
+**Step 3: Identify Feature Types by Commit Message Patterns**
 - **"Add"** commits → New features or APIs
 - **"Rename"** commits → Breaking changes or API updates
 - **"Improve/Enhance"** commits → Enhancements to existing features
@@ -151,10 +171,11 @@ git show --stat 039c42594  # Azure Functions Container Apps integration
 
 **Process for Stakeholder Commits:**
 1. **Get commit details**: Use `git show --stat` to understand scope
-2. **Identify user impact**: What new capability or improvement does this enable?
-3. **Find related files**: Use `git show --name-only` to see what changed
-4. **Create feature section**: Write user-facing documentation based on the changes
-5. **Verify APIs**: Cross-reference any new APIs with the uber file
+2. **Look up GitHub issues**: If commit message references an issue (e.g., `#10587`), use GitHub API tools to get additional context
+3. **Identify user impact**: What new capability or improvement does this enable? (Enhanced by issue context)
+4. **Find related files**: Use `git show --name-only` to see what changed
+5. **Create feature section**: Write user-facing documentation based on the changes and issue context
+6. **Verify APIs**: Cross-reference any new APIs with the uber file
 
 ### 5. **COMMIT PRIORITIZATION FOR RELEASE NOTES**
 
