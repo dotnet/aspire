@@ -8,19 +8,19 @@
         "userPrincipalId": ""
       }
     },
-    "chat": {
-      "type": "value.v0",
-      "connectionString": "Endpoint=https://models.github.ai/inference;Key={github-api-key.value};Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini"
-    },
-    "github-api-key": {
+    "chat-gh-apikey": {
       "type": "parameter.v0",
-      "value": "{github-api-key.inputs.value}",
+      "value": "{chat-gh-apikey.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",
           "secret": true
         }
       }
+    },
+    "chat": {
+      "type": "value.v0",
+      "connectionString": "Endpoint=https://models.github.ai/inference;Key={chat-gh-apikey.value};Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini"
     },
     "webstory": {
       "type": "project.v1",
@@ -35,7 +35,7 @@
           "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "webstory_containerimage": "{webstory.containerImage}",
           "webstory_containerport": "{webstory.containerPort}",
-          "github_api_key_value": "{github-api-key.value}"
+          "chat_gh_apikey_value": "{chat-gh-apikey.value}"
         }
       },
       "env": {
