@@ -41,23 +41,6 @@ fi
 
 echo "💾 Current branch: $CURRENT_BRANCH"
 
-# Check for uncommitted changes
-if ! git diff-index --quiet HEAD --; then
-    echo "❌ Error: You have uncommitted changes in your working directory."
-    echo "   Please commit or stash your changes before running this script."
-    echo ""
-    echo "📋 Uncommitted changes:"
-    git status --porcelain | sed 's/^/   /'
-    echo ""
-    echo "🔧 To fix this:"
-    echo "   git add . && git commit -m 'Save work'"
-    echo "   # OR"
-    echo "   git stash"
-    exit 1
-fi
-
-echo "✅ Working directory is clean"
-
 # Main function
 main() {
     start_time=$(date +%s)
@@ -124,20 +107,19 @@ main() {
     # Now create uber file from all existing API files
     echo "🔍 Creating uber API file from all existing API files..."
     
-    # Read the list of expected API files
-    local api_files_list="$API_CHANGES_DIR/api-files.txt"
+    # Find all actual existing API files in the repository directly
     local existing_api_files=()
     local total_files_found=0
     
-    # Read all expected API file paths and check which ones exist
+    # Find all existing .cs files in api directories
     while IFS= read -r api_file; do
         if [ -n "$api_file" ] && [ -f "$api_file" ] && [ -s "$api_file" ]; then
             existing_api_files+=("$api_file")
             ((total_files_found++))
         fi
-    done < "$api_files_list"
+    done < <(find "$GIT_ROOT/src" -name "*.cs" -path "*/api/*" | sort)
     
-    echo "    📊 Found $total_files_found existing API files out of $(wc -l < "$api_files_list") expected"
+    echo "    📊 Found $total_files_found actual existing API files in the repository"
     
     if [ $total_files_found -eq 0 ]; then
         echo "    ⚠️  No existing API files found"
