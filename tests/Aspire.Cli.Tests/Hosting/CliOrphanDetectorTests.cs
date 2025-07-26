@@ -140,12 +140,12 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     public async Task CliOrphanDetectorStopsWhenProcessHasDifferentStartTime()
     {
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
-        var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
+        var expectedStartTimeUnixString = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds().ToString();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> 
             { 
                 { "ASPIRE_CLI_PID", "1111" },
-                { "ASPIRE_CLI_STARTED", expectedStartTimeUnix.ToString() }
+                { "ASPIRE_CLI_STARTED", expectedStartTimeUnixString }
             })    
             .Build();
 
