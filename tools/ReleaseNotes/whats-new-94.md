@@ -384,7 +384,14 @@ This change enhances the security posture of Docker Compose deployments by ensur
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var database = builder.AddPostgres("postgres");
+var database = builder.AddPostgres("postgres")
+                .AddDatabase("mydb")
+                .OnConnectionStringAvailable(async (resource, evt, cancellationToken) =>
+                {
+                    // Log when connection strings are resolved
+                    var logger = evt.Services.GetRequiredService<ILogger<Program>>();
+                    logger.LogInformation("Connection string available for {Name}", resource.Name);
+                });
 
 var api = builder.AddProject<Projects.Api>("api")
                 .WithReference(database)
@@ -399,12 +406,6 @@ var api = builder.AddProject<Projects.Api>("api")
                     // Pre-startup validation or configuration
                     var serviceProvider = evt.Services;
                     // Additional validation logic here
-                })
-                .OnConnectionStringAvailable(async (resource, evt, cancellationToken) =>
-                {
-                    // Log when connection strings are resolved
-                    var logger = evt.Services.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation("Connection string available for {Name}", resource.Name);
                 })
                 .OnResourceEndpointsAllocated(async (resource, evt, cancellationToken) =>
                 {
