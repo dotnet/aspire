@@ -1750,99 +1750,160 @@ Behind the scenes, the CLI has received significant infrastructure enhancements,
 
 ## 💔 Breaking changes
 
-### 📦 Azure Storage API consolidation
+### � Azure Storage component registration updates
 
-.NET Aspire 9.4 consolidates Azure Storage APIs for better consistency and security isolation. Several methods on specialized storage resource builders have been marked as obsolete in favor of unified methods on the main `AzureStorageResource`.
+Client registration methods for Azure Storage have been standardized with new naming conventions:
 
-#### Blob Storage API changes
+```csharp
+// ❌ Before (obsolete):
+builder.AddAzureTableClient("tables");         // Obsolete
+builder.AddKeyedAzureTableClient("tables");    // Obsolete
+builder.AddAzureBlobClient("blobs");            // Obsolete
+builder.AddKeyedAzureBlobClient("blobs");       // Obsolete
+builder.AddAzureQueueClient("queues");          // Obsolete
+builder.AddKeyedAzureQueueClient("queues");     // Obsolete
+
+// ✅ After (recommended):
+builder.AddAzureTableServiceClient("tables");         // Standardized naming
+builder.AddKeyedAzureTableServiceClient("tables");    // Standardized naming
+builder.AddAzureBlobServiceClient("blobs");           // Standardized naming
+builder.AddKeyedAzureBlobServiceClient("blobs");      // Standardized naming
+builder.AddAzureQueueServiceClient("queues");         // Standardized naming
+builder.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
+```
+
+**Migration impact**: Update all client registration calls to use the new `*ServiceClient` naming convention.
+
+### 🔑 Azure Key Vault secret reference changes
+
+Azure Key Vault secret handling has been updated with improved APIs that provide better type safety and consistency:
+
+```csharp
+// ❌ Before (obsolete):
+var keyVault = builder.AddAzureKeyVault("secrets");
+var secretOutput = keyVault.GetSecretOutput("ApiKey");           // Obsolete
+var secretRef = new BicepSecretOutputReference(secretOutput);    // Obsolete - class removed
+
+// ✅ After (recommended):
+var keyVault = builder.AddAzureKeyVault("secrets");
+var secretRef = keyVault.GetSecret("ApiKey");                    // New strongly-typed API
+
+// For environment variables:
+// ❌ Before (obsolete):
+builder.AddProject<Projects.Api>("api")
+       .WithEnvironment("API_KEY", secretRef);  // Using BicepSecretOutputReference
+
+// ✅ After (recommended):
+builder.AddProject<Projects.Api>("api")
+       .WithEnvironment("API_KEY", secretRef);  // Using IAzureKeyVaultSecretReference
+```
+
+**Migration impact**: Replace `GetSecretOutput()` and `BicepSecretOutputReference` usage with the new `GetSecret()` method that returns `IAzureKeyVaultSecretReference`.
+
+### 📦 Azure Storage blob container creation changes
+
+Azure Storage blob container creation has been moved from specialized blob storage resources to the main storage resource for better consistency:
 
 ```csharp
 // ❌ Before (obsolete):
 var storage = builder.AddAzureStorage("storage");
 var blobs = storage.AddBlobs("blobs");
 var container = blobs.AddBlobContainer("images");     // Obsolete
-var blobService = blobs.AddBlobService("service");    // Obsolete
 
 // ✅ After (recommended):
 var storage = builder.AddAzureStorage("storage");
-var container = storage.AddBlobContainer("images");   // Direct on storage
-var blobService = storage.AddBlobService("service");  // Direct on storage
+var container = storage.AddBlobContainer("images");   // Direct on storage resource
 ```
 
-#### Queue Storage API changes
+**Migration impact**: Use `AddBlobContainer()` directly on `AzureStorageResource` instead of on specialized blob storage resources.
+
+### �️ Database initialization method changes
+
+Several database resources have **deprecated `WithInitBindMount` in favor of the more consistent `WithInitFiles`**:
 
 ```csharp
-// ❌ Before (obsolete):
-var storage = builder.AddAzureStorage("storage");
-var queues = storage.AddQueues("queues");
-var queueService = queues.AddQueueService("service"); // Obsolete
+// ❌ Before (deprecated):
+var mongo = builder.AddMongoDB("mongo")
+    .WithInitBindMount("./init", isReadOnly: true);  // Complex parameters
+
+var mysql = builder.AddMySql("mysql")  
+    .WithInitBindMount("./mysql-scripts", isReadOnly: false);
+
+var oracle = builder.AddOracle("oracle")
+    .WithInitBindMount("./oracle-init", isReadOnly: true);
+
+var postgres = builder.AddPostgres("postgres")
+    .WithInitBindMount("./postgres-init", isReadOnly: true);
 
 // ✅ After (recommended):
-var storage = builder.AddAzureStorage("storage");
-var queueService = storage.AddQueueService("service"); // Direct on storage
+var mongo = builder.AddMongoDB("mongo")
+    .WithInitFiles("./init");  // Simplified, consistent API
+
+var mysql = builder.AddMySql("mysql")
+    .WithInitFiles("./mysql-scripts");  // Same pattern across all providers
+
+var oracle = builder.AddOracle("oracle")
+    .WithInitFiles("./oracle-init");  // Unified approach
+
+var postgres = builder.AddPostgres("postgres")
+    .WithInitFiles("./postgres-init");  // Consistent across all databases
 ```
 
-#### Table Storage API changes
+**Affected database providers**: MongoDB, MySQL, Oracle, and PostgreSQL
+
+**Migration impact**: Replace `WithInitBindMount()` calls with `WithInitFiles()` - the new method handles read-only mounting automatically and provides better error handling.
+
+### 🔐 Keycloak realm import simplification
+
+The `WithRealmImport` method signature has been **simplified by removing the confusing `isReadOnly` parameter**:
 
 ```csharp
-// ❌ Before (obsolete):
-var storage = builder.AddAzureStorage("storage");
-var tables = storage.AddTables("tables");
-var tableService = tables.AddTableService("service"); // Obsolete
+// ❌ Before (deprecated):
+var keycloak = builder.AddKeycloak("keycloak")
+    .WithRealmImport("./realm.json", isReadOnly: false);  // Confusing parameter
 
 // ✅ After (recommended):
-var storage = builder.AddAzureStorage("storage");
-var tableService = storage.AddTableService("service"); // Direct on storage
+var keycloak = builder.AddKeycloak("keycloak")
+    .WithRealmImport("./realm.json");  // Clean, simple API
+
+// If you need explicit read-only control:
+var keycloak = builder.AddKeycloak("keycloak")
+    .WithRealmImport("./realm.json", isReadOnly: true);  // Still available as overload
 ```
 
-**Migration impact**: Update all Azure Storage service references to use the consolidated APIs directly on `AzureStorageResource` instead of the specialized resource builders.
+**Migration impact**: Remove the `isReadOnly` parameter from single-parameter `WithRealmImport()` calls - the method now defaults to appropriate behavior. Use the two-parameter overload if explicit control is needed.
 
-### 🚫 Azure Container Apps hybrid mode removal
+### 🔧 Milvus configuration method updates
 
-.NET Aspire 9.4 removes support for **hybrid mode Azure Container Apps** deployments, simplifying the infrastructure generation approach and removing legacy azd-based infrastructure patterns.
-
-**What was removed**:
-- **Hybrid infrastructure generation** where Azure Developer CLI (azd) was responsible for creating the Azure Container App Environment
-- **`BicepSecretOutput` APIs** in Azure Container Apps logic, which were only used in hybrid mode scenarios
-- **Legacy compatibility layer** between Aspire and azd for Container Apps infrastructure
+Milvus configuration has been updated with more descriptive method names:
 
 ```csharp
-// ✅ Current approach (unified infrastructure generation):
-var builder = DistributedApplication.CreateBuilder(args);
+// ❌ Before (deprecated):
+var milvus = builder.AddMilvus("milvus")
+    .WithConfigurationBindMount("./milvus.yaml");  // Old method name
 
-// Aspire handles all infrastructure generation
-var containerEnv = builder.AddAzureContainerAppEnvironment("production");
-
-// WithComputeEnvironment is only needed when multiple compute environments exist
-var api = builder.AddProject<Projects.Api>("api");
-// If only one compute environment exists, it's automatically used
-
-// Example with multiple environments requiring disambiguation:
-var stagingEnv = builder.AddAzureContainerAppEnvironment("staging");
-var productionEnv = builder.AddAzureContainerAppEnvironment("production");
-
-var stagingApi = builder.AddProject<Projects.Api>("staging-api")
-    .WithComputeEnvironment(stagingEnv);  // Required for disambiguation
-
-var productionApi = builder.AddProject<Projects.Api>("production-api")
-    .WithComputeEnvironment(productionEnv);  // Required for disambiguation
-
-builder.Build().Run();
+// ✅ After (recommended):
+var milvus = builder.AddMilvus("milvus")
+    .WithConfigurationFile("./milvus.yaml");  // Method renamed for clarity
 ```
 
-**Migration impact**: 
-- **`PublishAsAzureContainerApps()`** no longer provisions infrastructure - it only adds customization annotations
-- **All infrastructure generation** is now handled consistently by Aspire.Hosting.Azure.AppContainers
-- **Simplified deployment model** with cleaner separation between Aspire and azd responsibilities
-- **Removed dependencies** on azd-specific infrastructure patterns
+**Migration impact**: Update method calls to use `WithConfigurationFile` instead of `WithConfigurationBindMount` for Milvus configuration.
 
-**Benefits of the change**:
-- **Unified infrastructure approach** - All Azure Container Apps infrastructure is managed by Aspire
-- **Simplified codebase** - Removal of dual-mode complexity and legacy compatibility code
-- **Better consistency** - Container Apps infrastructure generation aligns with other Azure resources
-- **Cleaner API surface** - Elimination of obsolete `BicepSecretOutput` patterns
+### 🔒 Azure Cosmos DB connection string property changes
 
-This change affects applications that were relying on the hybrid mode where azd generated the container app environment. All Azure Container Apps infrastructure is now consistently managed through Aspire's infrastructure generation.
+Azure Cosmos DB connection string handling has been updated to use the new connection string output approach:
+
+```csharp
+// ❌ Before (obsolete property):
+var cosmos = builder.AddAzureCosmosDB("cosmos");
+// cosmos.ConnectionString property is obsolete - use ConnectionStringExpression instead
+
+// ✅ After (recommended):
+var cosmos = builder.AddAzureCosmosDB("cosmos");
+var connectionString = cosmos.ConnectionStringExpression;  // Use expression-based approach
+```
+
+**Migration impact**: Replace direct `ConnectionString` property access with `ConnectionStringExpression` for Azure Cosmos DB resources.
 
 ### 🔄 Azure Storage component registration updates
 
@@ -1980,6 +2041,47 @@ var api = builder.AddProject<Projects.Api>("api")
 ```
 
 **Migration impact**: Replace usage of `AfterEndpointsAllocatedEvent` with resource-specific lifecycle events like `OnBeforeResourceStarted` or `OnResourceEndpointsAllocated` for better type safety and clarity.
+
+### 🧊 Azure Container Apps hybrid mode removal
+
+Azure Container Apps hybrid mode support has been **removed** to simplify the deployment model and improve consistency. Previously, `PublishAsAzureContainerApp` would automatically create Azure infrastructure, but this behavior has been streamlined.
+
+```csharp
+// ❌ Before (hybrid mode - no longer supported):
+// In hybrid mode, this would automatically add Azure Container Apps infrastructure
+var api = builder.AddProject<Projects.Api>("api")
+    .PublishAsAzureContainerApp((infrastructure, containerApp) =>
+    {
+        app.Template.Scale.MinReplicas = 0;
+
+    });
+
+// The hybrid approach mixed azd-generated environments with Aspire-managed infrastructure
+// This caused confusion and maintenance complexity
+
+// ✅ After (required approach):
+// Explicitly add Azure Container App Environment first
+var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("cae");
+
+// Then use PublishAsAzureContainerApp for customization only (same API)
+var api = builder.AddProject<Projects.Api>("api")
+    .PublishAsAzureContainerApp((infrastructure, containerApp) =>
+    {
+        app.Template.Scale.MinReplicas = 0;
+
+    });
+```
+
+**Key changes:**
+- `PublishAsAzureContainerApp()` **no longer automatically creates infrastructure** - it only adds customization annotations
+- **BicepSecretOutput APIs have been removed** from the Azure Container Apps logic for simplified secret handling
+
+**Migration impact:**
+1. **Add explicit Azure Container App Environment**: Use `builder.AddAzureContainerAppEnvironment("name")` before calling `PublishAsAzureContainerApp()`
+2. **Update secret references**: Replace any `BicepSecretOutputReference` usage with proper Azure Key Vault resources using `IAzureKeyVaultSecretReference`
+3. **Review infrastructure setup**: Ensure your Bicep templates or infrastructure setup properly creates the Container App Environment that your apps will deploy to
+
+This change provides **clearer separation** between infrastructure provisioning (handled by explicit resource creation) and application deployment configuration (handled by `PublishAsAzureContainerApp`), making the deployment process more predictable and easier to understand.
 
 ### ⚠️ Known parameter deprecations
 
