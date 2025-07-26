@@ -660,7 +660,50 @@ aspire exec --start-resource my-worker -- npm run build
 - **Resource targeting** with `--resource` or `--start-resource` options
 - **Command execution** in the context of your Aspire application
 
-**Note**: This command is currently behind a feature flag and marked as preview functionality.
+> [!IMPORTANT]
+> 🧪 **Feature Flag**: The `aspire exec` command is behind a feature flag and **disabled by default** in this release. It must be explicitly enabled for use.
+
+### 🚀 Enhanced `aspire deploy` command
+
+The `aspire deploy` command has been significantly enhanced with better user experience and infrastructure:
+
+```bash
+# Deploy your Aspire application (when feature flag is enabled)
+aspire deploy --help
+```
+
+> [!IMPORTANT]
+> 🧪 **Feature Flag**: The `aspire deploy` command is also behind a feature flag and available as a preview feature in this release.
+
+**Key improvements**:
+- **Context-sensitive completion messages** for better user guidance
+- **Clean infrastructure** with improved publish/deploy command architecture
+- **Enhanced user experience** with better prompting and feedback
+
+### 🚩 Feature Flag Configuration
+
+Both the `exec` and `deploy` commands are controlled by feature flags that must be explicitly enabled:
+
+```bash
+# Enable exec command functionality
+aspire config set features.execCommandEnabled true
+
+# Enable deploy command functionality  
+aspire config set features.deployCommandEnabled true
+
+# View current configuration
+aspire config list
+
+# Check if a feature is enabled
+aspire config get features.execCommandEnabled
+aspire config get features.deployCommandEnabled
+```
+
+**Important notes**:
+- Feature flags are **disabled by default** for both commands
+- When disabled, the commands will not appear in CLI help or be available for use
+- Configuration uses the `features.` prefix for all feature flag settings
+- This allows for controlled rollout and testing of new functionality
 
 ### 🎯 Enhanced resource interaction capabilities
 
@@ -674,6 +717,30 @@ These capabilities are particularly useful for:
 
 The interaction system integrates with both console-based workflows and can be extended to work with IDE integrations and automated tooling.
 
+### ⚙️ New configuration management commands
+
+The CLI now includes comprehensive configuration management capabilities:
+
+```bash
+# Set configuration values with dot notation support
+aspire config set dashboard.theme dark
+aspire config set telemetry.enabled false
+
+# Get configuration values
+aspire config get dashboard.theme
+aspire config list
+
+# Delete configuration values
+aspire config delete dashboard.theme
+aspire config delete telemetry.enabled
+```
+
+**Key features**:
+- **Dot notation support** for hierarchical configuration keys
+- **User-specific settings** stored in `.aspire` directory
+- **Consolidated config commands** with intuitive verb-based syntax
+- **Automatic fallback** when app host files in settings don't exist
+
 ### 🎨 Enhanced CLI user experience
 
 Several CLI experience improvements have been added in 9.4:
@@ -683,7 +750,12 @@ Several CLI experience improvements have been added in 9.4:
 - **User-friendly error handling** for `aspire new` when directories contain existing files
 - **Enhanced template selection** with pre-release package support
 - **Localization support** for better international user experience
-- **Improved `aspire deploy`** command with enhanced user experience (preview)
+- **Health column** added to `aspire run` resources table for better status visibility
+- **Version update notifications** to alert users when new CLI versions are available
+- **Improved grid display** with right-aligned labels and padding in resource tables
+- **Better package filtering** and duplicate package handling in `aspire add`
+- **Enhanced completion messages** with context-sensitive feedback
+- **.NET SDK availability checks** to ensure proper environment setup
 
 ```bash
 # Improved new project experience with better error handling
@@ -692,9 +764,24 @@ aspire new
 # Enhanced package addition with better prompts and styling
 aspire add
 
-# Enhanced deployment capabilities (preview)
-aspire deploy --help
+# Enhanced resource display with health status
+aspire run
+
+# Configuration management with dot notation support
+aspire config set key.subkey value
 ```
+
+### 🔧 CLI infrastructure improvements
+
+Behind the scenes, the CLI has received significant infrastructure enhancements:
+
+- **MSBuild Terminal Logger** is now automatically disabled for all `dotnet` command executions
+- **Improved error handling** when dashboard fails to start with proper exception handling
+- **Enhanced app host search** with better messaging and user experience
+- **AOT compilation support** where available for improved performance
+- **Shared activity source** across CLI components for better observability
+- **Thread safety improvements** in app host project file discovery
+- **Graceful offline scenario handling** for `aspire new` and `aspire add` commands
 
 ## 💔 Breaking changes
 
