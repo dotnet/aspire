@@ -715,24 +715,6 @@ The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahe
 
 **Why AOT matters for the CLI**:
 
-## 🖥️ CLI enhancements
-
-The Aspire CLI is now **generally available** with significant improvements and new capabilities.
-
-### 🚀 New AOT-compiled CLI for superior performance
-
-The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahead-of-Time) versions** of the CLI that deliver dramatically better performance compared to traditional .NET Global Tools.
-
-**Why AOT matters for the CLI**:
-
-## 🖥️ CLI enhancements
-
-The Aspire CLI is now **generally available** with significant improvements and new capabilities.
-
-### � New AOT-compiled CLI for superior performance
-
-The biggest improvement in Aspire 9.4 is the introduction of **AOT-compiled (Ahead-of-Time) versions** of the CLI that deliver dramatically better performance compared to traditional .NET Global Tools.
-
 **Why AOT matters for the CLI**:
 - ⚡ **Instant startup**: No JIT compilation overhead - commands start executing immediately
 - 🏃‍♂️ **Faster execution**: 2-3x faster command execution for common operations like `aspire run` and `aspire new`
