@@ -2,6 +2,10 @@
 
 This document outlines the process for generating professional .NET Aspire release notes, from data collection through final documentation.
 
+## 🎯 **Goal: Create `whats-new-{version}.md`**
+
+The primary objective is to generate a comprehensive `whats-new-{version}.md` document that summarizes all major features, API changes, CLI enhancements, and breaking changes for the target release version.
+
 ## 📥 Data Collection Steps
 
 1. **Analyze Component Changes**
@@ -27,10 +31,11 @@ This document outlines the process for generating professional .NET Aspire relea
    - Detailed API diffs (`analysis-output/api-changes-build-current/api-changes-diff.txt`)
 
 3. **Generate What's New Document**
+   - **GOAL**: Create `whats-new-{version}.md` for the target release
+   - **Use templates in `data/` directory** as structure and formatting guide (e.g., `data/whats-new-93.md`)
    - **Analyze ALL files** in `analysis-output/` directory for comprehensive coverage
    - **Review ALL commits** in each component analysis file to identify major features
    - **Use API changes summary** from `analysis-output/api-changes-build-current/api-changes-summary.md`
-   - Use templates in `data/whats-new-*.md` for structure and formatting
    - Focus on developer impact with accurate code samples for API changes
    - Include CLI commands for CLI-related changes
 
@@ -146,6 +151,39 @@ Before publishing any release notes:
    grep -n "MethodName" analysis-output/api-changes-build-current/all-api-changes.txt
    ```
 
+### Template Structure Requirements
+
+Follow the established structure from `data/whats-new-*.md` files:
+
+1. **Frontmatter** (YAML header with title, description, ms.date)
+2. **Main Title** (`# What's new in .NET Aspire {version}`)
+3. **Introduction** with supported .NET versions and feedback links
+4. **Version Support Policy** information
+5. **Major Sections** with emoji headers (🖥️, ✨, 🔗, 🚀, etc.)
+6. **Code Examples** with proper syntax highlighting
+7. **Breaking Changes** section (if applicable)
+8. **Migration Guidance** for breaking changes
+
+**Example Template Structure:**
+```markdown
+---
+title: What's new in .NET Aspire {version}
+description: Learn what's new in .NET Aspire {version}.
+ms.date: {date}
+---
+
+# What's new in .NET Aspire {version}
+
+📢 .NET Aspire {version} is the next [major|minor] version release...
+
+## 🖥️ App model enhancements
+### ✨ Feature Name
+[Description and code samples]
+
+## 🚀 CLI improvements
+[CLI commands and examples]
+```
+
 ### Core Documentation Rules
 
 1. **Comprehensive Analysis**
@@ -168,15 +206,16 @@ Before publishing any release notes:
    - Document any new flags, options, or command behaviors
 
 4. **Style and Structure**
-   - Follow templates in `data/whats-new-*.md`
+   - **Follow templates in `data/` directory** (e.g., `data/whats-new-91.md`, `data/whats-new-92.md`, `data/whats-new-93.md`)
+   - **Maintain consistent document structure**: frontmatter, intro, major sections with emojis
    - Use active voice and developer-focused language
    - Format code elements in backticks: `IDistributedApplicationBuilder`, `AddRedis()`
    - Organize by impact: breaking changes, major features, enhancements
-   - Include emojis consistently per template
+   - Include emojis consistently per template (🖥️, ✨, 🔗, 🚀, etc.)
 
 ## Success Criteria
 
-Release notes are successful when:
+A successful `whats-new-{version}.md` document is achieved when:
 - ✅ ALL component analysis files have been reviewed for major features
 - ✅ ALL commits in component files have been analyzed for comprehensive coverage
 - ✅ API changes summary has been used to identify new APIs and changes
@@ -185,7 +224,10 @@ Release notes are successful when:
 - ✅ All API references are accurate and complete with working code samples
 - ✅ Breaking changes reflect actual API diffs
 - ✅ No fictional features are documented
+- ✅ Document follows the established template structure from `data/whats-new-*.md` files
 
 ## Remember: **Comprehensive Analysis + Accuracy over completeness**
 
 Better to have fewer, accurate examples than many incorrect ones. Analyze ALL component files and commits for complete coverage, then use the uber file as your source of truth for all API samples. Every API change needs a working code sample, every CLI change needs the actual command.
+
+**End Goal**: A professional, accurate, and comprehensive `whats-new-{version}.md` document that developers can trust and use effectively.
