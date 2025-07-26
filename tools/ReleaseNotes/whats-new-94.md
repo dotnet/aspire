@@ -342,7 +342,7 @@ This change enhances the security posture of Docker Compose deployments by ensur
 
 ### 🔧 Resource lifecycle events
 
-Understanding when resources become available or encounter issues during startup has been challenging, especially in complex distributed applications. .NET Aspire 9.4 introduces a comprehensive eventing system that lets you hook into key moments in the resource lifecycle.
+.NET Aspire 9.4 introduces **convenient extension methods** on `IResourceBuilder<T>` that make it much easier to subscribe to lifecycle events directly on resources, providing a cleaner and more intuitive API.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -382,17 +382,65 @@ var api = builder.AddProject<Projects.Api>("api")
                     logger.LogInformation("Resource {Name} is ready", resource.Name);
                 });
 
+// Example: Database seeding using OnResourceReady
+var db = builder.AddMongoDB("mongo")
+    .WithMongoExpress()
+    .AddDatabase("db")
+    .OnResourceReady(async (db, evt, ct) =>
+    {
+        // Seed the database with initial data
+        var connectionString = await db.ConnectionStringExpression.GetValueAsync(ct);
+        using var client = new MongoClient(connectionString);
+        
+        var myDb = client.GetDatabase("db");
+        await myDb.CreateCollectionAsync("entries", cancellationToken: ct);
+        
+        // Insert sample data
+        for (int i = 0; i < 10; i++)
+        {
+            await myDb.GetCollection<Entry>("entries").InsertOneAsync(new Entry(), cancellationToken: ct);
+        }
+    });
+
 builder.Build().Run();
 ```
 
 **Available lifecycle events:**
 - **`OnInitializeResource()`** - Called during early resource initialization
 - **`OnBeforeResourceStarted()`** - Called before the resource starts
-- **`OnConnectionStringAvailable()`** - Called when connection strings are resolved
-- **`OnResourceEndpointsAllocated()`** - Called when resource endpoints are allocated
+- **`OnConnectionStringAvailable()`** - Called when connection strings are resolved (requires `IResourceWithConnectionString`)
+- **`OnResourceEndpointsAllocated()`** - Called when resource endpoints are allocated (requires `IResourceWithEndpoints`)
 - **`OnResourceReady()`** - Called when the resource is fully ready
 
-These events enable sophisticated startup orchestration, health validation, and initialization workflows without requiring complex external coordination mechanisms.
+**Key improvements in .NET Aspire 9.4:**
+- **Fluent API** - Chain event subscriptions directly on resource builders for cleaner code
+- **Strongly-typed callbacks** - Each event method provides the specific resource type and event type
+- **Type constraints** - Methods are only available on appropriate resource types (e.g., `OnConnectionStringAvailable` only on resources with connection strings)
+- **Simplified syntax** - No need to manually subscribe to the eventing system or handle resource matching
+- **Better IntelliSense** - Full IDE support with proper type checking and auto-completion
+
+**Migration from manual eventing:**
+```csharp
+// ❌ Before (manual eventing subscription):
+builder.Eventing.Subscribe<ResourceReadyEvent>(db.Resource, async (evt, ct) =>
+{
+    // Manual event handling with no type safety
+    var cs = await db.Resource.ConnectionStringExpression.GetValueAsync(ct);
+    // Process event...
+});
+
+// ✅ After (fluent extension methods):
+var db = builder.AddMongoDB("mongo")
+    .AddDatabase("db")
+    .OnResourceReady(async (db, evt, ct) =>
+    {
+        // Direct access to strongly-typed resource
+        var cs = await db.ConnectionStringExpression.GetValueAsync(ct);
+        // Process event...
+    });
+```
+
+These events enable sophisticated startup orchestration, health validation, and initialization workflows without requiring complex external coordination mechanisms. The new extension methods make it much easier to implement common patterns like database seeding, configuration validation, and resource health checks.
 
 ### 🌐 External service modeling
 
