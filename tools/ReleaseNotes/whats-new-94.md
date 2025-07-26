@@ -55,23 +55,23 @@ var builder = DistributedApplication.CreateBuilder(args);
 var backendApi = builder.AddProject<Projects.BackendApi>("backend-api");
 var identityService = builder.AddProject<Projects.Identity>("identity-service");
 
-var yarp = builder.AddYarp("gateway");
+var yarp = builder.AddYarp("gateway")
+    .WithConfiguration(yarpBuilder =>
+    {
+        // Configure sophisticated routing with transforms
+        yarpBuilder.AddRoute("/api/v1/{**catch-all}", backendApi)
+            .WithTransformPathPrefix("/v2")  // Rewrite /api/v1/* to /v2/*
+            .WithTransformRequestHeader("X-API-Version", "2.0")
+            .WithTransformForwarded(useHost: true, useProto: true)
+            .WithTransformResponseHeader("X-Powered-By", "Aspire Gateway");
 
-// Configure sophisticated routing with transforms
-yarp.AddRoute("api-v1", "/api/v1/{**catch-all}")
-    .To(backendApi)
-    .WithTransformPathPrefix("/v2")  // Rewrite /api/v1/* to /v2/*
-    .WithTransformRequestHeader("X-API-Version", "2.0")
-    .WithTransformForwarded(useHost: true, useProto: true)
-    .WithTransformResponseHeader("X-Powered-By", "Aspire Gateway");
-
-// Advanced header and query manipulation
-yarp.AddRoute("auth", "/auth/{**catch-all}")
-    .To(identityService)
-    .WithTransformClientCertHeader("X-Client-Cert")
-    .WithTransformQueryValue("client_id", "aspire-app")
-    .WithTransformRequestHeadersAllowed("Authorization", "Content-Type")
-    .WithTransformUseOriginalHostHeader(false);
+        // Advanced header and query manipulation
+        yarpBuilder.AddRoute("/auth/{**catch-all}", identityService)
+            .WithTransformClientCertHeader("X-Client-Cert")
+            .WithTransformQueryValue("client_id", "aspire-app")
+            .WithTransformRequestHeadersAllowed("Authorization", "Content-Type")
+            .WithTransformUseOriginalHostHeader(false);
+    });
 
 builder.Build().Run();
 ```
