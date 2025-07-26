@@ -584,7 +584,27 @@ builder.Build().Run();
 
 This enhancement removes the previous hidden status of parameters and connection strings, making configuration state transparent and easier to debug.
 
-### 🔄 Interactive parameter prompting during run mode
+### � Enhanced dashboard infrastructure with proxied endpoints
+
+.NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that provide better reliability and startup resilience. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
+
+**Key improvements:**
+- **Proxied endpoint architecture** - Dashboard endpoints are now modeled as first-class proxied resources in the DCP (Distributed Application Platform)
+- **Startup retry resilience** - Automatic retry handling during DCP proxy startup eliminates connection failures from unclean dashboard shutdowns
+- **Consistent endpoint management** - Dashboard endpoints follow the same patterns as other application resources
+- **Improved reliability** - Better handling of cases where the dashboard wasn't cleanly shut down from a previous run
+
+**Technical benefits:**
+- **Unified endpoint model** - OTLP (OpenTelemetry Protocol) endpoints for both gRPC and HTTP are now consistently managed
+- **Target URL resolution** - Proper handling of target host and port configurations for proxied scenarios
+- **Environment variable optimization** - Streamlined configuration of `ASPNETCORE_URLS` and OTLP endpoint URLs
+- **Reference expression support** - Dashboard URLs are now properly handled through the reference expression system
+
+This infrastructure enhancement provides a more robust foundation for dashboard operations, particularly in complex development environments and deployment scenarios where network connectivity can be challenging.
+
+**GitHub Issue:** [#10587](https://github.com/dotnet/aspire/issues/10587)
+
+### �🔄 Interactive parameter prompting during run mode
 
 .NET Aspire 9.4 introduces interactive parameter prompting, automatically collecting missing parameter values during application startup through the dashboard interface.
 
@@ -621,7 +641,91 @@ builder.Build().Run();
 
 This feature eliminates the need to pre-configure all parameters before running your Aspire application, making the development experience more fluid and user-friendly.
 
-### 🐳 Enhanced persistent container support
+### � Enhanced parameter descriptions and custom input rendering
+
+Building on the interactive parameter prompting capabilities, .NET Aspire 9.4 introduces rich parameter descriptions and custom input rendering to provide better user guidance and specialized input controls during parameter collection.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Parameters with descriptions provide better user guidance
+var apiKey = builder.AddParameter("api-key", secret: true)
+    .WithDescription("API key for external service authentication");
+
+var environment = builder.AddParameter("environment")
+    .WithDescription("Target deployment environment (dev, staging, prod)");
+
+// Parameters with rich markdown descriptions
+var configValue = builder.AddParameter("config-value")
+    .WithDescription("""
+        Configuration value with detailed instructions:
+        
+        - Use **development** for local testing
+        - Use **staging** for pre-production validation  
+        - Use **production** for live deployments
+        
+        See [configuration guide](https://docs.company.com/config) for details.
+        """, enableMarkdown: true);
+
+// Custom input rendering for specialized scenarios
+var workerCount = builder.AddParameter("worker-count")
+    .WithDescription("Number of background worker processes")
+    .WithCustomInput(p => new InteractionInput
+    {
+        InputType = InputType.Number,
+        Label = "Worker Count",
+        Placeholder = "Enter number (1-10)",
+        Description = p.Description,
+        Minimum = 1,
+        Maximum = 10
+    });
+
+var deploymentRegion = builder.AddParameter("region")
+    .WithDescription("Azure region for deployment")
+    .WithCustomInput(p => new InteractionInput
+    {
+        InputType = InputType.Choice,
+        Label = "Deployment Region",
+        Description = p.Description,
+        Choices = new[] { "East US", "West US", "North Europe", "Southeast Asia" }
+    });
+
+var api = builder.AddProject<Projects.Api>("api")
+    .WithEnvironment("API_KEY", apiKey)
+    .WithEnvironment("ENVIRONMENT", environment)
+    .WithEnvironment("CONFIG_VALUE", configValue)
+    .WithEnvironment("WORKER_COUNT", workerCount)
+    .WithEnvironment("REGION", deploymentRegion);
+
+builder.Build().Run();
+```
+
+**Enhanced parameter capabilities:**
+- **`WithDescription()`** - Add helpful descriptions to guide users during parameter input
+- **Markdown support** - Rich text descriptions with links, formatting, and lists using `enableMarkdown: true`
+- **`WithCustomInput()`** - Create specialized input controls for specific parameter types
+- **Enhanced validation** - Better feedback for invalid parameter values with min/max constraints
+- **Improved UX** - More intuitive parameter collection with contextual help
+
+**Supported input types for custom rendering:**
+- `Text` - Standard text input with placeholder support
+- `SecretText` - Password/secret input (masked)
+- `Number` - Numeric input with min/max validation
+- `Boolean` - Checkbox input for true/false values
+- `Choice` - Dropdown selection from predefined options
+
+**Key benefits:**
+- **Better user guidance** - Clear descriptions explain what each parameter is for
+- **Rich documentation** - Markdown support allows for formatted help text with links
+- **Appropriate input controls** - Numbers use numeric inputs, choices use dropdowns
+- **Validation feedback** - Clear constraints and error messages
+- **Professional appearance** - Well-formatted prompts improve the development experience
+
+This enhancement makes parameter collection more intuitive and user-friendly, reducing confusion and errors during application startup while providing professional-quality input forms in the Aspire dashboard.
+
+**GitHub Issue:** [#10447](https://github.com/dotnet/aspire/issues/10447)
+
+### �🐳 Enhanced persistent container support
 
 .NET Aspire 9.4 improves support for persistent containers with better lifecycle management and networking capabilities, ensuring containers can persist across application restarts while maintaining proper connectivity.
 
