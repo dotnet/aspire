@@ -158,34 +158,70 @@ main() {
         
         echo "    ✅ Uber API file created: $uber_file"
         
-        # Generate git diff for all API files
+        # Generate git diff for all API files (both modified and newly generated)
         echo "    📄 Generating git diff for all API files..."
-        if [ ${#existing_api_files[@]} -gt 0 ]; then
-            git diff -- "${existing_api_files[@]}" > "$API_CHANGES_DIR/api-changes-diff.txt" 2>/dev/null || echo "# No diff available" > "$API_CHANGES_DIR/api-changes-diff.txt"
-            echo "    ✅ Git diff saved to: $API_CHANGES_DIR/api-changes-diff.txt"
-        else
-            echo "# No API files to diff" > "$API_CHANGES_DIR/api-changes-diff.txt"
+        
+        # First get all API files that exist after build (including new ones)
+        local all_api_files_after_build=()
+        while IFS= read -r api_file; do
+            if [ -n "$api_file" ] && [ -f "$api_file" ]; then
+                all_api_files_after_build+=("$api_file")
+            fi
+        done < "$api_files_list"
+        
+        # Use git diff for the entire src directory with API file patterns to catch everything
+        git diff --name-only HEAD -- 'src/*/api/*.cs' > "$API_CHANGES_DIR/changed-api-files.txt" 2>/dev/null || true
+        git diff HEAD -- 'src/*/api/*.cs' > "$API_CHANGES_DIR/api-changes-diff.txt" 2>/dev/null || echo "# No tracked file changes" > "$API_CHANGES_DIR/api-changes-diff.txt"
+        
+        # Also capture any untracked new API files
+        git ls-files --others --exclude-standard 'src/*/api/*.cs' >> "$API_CHANGES_DIR/changed-api-files.txt" 2>/dev/null || true
+        
+        # For new files, add their full content to the diff
+        local new_files_added=0
+        echo "" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+        echo "# ======== NEW API FILES (full content) ========" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+        while IFS= read -r new_file; do
+            if [ -n "$new_file" ] && [ -f "$new_file" ]; then
+                echo "" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                echo "diff --git a/$new_file b/$new_file" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                echo "new file mode 100644" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                echo "index 0000000..$(git hash-object "$new_file" 2>/dev/null || echo "unknown")" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                echo "--- /dev/null" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                echo "+++ b/$new_file" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                sed 's/^/+/' "$new_file" >> "$API_CHANGES_DIR/api-changes-diff.txt"
+                ((new_files_added++))
+            fi
+        done < <(git ls-files --others --exclude-standard 'src/*/api/*.cs' 2>/dev/null || true)
+        
+        echo "    ✅ Git diff saved to: $API_CHANGES_DIR/api-changes-diff.txt"
+        if [ $new_files_added -gt 0 ]; then
+            echo "    📝 Included $new_files_added new API files in diff"
         fi
         
         # Safely revert all API files to clean working directory
         echo "🔄 Reverting all API files to clean working directory..."
         local reverted_count=0
-        for api_file in "${existing_api_files[@]}"; do
-            if [ -n "$api_file" ]; then
-                if git ls-files --error-unmatch "$api_file" >/dev/null 2>&1; then
-                    # File is tracked, revert it
-                    if git checkout HEAD -- "$api_file" 2>/dev/null; then
-                        ((reverted_count++))
-                    fi
-                else
-                    # File is untracked, remove it
-                    if rm -f "$api_file" 2>/dev/null; then
-                        ((reverted_count++))
-                    fi
+        local removed_count=0
+        
+        # Revert tracked files that were modified
+        while IFS= read -r api_file; do
+            if [ -n "$api_file" ] && git ls-files --error-unmatch "$api_file" >/dev/null 2>&1; then
+                if git checkout HEAD -- "$api_file" 2>/dev/null; then
+                    ((reverted_count++))
                 fi
             fi
-        done
-        echo "    ✅ Safely reverted $reverted_count API files"
+        done < <(git diff --name-only HEAD -- 'src/*/api/*.cs' 2>/dev/null || true)
+        
+        # Remove untracked new API files
+        while IFS= read -r new_file; do
+            if [ -n "$new_file" ] && [ -f "$new_file" ]; then
+                if rm -f "$new_file" 2>/dev/null; then
+                    ((removed_count++))
+                fi
+            fi
+        done < <(git ls-files --others --exclude-standard 'src/*/api/*.cs' 2>/dev/null || true)
+        
+        echo "    ✅ Safely reverted $reverted_count modified API files and removed $removed_count new API files"
         
         # Create a simple summary report
         cat > "$API_CHANGES_DIR/api-changes-summary.md" << EOF
