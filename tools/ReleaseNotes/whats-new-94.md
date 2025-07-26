@@ -215,7 +215,7 @@ This approach provides:
 - **Simplified access control** using Azure RBAC
 - **Better auditability** with centralized identity tracking
 
-### � Enhanced Azure security with disabled local authentication
+### 🔐 Enhanced Azure security with disabled local authentication
 
 .NET Aspire 9.4 automatically disables local authentication for Azure EventHubs and Azure Web PubSub resources, enforcing the use of managed identity for enhanced security by default.
 
@@ -252,7 +252,7 @@ builder.Build().Run();
 
 This change automatically applies to all Azure EventHubs and Web PubSub resources created through Aspire, ensuring secure-by-default behavior without requiring additional configuration.
 
-### �🔐 Azure Key Vault enhancements
+### 🔐 Azure Key Vault enhancements
 
 .NET Aspire 9.4 introduces significant improvements to Azure Key Vault integration with new secret management APIs that provide strongly typed access to secrets:
 
@@ -308,7 +308,7 @@ var app = builder.Build();
 
 The new client registration methods provide consistent naming across all Azure Storage services and full support for keyed dependency injection scenarios.
 
-### 🔧 Enhanced tracing configuration
+### 📡 Enhanced tracing configuration
 
 Azure components now support granular tracing control with new `DisableTracing` options:
 
@@ -377,7 +377,7 @@ builder.Build().Run();
 
 This change enhances the security posture of Docker Compose deployments by ensuring that internal services are not inadvertently exposed to the host network, while maintaining proper connectivity for legitimate external access points.
 
-### 🔧 Resource lifecycle events
+### 🔄 Resource lifecycle events
 
 .NET Aspire 9.4 introduces **convenient extension methods** on `IResourceBuilder<T>` that make it much easier to subscribe to lifecycle events directly on resources, providing a cleaner and more intuitive API.
 
@@ -503,7 +503,7 @@ builder.Build().Run();
 
 External services appear in the Aspire dashboard with health status, can be referenced like any other resource, and support the same configuration patterns as internal resources.
 
-### 🌐 Enhanced endpoint URL support
+### 🔗 Enhanced endpoint URL support
 
 .NET Aspire 9.4 introduces enhanced support for non-localhost URLs, making it easier to work with custom domains and network configurations. This includes support for `*.localhost` subdomains and automatic generation of multiple URL variants for endpoints listening on multiple addresses.
 
@@ -547,7 +547,7 @@ builder.Build().Run();
 
 This enhancement simplifies development workflows where custom domains or external network access is needed while maintaining the familiar localhost development experience.
 
-### � Parameters and connection strings visible in dashboard
+### 📋 Parameters and connection strings visible in dashboard
 
 .NET Aspire 9.4 makes parameters and connection strings visible in the Aspire dashboard, providing better visibility into your application's configuration and connectivity status during development.
 
@@ -647,7 +647,7 @@ This enhancement makes the Aspire dashboard significantly more powerful for unde
 
 **GitHub Issue:** [#10382](https://github.com/dotnet/aspire/issues/10382)
 
-### � Enhanced dashboard infrastructure with proxied endpoints
+### 🏗️ Enhanced dashboard infrastructure with proxied endpoints
 
 .NET Aspire 9.4 introduces significant infrastructure improvements to the dashboard system, implementing proxied endpoints that make dashboard launching more reliable by fixing port reuse problems. This architectural enhancement resolves issues with dashboard connectivity during application startup and shutdown scenarios.
 
@@ -667,7 +667,7 @@ This infrastructure enhancement provides a more robust foundation for dashboard 
 
 **GitHub Issue:** [#10587](https://github.com/dotnet/aspire/issues/10587)
 
-### �🔄 Interactive parameter prompting during run mode
+### 🔄 Interactive parameter prompting during run mode
 
 .NET Aspire 9.4 introduces interactive parameter prompting, automatically collecting missing parameter values during application startup through the dashboard interface.
 
@@ -704,7 +704,7 @@ builder.Build().Run();
 
 This feature eliminates the need to pre-configure all parameters before running your Aspire application, making the development experience more fluid and user-friendly.
 
-### � Enhanced parameter descriptions and custom input rendering
+### 📝 Enhanced parameter descriptions and custom input rendering
 
 Building on the interactive parameter prompting capabilities, .NET Aspire 9.4 introduces rich parameter descriptions and custom input rendering to provide better user guidance and specialized input controls during parameter collection.
 
@@ -788,7 +788,7 @@ This enhancement makes parameter collection more intuitive and user-friendly, re
 
 **GitHub Issue:** [#10447](https://github.com/dotnet/aspire/issues/10447)
 
-### �🐳 Enhanced persistent container support
+### 🐳 Enhanced persistent container support
 
 .NET Aspire 9.4 improves support for persistent containers with better lifecycle management and networking capabilities, ensuring containers can persist across application restarts while maintaining proper connectivity.
 
@@ -964,7 +964,7 @@ public async Task Should_ResetCache_WhenTestStarts()
 }
 ```
 
-### �📁 Enhanced container file mounting
+### 📁 Enhanced container file mounting
 
 Configuring container file systems often requires understanding complex Docker volume syntax and managing file permissions manually. .NET Aspire 9.4 introduces enhanced file mounting APIs that handle common scenarios with sensible defaults.
 
@@ -1114,7 +1114,7 @@ The `IInteractionService` interface provides several methods for user interactio
 
 These interactions work seamlessly whether you're running your application through the Aspire dashboard or deploying via the CLI with `aspire deploy` and `aspire publish` commands.
 
-### 🔧 Enhanced Azure provisioning interaction
+### ⚙️ Enhanced Azure provisioning interaction
 
 .NET Aspire 9.4 significantly improves the Azure provisioning experience by leveraging the interaction services to streamline Azure subscription and resource group configuration during deployment workflows.
 
@@ -1187,7 +1187,7 @@ builder.Build().Run();
 
 The enhanced integration provides better cost control by reusing existing Log Analytics workspaces and improved resource coordination.
 
-### � Automatic DataProtection configuration for scaled applications
+### 🛡️ Automatic DataProtection configuration for scaled applications
 
 .NET Aspire 9.4 automatically configures DataProtection for .NET projects deployed to Azure Container Apps, ensuring applications work correctly when scaling beyond a single instance.
 
@@ -1216,7 +1216,7 @@ builder.Build().Run();
 
 This enhancement aligns Aspire-generated deployments with Azure Developer CLI (`azd`) behavior and resolves common production scaling issues without requiring manual DataProtection configuration.
 
-### �🐳 Azure App Service container support
+### 🐳 Azure App Service container support
 
 .NET Aspire 9.4 introduces support for deploying containerized applications with Dockerfiles to Azure App Service environments. This enables a seamless transition from local container development to Azure App Service deployment.
 
@@ -1312,9 +1312,9 @@ This change resolves issues where Azure Functions deployed to Container Apps wer
 
 Azure emulator resources now include `EmulatorResourceAnnotation` for consistent tooling support across all emulator implementations, providing better development experience and tooling integration.
 
-## 🔧 Integrations updates
+## 🔗 Integrations updates
 
-### ✨ Database hosting improvements
+### 🗄️ Database hosting improvements
 
 Several database integrations have been updated with **improved initialization patterns**:
 
@@ -1341,7 +1341,7 @@ builder.Build().Run();
 - **Simplified API**: Replaces the more complex `WithInitBindMount()` method
 - **Better error handling**: The new method provides improved error handling
 
-### ✨ Keycloak realm import simplification
+### 🔐 Keycloak realm import simplification
 
 Keycloak integration has received a **breaking change** that simplifies the `WithRealmImport` method:
 
@@ -1411,7 +1411,7 @@ dotnet tool install --global aspire.cli
 > ⚠️ **The Aspire 9.4 CLI is not compatible with Aspire 9.3 projects.**
 > You must upgrade your project to Aspire 9.4+ in order to use the latest CLI features.
 
-### ✨ New `aspire exec` command
+### 💻 New `aspire exec` command
 
 A new **exec command** allows you to execute commands within the context of your Aspire application environment:
 
@@ -1614,7 +1614,7 @@ aspire config set key.subkey value
 - **Health status column**: Real-time health monitoring of all resources
 - **Improved resource table**: Better formatting and status indicators
 
-### 🔧 CLI infrastructure improvements
+### 🏗️ CLI infrastructure improvements
 
 Behind the scenes, the CLI has received significant infrastructure enhancements, with **AOT compilation** being the standout improvement:
 
@@ -1638,7 +1638,7 @@ Behind the scenes, the CLI has received significant infrastructure enhancements,
 
 ## 💔 Breaking changes
 
-### Azure Storage API consolidation
+### 📦 Azure Storage API consolidation
 
 .NET Aspire 9.4 consolidates Azure Storage APIs for better consistency and security isolation. Several methods on specialized storage resource builders have been marked as obsolete in favor of unified methods on the main `AzureStorageResource`.
 
@@ -1685,7 +1685,7 @@ var tableService = storage.AddTableService("service"); // Direct on storage
 
 **Migration impact**: Update all Azure Storage service references to use the consolidated APIs directly on `AzureStorageResource` instead of the specialized resource builders.
 
-### Azure Container Apps hybrid mode removal
+### 🚫 Azure Container Apps hybrid mode removal
 
 .NET Aspire 9.4 removes support for **hybrid mode Azure Container Apps** deployments, simplifying the infrastructure generation approach and removing legacy azd-based infrastructure patterns.
 
@@ -1732,7 +1732,7 @@ builder.Build().Run();
 
 This change affects applications that were relying on the hybrid mode where azd generated the container app environment. All Azure Container Apps infrastructure is now consistently managed through Aspire's infrastructure generation.
 
-### Azure Storage component registration updates
+### 🔄 Azure Storage component registration updates
 
 Client registration methods for Azure Storage have been standardized with new naming conventions:
 
@@ -1756,7 +1756,7 @@ builder.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
 
 **Migration impact**: Update all client registration calls to use the new `*ServiceClient` naming convention.
 
-### Azure Key Vault secret reference changes
+### 🔑 Azure Key Vault secret reference changes
 
 Azure Key Vault secret handling has been updated with improved APIs that provide better type safety and consistency:
 
@@ -1782,7 +1782,7 @@ builder.AddProject<Projects.Api>("api")
 
 **Migration impact**: Replace `GetSecretOutput()` and `BicepSecretOutputReference` usage with the new `GetSecret()` method that returns `IAzureKeyVaultSecretReference`.
 
-### Database initialization method changes
+### 🗄️ Database initialization method changes
 
 Several database resources have **deprecated `WithInitBindMount` in favor of the more consistent `WithInitFiles`**:
 
@@ -1818,7 +1818,7 @@ var postgres = builder.AddPostgres("postgres")
 
 **Migration impact**: Replace `WithInitBindMount()` calls with `WithInitFiles()` - the new method handles read-only mounting automatically and provides better error handling.
 
-### Keycloak realm import simplification
+### 🔐 Keycloak realm import simplification
 
 The `WithRealmImport` method signature has been **simplified by removing the confusing `isReadOnly` parameter**:
 
@@ -1838,7 +1838,7 @@ var keycloak = builder.AddKeycloak("keycloak")
 
 **Migration impact**: Remove the `isReadOnly` parameter from single-parameter `WithRealmImport()` calls - the method now defaults to appropriate behavior. Use the two-parameter overload if explicit control is needed.
 
-### Resource lifecycle event updates
+### 🔄 Resource lifecycle event updates
 
 The generic `AfterEndpointsAllocatedEvent` has been deprecated in favor of more specific, type-safe events:
 
@@ -1869,7 +1869,7 @@ var api = builder.AddProject<Projects.Api>("api")
 
 **Migration impact**: Replace usage of `AfterEndpointsAllocatedEvent` with resource-specific lifecycle events like `OnBeforeResourceStarted` or `OnResourceEndpointsAllocated` for better type safety and clarity.
 
-### Known parameter deprecations
+### ⚠️ Known parameter deprecations
 
 Several well-known parameters have been deprecated in favor of resource-based approaches:
 
@@ -1888,7 +1888,7 @@ var workspace = builder.AddAzureLogAnalyticsWorkspace("workspace");  // Direct r
 
 **Migration impact**: Replace parameter-based resource references with direct resource modeling using the `Add*` methods for better type safety and IntelliSense support.
 
-### ParameterResource.Value synchronous behavior change
+### 🔧 ParameterResource.Value synchronous behavior change
 
 The `ParameterResource.Value` property now blocks synchronously when waiting for parameter value resolution, which can potentially cause deadlocks in async contexts. The new `GetValueAsync()` method should be used instead for proper async handling.
 
@@ -1927,7 +1927,7 @@ var syncValue = apiKey.Resource.Value;  // Still works but may block
 
 **Migration impact**: When working with `ParameterResource` values in async contexts, use the new `GetValueAsync()` method instead of the `Value` property to avoid potential deadlocks. For `WithEnvironment()` calls, prefer passing the parameter resource directly rather than accessing `.Value` synchronously.
 
-### Kafka configuration method changes
+### 🔧 Kafka configuration method changes
 
 Kafka configuration has been updated with more descriptive method names:
 
