@@ -689,6 +689,29 @@ The `NameOutputReference` property is now available on all Azure resources inclu
 - Azure Web PubSub
 - And many more Azure services
 
+### ⚡ Azure Functions Container Apps integration
+
+.NET Aspire 9.4 improves Azure Functions deployment to Azure Container Apps by automatically setting the correct function app kind. This ensures Azure Functions are properly recognized and managed within the Azure Container Apps environment.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddAzureContainerAppEnvironment("functions-env");
+
+// Azure Functions project deployed to Container Apps
+var functionsApp = builder.AddAzureFunctionsProject<Projects.MyFunctions>("functions");
+
+builder.Build().Run();
+```
+
+**Key improvements:**
+- **Automatic function app kind setting** - Azure Functions are correctly identified as "functionapp" kind in Container Apps
+- **Better Azure portal integration** - Functions appear correctly in the Azure portal with proper functionality
+- **Improved runtime behavior** - Enhanced compatibility with Azure Container Apps runtime environment
+- **Streamlined deployment** - Simplified deployment process with correct metadata
+
+This change resolves issues where Azure Functions deployed to Container Apps weren't properly recognized by Azure tooling and monitoring systems, providing a more seamless serverless experience.
+
 ### 🎯 Enhanced emulator consistency
 
 Azure emulator resources now include `EmulatorResourceAnnotation` for consistent tooling support across all emulator implementations, providing better development experience and tooling integration.
