@@ -1659,9 +1659,7 @@ Several CLI experience improvements have been added in 9.4:
 - **User-friendly error handling** for `aspire new` when directories contain existing files
 - **Enhanced template selection** with pre-release package support
 - **Localization support** for better international user experience
-- **Health column** added to `aspire run` resources table for better status visibility
 - **Version update notifications** to alert users when new CLI versions are available
-- **Improved grid display** with right-aligned labels and padding in resource tables
 - **Better package filtering** and duplicate package handling in `aspire add`
 - **Enhanced completion messages** with context-sensitive feedback
 - **.NET SDK availability checks** to ensure proper environment setup
