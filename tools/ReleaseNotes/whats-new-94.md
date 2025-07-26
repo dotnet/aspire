@@ -612,6 +612,27 @@ The `IInteractionService` interface provides several methods for user interactio
 
 These interactions work seamlessly whether you're running your application through the Aspire dashboard or deploying via the CLI with `aspire deploy` and `aspire publish` commands.
 
+### 🔧 Enhanced Azure provisioning interaction
+
+.NET Aspire 9.4 significantly improves the Azure provisioning experience by leveraging the interaction services to streamline Azure subscription and resource group configuration during deployment workflows.
+
+The enhanced Azure provisioning system:
+
+- **Automatically prompts for missing Azure configuration** during deploy operations
+- **Saves configuration to user secrets** for future deployments
+- **Provides smart defaults** like auto-generated resource group names
+- **Includes validation callbacks** for Azure-specific inputs like subscription IDs and locations
+- **Supports rich HTML prompts** with links to create free Azure accounts
+
+**Key improvements:**
+- **Streamlined first-time setup** - No more manual configuration of Azure parameters
+- **Persistent settings** - Configuration is saved securely in user secrets
+- **Context-aware prompts** - Only prompts for missing configuration
+- **Enhanced validation** - Built-in validation for Azure resource constraints
+- **Better error handling** - Clear feedback when provisioning fails
+
+This enhancement makes Azure deployment significantly more user-friendly, especially for developers new to Azure or setting up projects for the first time. The interaction system ensures that all necessary Azure configuration is collected interactively and stored securely for subsequent deployments.
+
 ## ☁️ Azure goodies
 
 ### 🔄 Flexible Azure Storage queue management
