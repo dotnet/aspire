@@ -49,6 +49,44 @@
     <Message Text="=============================" Importance="high" />
   </Target>
 
+  <!-- Export project list and API file paths for external tooling -->
+  <Target Name="ExportProjectInfo">
+    <ItemGroup>
+      <!-- Calculate expected API file paths for each project -->
+      <ProjectApiFiles Include="@(DiscoveredProjects)">
+        <ProjectDir>%(DiscoveredProjects.RootDir)%(DiscoveredProjects.Directory)</ProjectDir>
+        <ProjectName>$([System.IO.Path]::GetFileNameWithoutExtension('%(DiscoveredProjects.Filename)'))</ProjectName>
+        <ApiDir>%(DiscoveredProjects.RootDir)%(DiscoveredProjects.Directory)api\</ApiDir>
+        <ApiFile>%(DiscoveredProjects.RootDir)%(DiscoveredProjects.Directory)api\$([System.IO.Path]::GetFileNameWithoutExtension('%(DiscoveredProjects.Filename)')).cs</ApiFile>
+      </ProjectApiFiles>
+    </ItemGroup>
+
+    <!-- Create output directory if it doesn't exist -->
+    <MakeDir Directories="$(OutputPath)" Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Write project list to file -->
+    <WriteLinesToFile File="$(OutputPath)projects.txt" 
+                      Lines="@(DiscoveredProjects)" 
+                      Overwrite="true" 
+                      Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Write API file paths to file -->
+    <WriteLinesToFile File="$(OutputPath)api-files.txt" 
+                      Lines="@(ProjectApiFiles -> '%(ApiFile)')" 
+                      Overwrite="true" 
+                      Condition="'$(OutputPath)' != ''" />
+    
+    <!-- Also output to console for immediate use -->
+    <Message Text="=== EXPORTED PROJECT INFO ===" Importance="high" />
+    <Message Text="Projects file: $(OutputPath)projects.txt" Importance="high" Condition="'$(OutputPath)' != ''" />
+    <Message Text="API files list: $(OutputPath)api-files.txt" Importance="high" Condition="'$(OutputPath)' != ''" />
+    <Message Text="" Importance="high" />
+    <Message Text="Total projects: @(DiscoveredProjects -> Count())" Importance="high" />
+    <Message Text="Expected API files (@(ProjectApiFiles -> Count()) total):" Importance="high" />
+    <Message Text="  %(ProjectApiFiles.ApiFile)" Importance="high" />
+    <Message Text="=============================" Importance="high" />
+  </Target>
+
   <!-- Default target -->
   <Target Name="Build" DependsOnTargets="BuildAndGenerateAPI" />
 
