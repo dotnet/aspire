@@ -685,7 +685,36 @@ builder.Build().Run();
 
 The enhanced integration provides better cost control by reusing existing Log Analytics workspaces and improved resource coordination.
 
-### 🐳 Azure App Service container support
+### � Automatic DataProtection configuration for scaled applications
+
+.NET Aspire 9.4 automatically configures DataProtection for .NET projects deployed to Azure Container Apps, ensuring applications work correctly when scaling beyond a single instance.
+
+**Background**: When ASP.NET Core applications scale to multiple instances, they need shared DataProtection keys to decrypt cookies, authentication tokens, and other protected data across all instances. Without proper configuration, users experience authentication issues and data corruption when load balancers route requests to different container instances.
+
+**Automatic configuration**: .NET Aspire now automatically enables `autoConfigureDataProtection` for all .NET projects deployed to Azure Container Apps:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddAzureContainerAppEnvironment("production");
+
+// DataProtection is automatically configured for scaling
+var api = builder.AddProject<Projects.WebApi>("api");
+
+var frontend = builder.AddProject<Projects.BlazorApp>("frontend");
+
+builder.Build().Run();
+```
+
+**Key benefits**:
+- **Seamless scaling** - Applications work correctly when Azure automatically scales to multiple instances
+- **Consistent user experience** - No authentication issues or session loss when requests hit different instances  
+- **Zero configuration required** - DataProtection is automatically configured using Azure Container Apps managed identity
+- **Production-ready security** - Uses Azure Key Vault integration provided by the platform
+
+This enhancement aligns Aspire-generated deployments with Azure Developer CLI (`azd`) behavior and resolves common production scaling issues without requiring manual DataProtection configuration.
+
+### �🐳 Azure App Service container support
 
 .NET Aspire 9.4 introduces support for deploying containerized applications with Dockerfiles to Azure App Service environments. This enables a seamless transition from local container development to Azure App Service deployment.
 
