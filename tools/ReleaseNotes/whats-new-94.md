@@ -1726,30 +1726,6 @@ Behind the scenes, the CLI has received significant infrastructure enhancements,
 
 ## 💔 Breaking changes
 
-### � Azure Storage component registration updates
-
-Client registration methods for Azure Storage have been standardized with new naming conventions:
-
-```csharp
-// ❌ Before (obsolete):
-builder.AddAzureTableClient("tables");         // Obsolete
-builder.AddKeyedAzureTableClient("tables");    // Obsolete
-builder.AddAzureBlobClient("blobs");            // Obsolete
-builder.AddKeyedAzureBlobClient("blobs");       // Obsolete
-builder.AddAzureQueueClient("queues");          // Obsolete
-builder.AddKeyedAzureQueueClient("queues");     // Obsolete
-
-// ✅ After (recommended):
-builder.AddAzureTableServiceClient("tables");         // Standardized naming
-builder.AddKeyedAzureTableServiceClient("tables");    // Standardized naming
-builder.AddAzureBlobServiceClient("blobs");           // Standardized naming
-builder.AddKeyedAzureBlobServiceClient("blobs");      // Standardized naming
-builder.AddAzureQueueServiceClient("queues");         // Standardized naming
-builder.AddKeyedAzureQueueServiceClient("queues");    // Standardized naming
-```
-
-**Migration impact**: Update all client registration calls to use the new `*ServiceClient` naming convention.
-
 ### 🔑 Azure Key Vault secret reference changes
 
 Azure Key Vault secret handling has been updated with improved APIs that provide better type safety and consistency:
@@ -1792,42 +1768,6 @@ var container = storage.AddBlobContainer("images");   // Direct on storage resou
 ```
 
 **Migration impact**: Use `AddBlobContainer()` directly on `AzureStorageResource` instead of on specialized blob storage resources.
-
-### �️ Database initialization method changes
-
-Several database resources have **deprecated `WithInitBindMount` in favor of the more consistent `WithInitFiles`**:
-
-```csharp
-// ❌ Before (deprecated):
-var mongo = builder.AddMongoDB("mongo")
-    .WithInitBindMount("./init", isReadOnly: true);  // Complex parameters
-
-var mysql = builder.AddMySql("mysql")  
-    .WithInitBindMount("./mysql-scripts", isReadOnly: false);
-
-var oracle = builder.AddOracle("oracle")
-    .WithInitBindMount("./oracle-init", isReadOnly: true);
-
-var postgres = builder.AddPostgres("postgres")
-    .WithInitBindMount("./postgres-init", isReadOnly: true);
-
-// ✅ After (recommended):
-var mongo = builder.AddMongoDB("mongo")
-    .WithInitFiles("./init");  // Simplified, consistent API
-
-var mysql = builder.AddMySql("mysql")
-    .WithInitFiles("./mysql-scripts");  // Same pattern across all providers
-
-var oracle = builder.AddOracle("oracle")
-    .WithInitFiles("./oracle-init");  // Unified approach
-
-var postgres = builder.AddPostgres("postgres")
-    .WithInitFiles("./postgres-init");  // Consistent across all databases
-```
-
-**Affected database providers**: MongoDB, MySQL, Oracle, and PostgreSQL
-
-**Migration impact**: Replace `WithInitBindMount()` calls with `WithInitFiles()` - the new method handles read-only mounting automatically and provides better error handling.
 
 ### 🔐 Keycloak realm import simplification
 
