@@ -326,6 +326,19 @@ builder.Build().Run();
 - **Port configuration** with `WithHostPort()` for predictable dashboard access
 - **Same observability experience** in production Docker environments as local development
 - **Seamless service discovery** for all containerized resources
+- **Improved security** with selective port exposure - only external endpoints are mapped to host ports
+
+### 🔒 Enhanced Docker Compose security
+
+.NET Aspire 9.4 improves Docker Compose security by implementing smarter port mapping behavior. The system now distinguishes between internal and external endpoints, only exposing truly external endpoints via port mappings while using Docker Compose's `expose` directive for internal service-to-service communication.
+
+**Security improvements:**
+- **Selective port exposure** - Only endpoints marked as external are exposed to the host
+- **Internal service isolation** - Internal endpoints use Docker's `expose` for container-to-container communication
+- **Reduced attack surface** - Fewer ports exposed to the host system
+- **Better network hygiene** - Clear separation between public and private endpoints
+
+This change enhances the security posture of Docker Compose deployments by ensuring that internal services are not inadvertently exposed to the host network, while maintaining proper connectivity for legitimate external access points.
 
 ### 🔧 Resource lifecycle events
 
@@ -607,6 +620,34 @@ builder.Build().Run();
 
 The enhanced integration provides better cost control by reusing existing Log Analytics workspaces and improved resource coordination.
 
+### 🐳 Azure App Service container support
+
+.NET Aspire 9.4 introduces support for deploying containerized applications with Dockerfiles to Azure App Service environments. This enables a seamless transition from local container development to Azure App Service deployment.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Create an Azure App Service environment
+builder.AddAzureAppServiceEnvironment("app-service-env");
+
+// Add a containerized project with Dockerfile
+var containerApp = builder.AddContainer("my-app", "my-app:latest")
+    .WithDockerfile("./Dockerfile");
+
+// Or add a project that builds to a container
+var webApp = builder.AddProject<Projects.WebApp>("webapp");
+
+builder.Build().Run();
+```
+
+**Key capabilities:**
+- **Dockerfile deployment** directly to Azure App Service
+- **Container image building** as part of the deployment process
+- **Unified deployment model** across different Azure compute environments
+- **Seamless local-to-cloud experience** for containerized applications
+
+This feature bridges the gap between container development and Azure App Service deployment, allowing developers to use the same container-based workflows they use locally in production Azure environments.
+
 ### 🏷️ Azure resource name exposure
 
 .NET Aspire 9.4 now consistently exposes the actual names of deployed Azure resources through the `NameOutputReference` property. This enables applications to access the real Azure resource names that get generated during deployment, which is essential for scenarios requiring direct Azure resource coordination.
@@ -827,6 +868,25 @@ These capabilities are particularly useful for:
 - Gathering configuration input during setup workflows
 
 The interaction system integrates with both console-based workflows and can be extended to work with IDE integrations and automated tooling.
+
+### 📊 Enhanced publish and deploy output
+
+.NET Aspire 9.4 significantly improves the feedback and progress reporting during publish and deploy operations, providing clearer visibility into what's happening during deployment processes.
+
+**Key improvements:**
+- **Enhanced progress reporting** with detailed step-by-step feedback during publishing
+- **Container runtime health checks** that provide clear status updates during container operations
+- **Better error messaging** with more descriptive information when deployments fail
+- **Improved publishing context** that tracks and reports on resource deployment status
+- **Cleaner output formatting** that makes it easier to follow deployment progress
+
+These improvements make it much easier to understand what's happening during `aspire deploy` and `aspire publish` operations, helping developers debug issues more effectively and gain confidence in their deployment processes.
+
+The enhanced output is particularly valuable for:
+- **CI/CD pipelines** where clear logging is essential for troubleshooting
+- **Complex deployments** with multiple resources and dependencies
+- **Container-based deployments** where build and push operations need clear status reporting
+- **Team environments** where deployment logs need to be easily interpreted by different team members
 
 ### ⚙️ New configuration management commands
 
