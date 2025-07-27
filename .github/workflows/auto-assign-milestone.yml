@@ -1,0 +1,126 @@
+name: Auto Assign Milestone to PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  assign-milestone:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Get PR base branch and number
+        id: pr
+        run: |
+          echo "base_ref=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+
+      - name: Assign milestone
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ steps.pr.outputs.base_ref }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+        run: |
+          python <<EOF
+          import os
+          import re
+          import requests
+
+          repo = os.environ["REPO"]
+          pr_number = os.environ["PR_NUMBER"]
+          base_branch = os.environ["BASE_BRANCH"]
+          token = os.environ["GH_TOKEN"]
+
+          api_url = f"https://api.github.com/repos/{repo}"
+
+          headers = {
+              "Authorization": f"token {token}",
+              "Accept": "application/vnd.github+json"
+          }
+
+          # Get all milestones (open and closed)
+          milestones = []
+          page = 1
+          while True:
+              r = requests.get(f"{api_url}/milestones?state=all&per_page=100&page={page}", headers=headers)
+              r.raise_for_status()
+              m = r.json()
+              if not m:
+                  break
+              milestones.extend(m)
+              page += 1
+
+          def parse_version(title):
+              try:
+                  # Accepts "9.5", "v9.5", etc.
+                  match = re.search(r'(\d+(?:\.\d+)*)', title)
+                  return tuple(map(int, match.group(1).split('.'))) if match else None
+              except Exception:
+                  return None
+
+          milestone_by_title = {m["title"]: m for m in milestones}
+          # Build sorted lists of closed/open milestones with version numbers
+          closed = []
+          open_ = []
+          for m in milestones:
+              version = parse_version(m["title"])
+              if not version:
+                  continue
+              if m["state"] == "closed":
+                  closed.append((version, m))
+              else:
+                  open_.append((version, m))
+          closed.sort()
+          open_.sort()
+
+          milestone_id = None
+          # For release/{version} branches
+          m = re.match(r'release/(v?(\d+(?:\.\d+)*))$', base_branch)
+          if m:
+              version_str = m.group(2)
+              # Find milestone with matching version
+              for mv, mm in open_ + closed:
+                  if '.'.join(map(str, mv)) == version_str:
+                      milestone_id = mm["number"]
+                      break
+          elif base_branch == "main":
+              if closed:
+                  highest_closed_version = closed[-1][0]
+              else:
+                  highest_closed_version = ()
+              # Find lowest open milestone with version > highest closed
+              candidate = None
+              for v, m in open_:
+                  if v > highest_closed_version:
+                      if not candidate or v < candidate[0]:
+                          candidate = (v, m)
+              if candidate:
+                  milestone_id = candidate[1]["number"]
+
+          if milestone_id:
+              # Get current milestone for PR
+              r = requests.get(f"{api_url}/issues/{pr_number}", headers=headers)
+              r.raise_for_status()
+              pr_data = r.json()
+              current_milestone_id = pr_data["milestone"]["number"] if pr_data["milestone"] else None
+              if current_milestone_id != milestone_id:
+                  # Assign milestone
+                  requests.patch(
+                      f"{api_url}/issues/{pr_number}",
+                      headers=headers,
+                      json={"milestone": milestone_id}
+                  )
+                  print(f"Assigned milestone {milestone_id}")
+              else:
+                  print("Milestone already correct")
+          else:
+              print("No matching milestone found for branch:", base_branch)
+          EOF
