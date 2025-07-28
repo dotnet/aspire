@@ -19,6 +19,8 @@ dotnet add package Aspire.Hosting.Yarp
 The modern approach uses programmatic configuration with the `WithConfiguration` method:
 
 ```csharp
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var backendService = builder.AddProject<Projects.Backend>("backend");
