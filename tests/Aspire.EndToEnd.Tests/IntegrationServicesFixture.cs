@@ -78,7 +78,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             extraArgs += $"--skip-resources {skipArg}";
         }
-        await Project.StartAppHostAsync([extraArgs]);
+
+        var waitForDashboard = !_resourcesToSkip.HasFlag(TestResourceNames.dashboard);
+        await Project.StartAppHostAsync([extraArgs], waitForDashboardUrl: waitForDashboard);
 
         foreach (var project in Projects.Values)
         {

@@ -158,7 +158,7 @@ public partial class AspireProject : IAsyncDisposable
         return project;
     }
 
-    public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
+    public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, bool waitForDashboardUrl = true, CancellationToken token = default)
     {
         if (IsRunning)
         {
@@ -265,7 +265,13 @@ public partial class AspireProject : IAsyncDisposable
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulStartupTask = Task.WhenAll(appRunning.Task, dashboardUrlParsed.Task, projectsParsed.Task);
+        var tasksToWaitFor = new List<Task> { appRunning.Task, projectsParsed.Task };
+        if (waitForDashboardUrl)
+        {
+            tasksToWaitFor.Add(dashboardUrlParsed.Task);
+        }
+        
+        var successfulStartupTask = Task.WhenAll(tasksToWaitFor);
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
