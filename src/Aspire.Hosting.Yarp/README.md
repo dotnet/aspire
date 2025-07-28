@@ -129,10 +129,6 @@ route.WithTransformQueryValue("version", "1.0")                       // Add que
      .WithTransformQueryRemoveKey("debug");                            // Remove query param
 ```
 
-## Service Discovery integration
-
-YARP can integrate with .NET Service Discovery for dynamic endpoint resolution:
-
 ## Advanced configuration
 
 ### Custom port configuration
