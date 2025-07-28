@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for subscribing to <see cref="IDistributedApplicationResourceEvent"/> events on resources.
 /// </summary>
-public static class EventingExtensions
+public static class DistributedApplicationEventingExtensions
 {
     /// <summary>
     /// Subscribes a callback to the <see cref="BeforeResourceStartedEvent"/> event within the AppHost.
