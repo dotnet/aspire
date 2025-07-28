@@ -62,7 +62,9 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Theory]
@@ -97,7 +99,9 @@ public class AddParameterTests
 
         // Make sure the code value is used, ignoring any config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"DefaultValue", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest should not include anything about the default value
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
@@ -147,7 +151,9 @@ public class AddParameterTests
 
         // Make sure the code value is used, ignoring any config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"DefaultValue", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest should include the default value, since we passed publishValueAsDefault: true
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
@@ -206,13 +212,17 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         if (hasConfig)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
         else
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
             // We can't test the exact value since it's random, but we can test the length
             Assert.Equal(10, parameterResource.Value.Length);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         // The manifest should always include the fields for the generated default value
@@ -268,7 +278,9 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"MyAccessToken", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest is not affected by the custom configuration key
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val")).DefaultTimeout();
