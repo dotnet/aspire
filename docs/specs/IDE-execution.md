@@ -103,7 +103,6 @@ If the execution session is created successfully, the return status code should 
 
 If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, [or in the response body](#error-reporting).
 
-
 ### Stop session request
 
 Used to stop an in-progress run session
@@ -162,7 +161,6 @@ The properties of the IDE endpoint information document are:
 | --- | --------- | --- |
 | `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
 
-
 ## Launch configurations (run session requests)
 
 The run session creation request contains one or more launch configurations for the session. The following launch configuration types are well-known:
@@ -180,7 +178,6 @@ Project launch configuration contains details for launching programs that have p
 | `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 | `launch_profile` | The name of the launch profile to be used for project execution. See below for more details on how the launch profile should be processed. | Optional |
 | `disable_launch_profile` | If set to `true`, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
-
 
 **Launch profile processing**
 
@@ -205,7 +202,6 @@ Launch profiles should be applied to service run sessions according to the follo
 **Working folder for project execution**
 
 Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory). 
-
 
 ## Run session change notifications
 
