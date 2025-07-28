@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to app host...</source>
-        <target state="new">Connecting to app host...</target>
+        <target state="translated">Verbindung zum App-Host wird hergestellt...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="new">Starting dashboard...</target>
+        <target state="translated">Dashboard wird gestartet...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
