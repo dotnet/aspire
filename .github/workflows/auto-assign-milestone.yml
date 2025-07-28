@@ -11,116 +11,160 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Get PR base branch and number
-        id: pr
-        run: |
-          echo "base_ref=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-
       - name: Assign milestone
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          BASE_BRANCH: ${{ steps.pr.outputs.base_ref }}
-          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python <<EOF
-          import os
-          import re
-          import requests
+          #!/bin/bash
+          set -e
 
-          repo = os.environ["REPO"]
-          pr_number = os.environ["PR_NUMBER"]
-          base_branch = os.environ["BASE_BRANCH"]
-          token = os.environ["GH_TOKEN"]
-
-          api_url = f"https://api.github.com/repos/{repo}"
-
-          headers = {
-              "Authorization": f"token {token}",
-              "Accept": "application/vnd.github+json"
+          # Function to extract version from milestone title
+          # (e.g., "9.5", "v9.5" -> "9.5")
+          extract_version() {
+            echo "$1" | grep -o '[0-9]\+\(\.[0-9]\+\)*' | head -1
           }
 
+          # Function to compare versions
+          # (returns 0 if v1 == v2, 1 if v1 > v2, 2 if v1 < v2)
+          compare_versions() {
+            if [[ "$1" == "$2" ]]; then
+              return 0
+            fi
+
+            local IFS=.
+            local i ver1=($1) ver2=($2)
+
+            # Fill empty fields in ver1 with zeros
+            for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+              ver1[i]=0
+            done
+
+            # Fill empty fields in ver2 with zeros
+            for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do
+              ver2[i]=0
+            done
+
+            # Compare versions
+            for ((i=0; i<${#ver1[@]}; i++)); do
+              if [[ -z ${ver2[i]} ]]; then
+                ver2[i]=0
+              fi
+              if ((10#${ver1[i]} > 10#${ver2[i]})); then
+                return 1
+              fi
+              if ((10#${ver1[i]} < 10#${ver2[i]})); then
+                return 2
+              fi
+            done
+            return 0
+          }
+
+          echo "Getting milestones for repository: $REPO"
+
           # Get all milestones (open and closed)
-          milestones = []
-          page = 1
-          while True:
-              r = requests.get(f"{api_url}/milestones?state=all&per_page=100&page={page}", headers=headers)
-              r.raise_for_status()
-              m = r.json()
-              if not m:
-                  break
-              milestones.extend(m)
-              page += 1
+          milestones_json=$(gh api \
+            "repos/$REPO/milestones?state=all&per_page=100")
 
-          def parse_version(title):
-              try:
-                  # Accepts "9.5", "v9.5", etc.
-                  match = re.search(r'(\d+(?:\.\d+)*)', title)
-                  return tuple(map(int, match.group(1).split('.'))) if match else None
-              except Exception:
-                  return None
+          # Get current PR info
+          pr_json=$(gh api "repos/$REPO/issues/$PR_NUMBER")
+          current_milestone_id=$(echo "$pr_json" | \
+            jq -r '.milestone.number // empty')
 
-          milestone_by_title = {m["title"]: m for m in milestones}
-          # Build sorted lists of closed/open milestones with version numbers
-          closed = []
-          open_ = []
-          for m in milestones:
-              version = parse_version(m["title"])
-              if not version:
-                  continue
-              if m["state"] == "closed":
-                  closed.append((version, m))
-              else:
-                  open_.append((version, m))
-          closed.sort()
-          open_.sort()
+          milestone_id=""
 
-          milestone_id = None
-          # For release/{version} branches
-          m = re.match(r'release/(v?(\d+(?:\.\d+)*))$', base_branch)
-          if m:
-              version_str = m.group(2)
-              # Find milestone with matching version
-              for mv, mm in open_ + closed:
-                  if '.'.join(map(str, mv)) == version_str:
-                      milestone_id = mm["number"]
-                      break
-          elif base_branch == "main":
-              if closed:
-                  highest_closed_version = closed[-1][0]
-              else:
-                  highest_closed_version = ()
-              # Find lowest open milestone with version > highest closed
-              candidate = None
-              for v, m in open_:
-                  if v > highest_closed_version:
-                      if not candidate or v < candidate[0]:
-                          candidate = (v, m)
-              if candidate:
-                  milestone_id = candidate[1]["number"]
+          # Check if this is a release branch
+          if [[ "$BASE_BRANCH" =~ ^release/(v?([0-9]+(\.[0-9]+)*))$ ]]; then
+            target_version="${BASH_REMATCH[2]}"
+            echo "Release branch detected. Looking for milestone matching" \
+              "version: $target_version"
 
-          if milestone_id:
-              # Get current milestone for PR
-              r = requests.get(f"{api_url}/issues/{pr_number}", headers=headers)
-              r.raise_for_status()
-              pr_data = r.json()
-              current_milestone_id = pr_data["milestone"]["number"] if pr_data["milestone"] else None
-              if current_milestone_id != milestone_id:
-                  # Assign milestone
-                  requests.patch(
-                      f"{api_url}/issues/{pr_number}",
-                      headers=headers,
-                      json={"milestone": milestone_id}
-                  )
-                  print(f"Assigned milestone {milestone_id}")
-              else:
-                  print("Milestone already correct")
-          else:
-              print("No matching milestone found for branch:", base_branch)
-          EOF
+            # Find milestone with matching version
+            milestone_id=$(echo "$milestones_json" | jq -r \
+              --arg ver "$target_version" \
+              '.[] | select(.title | test("\\b" + $ver + "\\b")) |
+               .number | tostring' | head -1)
+
+          elif [[ "$BASE_BRANCH" == "main" ]]; then
+            echo "Main branch detected. Finding appropriate milestone..."
+
+            # Find highest closed milestone version
+            highest_closed_version=""
+            closed_milestones=$(echo "$milestones_json" | jq -r \
+              '.[] | select(.state == "closed") | .title')
+
+            while IFS= read -r milestone_title; do
+              if [[ -z "$milestone_title" ]]; then
+                continue
+              fi
+              version=$(extract_version "$milestone_title")
+              if [[ -n "$version" ]]; then
+                if [[ -z "$highest_closed_version" ]]; then
+                  highest_closed_version="$version"
+                else
+                  compare_versions "$version" "$highest_closed_version"
+                  if [[ $? -eq 1 ]]; then
+                    highest_closed_version="$version"
+                  fi
+                fi
+              fi
+            done <<< "$closed_milestones"
+
+            echo "Highest closed milestone version:" \
+              "${highest_closed_version:-none}"
+
+            # Find lowest open milestone greater than highest closed
+            lowest_valid_version=""
+            lowest_valid_milestone_id=""
+            open_milestones=$(echo "$milestones_json" | jq -r \
+              '.[] | select(.state == "open") |
+               "\(.title)|\(.number)"')
+
+            while IFS='|' read -r milestone_title milestone_num; do
+              if [[ -z "$milestone_title" ]]; then
+                continue
+              fi
+              version=$(extract_version "$milestone_title")
+              if [[ -n "$version" ]]; then
+                # Check if version is greater than highest closed
+                if [[ -z "$highest_closed_version" ]]; then
+                  # No closed milestones, this is valid
+                  is_valid=true
+                else
+                  compare_versions "$version" "$highest_closed_version"
+                  is_valid=$([[ $? -eq 1 ]] && echo true || echo false)
+                fi
+
+                if [[ "$is_valid" == "true" ]]; then
+                  if [[ -z "$lowest_valid_version" ]]; then
+                    lowest_valid_version="$version"
+                    lowest_valid_milestone_id="$milestone_num"
+                  else
+                    compare_versions "$version" "$lowest_valid_version"
+                    if [[ $? -eq 2 ]]; then
+                      lowest_valid_version="$version"
+                      lowest_valid_milestone_id="$milestone_num"
+                    fi
+                  fi
+                fi
+              fi
+            done <<< "$open_milestones"
+
+            milestone_id="$lowest_valid_milestone_id"
+            echo "Selected milestone version: ${lowest_valid_version:-none}"
+          fi
+
+          if [[ -n "$milestone_id" ]]; then
+            if [[ "$current_milestone_id" != "$milestone_id" ]]; then
+              echo "Assigning milestone $milestone_id to PR $PR_NUMBER"
+              gh api "repos/$REPO/issues/$PR_NUMBER" --method PATCH \
+                --field milestone="$milestone_id"
+              echo "Milestone assigned successfully"
+            else
+              echo "PR already has the correct milestone ($milestone_id)"
+            fi
+          else
+            echo "No matching milestone found for branch: $BASE_BRANCH"
+          fi

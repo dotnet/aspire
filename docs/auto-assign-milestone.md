@@ -22,7 +22,7 @@ This repository uses a GitHub Actions workflow to automatically assign milestone
 
 ## Implementation Details
 
-- The workflow uses Python and the GitHub REST API.
+- The workflow uses GitHub CLI (`gh`) and bash scripting.
 - It fetches all open and closed milestones, sorts them, and applies the logic described above.
 - If a PR is already in the correct milestone, no changes are made.
 - If no matching milestone is found, no assignment occurs (a message is logged).
