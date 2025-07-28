@@ -56,45 +56,7 @@ var gateway = builder.AddYarp("gateway")
                      });
 ```
 
-### File-based configuration
 
-For complex scenarios, you can use a JSON configuration file:
-
-```csharp
-var gateway = builder.AddYarp("gateway")
-                     .WithConfigFile("yarp.json");
-```
-
-The `yarp.json` configuration file follows the standard YARP format:
-
-```json
-{
-  "ReverseProxy": {
-    "Routes": {
-      "route1": {
-        "ClusterId": "cluster1",
-        "Match": {
-          "Path": "/api/{**catch-all}"
-        },
-        "Transforms": [
-          { "PathRemovePrefix": "/api" }
-        ]
-      }
-    },
-    "Clusters": {
-      "cluster1": {
-        "Destinations": {
-          "destination1": {
-            "Address": "http://backend/"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-**Note:** When using `WithConfigFile`, you cannot use programmatic configuration methods like `AddRoute` or `AddCluster` on the same YARP resource.
 
 ## Configuration API
 
@@ -104,7 +66,6 @@ The `yarp.json` configuration file follows the standard YARP format:
 |--------|-------------|
 | `AddYarp(string name)` | Adds a YARP container resource to the application |
 | `WithConfiguration(Action<IYarpConfigurationBuilder>)` | Configures YARP programmatically |
-| `WithConfigFile(string configFilePath)` | Uses a JSON configuration file |
 | `WithHostPort(int? port)` | Sets a specific host port instead of random assignment |
 
 ### Route configuration
