@@ -138,47 +138,6 @@ route.WithTransformQueryValue("version", "1.0")                       // Add que
 
 YARP can integrate with .NET Service Discovery for dynamic endpoint resolution:
 
-### Installing Service Discovery for YARP
-
-```dotnetcli
-dotnet add package Microsoft.Extensions.ServiceDiscovery.Yarp
-```
-
-### Using Service Discovery in your service
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-// Configure service discovery
-builder.Services.AddServiceDiscovery();
-
-// Add YARP with service discovery support
-builder.Services.AddReverseProxy()
-                .AddServiceDiscoveryDestinationResolver();
-
-var app = builder.Build();
-app.MapReverseProxy();
-app.Run();
-```
-
-### Direct HTTP forwarding with Service Discovery
-
-For direct forwarding scenarios:
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddServiceDiscovery();
-builder.Services.AddHttpForwarderWithServiceDiscovery();
-
-var app = builder.Build();
-
-// Direct forwarding with service discovery
-app.MapForwarder("/api/{**catch-all}", "http://backend-service", "/api/{**catch-all}");
-
-app.Run();
-```
-
 ## Advanced configuration
 
 ### Custom port configuration
