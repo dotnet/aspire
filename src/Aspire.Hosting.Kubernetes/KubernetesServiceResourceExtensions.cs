@@ -122,7 +122,9 @@ internal static class KubernetesServiceResourceExtensions
             formattedName.ToHelmSecretExpression(resource.Name) :
             formattedName.ToHelmConfigExpression(resource.Name);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var value = parameter.Default is null || parameter.Secret ? null : parameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
         return new(expression, value);
     }
 

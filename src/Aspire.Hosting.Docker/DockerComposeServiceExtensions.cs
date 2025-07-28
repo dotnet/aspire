@@ -95,12 +95,14 @@ public static class DockerComposeServiceExtensions
 
         // Treat secrets as environment variable placeholders as for now
         // this doesn't handle generation of parameter values with defaults
+#pragma warning disable CS0618 // Type or member is obsolete
         return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
             defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
             source: parameter
         );
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     internal static string AsContainerImagePlaceholder(this DockerComposeServiceResource dockerComposeService)
