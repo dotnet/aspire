@@ -142,6 +142,73 @@ public class DockerComposeTests(ITestOutputHelper output)
         await VerifyDirectory(tempDir.Path);
     }
 
+    [Fact]
+    public async Task DockerComposeServiceIncludesLabels()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container with labels
+        var container = builder.AddContainer("service", "nginx")
+                               .WithLabel("com.example.service", "my-service")
+                               .WithLabel("com.example.environment", "testing")
+                               .WithLabels(new Dictionary<string, string>
+                               {
+                                   ["com.example.owner"] = "team-xyz",
+                                   ["version"] = "1.0"
+                               });
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Get the deployment target
+        var deploymentTarget = container.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget;
+        Assert.NotNull(deploymentTarget);
+        Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
+
+        var serviceResource = (DockerComposeServiceResource)deploymentTarget;
+        var composeService = serviceResource.BuildComposeService();
+
+        // Assert labels are included
+        Assert.Equal(4, composeService.Labels.Count);
+        Assert.Equal("my-service", composeService.Labels["com.example.service"]);
+        Assert.Equal("testing", composeService.Labels["com.example.environment"]);
+        Assert.Equal("team-xyz", composeService.Labels["com.example.owner"]);
+        Assert.Equal("1.0", composeService.Labels["version"]);
+    }
+
+    [Fact]
+    public async Task DockerComposeServiceWithoutLabels()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container without labels
+        var container = builder.AddContainer("service", "nginx");
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Get the deployment target
+        var deploymentTarget = container.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget;
+        Assert.NotNull(deploymentTarget);
+        Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
+
+        var serviceResource = (DockerComposeServiceResource)deploymentTarget;
+        var composeService = serviceResource.BuildComposeService();
+
+        // Assert no labels are included
+        Assert.Empty(composeService.Labels);
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }

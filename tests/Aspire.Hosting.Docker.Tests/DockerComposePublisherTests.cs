@@ -137,6 +137,44 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task DockerComposeIncludesContainerLabels()
+    {
+        using var tempDir = new TempDirectory();
+        // Arrange
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container with labels using WithLabel and WithLabels extension methods
+        builder.AddContainer("cache", "redis")
+                .WithLabel("com.example.service", "redis-cache")
+                .WithLabel("com.example.environment", "testing")
+                .WithLabels(new Dictionary<string, string>
+                {
+                    ["com.example.owner"] = "team-xyz",
+                    ["version"] = "1.0",
+                    ["maintainer"] = "aspire-team"
+                });
+
+        var app = builder.Build();
+
+        // Act
+        app.Run();
+
+        // Assert
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(composePath));
+        Assert.True(File.Exists(envPath));
+
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+    }
+
+    [Fact]
     public async Task DockerComposeCorrectlyEmitsPortMappings()
     {
         using var tempDir = new TempDirectory();

@@ -86,6 +86,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         AddEnvironmentVariablesAndCommandLineArgs(composeService);
         AddPorts(composeService);
         AddVolumes(composeService);
+        AddLabels(composeService);
         SetDependsOn(composeService);
         return composeService;
     }
@@ -263,6 +264,20 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         foreach (var volume in Volumes)
         {
             composeService.AddVolume(volume);
+        }
+    }
+
+    private void AddLabels(Service composeService)
+    {
+        if (TargetResource.TryGetContainerLabels(out var labelAnnotations))
+        {
+            foreach (var annotation in labelAnnotations)
+            {
+                foreach (var label in annotation.Labels)
+                {
+                    composeService.Labels[label.Key] = label.Value;
+                }
+            }
         }
     }
 }
