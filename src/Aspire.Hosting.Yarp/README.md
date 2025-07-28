@@ -53,9 +53,6 @@ var gateway = builder.AddYarp("gateway")
                              .WithTransformPathRemovePrefix("/external");
                      });
 ```
-
-
-
 ## Configuration API
 
 ### Core methods
