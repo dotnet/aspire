@@ -838,4 +838,5 @@ fluent-tooltip[anchor="dialog_close"] > div {
 
 .filter-group > legend {
     font-size: var(--type-ramp-plus-2-font-size);
+    font-weight: 500;
 }
