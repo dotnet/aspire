@@ -626,11 +626,11 @@ public class AddPostgresTests
 
     private static string CreatePgWebBookmarkfileContent(PostgresDatabaseResource postgresDatabase)
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
         // We're hardcoding references to container resources based on a default Aspire network
         // This will need to be refactored once updated service discovery APIs are available
-#pragma warning disable CS0618 // Type or member is obsolete
         var fileContent = $"""
                 host = "{postgresDatabase.Parent.Name}"
                 port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
