@@ -227,6 +227,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             };
         }
 
+        // Check if update notifications are disabled and set version check environment variable
+        if (!features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, defaultValue: true))
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey(KnownConfigNames.VersionCheckDisabled))
+            {
+                finalEnv[KnownConfigNames.VersionCheckDisabled] = "true";
+            }
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
