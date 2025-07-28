@@ -76,19 +76,15 @@
                 }
                 else
                 {
-                    <ul>
-                        <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong
+                    <FluentStack Orientation="Orientation.Vertical">
+                        <div>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong
                                 title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
-                        </li>
-                        <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
-                        </li>
-                        <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong>
-                        </li>
-                        <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
-                        </li>
-                        <li>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
-                        </li>
-                    </ul>
+                        </div>
+                        <div>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong></div>
+                        <div>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong></div>
+                        <div>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong></div>
+                        <div>@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong></div>
+                    </FluentStack>
 
                     <FluentToolbar>
                         <FluentSearch @bind-Value="_filter"

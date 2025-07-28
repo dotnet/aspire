@@ -355,6 +355,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     PageViewModel.SelectedOption = _noSelection;
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
+
+                await this.RefreshIfMobileAsync(_contentLayout);
             }));
 
         _logsMenuItems.Add(new()
@@ -425,6 +427,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
+        await this.RefreshIfMobileAsync(_contentLayout);
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)

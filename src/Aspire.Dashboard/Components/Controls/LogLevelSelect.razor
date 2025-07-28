@@ -43,23 +43,3 @@ else
                       @attributes="@AdditionalAttributes" />
     </div>
 }
-
-@code {
-    [Parameter, EditorRequired]
-    public required List<SelectViewModel<LogLevel?>> LogLevels { get; set; }
-
-    [Parameter, EditorRequired]
-    public required SelectViewModel<LogLevel?> LogLevel { get; set; }
-
-    [Parameter]
-    public EventCallback<SelectViewModel<LogLevel?>> LogLevelChanged { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Task> HandleSelectedLogLevelChangedAsync { get; set; }
-
-    [Parameter(CaptureUnmatchedValues = true)]
-    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
-}

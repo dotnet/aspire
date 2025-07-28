@@ -58,11 +58,6 @@
                               ForId="@_selectDurationId"
                               Orientation="Orientation.Horizontal" />
 
-            @if (ViewportInformation.IsDesktop)
-            {
-                <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" />
-            }
-
             <DesktopToolbarDivider />
 
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
