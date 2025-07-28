@@ -344,19 +344,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName] = optOutValue;
         }
 
-        if (!StringUtils.TryGetUriFromDelimitedString(options.DashboardUrl, ";", out var firstDashboardUrl))
-        {
-            return;
-        }
-
-        var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-
-        distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
-
-        if (!string.IsNullOrEmpty(browserToken))
-        {
-            LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
-        }
+        // Dashboard URL logging is handled by the ResourceReadyEvent handler
     }
 
     private static void PopulateDashboardUrls(EnvironmentCallbackContext context)
