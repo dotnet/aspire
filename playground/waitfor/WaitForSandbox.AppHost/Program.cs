@@ -37,4 +37,18 @@ builder.AddProject<Projects.WaitFor_Frontend>("frontend")
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
+builder.AddAndroidEmulator("samsung-galaxy-s10");
+
 builder.Build().Run();
+
+public static class AndroidExtensions
+{
+    public static IResourceBuilder<ContainerResource> AddAndroidEmulator(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+    {
+        return builder.AddContainer(name, "budtmo/docker-android:emulator_11.0")
+            .WithEnvironment("EMULATOR_DEVICE", "Samsung Galaxy S10")
+            .WithEnvironment("WEB_VNC", "true")
+            .WithHttpEndpoint(targetPort: 6060)
+            .WithContainerRuntimeArgs(["--device", "/dev/kvm", "--privileged"]);
+    }
+}
