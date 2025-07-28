@@ -41,7 +41,7 @@ public class Program
     private static string GetGlobalSettingsPath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(homeDirectory);
+        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "globalsettings.json");
         return globalSettingsPath;
     }
 
