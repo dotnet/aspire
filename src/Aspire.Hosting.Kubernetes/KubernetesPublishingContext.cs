@@ -80,7 +80,7 @@ internal sealed class KubernetesPublishingContext(
                 }
 
                 await WriteKubernetesTemplatesForResource(resource, serviceResource.GetTemplatedResources()).ConfigureAwait(false);
-                await AppendResourceContextToHelmValuesAsync(resource, serviceResource).ConfigureAwait(false);
+                AppendResourceContextToHelmValues(resource, serviceResource);
             }
         }
 
@@ -88,14 +88,14 @@ internal sealed class KubernetesPublishingContext(
         await WriteKubernetesHelmValuesAsync().ConfigureAwait(false);
     }
 
-    private async Task AppendResourceContextToHelmValuesAsync(IResource resource, KubernetesResource resourceContext)
+    private void AppendResourceContextToHelmValues(IResource resource, KubernetesResource resourceContext)
     {
-        await AddValuesToHelmSectionAsync(resource, resourceContext.Parameters, HelmExtensions.ParametersKey).ConfigureAwait(false);
-        await AddValuesToHelmSectionAsync(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey).ConfigureAwait(false);
-        await AddValuesToHelmSectionAsync(resource, resourceContext.Secrets, HelmExtensions.SecretsKey).ConfigureAwait(false);
+        AddValuesToHelmSection(resource, resourceContext.Parameters, HelmExtensions.ParametersKey);
+        AddValuesToHelmSection(resource, resourceContext.EnvironmentVariables, HelmExtensions.ConfigKey);
+        AddValuesToHelmSection(resource, resourceContext.Secrets, HelmExtensions.SecretsKey);
     }
 
-    private async Task AddValuesToHelmSectionAsync(
+    private void AddValuesToHelmSection(
         IResource resource,
         Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
         string helmKey)
@@ -114,19 +114,7 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            string? value;
-            
-            // If there's a parameter source, resolve its value asynchronously
-            if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
-            {
-                value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                value = helmExpressionWithValue.Value;
-            }
-
-            paramValues[key] = value ?? string.Empty;
+            paramValues[key] = helmExpressionWithValue.Value ?? string.Empty;
         }
 
         if (paramValues.Count > 0)

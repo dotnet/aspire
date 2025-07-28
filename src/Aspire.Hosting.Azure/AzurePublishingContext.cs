@@ -117,9 +117,9 @@ public sealed class AzurePublishingContext(
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
 
-        await MapParameterAsync(environment.ResourceGroupName, cancellationToken).ConfigureAwait(false);
-        await MapParameterAsync(environment.Location, cancellationToken).ConfigureAwait(false);
-        await MapParameterAsync(environment.PrincipalId, cancellationToken).ConfigureAwait(false);
+        MapParameter(environment.ResourceGroupName);
+        MapParameter(environment.Location);
+        MapParameter(environment.PrincipalId);
 
         var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
         MainInfrastructure.Add(resourceGroupParam);
@@ -163,14 +163,14 @@ public sealed class AzurePublishingContext(
             // Map parameters from existing resources
             if (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
             {
-                await VisitAsync(existingAnnotation.ResourceGroup, MapParameterAsync, cancellationToken).ConfigureAwait(false);
-                await VisitAsync(existingAnnotation.Name, MapParameterAsync, cancellationToken).ConfigureAwait(false);
+                Visit(existingAnnotation.ResourceGroup, MapParameter);
+                Visit(existingAnnotation.Name, MapParameter);
             }
 
             // Map parameters for the resource itself
             foreach (var parameter in resource.Parameters)
             {
-                await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
+                Visit(parameter.Value, MapParameter);
             }
         }
 
@@ -359,7 +359,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task MapParameterAsync(object candidate, CancellationToken cancellationToken = default)
+    private void MapParameter(object? candidate)
     {
         if (candidate is ParameterResource p && !ParameterLookup.ContainsKey(p))
         {
@@ -372,11 +372,9 @@ public sealed class AzurePublishingContext(
 
             if (!p.Secret && p.Default is not null)
             {
-                var value = await p.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                if (value is not null)
-                {
-                    pp.Value = value;
-                }
+#pragma warning disable CS0618 // Type or member is obsolete
+                pp.Value = p.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             ParameterLookup[p] = pp;
@@ -400,27 +398,6 @@ public sealed class AzurePublishingContext(
             foreach (var reference in vwr.References)
             {
                 Visit(reference, visitor, visited);
-            }
-        }
-    }
-
-    private static Task VisitAsync(object? value, Func<object, CancellationToken, Task> visitor, CancellationToken cancellationToken = default) =>
-        VisitAsync(value, visitor, [], cancellationToken);
-
-    private static async Task VisitAsync(object? value, Func<object, CancellationToken, Task> visitor, HashSet<object> visited, CancellationToken cancellationToken = default)
-    {
-        if (value is null || !visited.Add(value))
-        {
-            return;
-        }
-
-        await visitor(value, cancellationToken).ConfigureAwait(false);
-
-        if (value is IValueWithReferences vwr)
-        {
-            foreach (var reference in vwr.References)
-            {
-                await VisitAsync(reference, visitor, visited, cancellationToken).ConfigureAwait(false);
             }
         }
     }

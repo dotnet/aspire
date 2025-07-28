@@ -305,25 +305,10 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
     }
 
-    internal class HelmExpressionWithValue
+    internal class HelmExpressionWithValue(string helmExpression, string? value)
     {
-        public HelmExpressionWithValue(string helmExpression, string? value)
-        {
-            HelmExpression = helmExpression;
-            Value = value;
-            ParameterSource = null;
-        }
-
-        public HelmExpressionWithValue(string helmExpression, ParameterResource parameterSource)
-        {
-            HelmExpression = helmExpression;
-            Value = null;
-            ParameterSource = parameterSource;
-        }
-
-        public string HelmExpression { get; }
-        public string? Value { get; }
-        public ParameterResource? ParameterSource { get; }
+        public string HelmExpression { get; } = helmExpression;
+        public string? Value { get; } = value;
         public bool IsHelmSecretExpression => HelmExpression.ContainsHelmSecretExpression();
         public bool ValueContainsSecretExpression => Value?.ContainsHelmSecretExpression() ?? false;
         public bool ValueContainsHelmExpression => Value?.ContainsHelmExpression() ?? false;
