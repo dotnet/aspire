@@ -25,6 +25,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
+#pragma warning disable IDE0060 // Remove unused parameter
 internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
@@ -38,6 +39,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IDistributedApplicationEventing eventing,
                                              CodespacesUrlRewriter codespaceUrlRewriter
                                              ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+#pragma warning restore IDE0060 // Remove unused parameter
 {
     // Internal for testing
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
@@ -158,22 +160,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         eventing.Subscribe<ResourceReadyEvent>(dashboardResource, (context, resource) =>
         {
-            var browserToken = options.DashboardToken;
-
-            if (!StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
-            {
-                return Task.CompletedTask;
-            }
-
-            var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-
-            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
-
-            if (!string.IsNullOrEmpty(browserToken))
-            {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
-            }
-
             return Task.CompletedTask;
         });
 
@@ -342,20 +328,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         if (options.TelemetryOptOut is { } optOutValue)
         {
             context.EnvironmentVariables[DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName] = optOutValue;
-        }
-
-        if (!StringUtils.TryGetUriFromDelimitedString(options.DashboardUrl, ";", out var firstDashboardUrl))
-        {
-            return;
-        }
-
-        var dashboardUrl = codespaceUrlRewriter.RewriteUrl(firstDashboardUrl.ToString());
-
-        distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl.TrimEnd('/'));
-
-        if (!string.IsNullOrEmpty(browserToken))
-        {
-            LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrl, browserToken, isContainer: false);
         }
     }
 
