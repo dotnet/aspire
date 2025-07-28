@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.Yarp
 
 ## Usage examples
 
-### Programmatic configuration (recommended)
+### Programmatic configuration
 
 The modern approach uses programmatic configuration with the `WithConfiguration` method:
 
