@@ -482,6 +482,17 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to get the container labels for the specified resource.
+    /// </summary>
+    /// <param name="resource">The resource to get the container labels for.</param>
+    /// <param name="labels">When this method returns, contains the container labels for the specified resource, if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if the container labels were successfully retrieved; otherwise, <c>false</c>.</returns>
+    public static bool TryGetContainerLabels(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerLabelAnnotation>? labels)
+    {
+        return TryGetAnnotationsOfType<ContainerLabelAnnotation>(resource, out labels);
+    }
+
+    /// <summary>
     /// Attempts to retrieve the endpoints for the given resource.
     /// </summary>
     /// <param name="resource">The resource to retrieve the endpoints for.</param>

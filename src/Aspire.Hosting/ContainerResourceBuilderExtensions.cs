@@ -910,6 +910,85 @@ public static class ContainerResourceBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds a container label to the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="key">The label key.</param>
+    /// <param name="value">The label value.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add a single label to a container:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabel("com.example.service", "my-service");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabel<T>(this IResourceBuilder<T> builder, string key, string value) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var annotation = builder.Resource.Annotations.OfType<ContainerLabelAnnotation>().FirstOrDefault();
+        if (annotation is null)
+        {
+            annotation = new ContainerLabelAnnotation();
+            builder.Resource.Annotations.Add(annotation);
+        }
+
+        annotation.Add(key, value);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds multiple container labels to the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="labels">A dictionary of labels to add.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add multiple labels to a container:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabels(new Dictionary&lt;string, string&gt;
+    ///        {
+    ///            ["com.example.service"] = "my-service",
+    ///            ["com.example.environment"] = "staging",
+    ///            ["com.example.owner"] = "team-xyz"
+    ///        });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabels<T>(this IResourceBuilder<T> builder, IDictionary<string, string> labels) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(labels);
+
+        var annotation = builder.Resource.Annotations.OfType<ContainerLabelAnnotation>().FirstOrDefault();
+        if (annotation is null)
+        {
+            annotation = new ContainerLabelAnnotation();
+            builder.Resource.Annotations.Add(annotation);
+        }
+
+        foreach (var label in labels)
+        {
+            annotation.Add(label.Key, label.Value);
+        }
+        
+        return builder;
+    }
 }
 
 internal static class IListExtensions
