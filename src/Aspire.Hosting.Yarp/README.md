@@ -83,9 +83,7 @@ The `yarp.json` configuration file can use the referenced service like this:
 
 ## Additional documentation
 
-* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-component
-* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-output-caching-component
-* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-distributed-caching-component
+* https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/yarp-overview
 
 ## Feedback & contributing
 
