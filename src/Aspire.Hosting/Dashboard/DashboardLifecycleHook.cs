@@ -344,7 +344,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DebugSessionTelemetryOptOutName.EnvVarName] = optOutValue;
         }
 
-        // Dashboard URL logging is handled by the ResourceReadyEvent handler
     }
 
     private static void PopulateDashboardUrls(EnvironmentCallbackContext context)
