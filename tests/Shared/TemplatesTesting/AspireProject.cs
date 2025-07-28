@@ -169,7 +169,6 @@ public partial class AspireProject : IAsyncDisposable
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
         var appRunning = new TaskCompletionSource();
-        var dashboardUrlParsed = new TaskCompletionSource();
         var stdoutComplete = new TaskCompletionSource();
         var stderrComplete = new TaskCompletionSource();
         AppExited = new();
@@ -214,7 +213,6 @@ public partial class AspireProject : IAsyncDisposable
             if (m.Success)
             {
                 DashboardUrl = m.Groups["url"].Value;
-                dashboardUrlParsed.SetResult();
             }
 
             if (line?.StartsWith("$ENDPOINTS: ") == true)
@@ -265,7 +263,7 @@ public partial class AspireProject : IAsyncDisposable
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulStartupTask = Task.WhenAll(appRunning.Task, dashboardUrlParsed.Task, projectsParsed.Task);
+        var successfulStartupTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
