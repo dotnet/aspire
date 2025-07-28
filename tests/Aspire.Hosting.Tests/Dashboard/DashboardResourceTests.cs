@@ -7,6 +7,7 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -518,6 +519,60 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(logLevel, log.LogLevel);
 
         await app.DisposeAsync().AsTask().DefaultTimeout();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task EnsureDashboardLoginMessagePrintedOnce()
+    {
+        using var builder = TestDistributedApplicationBuilder
+            .Create(o => { o.DisableDashboard = false; o.AllowUnsecuredTransport = true; })
+            .WithTestAndResourceLogging(testOutputHelper);
+
+        builder.Services.AddLogging(b =>
+        {
+            b.AddFakeLogging();
+        });
+
+        var dashboard = builder.AddExecutable(KnownResourceNames.AspireDashboard, "dotnet", ".", ["--list-sdks"])
+            .WithHttpEndpoint(targetPort: 9991, name: DashboardLifecycleHook.OtlpGrpcEndpointName)
+            .WithHttpEndpoint(targetPort: 9992, name: DashboardLifecycleHook.OtlpHttpEndpointName)
+            .WithHttpEndpoint(targetPort: 9993, name: "http");
+            
+        SetDashboardAllocatedEndpoints(dashboard.Resource, 9994, 9995, 9996);
+
+        var dashboardReady = new TaskCompletionSource();
+
+        dashboard.OnResourceReady((r, e, ct) =>
+        {
+            dashboardReady.SetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutDuration);
+
+        await dashboardReady.Task.DefaultTimeout();
+
+        // We wait a few seconds to give any async code that might
+        // write a message about the dashboard to the logs to fire.
+        await Task.Delay(5000);
+
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        var dashboardLoginMessages = logs.Where(l => l.Message.StartsWith("Login to the dashboard at"));
+
+        // STOP! If this test fails then it means that we are writing the dashboard
+        //       login message multiple times. This could be a regression that we
+        //       need to fix. Note that a flaky failing assertion here is still a failure
+        //       because we can't know for sure if there is some code executing somewhere
+        //       asynchronously that might trip this test, that is why we wait 5 seconds
+        //       above to try and flush it out.
+        Assert.Single(dashboardLoginMessages);
+
+        await app.StopAsync();
     }
 
     [Fact]
