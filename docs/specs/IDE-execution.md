@@ -200,7 +200,7 @@ Launch profiles should be applied to service run sessions according to the follo
 
     b. If the `launch_profile` property is set, the IDE should check whether the service project has a launch profile with the name equal to the value of `launch_profile` property. If such profile is found, it should serve as the base profile. If not, there is no base profile.
 
-    b. If `launch_profile` property is absent, the IDE should check whether the service project has a launch profile with the same name as the profile used to launch Aspire application host project. If such profile is found, it should serve as the base profile. Otherwise there is no base profile.
+    c. If `launch_profile` property is absent, the IDE should check whether the service project has a launch profile with the same name as the profile used to launch Aspire application host project. If such profile is found, it should serve as the base profile. Otherwise there is no base profile.
 
 **Working folder for project execution**
 
