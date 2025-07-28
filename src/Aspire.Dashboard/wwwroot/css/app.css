@@ -835,3 +835,7 @@ fluent-tooltip[anchor="dialog_close"] > div {
 .fluent-messagebar-action {
     font-size: var(--type-ramp-minus-1-font-size);
 }
+
+.filter-group > legend {
+    font-size: var(--type-ramp-plus-2-font-size);
+}
