@@ -83,6 +83,7 @@ The `yarp.json` configuration file can use the referenced service like this:
 
 ## Additional documentation
 
+* https://learn.microsoft.com/dotnet/aspire/proxies/yarp-integration
 * https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/yarp-overview
 
 ## Feedback & contributing
