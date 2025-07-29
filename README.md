@@ -20,13 +20,30 @@ Aspire (or .NET Aspire) is an opinionated, cloud ready stack for building observ
 
 To learn more, read the full [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/). Samples are available in the [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples). You can find the [eShop sample here](https://github.com/dotnet/eshop) and the [Azure version here](https://github.com/Azure-Samples/eShopOnAzure).
 
+## Getting started
+
+### Install the Aspire CLI
+
+To install the latest released version of the Aspire CLI:
+
+On Windows:
+
+```powershell
+iex "& { $(irm https://aspire.dev/install.ps1) }"
+```
+
+On Linux or macOS:
+
+```sh
+curl -sSL https://aspire.dev/install.sh | bash
+```
+
+> [!NOTE]
+> If you want to use the latest daily builds instead of the released version, follow the instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md).
+
 ## What is in this repo?
 
 The Aspire application host, dashboard, service discovery infrastructure, and all Aspire integrations. It also contains the project templates.
-
-## Using latest daily builds
-
-Follow instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md) to get started using Aspire with the latest daily build.
 
 ## How can I contribute?
 
