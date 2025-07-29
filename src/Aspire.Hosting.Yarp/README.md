@@ -55,14 +55,6 @@ var gateway = builder.AddYarp("gateway")
 ```
 ## Configuration API
 
-### Core methods
-
-| Method | Description |
-|--------|-------------|
-| `AddYarp(string name)` | Adds a YARP container resource to the application |
-| `WithConfiguration(Action<IYarpConfigurationBuilder>)` | Configures YARP programmatically |
-| `WithHostPort(int? port)` | Sets a specific host port instead of random assignment |
-
 ### Route configuration
 
 The `IYarpConfigurationBuilder` provides methods to configure routes and clusters:
@@ -130,14 +122,6 @@ route.WithTransformQueryValue("version", "1.0")                       // Add que
 ```
 
 ## Advanced configuration
-
-### Custom port configuration
-
-```csharp
-var gateway = builder.AddYarp("gateway")
-                     .WithHostPort(8080)  // Use specific port
-                     .WithConfiguration(yarp => { /* config */ });
-```
 
 ### Multiple routes to the same service
 
