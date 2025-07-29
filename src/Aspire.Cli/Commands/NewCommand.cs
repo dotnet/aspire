@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -13,7 +12,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Semver;
-using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -203,9 +201,6 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
-            validator: name => ProjectNameValidator.IsProjectNameValid(name)
-                ? ValidationResult.Success()
-                : ValidationResult.Error(NewCommandStrings.InvalidProjectName),
             cancellationToken: cancellationToken);
     }
 
@@ -217,23 +212,5 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => t.Description,
             cancellationToken
         );
-    }
-}
-
-internal static partial class ProjectNameValidator
-{
-    // Regex for Unicode-aware project name validation:
-    // - Starts with Unicode letter or number [\p{L}\p{N}]
-    // - Can contain Unicode letters, numbers, connector punctuation (underscore), dash, dot, and combining marks
-    // - Must end with Unicode letter or number, optionally followed by combining marks
-    // - Length: 1-254 characters
-    // - Excludes unsafe characters: / \ : * ? " < > |
-    [GeneratedRegex(@"^[\p{L}\p{N}]([\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}][\p{Mn}\p{Mc}]*|[\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}])?$", RegexOptions.Compiled)]
-    internal static partial Regex GetAssemblyNameRegex();
-
-    public static bool IsProjectNameValid(string projectName)
-    {
-        var regex = GetAssemblyNameRegex();
-        return regex.IsMatch(projectName);
     }
 }
