@@ -88,6 +88,11 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             forceLoad: true);
     }
 
+    private static void ValuedChanged(string? value)
+    {
+        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
+    }
+
     private async Task ClearAllSignals()
     {
         TelemetryRepository.ClearAllSignals();
