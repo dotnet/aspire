@@ -7,24 +7,24 @@
         <target state="translated">Dağıtım iptal edildi.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">Dağıtım, {0} çıkış koduyla başarısız oldu. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">Desteklenen dağıtım hedeflerine bir Aspire uygulama ana işlemi projesi dağıtın. (Önizleme)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="new">DEPLOYMENT FAILED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">Dağıtım yapıtları için çıktı yolu.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">Başarıyla dağıtıldı. Yapıtlar şurada mevcuttur: {0}</target>
         <note />
       </trans-unit>
     </body>

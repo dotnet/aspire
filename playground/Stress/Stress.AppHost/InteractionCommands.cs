@@ -127,8 +127,8 @@ internal static class InteractionCommands
                var numberOfPeopleInput = new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
                var inputs = new List<InteractionInput>
                {
-                   new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true },
-                   new InteractionInput { InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true },
+                   new InteractionInput { InputType = InputType.Text, Label = "Name", Placeholder = "Enter name", Required = true, MaxLength = 50 },
+                   new InteractionInput { InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true, MaxLength = 20 },
                    dinnerInput,
                    numberOfPeopleInput,
                    new InteractionInput { InputType = InputType.Boolean, Label = "Remember me", Placeholder = "What does this do?", Required = true },
@@ -164,6 +164,47 @@ internal static class InteractionCommands
                }
 
                return CommandResults.Success();
+           })
+           .WithCommand("dismiss-interaction", "Dismiss interaction tests", executeCommand: commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptNotificationAsync), (showDismiss, title) =>
+               {
+                   return interactionService.PromptNotificationAsync(
+                       title: title,
+                       message: string.Empty,
+                       options: new NotificationInteractionOptions { ShowDismiss = showDismiss },
+                       cancellationToken: commandContext.CancellationToken);
+               });
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptConfirmationAsync), (showDismiss, title) =>
+               {
+                   return interactionService.PromptConfirmationAsync(
+                       title: title,
+                       message: string.Empty,
+                       options: new MessageBoxInteractionOptions { ShowDismiss = showDismiss },
+                       cancellationToken: commandContext.CancellationToken);
+               });
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptMessageBoxAsync), (showDismiss, title) =>
+               {
+                   return interactionService.PromptMessageBoxAsync(
+                       title: title,
+                       message: string.Empty,
+                       options: new MessageBoxInteractionOptions { ShowDismiss = showDismiss },
+                       cancellationToken: commandContext.CancellationToken);
+               });
+               RunInteractionWithDismissValues(nameof(IInteractionService.PromptInputAsync), (showDismiss, title) =>
+               {
+                   return interactionService.PromptInputAsync(
+                       title: title,
+                       message: string.Empty,
+                       inputLabel: "Input",
+                       placeHolder: "Enter input",
+                       options: new InputsDialogInteractionOptions { ShowDismiss = showDismiss },
+                       cancellationToken: commandContext.CancellationToken);
+               });
+
+               return Task.FromResult(CommandResults.Success());
            })
            .WithCommand("many-values", "Many values", executeCommand: async commandContext =>
            {
@@ -201,6 +242,14 @@ internal static class InteractionCommands
            });
 
         return resource;
+    }
+
+    private static void RunInteractionWithDismissValues(string title, Func<bool?, string, Task> action)
+    {
+        // Don't wait for interactions to complete, i.e. await tasks.
+        _ = action(null, $"{title} - ShowDismiss = null");
+        _ = action(true, $"{title} - ShowDismiss = true");
+        _ = action(false, $"{title} - ShowDismiss = false");
     }
 }
 

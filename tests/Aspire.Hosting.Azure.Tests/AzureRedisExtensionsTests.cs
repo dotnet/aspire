@@ -103,7 +103,9 @@ public class AzureRedisExtensionsTests
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
         Assert.NotNull(redisResource?.PasswordParameter);
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:12455,password={redisResource.PasswordParameter.Value}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -195,7 +197,9 @@ public class AzureRedisExtensionsTests
         Assert.True(redis.Resource.IsContainer());
         Assert.NotNull(redis.Resource.PasswordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
@@ -212,6 +216,21 @@ public class AzureRedisExtensionsTests
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
         await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureRedisCacheResource()
+    {
+        // Arrange
+        var redisResource = new AzureRedisCacheResource("test-redis", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(redisResource, "test-redis");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = redisResource.AddAsExistingResource(infrastructure);
+        var secondResult = redisResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

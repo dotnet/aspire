@@ -100,7 +100,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("thumbs_down", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
+        DisplayMessage("cross_mark", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -131,7 +131,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySuccess(string message)
     {
-        DisplayMessage("thumbs_up", message);
+        DisplayMessage("check_mark", message);
     }
 
     public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
@@ -194,8 +194,8 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
-        _ansiConsole.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
         _ansiConsole.WriteLine();
     }
 }

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.GitHub.Models.Tests;
 
@@ -286,5 +287,42 @@ public class GitHubModelsExtensionTests
         var healthCheckAnnotations = github.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
         Assert.Single(healthCheckAnnotations);
         Assert.Equal("github_check", healthCheckAnnotations[0].Key);
+    }
+
+    [Fact]
+    public void WithHealthCheckEnsuresIHttpClientFactoryIsRegistered()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
+
+        // Add the health check without explicitly calling AddHttpClient
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini").WithHealthCheck();
+
+        // Build the service provider to test dependency resolution
+        var services = builder.Services.BuildServiceProvider();
+
+        // This should not throw because WithHealthCheck should ensure IHttpClientFactory is registered
+        var httpClientFactory = services.GetService<IHttpClientFactory>();
+        Assert.NotNull(httpClientFactory);
+    }
+
+    [Fact]
+    public void WithHealthCheckWorksWhenAddHttpClientIsCalledManually()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:github-gh-apikey"] = "test-api-key";
+
+        // Manually call AddHttpClient (should not conflict with automatic registration in WithHealthCheck)
+        builder.Services.AddHttpClient();
+
+        // Add the health check
+        var github = builder.AddGitHubModel("github", "openai/gpt-4o-mini").WithHealthCheck();
+
+        // Build the service provider to test dependency resolution
+        var services = builder.Services.BuildServiceProvider();
+
+        // This should work fine since AddHttpClient can be called multiple times safely
+        var httpClientFactory = services.GetService<IHttpClientFactory>();
+        Assert.NotNull(httpClientFactory);
     }
 }

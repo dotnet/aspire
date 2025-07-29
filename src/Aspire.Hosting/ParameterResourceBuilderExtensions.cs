@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
@@ -169,7 +170,6 @@ public static class ParameterResourceBuilderExtensions
         return builder;
     }
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
     /// Sets a custom input generator function for the parameter resource.
     /// </summary>
@@ -190,6 +190,7 @@ public static class ParameterResourceBuilderExtensions
     ///     });
     /// </code>
     /// </remarks>
+    [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -199,7 +200,6 @@ public static class ParameterResourceBuilderExtensions
 
         return builder;
     }
-#pragma warning restore ASPIREINTERACTION001
 
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {

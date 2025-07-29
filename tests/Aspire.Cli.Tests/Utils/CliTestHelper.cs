@@ -5,11 +5,13 @@ using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,6 +78,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
+        services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -200,7 +203,13 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features);
+    };
+
+    public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestDotNetSdkInstaller();
     };
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -237,18 +246,38 @@ internal sealed class CliServiceCollectionTestOptions
     };
 }
 
-internal sealed class TestOutputTextWriter(ITestOutputHelper outputHelper) : TextWriter
+internal sealed class TestOutputTextWriter : TextWriter
 {
+    private readonly ITestOutputHelper _outputHelper;
+    public List<string> Logs { get; } = new List<string>();
+
+    public TestOutputTextWriter(ITestOutputHelper outputHelper) : this(outputHelper, null)
+    {
+    }
+
+    public TestOutputTextWriter(ITestOutputHelper outputHelper, IFormatProvider? formatProvider) : base(formatProvider)
+    {
+        _outputHelper = outputHelper;
+    }
+
     public override Encoding Encoding => Encoding.UTF8;
 
     public override void WriteLine(string? message)
     {
-        outputHelper.WriteLine(message!);
+        _outputHelper.WriteLine(message!);
+        if (message is not null)
+        {
+            Logs.Add(message);
+        }
     }
 
     public override void Write(string? message)
     {
-        outputHelper.Write(message!);
+        _outputHelper.Write(message!);
+        if (message is not null)
+        {
+            Logs.Add(message);
+        }
     }
 
 }

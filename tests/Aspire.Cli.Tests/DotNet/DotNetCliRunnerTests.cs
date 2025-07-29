@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +35,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -73,6 +76,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -115,6 +119,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -147,6 +152,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -188,6 +194,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 // When noBuild is true, the original env should be passed through unchanged
@@ -232,6 +239,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             (args, env, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -262,6 +270,42 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task NewProjectAsyncReturnsExitCode73WhenProjectAlreadyExists()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            (args, env, _, _, _) =>
+            {
+                // Verify the arguments are correct for dotnet new
+                Assert.Contains("new", args);
+                Assert.Contains("aspire", args);
+                Assert.Contains("--name", args);
+                Assert.Contains("TestProject", args);
+                Assert.Contains("--output", args);
+                Assert.Contains("/tmp/test", args);
+            },
+            73 // Return exit code 73 to simulate project already exists
+        );
+
+        // Act
+        var exitCode = await runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", [], options, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(73, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -269,9 +313,10 @@ internal sealed class AssertingDotNetCliRunner(
     IServiceProvider serviceProvider,
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
+    IFeatures features,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {

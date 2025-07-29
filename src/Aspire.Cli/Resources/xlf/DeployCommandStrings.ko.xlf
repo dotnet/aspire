@@ -7,24 +7,24 @@
         <target state="translated">배포를 취소했습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="DeploymentFailed">
-        <source>Deployment failed with exit code {0}. For more information run with --debug switch.</source>
-        <target state="translated">배포에 실패했습니다(종료 코드: {0}). 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
         <target state="translated">Aspire 앱 호스트 프로젝트를 지원되는 배포 대상으로 배포하세요. (미리 보기)</target>
         <note />
       </trans-unit>
+      <trans-unit id="OperationCompletedPrefix">
+        <source>DEPLOYMENT COMPLETED</source>
+        <target state="new">DEPLOYMENT COMPLETED</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OperationFailedPrefix">
+        <source>DEPLOYMENT FAILED</source>
+        <target state="new">DEPLOYMENT FAILED</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for deployment artifacts.</source>
         <target state="translated">배포 아티팩트의 출력 경로입니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SuccessfullyDeployed">
-        <source>Successfully deployed. Artifacts available at: {0}</source>
-        <target state="translated">배포를 완료했습니다. 아티팩트는 다음 위치에서 사용 가능: {0}</target>
         <note />
       </trans-unit>
     </body>

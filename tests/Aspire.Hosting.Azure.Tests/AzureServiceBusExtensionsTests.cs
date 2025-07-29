@@ -838,4 +838,19 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         Assert.True(serviceBus.Resource.IsEmulator());
         Assert.Contains(serviceBus.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureServiceBusResource()
+    {
+        // Arrange
+        var serviceBusResource = new AzureServiceBusResource("test-servicebus", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(serviceBusResource, "test-servicebus");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = serviceBusResource.AddAsExistingResource(infrastructure);
+        var secondResult = serviceBusResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
 }

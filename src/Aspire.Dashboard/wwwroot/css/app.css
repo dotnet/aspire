@@ -822,11 +822,21 @@ fluent-tooltip[anchor="dialog_close"] > div {
     margin-right: 3px;
 }
 
-fluent-menu-item::part(content) {
+.aspire-menu-container > fluent-menu > fluent-menu-item::part(content) {
+    width: 100%;
+    text-overflow: ellipsis;
+}
+
+.overflow-fluent-menu-item::part(content) {
     width: 100%;
     text-overflow: ellipsis;
 }
 
 .fluent-messagebar-action {
     font-size: var(--type-ramp-minus-1-font-size);
+}
+
+.filter-group > legend {
+    font-size: var(--type-ramp-plus-2-font-size);
+    font-weight: 500;
 }

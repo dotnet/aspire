@@ -178,6 +178,20 @@ public class AzureKeyVaultTests
     }
 
     [Fact]
+    public void KvSecretResources_AreExcludedFromManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var parameter = builder.AddParameter("my-secret-param", secret: true);
+        var kv = builder.AddAzureKeyVault("mykv");
+        var secretResource = kv.AddSecret("my-secret", parameter);
+
+        Assert.True(secretResource.Resource.TryGetAnnotationsOfType<ManifestPublishingCallbackAnnotation>(out var manifestAnnotations));
+        var annotation = Assert.Single(manifestAnnotations);
+        Assert.Equal(ManifestPublishingCallbackAnnotation.Ignore, annotation);
+    }
+
+    [Fact]
     public async Task AddSecret_WithMultipleSecrets_GeneratesCorrectBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -257,5 +271,20 @@ public class AzureKeyVaultTests
 
         var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(tooLongSecretName, secretParam));
         Assert.Contains("cannot be longer than 127 characters", exception.Message);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureKeyVaultResource()
+    {
+        // Arrange
+        var keyVaultResource = new AzureKeyVaultResource("test-keyvault", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(keyVaultResource, "test-keyvault");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = keyVaultResource.AddAsExistingResource(infrastructure);
+        var secondResult = keyVaultResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 }

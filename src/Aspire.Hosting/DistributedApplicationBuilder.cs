@@ -20,7 +20,6 @@ using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -347,8 +346,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
-
-                ConfigureDashboardHealthCheck();
             }
 
             if (options.EnableResourceLogging)
@@ -407,28 +404,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
-    }
-
-    private void ConfigureDashboardHealthCheck()
-    {
-        _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
-
-            var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
-            {
-                // Health checks to the dashboard should go to the /health endpoint. This endpoint allows anonymous requests.
-                // Sending a request to other dashboard endpoints triggered auth, which the request fails, and is redirected to the login page.
-                var uriBuilder = new UriBuilder(firstDashboardUrl);
-                uriBuilder.Path = "/health";
-                return uriBuilder.Uri;
-            }
-            else
-            {
-                throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
-            }
-        }, KnownHealthCheckNames.DashboardHealthCheck);
-
-        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DashboardHealthCheck);
     }
 
     private void ConfigureHealthChecks()

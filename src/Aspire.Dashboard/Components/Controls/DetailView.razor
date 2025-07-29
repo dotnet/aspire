@@ -6,11 +6,11 @@
     <header style="height: auto;">
         @if (DetailsTitle is not null)
         {
-            <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
+            <h2 class="details-header-title" title="@DetailsTitle">@DetailsTitle</h2>
         }
         else if (DetailsTitleTemplate is not null)
         {
-            <div class="details-header-title">@DetailsTitleTemplate</div>
+            <h2 class="details-header-title">@DetailsTitleTemplate</h2>
         }
         <div class="header-actions">
             @if (ViewportInformation.IsDesktop)
