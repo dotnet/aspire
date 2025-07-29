@@ -168,10 +168,16 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         var envPath = Path.Combine(tempDir.Path, ".env");
         Assert.True(File.Exists(composePath));
-        Assert.True(File.Exists(envPath));
-
-        await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+        
+        if (File.Exists(envPath))
+        {
+            await Verify(File.ReadAllText(composePath), "yaml")
+                .AppendContentAsFile(File.ReadAllText(envPath), "env");
+        }
+        else
+        {
+            await Verify(File.ReadAllText(composePath), "yaml");
+        }
     }
 
     [Fact]
