@@ -470,7 +470,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        builder.Insert(0, noSelectionViewModel);
+        // We still need to add the no selection option if there are no resources, as otherwise
+        // the dropdown will not have any options to select.
+        if (builder.Count != 1)
+        {
+            builder.Insert(0, noSelectionViewModel);
+        }
+
         return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
