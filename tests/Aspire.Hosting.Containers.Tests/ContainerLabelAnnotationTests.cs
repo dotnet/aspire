@@ -118,13 +118,15 @@ public class ContainerLabelAnnotationTests
     }
 
     [Fact]
-    public void WithLabelThrowsWhenValueIsNull()
+    public void WithLabelAllowsNullValue()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var container = builder.AddContainer("mycontainer", "myimage");
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithLabel("key", (string?)null);
 
-        var exception = Assert.Throws<ArgumentNullException>(() => container.WithLabel("key", null!));
-        Assert.Equal("value", exception.ParamName);
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
+        Assert.Contains("key", annotation.Labels.Keys);
+        Assert.Equal(string.Empty, annotation.Labels["key"]);
     }
 
     [Fact]
@@ -210,5 +212,103 @@ public class ContainerLabelAnnotationTests
         var annotation = new ContainerLabelAnnotation();
         var exception = Assert.Throws<ArgumentNullException>(() => annotation.Add("key", null!));
         Assert.Equal("value", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithLabelCallbackCreatesSingleLabelCallbackAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithLabel("callback-key", () => "callback-value");
+
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        Assert.NotNull(annotation.Callback);
+    }
+
+    [Fact]
+    public void WithLabelCallbackActionCreatesMultipleLabelCallbackAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithLabel(context =>
+                               {
+                                   context.Labels["callback-key1"] = "value1";
+                                   context.Labels["callback-key2"] = "value2";
+                               });
+
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        Assert.NotNull(annotation.Callback);
+    }
+
+    [Fact]
+    public void WithLabelCallbackAsyncCreatesMultipleLabelCallbackAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithLabel(async context =>
+                               {
+                                   context.Labels["async-key1"] = "value1";
+                                   context.Labels["async-key2"] = "value2";
+                                   await Task.CompletedTask;
+                               });
+
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        Assert.NotNull(annotation.Callback);
+    }
+
+    [Fact]
+    public void WithLabelCallbackThrowsWhenNameIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var exception = Assert.Throws<ArgumentNullException>(() => container.WithLabel(null!, () => "value"));
+        Assert.Equal("name", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithLabelCallbackThrowsWhenCallbackIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var exception = Assert.Throws<ArgumentNullException>(() => container.WithLabel("key", (Func<string>)null!));
+        Assert.Equal("callback", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithLabelCallbackActionThrowsWhenCallbackIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var exception = Assert.Throws<ArgumentNullException>(() => container.WithLabel((Action<ContainerLabelCallbackContext>)null!));
+        Assert.Equal("callback", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithLabelCallbackAsyncThrowsWhenCallbackIsNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var exception = Assert.Throws<ArgumentNullException>(() => container.WithLabel((Func<ContainerLabelCallbackContext, Task>)null!));
+        Assert.Equal("callback", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithLabelStaticAndCallbackCanBeCombined()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithLabel("static-key", "static-value")
+                               .WithLabel("callback-key", () => "callback-value");
+
+        var staticAnnotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
+        var callbackAnnotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        
+        Assert.Single(staticAnnotation.Labels);
+        Assert.Equal("static-value", staticAnnotation.Labels["static-key"]);
+        Assert.NotNull(callbackAnnotation.Callback);
     }
 }
