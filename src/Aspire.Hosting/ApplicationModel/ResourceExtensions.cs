@@ -482,14 +482,14 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Attempts to get the container labels for the specified resource.
+    /// Attempts to get the container label callback annotations for the specified resource.
     /// </summary>
-    /// <param name="resource">The resource to get the container labels for.</param>
-    /// <param name="labels">When this method returns, contains the container labels for the specified resource, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if the container labels were successfully retrieved; otherwise, <c>false</c>.</returns>
-    public static bool TryGetContainerLabels(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerLabelAnnotation>? labels)
+    /// <param name="resource">The resource to get the container label callback annotations for.</param>
+    /// <param name="annotations">When this method returns, contains the container label callback annotations for the specified resource, if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if the container label callback annotations were successfully retrieved; otherwise, <c>false</c>.</returns>
+    public static bool TryGetContainerLabelCallbacks(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerLabelCallbackAnnotation>? annotations)
     {
-        return TryGetAnnotationsOfType<ContainerLabelAnnotation>(resource, out labels);
+        return TryGetAnnotationsOfType<ContainerLabelCallbackAnnotation>(resource, out annotations);
     }
 
     /// <summary>
@@ -508,20 +508,8 @@ public static class ResourceExtensions
     {
         var labels = new Dictionary<string, string>();
 
-        // Process static labels first
-        if (resource.TryGetContainerLabels(out var staticLabelAnnotations))
-        {
-            foreach (var annotation in staticLabelAnnotations)
-            {
-                foreach (var label in annotation.Labels)
-                {
-                    labels[label.Key] = label.Value;
-                }
-            }
-        }
-
         // Process callback labels
-        if (resource.TryGetAnnotationsOfType<ContainerLabelCallbackAnnotation>(out var callbackAnnotations))
+        if (resource.TryGetContainerLabelCallbacks(out var callbackAnnotations))
         {
             var context = new ContainerLabelCallbackContext(executionContext, resource, labels, cancellationToken)
             {

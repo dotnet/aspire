@@ -935,15 +935,7 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(key);
 
-        var annotation = builder.Resource.Annotations.OfType<ContainerLabelAnnotation>().FirstOrDefault();
-        if (annotation is null)
-        {
-            annotation = new ContainerLabelAnnotation();
-            builder.Resource.Annotations.Add(annotation);
-        }
-
-        annotation.Add(key, value ?? string.Empty);
-        return builder;
+        return builder.WithAnnotation(new ContainerLabelAnnotation(key, value ?? string.Empty));
     }
 
     /// <summary>
@@ -974,19 +966,13 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(labels);
 
-        var annotation = builder.Resource.Annotations.OfType<ContainerLabelAnnotation>().FirstOrDefault();
-        if (annotation is null)
+        return builder.WithAnnotation(new ContainerLabelCallbackAnnotation(context =>
         {
-            annotation = new ContainerLabelAnnotation();
-            builder.Resource.Annotations.Add(annotation);
-        }
-
-        foreach (var label in labels)
-        {
-            annotation.Add(label.Key, label.Value);
-        }
-        
-        return builder;
+            foreach (var label in labels)
+            {
+                context.Labels[label.Key] = label.Value;
+            }
+        }));
     }
 
     /// <summary>

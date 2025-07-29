@@ -9,33 +9,50 @@ namespace Aspire.Hosting.Containers.Tests;
 public class ContainerLabelAnnotationTests
 {
     [Fact]
-    public void WithLabelAddsLabelAnnotation()
+    public async Task WithLabelAddsLabelAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage")
                                .WithLabel("com.example.service", "my-service");
 
-        var annotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
-        Assert.Contains("com.example.service", annotation.Labels.Keys);
-        Assert.Equal("my-service", annotation.Labels["com.example.service"]);
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        
+        // Test by executing the callback
+        var labels = new Dictionary<string, string>();
+        var context = new ContainerLabelCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), container.Resource, labels, CancellationToken.None);
+        await annotation.Callback(context);
+        
+        Assert.Single(labels);
+        Assert.Equal("my-service", labels["com.example.service"]);
     }
 
     [Fact]
-    public void WithLabelAddsMultipleLabelsToSameAnnotation()
+    public async Task WithLabelAddsMultipleLabelsToSeparateAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage")
                                .WithLabel("com.example.service", "my-service")
                                .WithLabel("com.example.environment", "staging");
 
-        var annotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
-        Assert.Equal(2, annotation.Labels.Count);
-        Assert.Equal("my-service", annotation.Labels["com.example.service"]);
-        Assert.Equal("staging", annotation.Labels["com.example.environment"]);
+        var annotations = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().ToArray();
+        Assert.Equal(2, annotations.Length);
+        
+        // Test by executing the callbacks
+        var labels = new Dictionary<string, string>();
+        var context = new ContainerLabelCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), container.Resource, labels, CancellationToken.None);
+        
+        foreach (var annotation in annotations)
+        {
+            await annotation.Callback(context);
+        }
+        
+        Assert.Equal(2, labels.Count);
+        Assert.Equal("my-service", labels["com.example.service"]);
+        Assert.Equal("staging", labels["com.example.environment"]);
     }
 
     [Fact]
-    public void WithLabelsAddsDictionaryOfLabels()
+    public async Task WithLabelsAddsDictionaryOfLabels()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var labels = new Dictionary<string, string>
@@ -48,15 +65,21 @@ public class ContainerLabelAnnotationTests
         var container = builder.AddContainer("mycontainer", "myimage")
                                .WithLabels(labels);
 
-        var annotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
-        Assert.Equal(3, annotation.Labels.Count);
-        Assert.Equal("my-service", annotation.Labels["com.example.service"]);
-        Assert.Equal("staging", annotation.Labels["com.example.environment"]);
-        Assert.Equal("team-xyz", annotation.Labels["com.example.owner"]);
+        var annotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        
+        // Test by executing the callback
+        var resultLabels = new Dictionary<string, string>();
+        var context = new ContainerLabelCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), container.Resource, resultLabels, CancellationToken.None);
+        await annotation.Callback(context);
+        
+        Assert.Equal(3, resultLabels.Count);
+        Assert.Equal("my-service", resultLabels["com.example.service"]);
+        Assert.Equal("staging", resultLabels["com.example.environment"]);
+        Assert.Equal("team-xyz", resultLabels["com.example.owner"]);
     }
 
     [Fact]
-    public void WithLabelsAndWithLabelCanBeCombined()
+    public async Task WithLabelsAndWithLabelCanBeCombined()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var labels = new Dictionary<string, string>
@@ -69,11 +92,22 @@ public class ContainerLabelAnnotationTests
                                .WithLabels(labels)
                                .WithLabel("com.example.owner", "team-xyz");
 
-        var annotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
-        Assert.Equal(3, annotation.Labels.Count);
-        Assert.Equal("my-service", annotation.Labels["com.example.service"]);
-        Assert.Equal("staging", annotation.Labels["com.example.environment"]);
-        Assert.Equal("team-xyz", annotation.Labels["com.example.owner"]);
+        var annotations = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().ToArray();
+        Assert.Equal(2, annotations.Length);
+        
+        // Test by executing the callbacks
+        var resultLabels = new Dictionary<string, string>();
+        var context = new ContainerLabelCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), container.Resource, resultLabels, CancellationToken.None);
+        
+        foreach (var annotation in annotations)
+        {
+            await annotation.Callback(context);
+        }
+        
+        Assert.Equal(3, resultLabels.Count);
+        Assert.Equal("my-service", resultLabels["com.example.service"]);
+        Assert.Equal("staging", resultLabels["com.example.environment"]);
+        Assert.Equal("team-xyz", resultLabels["com.example.owner"]);
     }
 
     [Fact]
@@ -149,18 +183,27 @@ public class ContainerLabelAnnotationTests
     }
 
     [Fact]
-    public void WithLabelStaticAndCallbackCanBeCombined()
+    public async Task WithLabelStaticAndCallbackCanBeCombined()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage")
                                .WithLabel("static-key", "static-value")
                                .WithLabel("callback-key", () => "callback-value");
 
-        var staticAnnotation = container.Resource.Annotations.OfType<ContainerLabelAnnotation>().Single();
-        var callbackAnnotation = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().Single();
+        var annotations = container.Resource.Annotations.OfType<ContainerLabelCallbackAnnotation>().ToArray();
+        Assert.Equal(2, annotations.Length);
         
-        Assert.Single(staticAnnotation.Labels);
-        Assert.Equal("static-value", staticAnnotation.Labels["static-key"]);
-        Assert.NotNull(callbackAnnotation.Callback);
+        // Test by executing the callbacks
+        var resultLabels = new Dictionary<string, string>();
+        var context = new ContainerLabelCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), container.Resource, resultLabels, CancellationToken.None);
+        
+        foreach (var annotation in annotations)
+        {
+            await annotation.Callback(context);
+        }
+        
+        Assert.Equal(2, resultLabels.Count);
+        Assert.Equal("static-value", resultLabels["static-key"]);
+        Assert.Equal("callback-value", resultLabels["callback-key"]);
     }
 }
