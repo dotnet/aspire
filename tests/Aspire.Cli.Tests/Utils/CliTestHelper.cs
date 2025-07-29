@@ -212,6 +212,11 @@ internal sealed class CliServiceCollectionTestOptions
         return new TestDotNetSdkInstaller();
     };
 
+    public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestDotNetSdkInstaller();
+    };
+
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
