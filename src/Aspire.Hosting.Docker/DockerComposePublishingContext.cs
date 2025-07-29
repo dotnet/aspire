@@ -87,7 +87,7 @@ internal sealed class DockerComposePublishingContext(
                     containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
-                var composeService = serviceResource.BuildComposeService();
+                var composeService = await serviceResource.BuildComposeServiceAsync(executionContext, logger).ConfigureAwait(false);
 
                 HandleComposeFileVolumes(serviceResource, composeFile);
 

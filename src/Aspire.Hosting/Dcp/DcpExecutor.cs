@@ -1373,7 +1373,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
-        spec.Labels = BuildContainerLabels(modelContainerResource);
+        spec.Labels = await BuildContainerLabelsAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         spec.CreateFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
@@ -1960,27 +1960,25 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return volumeMounts;
     }
 
-    private static List<ContainerLabel>? BuildContainerLabels(IResource container)
+    private async Task<List<ContainerLabel>?> BuildContainerLabelsAsync(IResource container, CancellationToken cancellationToken)
     {
-        if (!container.TryGetContainerLabels(out var containerLabelAnnotations))
+        var labels = await container.ProcessContainerLabelsAsync(_executionContext, _logger, cancellationToken).ConfigureAwait(false);
+        
+        if (labels.Count == 0)
         {
             return null;
         }
 
-        var labels = new List<ContainerLabel>();
-
-        foreach (var annotation in containerLabelAnnotations)
+        var containerLabels = new List<ContainerLabel>();
+        foreach (var label in labels)
         {
-            foreach (var label in annotation.Labels)
+            containerLabels.Add(new ContainerLabel
             {
-                labels.Add(new ContainerLabel
-                {
-                    Key = label.Key,
-                    Value = label.Value
-                });
-            }
+                Key = label.Key,
+                Value = label.Value
+            });
         }
 
-        return labels.Count > 0 ? labels : null;
+        return containerLabels;
     }
 }

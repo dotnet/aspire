@@ -493,6 +493,51 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Processes container labels for the specified resource in the given execution context.
+    /// </summary>
+    /// <param name="resource">The resource containing the container labels to process.</param>
+    /// <param name="executionContext">The execution context used during the processing of container labels.</param>
+    /// <param name="logger">The logger used for logging information or errors during the label processing.</param>
+    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <returns>A task representing the asynchronous operation that returns the processed container labels.</returns>
+    public static async ValueTask<Dictionary<string, string>> ProcessContainerLabelsAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var labels = new Dictionary<string, string>();
+
+        // Process static labels first
+        if (resource.TryGetContainerLabels(out var staticLabelAnnotations))
+        {
+            foreach (var annotation in staticLabelAnnotations)
+            {
+                foreach (var label in annotation.Labels)
+                {
+                    labels[label.Key] = label.Value;
+                }
+            }
+        }
+
+        // Process callback labels
+        if (resource.TryGetAnnotationsOfType<ContainerLabelCallbackAnnotation>(out var callbackAnnotations))
+        {
+            var context = new ContainerLabelCallbackContext(executionContext, resource, labels, cancellationToken)
+            {
+                Logger = logger
+            };
+
+            foreach (var callback in callbackAnnotations)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+        }
+
+        return labels;
+    }
+
+    /// <summary>
     /// Attempts to retrieve the endpoints for the given resource.
     /// </summary>
     /// <param name="resource">The resource to retrieve the endpoints for.</param>

@@ -171,7 +171,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
 
         var serviceResource = (DockerComposeServiceResource)deploymentTarget;
-        var composeService = serviceResource.BuildComposeService();
+        var composeService = await serviceResource.BuildComposeServiceAsync(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
         // Assert labels are included
         Assert.Equal(4, composeService.Labels.Count);
@@ -203,7 +203,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
 
         var serviceResource = (DockerComposeServiceResource)deploymentTarget;
-        var composeService = serviceResource.BuildComposeService();
+        var composeService = await serviceResource.BuildComposeServiceAsync(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
         // Assert no labels are included
         Assert.Empty(composeService.Labels);

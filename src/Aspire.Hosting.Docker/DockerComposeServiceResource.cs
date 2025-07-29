@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
 
@@ -69,7 +70,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
     /// <inheritdoc/>
     public DockerComposeEnvironmentResource Parent => composeEnvironmentResource;
 
-    internal Service BuildComposeService()
+    internal async Task<Service> BuildComposeServiceAsync(DistributedApplicationExecutionContext executionContext, ILogger logger)
     {
         var composeService = new Service
         {
@@ -86,7 +87,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         AddEnvironmentVariablesAndCommandLineArgs(composeService);
         AddPorts(composeService);
         AddVolumes(composeService);
-        AddLabels(composeService);
+        await AddLabelsAsync(composeService, executionContext, logger).ConfigureAwait(false);
         SetDependsOn(composeService);
         return composeService;
     }
@@ -267,17 +268,13 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         }
     }
 
-    private void AddLabels(Service composeService)
+    private async Task AddLabelsAsync(Service composeService, DistributedApplicationExecutionContext executionContext, ILogger logger)
     {
-        if (TargetResource.TryGetContainerLabels(out var labelAnnotations))
+        var labels = await TargetResource.ProcessContainerLabelsAsync(executionContext, logger).ConfigureAwait(false);
+        
+        foreach (var label in labels)
         {
-            foreach (var annotation in labelAnnotations)
-            {
-                foreach (var label in annotation.Labels)
-                {
-                    composeService.Labels[label.Key] = label.Value;
-                }
-            }
+            composeService.Labels[label.Key] = label.Value;
         }
     }
 }
