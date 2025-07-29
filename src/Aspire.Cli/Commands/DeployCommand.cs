@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine.Parsing;
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -24,7 +25,17 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 
-    protected override string CreateDefaultOutputPath(ArgumentResult result) => Directory.CreateTempSubdirectory("aspire-deploy-").FullName;
+    protected override string CreateDefaultOutputPath(ArgumentResult result)
+    {
+        // Get the project path to create a stable temporary directory based on the source path
+        var projectFile = result.GetValue<FileInfo?>("--project");
+        var sourcePath = projectFile?.FullName ?? Environment.CurrentDirectory;
+        
+        // Create a stable hash of the source path for the directory name
+        var sourceHash = sourcePath.GetHashCode().ToString("x8", CultureInfo.InvariantCulture);
+        
+        return Directory.CreateTempSubdirectory($"aspire-deploy-{sourceHash}-").FullName;
+    }
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
         ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, "--deploy", "true", ..unmatchedTokens];
