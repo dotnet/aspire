@@ -14,8 +14,8 @@ Aspire gives you a unified toolchain: launch and debug your entire app locally w
 
 ## Useful links
 
-- [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/)
-- [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples)
+- [Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [Aspire samples repository](https://github.com/dotnet/aspire-samples)
 
 ## Getting started
 
