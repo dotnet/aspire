@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine.Parsing;
-using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -31,10 +32,11 @@ internal sealed class DeployCommand : PublishCommandBase
         var projectFile = result.GetValue<FileInfo?>("--project");
         var sourcePath = projectFile?.FullName ?? Environment.CurrentDirectory;
         
-        // Create a stable hash of the source path for the directory name
-        var sourceHash = sourcePath.GetHashCode().ToString("x8", CultureInfo.InvariantCulture);
+        // Create a stable hash of the source path for the directory name using SHA256
+        var sourceHash = SHA256.HashData(Encoding.UTF8.GetBytes(sourcePath));
+        var hashString = Convert.ToHexString(sourceHash)[..8].ToLowerInvariant();
         
-        return Directory.CreateTempSubdirectory($"aspire-deploy-{sourceHash}-").FullName;
+        return Directory.CreateTempSubdirectory($"aspire-deploy-{hashString}-").FullName;
     }
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
