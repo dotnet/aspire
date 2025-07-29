@@ -90,7 +90,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     private static void ValuedChanged(string? value)
     {
-        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
+        // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
     }
 
     private async Task ClearAllSignals()
