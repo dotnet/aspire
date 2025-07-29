@@ -210,7 +210,7 @@ internal sealed class RunCommand : BaseCommand
             // than environment variables since it comes from the same backend detection logic
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-            var isSshRemote = _configuration.GetValue<string?>("VSCODE_GIT_IPC_HANDLE") is not null
+            var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
                                 && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
             AppendCtrlCMessage(longestLocalizedLength);
