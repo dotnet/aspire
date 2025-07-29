@@ -1,0 +1,116 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
+using Azure.Provisioning.RedisEnterprise;
+
+namespace Aspire.Hosting.Azure;
+
+/// <summary>
+/// Represents an Azure Cache for Redis Enterprise resource.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
+{
+    /// <summary>
+    /// Gets the "connectionString" output reference from the bicep template for the Azure Redis Enterprise resource.
+    ///
+    /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
+    /// </summary>
+    private BicepOutputReference ConnectionStringOutput => new("connectionString", this);
+
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the inner Redis resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzureRedisEnterpriseResource resource to create a local Redis container.
+    /// </summary>
+    internal RedisResource? InnerResource { get; private set; }
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => InnerResource?.Annotations ?? base.Annotations;
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Cache for Redis Enterprise resource.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression =>
+        InnerResource?.ConnectionStringExpression ?? ReferenceExpression.Create($"{ConnectionStringOutput}");
+
+    internal void SetInnerResource(RedisResource innerResource)
+    {
+        // Copy the annotations to the inner resource before making it the inner resource
+        foreach (var annotation in Annotations)
+        {
+            innerResource.Annotations.Add(annotation);
+        }
+
+        InnerResource = innerResource;
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a RedisEnterpriseCluster with the same identifier already exists
+        var existingCluster = resources.OfType<RedisEnterpriseCluster>().SingleOrDefault(cluster => cluster.BicepIdentifier == bicepIdentifier);
+
+        if (existingCluster is not null)
+        {
+            return existingCluster;
+        }
+
+        // Create and add new resource if it doesn't exist
+        var cluster = RedisEnterpriseCluster.FromExisting(bicepIdentifier);
+        cluster.Name = NameOutputReference.AsProvisioningParameter(infra);
+        infra.Add(cluster);
+        return cluster;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        var infra = roleAssignmentContext.Infrastructure;
+        var redisEnterprise = (RedisEnterpriseCluster)AddAsExistingResource(infra);
+
+        var redisEnterpriseDatabase = infra.GetProvisionableResources()
+            .OfType<RedisEnterpriseDatabase>()
+            .SingleOrDefault(db => db.BicepIdentifier == redisEnterprise.BicepIdentifier + "_default");
+        if (redisEnterpriseDatabase is null)
+        {
+            redisEnterpriseDatabase = RedisEnterpriseDatabase.FromExisting(redisEnterprise.BicepIdentifier + "_default");
+            redisEnterpriseDatabase.Name = "default";
+            redisEnterpriseDatabase.Parent = redisEnterprise;
+            infra.Add(redisEnterpriseDatabase);
+        }
+
+        var principalId = roleAssignmentContext.PrincipalId;
+
+        AddEnterpriseContributorPolicyAssignment(infra, redisEnterpriseDatabase, principalId);
+    }
+
+    private static void AddEnterpriseContributorPolicyAssignment(AzureResourceInfrastructure infra, RedisEnterpriseDatabase database, BicepValue<Guid> principalId)
+    {
+        // For Redis Enterprise, we need to use the appropriate access policy assignment
+        // This may need to be adjusted based on the actual Azure.Provisioning.Redis types available
+        infra.Add(new AccessPolicyAssignment($"{database.BicepIdentifier}_contributor")
+        {
+            Name = BicepFunction.CreateGuid(database.Id, principalId, "default"),
+            Parent = database,
+            AccessPolicyName = "default",
+            UserObjectId = principalId
+        });
+    }
+}
