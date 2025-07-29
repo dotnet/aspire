@@ -8,17 +8,14 @@
 
 ## What is Aspire?
 
-Aspire (or .NET Aspire) is an opinionated, cloud ready stack for building observable, production ready, distributed applications. Aspire is delivered through a collection of NuGet packages - Aspire "Integrations" - that handle specific cloud-native concerns. Cloud-native apps often consist of small, interconnected pieces or microservices rather than a single, monolithic code base. Cloud-native apps generally consume a large number of services, such as databases, messaging, and caching.
+Aspire provides tools, templates, and packages for building observable, production-ready distributed apps. At the center is the app model—a code-first, single source of truth that defines your app's services, resources, and connections.
 
-.NET Aspire helps with:
+Aspire gives you a unified toolchain: launch and debug your entire app locally with one command, then deploy anywhere—Kubernetes, the cloud, or your own servers—using the same composition.
 
-[Orchestration](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#orchestration): Aspire provides features for running and connecting multi-project applications and their dependencies.
+## Useful links
 
-[Integrations](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#net-aspire-integrations): Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
-
-[Tooling](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#project-templates-and-tooling): Aspire comes with project templates and tooling experiences for Visual Studio and the dotnet CLI which help you create and interact with .NET Aspire apps.
-
-To learn more, read the full [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/). Samples are available in the [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples). You can find the [eShop sample here](https://github.com/dotnet/eshop) and the [Azure version here](https://github.com/Azure-Samples/eShopOnAzure).
+- [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples)
 
 ## Getting started
 
