@@ -1,0 +1,23 @@
+﻿---
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "myapp-service"
+spec:
+  type: "ClusterIP"
+  selector:
+    app: "aspire"
+    component: "myapp"
+  ports:
+    - name: "http"
+      protocol: "TCP"
+      port: 8080
+      targetPort: "http"
+    - name: "grpc"
+      protocol: "TCP"
+      port: 80
+      targetPort: "grpc"
+    - name: "https"
+      protocol: "TCP"
+      port: 8082
+      targetPort: "https"

@@ -23,6 +23,10 @@ spec:
                 name: "special-app-config"
             - secretRef:
                 name: "special-app-secrets"
+          ports:
+            - name: "http"
+              protocol: "TCP"
+              containerPort: 8080
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:

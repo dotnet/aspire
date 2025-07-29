@@ -1,4 +1,4 @@
-﻿---
+---
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
@@ -24,10 +24,10 @@ spec:
           ports:
             - name: "http"
               protocol: "TCP"
-              containerPort: "{{ .Values.parameters.ServiceA.port_http }}"
+              containerPort: 8080
             - name: "https"
               protocol: "TCP"
-              containerPort: "{{ .Values.parameters.ServiceA.port_https }}"
+              containerPort: 8081
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:
