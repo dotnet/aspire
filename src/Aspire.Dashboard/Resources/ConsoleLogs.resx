@@ -152,10 +152,7 @@
     <value>Download logs</value>
   </data>
   <data name="ConsoleLogsSettings" xml:space="preserve">
-    <value>Console logs settings</value>
-  </data>
-  <data name="ConsoleLogsResourceActions" xml:space="preserve">
-    <value>Resource actions</value>
+    <value>Settings</value>
   </data>
   <data name="ConsoleLogsTimestampShow" xml:space="preserve">
     <value>Show timestamps</value>

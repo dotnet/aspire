@@ -117,12 +117,6 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string ConsoleLogsResourceActions {
-            get {
-                return ResourceManager.GetString("ConsoleLogsResourceActions", resourceCulture);
-            }
-        }
-        
         public static string ConsoleLogsTimestampShow {
             get {
                 return ResourceManager.GetString("ConsoleLogsTimestampShow", resourceCulture);

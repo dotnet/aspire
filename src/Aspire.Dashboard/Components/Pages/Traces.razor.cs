@@ -350,7 +350,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private Task ClearTraces(ApplicationKey? key)

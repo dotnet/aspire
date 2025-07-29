@@ -1,30 +1,45 @@
 ﻿@using Aspire.Dashboard.Model.Otlp
 @inject IStringLocalizer<Resources.StructuredLogs> Loc
 
-<FluentSelect TOption="SelectViewModel<LogLevel?>"
-              Items="@LogLevels"
-              Position="SelectPosition.Below"
-              OptionText="@(c => c.Name)"
-              Label="@(IncludeLabel ? Loc[nameof(Resources.StructuredLogs.StructuredLogsLevels)].Value : null)"
-              @bind-SelectedOption="@LogLevel"
-              @bind-SelectedOption:after="@HandleSelectedLogLevelChangedInternalAsync"
-              Width="120px"
-              Style="min-width: auto;"
-              AriaLabel="@Loc[nameof(Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"/>
+@{
+    var logLevelSelectId = $"log-level-select-{Guid.NewGuid():N}";
+}
 
-@code {
-    [Parameter]
-    public bool IncludeLabel { get; set; }
+@if (ViewportInformation.IsDesktop)
+{
+    <FluentInputLabel slot="end"
+                      Label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]"
+                      ForId="@logLevelSelectId"
+                      Orientation="@(ViewportInformation.IsDesktop ? Orientation.Horizontal : Orientation.Vertical)" />
 
-    [Parameter, EditorRequired]
-    public required List<SelectViewModel<LogLevel?>> LogLevels { get; set; }
+    <DesktopToolbarDivider />
 
-    [Parameter, EditorRequired]
-    public required SelectViewModel<LogLevel?> LogLevel { get; set; }
-
-    [Parameter]
-    public EventCallback<SelectViewModel<LogLevel?>> LogLevelChanged { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Func<Task> HandleSelectedLogLevelChangedAsync { get; set; }
+    <FluentSelect TOption="SelectViewModel<LogLevel?>"
+                  Id="@logLevelSelectId"
+                  Items="@LogLevels"
+                  Position="SelectPosition.Below"
+                  OptionText="@(c => c.Name)"
+                  @bind-SelectedOption="@LogLevel"
+                  @bind-SelectedOption:after="@HandleSelectedLogLevelChangedInternalAsync"
+                  Width="120px"
+                  Style="min-width: auto;"
+                  AriaLabel="@Loc[nameof(Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"
+                  @attributes="@AdditionalAttributes" />
+}
+else
+{
+    <div>
+        <FluentSelect TOption="SelectViewModel<LogLevel?>"
+                      Id="@logLevelSelectId"
+                      Items="@LogLevels"
+                      Position="SelectPosition.Below"
+                      OptionText="@(c => c.Name)"
+                      Label="@Loc[nameof(Resources.StructuredLogs.StructuredLogsLevels)]"
+                      @bind-SelectedOption="@LogLevel"
+                      @bind-SelectedOption:after="@HandleSelectedLogLevelChangedInternalAsync"
+                      Width="120px"
+                      Style="min-width: auto;"
+                      AriaLabel="@Loc[nameof(Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"
+                      @attributes="@AdditionalAttributes" />
+    </div>
 }

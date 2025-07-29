@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using System.Diagnostics
 
 <PageTitle>
     <ApplicationName
@@ -30,44 +31,35 @@
                 </div>
             </PageTitleSection>
             <ToolbarSection>
-                <div slot="" class="trace-header">
-                    <FluentOverflow Class="trace-header-details">
-                        <ChildContent>
-                            <FluentOverflowItem>
-                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
-                            </FluentOverflowItem>
-                            <FluentOverflowItem>
-                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
-                            </FluentOverflowItem>
-                            <FluentOverflowItem>
-                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong>
-                            </FluentOverflowItem>
-                            <FluentOverflowItem>
-                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
-                            </FluentOverflowItem>
-                            <FluentOverflowItem>
-                                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
-                            </FluentOverflowItem>
-                        </ChildContent>
-                        <OverflowTemplate Context="overflow">
-                            <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton" Class="trace-header-tooltip">
-                                @foreach (var item in overflow.ItemsOverflow)
-                                {
-                                    <div style="margin: 5px;">@item.ChildContent</div>
-                                }
-                            </FluentTooltip>
-                        </OverflowTemplate>
-                    </FluentOverflow>
-                    <div class="trace-header-filters">
+                @if (ViewportInformation.IsDesktop)
+                {
+                    <div slot="" class="trace-header">
+                        @GetTraceDetailsFragment()
+                        <div class="trace-header-filters">
+                            <FluentSearch @bind-Value="_filter"
+                                          @bind-Value:after="HandleAfterFilterBindAsync"
+                                          Immediate="true"
+                                          ImmediateDelay="@FluentUIExtensions.InputDelay"
+                                          Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                                          title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                            <FluentAnchor Appearance="Appearance.Lightweight"
+                                          Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <FluentToolbar>
                         <FluentSearch @bind-Value="_filter"
                                       @bind-Value:after="HandleAfterFilterBindAsync"
                                       Immediate="true"
                                       ImmediateDelay="@FluentUIExtensions.InputDelay"
                                       Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]" />
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-                    </div>
-                </div>
+                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                        <FluentAnchor Appearance="Appearance.Lightweight"
+                                      Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+                    </FluentToolbar>
+                }
             </ToolbarSection>
             <MainSection>
                 <SummaryDetailsView
@@ -99,6 +91,13 @@
                         </div>
                     </DetailsTitleTemplate>
                     <Summary>
+                        @if (!ViewportInformation.IsDesktop)
+                        {
+                            <div class="trace-details-mobile">
+                                @GetTraceDetailsFragment()
+                            </div>
+                        }
+
                         <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                             <FluentDataGrid @ref="_dataGrid"
                                             Virtualize="true"
@@ -316,3 +315,39 @@
         </div>
     }
 </div>
+
+@{
+    RenderFragment GetTraceDetailsFragment()
+    {
+        Debug.Assert(_trace != null, "Trace should be available here");
+
+        return @<FluentOverflow Class="trace-header-details">
+            <ChildContent>
+                <FluentOverflowItem>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
+                </FluentOverflowItem>
+                <FluentOverflowItem>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
+                </FluentOverflowItem>
+                <FluentOverflowItem>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong>
+                </FluentOverflowItem>
+                <FluentOverflowItem>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
+                </FluentOverflowItem>
+                <FluentOverflowItem>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
+                </FluentOverflowItem>
+            </ChildContent>
+            <OverflowTemplate Context="overflow">
+                <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton"
+                               Class="trace-header-tooltip">
+                    @foreach (var item in overflow.ItemsOverflow)
+                    {
+                        <div style="margin: 5px;">@item.ChildContent</div>
+                    }
+                </FluentTooltip>
+            </OverflowTemplate>
+        </FluentOverflow>;
+    }
+}

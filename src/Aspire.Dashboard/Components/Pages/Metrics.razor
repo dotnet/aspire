@@ -48,21 +48,25 @@
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
-            <PauseIncomingDataSwitch IsPaused="@PauseManager.AreMetricsPaused(out _)" IsPausedChanged="@PauseManager.SetMetricsPaused" />
-            <ClearSignalsButton SelectedResource="PageViewModel.SelectedApplication"
-                                HandleClearSignal="ClearMetrics" />
+            <SignalsActionsDisplay IsPaused="@PauseManager.AreMetricsPaused(out _)"
+                                  OnPausedChanged="@PauseManager.SetMetricsPaused"
+                                  HandleClearSignal="ClearMetrics"
+                                  SelectedResource="@PageViewModel.SelectedApplication"/>
 
-            @if (!ViewportInformation.IsDesktop)
-            {
-                <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
-            }
+            <FluentInputLabel slot="end"
+                              Label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"
+                              ForId="@_selectDurationId"
+                              Orientation="Orientation.Horizontal" />
+
+            <DesktopToolbarDivider />
 
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
+                          Id="@_selectDurationId"
                           Items="@_durations"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedDuration"
                           @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
-                          AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
+                          AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"/>
 
             @if (!ViewportInformation.IsDesktop)
             {
