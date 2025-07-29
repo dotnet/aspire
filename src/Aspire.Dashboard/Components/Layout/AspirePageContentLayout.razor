@@ -53,7 +53,7 @@
     <!-- Footer -->
     @if (ViewportInformation.IsDesktop)
     {
-        @if (FooterSection is not null && ShouldShowFooter)
+        @if (FooterSection is not null && ShouldShowFooter && !IsSummaryDetailsViewOpen)
         {
             <footer style="grid-area: footer">@FooterSection</footer>
         }

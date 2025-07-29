@@ -185,12 +185,11 @@
             </SummaryDetailsView>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter
-                @ref="_totalItemsFooter"
-                TotalItemCount="@_totalItemsCount"
-                SingularText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterSingularText)]"
-                PluralText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterPluralText)]"
-                PauseText="@PauseText" />
+            <TotalItemsFooter @ref="_totalItemsFooter"
+                              TotalItemCount="@_totalItemsCount"
+                              SingularText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterSingularText)]"
+                              PluralText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterPluralText)]"
+                              PauseText="@PauseText"/>
         </FooterSection>
     </AspirePageContentLayout>
 </div>

@@ -80,11 +80,11 @@
                            FixedPlacement="true"
                            Class="resources-filter-popup">
                 <Body>
-                <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
-                                 ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
-                                 ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
-                                 OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
-                                 OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
+                    <ResourceFilters ResourceStates="@PageViewModel.ResourceStatesToVisibility"
+                                     ResourceTypes="@PageViewModel.ResourceTypesToVisibility"
+                                     ResourceHealthStates="@PageViewModel.ResourceHealthStatusesToVisibility"
+                                     OnAllFilterVisibilityCheckedChangedAsync="@OnAllFilterVisibilityCheckedChangedAsync"
+                                     OnResourceFilterVisibilityChangedAsync="@OnResourceFilterVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 
@@ -233,11 +233,10 @@
             </SummaryDetailsView>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter
-                @ref="_totalItemsFooter"
-                SingularText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterSingularText)]"
-                PluralText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterPluralText)]"
-                TotalItemCount="@_totalItemsCount" />
+            <TotalItemsFooter @ref="_totalItemsFooter"
+                              SingularText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterSingularText)]"
+                              PluralText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterPluralText)]"
+                              TotalItemCount="@_totalItemsCount"/>
         </FooterSection>
     </AspirePageContentLayout>
 </div>
