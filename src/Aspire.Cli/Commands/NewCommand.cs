@@ -222,7 +222,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^[\p{L}\p{N}]([\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}][\p{Mn}\p{Mc}]*|[\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}])?$", RegexOptions.Compiled)]
     internal static partial Regex GetAssemblyNameRegex();
 
     public static bool IsProjectNameValid(string projectName)
