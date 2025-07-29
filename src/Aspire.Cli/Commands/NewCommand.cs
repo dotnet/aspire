@@ -222,6 +222,12 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
+    // Regex for Unicode-aware project name validation:
+    // - Starts with Unicode letter or number [\p{L}\p{N}]
+    // - Can contain Unicode letters, numbers, connector punctuation (underscore), dash, dot, and combining marks
+    // - Must end with Unicode letter or number, optionally followed by combining marks
+    // - Length: 1-254 characters
+    // - Excludes unsafe characters: / \ : * ? " < > |
     [GeneratedRegex(@"^[\p{L}\p{N}]([\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}][\p{Mn}\p{Mc}]*|[\p{L}\p{N}\p{Pc}.\-\p{Mn}\p{Mc}]{0,252}[\p{L}\p{N}])?$", RegexOptions.Compiled)]
     internal static partial Regex GetAssemblyNameRegex();
 
