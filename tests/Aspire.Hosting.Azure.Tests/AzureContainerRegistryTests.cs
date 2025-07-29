@@ -93,6 +93,21 @@ public class AzureContainerRegistryTests
               
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureContainerRegistryResource()
+    {
+        // Arrange
+        var containerRegistryResource = new AzureContainerRegistryResource("test-acr", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(containerRegistryResource, "test-acr");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = containerRegistryResource.AddAsExistingResource(infrastructure);
+        var secondResult = containerRegistryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
