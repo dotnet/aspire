@@ -32,7 +32,7 @@ On Windows:
 iex "& { $(irm https://aspire.dev/install.ps1) }"
 ```
 
-On Linux, or macOS:
+On Linux or macOS:
 
 ```sh
 curl -sSL https://aspire.dev/install.sh | bash
