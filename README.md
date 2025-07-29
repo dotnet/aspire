@@ -45,10 +45,6 @@ curl -sSL https://aspire.dev/install.sh | bash
 
 The Aspire application host, dashboard, service discovery infrastructure, and all Aspire integrations. It also contains the project templates.
 
-## Using latest daily builds
-
-Follow instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md) to get started using Aspire with the latest daily build.
-
 ## How can I contribute?
 
 We welcome contributions! Many people all over the world have helped make Aspire better.
