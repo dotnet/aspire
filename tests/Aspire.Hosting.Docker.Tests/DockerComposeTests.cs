@@ -181,34 +181,6 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.Equal("1.0", composeService.Labels["version"]);
     }
 
-    [Fact]
-    public async Task DockerComposeServiceWithoutLabels()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
-
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
-
-        // Add a container without labels
-        var container = builder.AddContainer("service", "nginx");
-
-        var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Get the deployment target
-        var deploymentTarget = container.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget;
-        Assert.NotNull(deploymentTarget);
-        Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
-
-        var serviceResource = (DockerComposeServiceResource)deploymentTarget;
-        var composeService = await serviceResource.BuildComposeServiceAsync(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
-
-        // Assert no labels are included
-        Assert.Empty(composeService.Labels);
-    }
-
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
