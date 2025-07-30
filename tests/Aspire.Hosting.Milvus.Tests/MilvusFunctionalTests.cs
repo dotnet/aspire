@@ -76,7 +76,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var milvus1 = builder1.AddMilvus("milvus1");
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = milvus1.Resource.ApiKeyParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var db1 = milvus1.AddDatabase("milvusdb1", dbname);
 

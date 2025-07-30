@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
@@ -37,6 +38,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
             (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
@@ -79,8 +81,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -123,8 +126,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -157,8 +161,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -200,8 +205,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
                 // or should be null if no env was provided
@@ -246,8 +252,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -294,8 +301,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, _, _, _, _, _) =>
+            (args, env, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
                 Assert.Contains("new", args);
@@ -372,10 +380,11 @@ internal sealed class AssertingDotNetCliRunner(
     IServiceProvider serviceProvider,
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
+    IFeatures features,
     IInteractionService interactionService,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, interactionService)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {

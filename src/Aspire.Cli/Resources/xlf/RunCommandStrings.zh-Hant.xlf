@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to app host...</source>
-        <target state="new">Connecting to app host...</target>
+        <target state="translated">正在連接到主控處理程序...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="DashboardFailedToStart">
         <source>Aspire Dashboard failed to start.</source>
-        <target state="new">Aspire Dashboard failed to start.</target>
+        <target state="translated">Aspire 儀表板啟動失敗。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="needs-review-translation">正在啟動 Aspire 儀表板...</target>
+        <target state="translated">正在啟動儀表板...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

@@ -346,17 +346,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             value =>
             {
                 _showHiddenResources = value;
+                UpdateResourcesList();
+                UpdateMenuButtons();
 
                 if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
                     PageViewModel.SelectedResource = null;
                     PageViewModel.SelectedOption = _noSelection;
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
-                    return;
                 }
 
-                UpdateResourcesList();
-                UpdateMenuButtons();
+                await this.RefreshIfMobileAsync(_contentLayout);
             }));
 
         _logsMenuItems.Add(new()
@@ -427,6 +427,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
+        await this.RefreshIfMobileAsync(_contentLayout);
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)

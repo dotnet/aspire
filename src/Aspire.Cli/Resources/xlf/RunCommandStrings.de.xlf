@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to app host...</source>
-        <target state="new">Connecting to app host...</target>
+        <target state="translated">Verbindung zum App-Host wird hergestellt...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="DashboardFailedToStart">
         <source>Aspire Dashboard failed to start.</source>
-        <target state="new">Aspire Dashboard failed to start.</target>
+        <target state="translated">Fehler beim Starten des Aspire-Dashboards.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="needs-review-translation">Aspire-Dashboard wird gestartet...</target>
+        <target state="translated">Dashboard wird gestartet...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

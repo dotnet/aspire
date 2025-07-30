@@ -13,7 +13,7 @@ Supported Quality values:
 
 - `dev` - builds from the `main` branch
 - `staging` - builds from the current `release` branch like `release/9.4`
-- `ga` - build for the latest GA
+- `release` - build for the latest release
 
 ## Parameters
 

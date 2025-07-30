@@ -205,9 +205,10 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var features = serviceProvider.GetRequiredService<IFeatures>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
 
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, interactionService);
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -24,7 +24,7 @@
 <FluentDialogBody Class="interaction-input-dialog">
     @if (!string.IsNullOrEmpty(Content.Message))
     {
-        <div style="margin-bottom: 1rem;">
+        <div class="interaction-message">
             @((MarkupString)Content.Message)
         </div>
     }

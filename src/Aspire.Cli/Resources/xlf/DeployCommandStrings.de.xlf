@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
-        <target state="new">DEPLOYMENT COMPLETED</target>
+        <target state="translated">DIE BEREITSTELLUNG WURDE ABGESCHLOSSEN</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>DEPLOYMENT FAILED</source>
-        <target state="new">DEPLOYMENT FAILED</target>
+        <target state="translated">FEHLER BEI DER BEREITSTELLUNG</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
