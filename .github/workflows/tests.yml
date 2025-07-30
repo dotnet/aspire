@@ -6,11 +6,15 @@ on:
     branches:
       - main
       - 'release/**'
+    paths-ignore:
+      - '**/*.md'
 
   push:
     branches:
       - main
       - 'release/**'
+    paths-ignore:
+      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
