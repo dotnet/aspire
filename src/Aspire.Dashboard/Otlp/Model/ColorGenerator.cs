@@ -18,10 +18,10 @@ public class ColorGenerator
 {
     private static readonly string[] s_colorsHex =
     [
-        "#17B8BE", "#F8DCA1", "#B7885E", "#FFCB99", "#F89570",
-        "#829AE3", "#E79FD5", "#1E96BE", "#89DAC1", "#B3AD9E",
-        "#12939A", "#DDB27C", "#88572C", "#FF9833", "#EF5D28",
-        "#162A65", "#DA70BF", "#125C77", "#4DC19C", "#776E57"
+        "#0078D4", "#107C10", "#D13438", "#F7630C", "#8764B8",
+        "#00BCF2", "#13A10E", "#FF4B4B", "#FF8C00", "#744DA9",
+        "#40E0FF", "#9FD89F", "#F1AEAD", "#FFB900", "#B4A7D6",
+        "#005A9E", "#004B1C", "#A4262C", "#8E562E", "#5B2C6F"
     ];
     public static readonly ColorGenerator Instance = new ColorGenerator();
 
