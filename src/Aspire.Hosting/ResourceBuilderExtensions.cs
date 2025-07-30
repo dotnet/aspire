@@ -1545,6 +1545,40 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="displayName"></param>
+    /// <param name="command"></param>
+    /// <param name="commandOptions"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithExecCommand<T>(
+        this IResourceBuilder<T> builder,
+        string name,
+        string displayName,
+        string command,
+        CommandOptions? commandOptions = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(displayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+
+        commandOptions ??= CommandOptions.Default;
+
+        // Replace existing annotation with the same name.
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
+        if (existingAnnotation is not null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ResourceContainerExecCommandAnnotation(name, displayName, command, workingDirectory: null, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
+    }
+
+    /// <summary>
     /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>

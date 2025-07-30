@@ -919,28 +919,34 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var modelContainerExecutableResources = _model.GetContainerExecutableResources();
         foreach (var containerExecutable in modelContainerExecutableResources)
         {
-            EnsureRequiredAnnotations(containerExecutable);
-            var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
-
-            // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
-            // since this is ContainerExec resource, we will run against one of the container instances
-            var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
-
-            var containerExec = ContainerExec.Create(
-                name: exeInstance.Name,
-                containerName: containerDcpName,
-                command: containerExecutable.Command,
-                args: containerExecutable.Args?.ToList(),
-                workingDirectory: containerExecutable.WorkingDirectory);
-
-            containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);
-            containerExec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
-            containerExec.Annotate(CustomResource.ResourceNameAnnotation, containerExecutable.Name);
-            SetInitialResourceState(containerExecutable, containerExec);
-
-            var exeAppResource = new AppResource(containerExecutable, containerExec);
-            _appResources.Add(exeAppResource);
+            PrepareContainerExecutableResource(containerExecutable);
         }
+    }
+
+    private AppResource PrepareContainerExecutableResource(ContainerExecutableResource containerExecutable)
+    {
+        EnsureRequiredAnnotations(containerExecutable);
+        var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
+
+        // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
+        // since this is ContainerExec resource, we will run against one of the container instances
+        var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
+
+        var containerExec = ContainerExec.Create(
+            name: exeInstance.Name,
+            containerName: containerDcpName,
+            command: containerExecutable.Command,
+            args: containerExecutable.Args?.ToList(),
+            workingDirectory: containerExecutable.WorkingDirectory);
+
+        containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);
+        containerExec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
+        containerExec.Annotate(CustomResource.ResourceNameAnnotation, containerExecutable.Name);
+        SetInitialResourceState(containerExecutable, containerExec);
+
+        var exeAppResource = new AppResource(containerExecutable, containerExec);
+        _appResources.Add(exeAppResource);
+        return exeAppResource;
     }
 
     private void PreparePlainExecutables()
@@ -1874,6 +1880,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 throw new DistributedApplicationException($"Failed to delete '{resourceName}' successfully before restart.");
             }
+        }
+    }
+
+    public Task RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken)
+    {
+        switch (ephemeralResource)
+        {
+            case ContainerExecutableResource containerExecutableResource:
+            {
+                var appResource = PrepareContainerExecutableResource(containerExecutableResource);
+                // do we need to add to _resourceState or it will be added automatically while watching the k8s resource?
+
+                return CreateContainerExecutablesAsync([appResource], cancellationToken);
+            }
+
+            default: throw new InvalidOperationException($"Resource '{ephemeralResource.Name}' is not supported to run dynamically.");
         }
     }
 

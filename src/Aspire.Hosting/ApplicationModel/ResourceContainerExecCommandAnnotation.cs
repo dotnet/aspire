@@ -9,16 +9,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a command annotation for a resource.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class ResourceCommandAnnotation : ResourceCommandAnnotationBase
+public sealed class ResourceContainerExecCommandAnnotation : ResourceCommandAnnotationBase
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ResourceCommandAnnotation"/> class.
     /// </summary>
-    public ResourceCommandAnnotation(
+    public ResourceContainerExecCommandAnnotation(
         string name,
         string displayName,
-        Func<UpdateCommandStateContext, ResourceCommandState> updateState,
-        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        string command,
+        string? workingDirectory,
         string? displayDescription,
         object? parameter,
         string? confirmationMessage,
@@ -27,22 +27,17 @@ public sealed class ResourceCommandAnnotation : ResourceCommandAnnotationBase
         bool isHighlighted)
         : base(name, displayName, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted)
     {
-        ArgumentNullException.ThrowIfNull(updateState);
-        ArgumentNullException.ThrowIfNull(executeCommand);
-
-        UpdateState = updateState;
-        ExecuteCommand = executeCommand;
+        Command = command;
+        WorkingDirectory = workingDirectory;
     }
 
     /// <summary>
-    /// A callback that is used to update the command state.
-    /// The callback is executed when the command's resource snapshot is updated.
+    /// The command to execute in the container.
     /// </summary>
-    public Func<UpdateCommandStateContext, ResourceCommandState> UpdateState { get; }
+    public string Command { get; }
 
     /// <summary>
-    /// A callback that is executed when the command is executed.
-    /// The result is used to indicate success or failure in the UI.
+    /// 
     /// </summary>
-    public Func<ExecuteCommandContext, Task<ExecuteCommandResult>> ExecuteCommand { get; }
+    public string? WorkingDirectory { get; }
 }
