@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
-        <target state="new">[dim]For more information, see: [link]{0}[/][/]</target>
+        <target state="translated">[dim]Para obtener más información, consulte: [link]{0}[/][/]</target>
         <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
-        <target state="new">[yellow]A new version of the Aspire CLI is available: {0}[/]</target>
+        <target state="translated">[yellow]Hay una nueva versión disponible de la CLI de Aspire: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
