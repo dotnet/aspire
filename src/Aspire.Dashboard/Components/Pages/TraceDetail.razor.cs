@@ -291,9 +291,15 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         {
             return "selected-row";
         }
-        else if (SelectedData?.LogEntryViewModel is { } selectedLog && viewModel.SpanLogs.Any(l => l.LogEntry.InternalId == selectedLog.LogEntry.InternalId))
+
+        if (SelectedData?.LogEntryViewModel is { } selectedLog && viewModel.SpanLogs.Any(l => l.LogEntry.InternalId == selectedLog.LogEntry.InternalId))
         {
             return "selected-row";
+        }
+        
+        if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
+        {
+            return "span-row-error";
         }
 
         return string.Empty;
