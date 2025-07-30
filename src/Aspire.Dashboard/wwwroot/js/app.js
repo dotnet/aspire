@@ -95,11 +95,18 @@ window.initializeContinuousScroll = function () {
     // unless the user has scrolled to view content.
     const observer = new ResizeObserver(function () {
         lastScrollHeight = container.scrollHeight;
-        var isScrolledToContent = getIsScrolledToContent();
 
+        if (lastScrollHeight == container.clientHeight) {
+            // There is no scrollbar. This could be because there's no content, or the content might have been cleared.
+            // Reset to default behavior: scroll to bottom
+            setIsScrolledToContent(false);
+            return;
+        }
+
+        var isScrolledToContent = getIsScrolledToContent();
         if (!isScrolledToContent) {
-            console.log(`lastScrollHeight=${lastScrollHeight}`);
             container.scrollTop = lastScrollHeight;
+            return;
         }
     });
     for (const child of container.children) {
