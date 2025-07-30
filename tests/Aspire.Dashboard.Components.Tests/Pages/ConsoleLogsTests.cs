@@ -209,8 +209,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
             var selectElement = resourceSelect.Find("fluent-select");
             var selectOptions = selectElement.QuerySelectorAll("fluent-option");
             
-            // Should have at least 2 options (None + regular resource) when resources are loaded
-            Assert.True(selectOptions.Length >= 2);
+            // Should have at least 1 option (regular resource) when resources are loaded
+            Assert.True(selectOptions.Length >= 1);
         });
         
         // Initially, hidden resources should not be shown
@@ -218,8 +218,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var selectElement = resourceSelect.Find("fluent-select");
         var selectOptions = selectElement.QuerySelectorAll("fluent-option");
         
-        // Should only have "None" option + regular resource (hidden resource filtered out)
-        Assert.Equal(2, selectOptions.Length); // "None" + regular-resource
+        // Should only have regular resource (hidden resource filtered out)
+        Assert.Equal(1, selectOptions.Length); // regular-resource
         var optionValues = selectOptions.Select(opt => opt.GetAttribute("value")).ToList();
         Assert.Contains("regular-resource", optionValues);
         Assert.DoesNotContain("hidden-resource", optionValues);
@@ -241,7 +241,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForAssertion(() =>
         {
             var updatedOptions = selectElement.QuerySelectorAll("fluent-option");
-            // Should now have "None" + both resources
+            // Should now have both resources
             Assert.Equal(3, updatedOptions.Length); // "None" + regular-resource + hidden-resource
             var updatedOptionValues = updatedOptions.Select(opt => opt.GetAttribute("value")).ToList();
             Assert.Contains("regular-resource", updatedOptionValues);
@@ -269,15 +269,15 @@ public partial class ConsoleLogsTests : DashboardTestContext
         cut.WaitForAssertion(() =>
         {
             var finalOptions = selectElement.QuerySelectorAll("fluent-option");
-            // Should be back to "None" + regular resource only
-            Assert.Equal(2, finalOptions.Length); // "None" + regular-resource
+            // Should be back to regular resource only
+            Assert.Equal(1, finalOptions.Length); // regular-resource
             var finalOptionValues = finalOptions.Select(opt => opt.GetAttribute("value")).ToList();
             Assert.Contains("regular-resource", finalOptionValues);
             Assert.DoesNotContain("hidden-resource", finalOptionValues);
         });
         
         // Selection should be cleared since selected resource is now hidden
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource is null);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == regularResource);
     }
 
     [Fact]

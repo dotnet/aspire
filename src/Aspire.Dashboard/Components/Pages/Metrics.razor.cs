@@ -182,7 +182,17 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     {
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
-        _applicationViewModels.Insert(0, _selectApplication);
+
+        if (_applicationViewModels.Count != 1)
+        {
+            _applicationViewModels.Insert(0, _selectApplication);
+        }
+        else
+        {
+            PageViewModel.SelectedApplication = _applicationViewModels.Single();
+            NavigationManager.NavigateTo(GetUrlFromSerializableViewModel(ConvertViewModelToSerializable()));
+        }
+
         UpdateSubscription();
     }
 

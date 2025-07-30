@@ -187,7 +187,17 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     {
         _applications = TelemetryRepository.GetApplications(includeUninstrumentedPeers: true);
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
-        _applicationViewModels.Insert(0, _allApplication);
+
+        if (_applicationViewModels.Count != 1)
+        {
+            _applicationViewModels.Insert(0, _allApplication);
+        }
+        else
+        {
+            PageViewModel.SelectedApplication = _applicationViewModels.Single();
+            NavigationManager.NavigateTo(GetUrlFromSerializableViewModel(ConvertViewModelToSerializable()));
+        }
+
         UpdateSubscription();
     }
 

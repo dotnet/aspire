@@ -221,7 +221,16 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     {
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
-        _applicationViewModels.Insert(0, _allApplication);
+
+        if (_applicationViewModels.Count != 1)
+        {
+            _applicationViewModels.Insert(0, _allApplication);
+        }
+        else
+        {
+            PageViewModel.SelectedApplication = _applicationViewModels.Single();
+            NavigationManager.NavigateTo(GetUrlFromSerializableViewModel(ConvertViewModelToSerializable()));
+        }
     }
 
     private Task HandleSelectedApplicationChangedAsync()
