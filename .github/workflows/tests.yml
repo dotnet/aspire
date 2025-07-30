@@ -69,15 +69,15 @@ jobs:
           includeTemplates: true
 
   build_cli_archives:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:
-        os: [{os: ubuntu-latest, rids: linux-x64}, {os: windows-latest, rids: win-x64}, {os: macos-latest, rids: osx-arm64}]
+        targets: [{os: ubuntu-latest, rids: linux-x64}, {os: windows-latest, rids: win-x64}, {os: macos-latest, rids: osx-arm64}]
 
     steps:
       - uses: ./.github/actions/build-cli
         with:
-          targetRids: ${{ matrix.rids }}
+          targetRids: ${{ matrix.targets.rids }}
 
   build_packages:
     name: Build packages
