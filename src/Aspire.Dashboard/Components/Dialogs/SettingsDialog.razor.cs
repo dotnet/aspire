@@ -88,7 +88,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             forceLoad: true);
     }
 
-    private static void ValuedChanged(string? value)
+    private static void ValueChanged(string? value)
     {
         // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
     }

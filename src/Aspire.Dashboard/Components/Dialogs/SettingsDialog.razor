@@ -27,7 +27,7 @@
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
                 OptionText="@(c => c!.NativeName.Humanize())"
-                ValueChanged="@ValuedChanged"
+                ValueChanged="@ValueChanged"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
                 Class="language-select"/>
