@@ -45,9 +45,9 @@ runs:
       shell: pwsh
       run: >
         ./eng/build.ps1
-        --ci
-        --build
-        --restore
+        -ci
+        -build
+        -restore
         -bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
         /p:ContinuousIntegrationBuild=true
         /p:SkipManagedBuild=true
