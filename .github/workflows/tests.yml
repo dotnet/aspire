@@ -30,17 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
-
       - uses: ./.github/actions/build-cli
         id: build_cli
         with:
           targetRids:
             linux-x64
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
 
   setup_for_tests_macos:
     name: Setup for tests (macOS)
@@ -52,17 +52,17 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
-
       - uses: ./.github/actions/build-cli
         id: build_cli
         with:
           targetRids:
             macos-arm64
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
 
   setup_for_tests_win:
     name: Setup for tests (Windows)
@@ -74,17 +74,17 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/enumerate-tests
-        id: generate_tests_matrix
-        with:
-          includeIntegrations: true
-          includeTemplates: true
-
       - uses: ./.github/actions/build-cli
         id: build_cli
         with:
           targetRids:
             win-x64
+
+      - uses: ./.github/actions/enumerate-tests
+        id: generate_tests_matrix
+        with:
+          includeIntegrations: true
+          includeTemplates: true
 
   build_packages:
     name: Build packages
