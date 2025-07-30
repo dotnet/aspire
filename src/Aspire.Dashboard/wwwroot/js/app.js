@@ -115,6 +115,8 @@ function isScrolledToBottom(container) {
     if (!getIsScrolledToContent()) {
         if (lastScrollHeight != container.scrollHeight) {
             console.log(`lastScrollHeight ${lastScrollHeight} doesn't equal container scrollHeight ${container.scrollHeight}.`);
+
+            // Unknown because the container size changed.
             return null;
         }
     }
