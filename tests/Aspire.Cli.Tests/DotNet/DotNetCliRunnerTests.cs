@@ -83,7 +83,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -128,7 +128,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -163,7 +163,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -207,7 +207,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
                 // or should be null if no env was provided
@@ -254,7 +254,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -303,7 +303,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            (args, env, _, _, _) =>
+            (args, env, _, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
                 Assert.Contains("new", args);
@@ -357,6 +357,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
             interactionService
         );
 
@@ -382,7 +383,7 @@ internal sealed class AssertingDotNetCliRunner(
     IConfiguration configuration,
     IFeatures features,
     IInteractionService interactionService,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService)
 {
