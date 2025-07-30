@@ -9,10 +9,9 @@ namespace Aspire.Hosting.Yarp;
 /// A resource that represents a YARP resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class YarpResource(string name) : ContainerResource(name)
+public class YarpResource(string name) : ContainerResource(name), IResourceWithServiceDiscovery
 {
-    /// <summary>
-    /// File path of the config file for this YARP resource.
-    /// </summary>
-    internal string? ConfigFilePath { get; set; }
+    internal List<YarpRoute> Routes { get; } = new ();
+
+    internal List<YarpCluster> Clusters { get; } = new ();
 }

@@ -4,7 +4,6 @@
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -13,7 +12,8 @@ public class RootCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RootCommandWithHelpArgumentReturnsZero()
     {
-        var services = CliTestHelper.CreateServiceCollection(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();

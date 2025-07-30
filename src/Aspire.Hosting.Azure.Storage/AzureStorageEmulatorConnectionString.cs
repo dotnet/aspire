@@ -32,7 +32,7 @@ internal static class AzureStorageEmulatorConnectionString
 
         static void AppendEndpointExpression(ReferenceExpressionBuilder builder, string key, EndpointReference endpoint)
         {
-            builder.Append($"{key}=http://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)}/devstoreaccount1;");
+            builder.Append($"{key}={endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)}/devstoreaccount1;");
         }
     }
 }

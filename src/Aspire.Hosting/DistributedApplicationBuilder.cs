@@ -15,11 +15,12 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
+using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -169,6 +170,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, BackchannelLoggerProvider>();
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -194,6 +196,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Set configuration
         ConfigurePublishingOptions(options);
+        var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -225,13 +228,27 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Sha256"] = appHostSha
         });
 
+        // exec
+        if (isExecMode)
+        {
+            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+            Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
+        }
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
+        _innerBuilder.Services.AddHostedService<VersionCheckService>();
+        _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
+        _innerBuilder.Services.AddSingleton<ResourceCommandService>(s => new ResourceCommandService(s.GetRequiredService<ResourceNotificationService>(), s.GetRequiredService<ResourceLoggerService>(), s));
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        _innerBuilder.Services.AddSingleton<InteractionService>();
+        _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
@@ -266,7 +283,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigureHealthChecks();
 
-        if (ExecutionContext.IsRunMode)
+        if (ExecutionContext.IsRunMode && !isExecMode)
         {
             // Dashboard
             if (!options.DisableDashboard)
@@ -321,7 +338,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
                 }
 
-                _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
@@ -330,8 +346,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
-
-                ConfigureDashboardHealthCheck();
             }
 
             if (options.EnableResourceLogging)
@@ -340,8 +354,20 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
+            // Devcontainers & Codespaces
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+        }
+
+        if (ExecutionContext.IsRunMode)
+        {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
+            _innerBuilder.Services.AddSingleton<ParameterProcessor>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff
@@ -355,14 +381,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
-            // Devcontainers & Codespaces
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
-            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
-            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
-            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
-
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
@@ -373,8 +391,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityProgressReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityProgressReporter, PublishingActivityProgressReporter>(sp => sp.GetRequiredService<PublishingActivityProgressReporter>());
+        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
@@ -386,28 +404,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
-    }
-
-    private void ConfigureDashboardHealthCheck()
-    {
-        _innerBuilder.Services.AddHealthChecks().AddUrlGroup(sp => {
-
-            var dashboardOptions = sp.GetRequiredService<IOptions<DashboardOptions>>().Value;
-            if (StringUtils.TryGetUriFromDelimitedString(dashboardOptions.DashboardUrl, ";", out var firstDashboardUrl))
-            {
-                // Health checks to the dashboard should go to the /health endpoint. This endpoint allows anonymous requests.
-                // Sending a request to other dashboard endpoints triggered auth, which the request fails, and is redirected to the login page.
-                var uriBuilder = new UriBuilder(firstDashboardUrl);
-                uriBuilder.Path = "/health";
-                return uriBuilder.Uri;
-            }
-            else
-            {
-                throw new DistributedApplicationException($"The dashboard resource '{KnownResourceNames.AspireDashboard}' does not have endpoints.");
-            }
-        }, KnownHealthCheckNames.DashboardHealthCheck);
-
-        _innerBuilder.Services.SuppressHealthCheckHttpClientLogging(KnownHealthCheckNames.DashboardHealthCheck);
     }
 
     private void ConfigureHealthChecks()
@@ -480,6 +476,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
+            { "--deploy", "Publishing:Deploy" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
@@ -487,6 +484,41 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+    }
+
+    private bool ConfigureExecOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
+            { "--operation", "AppHost:Operation" },
+            { "--resource", "Exec:ResourceName" },
+            { "--start-resource", "Exec:ResourceName" },
+            { "--command", "Exec:Command" }
+        };
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
+
+        var execOptionsSection = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
+        _innerBuilder.Services
+            .Configure<ExecOptions>(execOptionsSection)
+            .PostConfigure<ExecOptions>(execOptions =>
+        {
+            if (options.Args is null || !options.Args.Any())
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(execOptions.Command))
+            {
+                execOptions.Enabled = true;
+            }
+
+            if (options.Args.Contains("--start-resource"))
+            {
+                execOptions.StartResource = true;
+            }
+        });
+
+        return options.Args?.Any(arg => arg == "--command") ?? false;
     }
 
     /// <inheritdoc />

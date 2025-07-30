@@ -7,69 +7,14 @@
         <target state="translated">Bu kapsayıcı kalıcıdır ve uygulama ana bilgisayarı kapatıldığında durdurulamaz.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceNameDisplayContainerIdText">
-        <source>Container ID: {0}</source>
-        <target state="translated">Kapsayıcı Kimliği: {0}</target>
-        <note>{0} is an alphanumeric id</note>
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayCopyContainerIdText">
-        <source>Copy container ID to clipboard</source>
-        <target state="translated">Kapsayıcı kimliğini panoya kopyala</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayProcessIdText">
-        <source>Process ID: {0}</source>
-        <target state="translated">İşlem kimliği: {0}</target>
-        <note>{0} is a numeric id</note>
-      </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
         <source>Resource is running but not in a healthy state.</source>
-        <target state="new">Resource is running but not in a healthy state.</target>
+        <target state="translated">Kaynak çalışıyor ancak iyi durumda değil.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerArgsTitle">
-        <source>Container args</source>
-        <target state="translated">Kapsayıcı bağımsız değişkenleri</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommand">
-        <source>Command: {0}</source>
-        <target state="translated">Komut: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommandTitle">
-        <source>Container command</source>
-        <target state="translated">Kapsayıcı komutu</target>
-        <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
         <target state="translated">Tüm komutu panoya kopyalayın</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPort">
-        <source>Port: {0}</source>
-        <target state="translated">Bağlantı noktası: {0}</target>
-        <note>{0} is a port number</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPorts">
-        <source>Ports: {0}</source>
-        <target state="translated">Bağlantı Noktaları: {0}</target>
-        <note>{0} is a list of ports</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayWorkingDirectory">
-        <source>Working directory: {0}</source>
-        <target state="translated">Çalışma dizini: {0}</target>
-        <note>{0} is a path</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
-        <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Resim adını ve etiketini panoya kopyala</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
-        <source>Copy file path to clipboard</source>
-        <target state="translated">Dosya yolunu panoya kopyala</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
@@ -91,12 +36,12 @@ Daha fazla bilgi için bkz. https://aka.ms/dotnet/aspire/container-runtime-unhea
       </trans-unit>
       <trans-unit id="StateColumnResourceNotStarted">
         <source>Resource has not started because it's configured to not automatically start.</source>
-        <target state="new">Resource has not started because it's configured to not automatically start.</target>
+        <target state="translated">Kaynak, otomatik olarak başlatılmak için yapılandırılmadığından başlatılmadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceWaiting">
         <source>Resource is waiting for other resources to be in a running and healthy state.</source>
-        <target state="new">Resource is waiting for other resources to be in a running and healthy state.</target>
+        <target state="translated">Kaynak, diğer kaynakların çalışır durumda ve sağlıklı olmasını bekliyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
@@ -117,11 +62,6 @@ Daha fazla bilgi için bkz. https://aka.ms/dotnet/aspire/container-runtime-unhea
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
         <target state="translated">URL’ler</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UrlsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Başlatılıyor...</target>
         <note />
       </trans-unit>
     </body>

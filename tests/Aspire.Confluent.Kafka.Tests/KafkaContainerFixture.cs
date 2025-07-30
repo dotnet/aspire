@@ -10,7 +10,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using Testcontainers.Kafka;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.Confluent.Kafka.Tests;
 

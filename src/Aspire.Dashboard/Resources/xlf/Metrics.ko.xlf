@@ -57,11 +57,6 @@
         <target state="translated">지난 12시간</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsLastTwentyFourHours">
-        <source>Last 24 hours</source>
-        <target state="translated">지난 24시간</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
         <target state="translated">선택한 리소스에 대한 메트릭 없음</target>
@@ -71,11 +66,6 @@
         <source>{0} metrics</source>
         <target state="translated">{0} 메트릭</target>
         <note>{0} is an application name</note>
-      </trans-unit>
-      <trans-unit id="MetricsSelectADuration">
-        <source>Select a duration</source>
-        <target state="translated">기간 선택</target>
-        <note />
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>

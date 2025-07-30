@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -28,6 +30,9 @@ public partial class SpanDetails : IDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     private IQueryable<TelemetryPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(ApplyFilter).AsQueryable();
@@ -70,6 +75,7 @@ public partial class SpanDetails : IDisposable
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
     }
 
@@ -139,9 +145,14 @@ public partial class SpanDetails : IDisposable
         }
     }
 
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.SpanDetails);
+
     public void Dispose()
     {
         _cts.Cancel();
         _cts.Dispose();
+
+        TelemetryContext.Dispose();
     }
 }

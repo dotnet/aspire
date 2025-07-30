@@ -307,7 +307,7 @@ public class AzureFunctionsTests
 
         // hardcoded sha256 to make the storage name deterministic
         builder.Configuration["AppHost:Sha256"] = "634f8";
-        builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
+        var funcApp = builder.AddAzureFunctionsProject<TestProjectWithHttpsNoPort>("funcapp");
 
         var app = builder.Build();
 
@@ -315,13 +315,15 @@ public class AzureFunctionsTests
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
+        var (_, bicep) = await GetManifestWithBicep(funcApp.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
+
         var projRolesStorage = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "funcapp-roles-funcstorage634f8");
 
         var (rolesManifest, rolesBicep) = await GetManifestWithBicep(projRolesStorage);
 
-        await Verify(rolesManifest.ToString(), "json")
+        await Verify(bicep, "bicep")
+              .AppendContentAsFile(rolesManifest.ToString(), "json")
               .AppendContentAsFile(rolesBicep, "bicep");
-              
     }
 
     [Fact]

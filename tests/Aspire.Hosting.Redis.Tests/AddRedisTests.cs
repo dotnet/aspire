@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -300,8 +299,6 @@ public class AddRedisTests
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
         var envs = await redisInsight.GetEnvironmentVariableValuesAsync();
 
@@ -324,7 +321,9 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PASSWORD1", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Assert.Equal(redis1.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
             },
             (item) =>
             {
@@ -344,7 +343,9 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PASSWORD2", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Assert.Equal(redis2.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
             },
             (item) =>
             {
@@ -490,16 +491,18 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
+
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -514,9 +517,9 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
+
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
@@ -535,16 +538,18 @@ public class AddRedisTests
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
+
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0:{redis1.Resource.PasswordParameter?.Value},myredis2:myredis2:6379:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Theory]

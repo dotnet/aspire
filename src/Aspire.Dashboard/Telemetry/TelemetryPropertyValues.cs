@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -18,9 +17,9 @@ public static class TelemetryPropertyValues
             : CustomResourceCommand;
     }
 
-    public static string GetResourceTypeTelemetryValue(string resourceType)
+    public static string GetResourceTypeTelemetryValue(string resourceType, bool supportsDetailedTelemetry)
     {
-        return KnownResourceTypes.IsKnownResourceType(resourceType)
+        return supportsDetailedTelemetry
             ? resourceType
             : CustomResourceType;
     }

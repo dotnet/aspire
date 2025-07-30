@@ -115,8 +115,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private readonly List<MenuButtonItem> _resourceMenuItems = new();
 
     // State
+    private bool _showHiddenResources;
     private bool _showTimestamp;
     private bool _isTimestampUtc;
+    private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
     private ConsoleLogsFilters _consoleLogFilters = new();
@@ -126,6 +128,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
@@ -147,6 +150,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
+            _noWrapLogs = consoleSettings.NoWrapLogs;
+        }
+
+        var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
+        if (showHiddenResources.Success)
+        {
+            _showHiddenResources = showHiddenResources.Value;
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
@@ -171,8 +181,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
 
         async Task TrackResourceSnapshotsAsync()
         {
@@ -328,6 +336,29 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDivider = true
         });
 
+        CommonMenuItems.AddToggleHiddenResourcesMenuItem(
+            _logsMenuItems,
+            ControlsStringsLoc,
+            _showHiddenResources,
+            _resourceByName.Values,
+            SessionStorage,
+            EventCallback.Factory.Create<bool>(this, async
+            value =>
+            {
+                _showHiddenResources = value;
+                UpdateResourcesList();
+                UpdateMenuButtons();
+
+                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                {
+                    PageViewModel.SelectedResource = null;
+                    PageViewModel.SelectedOption = _noSelection;
+                    await this.AfterViewModelChangedAsync(_contentLayout, false);
+                }
+
+                await this.RefreshIfMobileAsync(_contentLayout);
+            }));
+
         _logsMenuItems.Add(new()
         {
             OnClick = () => ToggleTimestampAsync(showTimestamp: !_showTimestamp, isTimestampUtc: _isTimestampUtc),
@@ -341,6 +372,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowUtc)],
             Icon = _isTimestampUtc ? new Icons.Regular.Size16.CheckboxChecked() : new Icons.Regular.Size16.CheckboxUnchecked(),
             IsDisabled = !_showTimestamp
+        });
+
+        _logsMenuItems.Add(new()
+        {
+            OnClick = () => ToggleWrapLogsAsync(noWrapLogs: !_noWrapLogs),
+            Text = _noWrapLogs ? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWrapLogs)] : Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoWrapLogs)],
+            Icon = _noWrapLogs ? new Icons.Regular.Size16.TextWrap() : new Icons.Regular.Size16.TextWrapOff()
         });
 
         if (PageViewModel.SelectedResource != null)
@@ -373,12 +411,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task ToggleTimestampAsync(bool showTimestamp, bool isTimestampUtc)
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(showTimestamp, isTimestampUtc));
         _showTimestamp = showTimestamp;
         _isTimestampUtc = isTimestampUtc;
+        await UpdateConsoleLogSettingsAsync();
+    }
 
+    private async Task ToggleWrapLogsAsync(bool noWrapLogs)
+    {
+        _noWrapLogs = noWrapLogs;
+        await UpdateConsoleLogSettingsAsync();
+    }
+
+    private async Task UpdateConsoleLogSettingsAsync()
+    {
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
+        await this.RefreshIfMobileAsync(_contentLayout);
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
@@ -391,12 +440,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
-        string resourceUnknownStateText)
+        string resourceUnknownStateText,
+        bool showHiddenResources)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var grouping in resourcesByName
-            .Where(r => !r.Value.IsResourceHidden())
+            .Where(r => !r.Value.IsResourceHidden(showHiddenResources))
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
@@ -457,7 +507,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
+    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -522,6 +572,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                         }
                     }
 
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // If the subscription is being canceled then error could be transient from cancellation. Ignore errors during cancellation.
+                if (!newConsoleLogsSubscription.CancellationToken.IsCancellationRequested)
+                {
+                    Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", newConsoleLogsSubscription.Name);
+
+                    PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)];
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -710,24 +771,37 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc);
+    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc, bool NoWrapLogs);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
-        if (_resources is not null && ResourceName is not null)
+        if (_resources is not null)
         {
-            viewModel.SelectedOption = GetSelectedOption();
-            viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
-            viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
-        }
-        else
-        {
-            viewModel.SelectedOption = _noSelection;
-            viewModel.SelectedResource = null;
-            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            if (ResourceName is not null)
+            {
+                viewModel.SelectedOption = GetSelectedOption();
+                viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
+                viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+                return Task.CompletedTask;
+            }
+            else if (TryGetSingleResource() is { } r)
+            {
+                // If there is no app selected and there is only one application available, select it.
+                viewModel.SelectedResource = r;
+                return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+            }
         }
 
+        viewModel.SelectedOption = _noSelection;
+        viewModel.SelectedResource = null;
+        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         return Task.CompletedTask;
+
+        ResourceViewModel? TryGetSingleResource()
+        {
+            var actualResources = _resourceByName.Values.Where(r => !r.IsResourceHidden(showHiddenResources: _showHiddenResources)).ToList();
+            return actualResources.Count == 1 ? actualResources[0] : null;
+        }
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
@@ -744,12 +818,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.ConsoleLogBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.ConsoleLogs);
 
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
-        ]);
+        ], Logger);
     }
 }

@@ -17,11 +17,6 @@
         <target state="translated">Registros estructurados</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">No se encontró ninguna telemetría para este recurso.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">Seguimientos</target>
@@ -52,16 +47,6 @@
         <target state="translated">Ver registros de consola</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">Dirección URL del punto de conexión</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">URL del proxy</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">Ver registros de consola</target>
@@ -86,6 +71,11 @@
         <source>View options</source>
         <target state="translated">Ver opciones</target>
         <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">Cadena de conexión</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
@@ -152,6 +142,11 @@
         <target state="translated">Estado de mantenimiento</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">Valor</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">Ruta de acceso del proyecto</target>
@@ -170,11 +165,6 @@
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
         <target state="translated">Hora de detención</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">Entorno</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
@@ -232,19 +222,9 @@
         <target state="translated">Estado</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">Variables de entorno para {0}</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">Recursos</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">No hay variables de entorno.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

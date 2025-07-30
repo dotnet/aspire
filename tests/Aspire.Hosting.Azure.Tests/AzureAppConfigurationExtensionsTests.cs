@@ -40,7 +40,7 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
-            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
+            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-06-01' = {
               name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
               location: location
               properties: {
@@ -73,7 +73,7 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
 
             param principalId string
 
-            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' existing = {
+            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-06-01' existing = {
               name: appconfig_outputs_name
             }
 
@@ -89,5 +89,20 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
             """;
         output.WriteLine(appConfigRolesManifest.BicepText);
         Assert.Equal(expectedBicep, appConfigRolesManifest.BicepText);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAppConfigurationResource()
+    {
+        // Arrange
+        var appConfigurationResource = new AzureAppConfigurationResource("test-app-config", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(appConfigurationResource, "test-app-config");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = appConfigurationResource.AddAsExistingResource(infrastructure);
+        var secondResult = appConfigurationResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 }

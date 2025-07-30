@@ -62,6 +62,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    margin-bottom: 0;
 }
 
 ::deep .details-container > header > .header-actions {

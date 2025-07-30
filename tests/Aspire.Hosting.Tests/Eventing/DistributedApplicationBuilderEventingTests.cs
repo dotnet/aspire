@@ -6,7 +6,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Eventing;
 
@@ -177,15 +176,14 @@ public class DistributedApplicationBuilderEventingTests
         var beforeResourceStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis");
-
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(redis.Resource, (e, ct) =>
-        {
-            Assert.NotNull(e.Services);
-            Assert.NotNull(e.Resource);
-            beforeResourceStartedTcs.TrySetResult();
-            return Task.CompletedTask;
-        });
+        var redis = builder.AddRedis("redis")
+            .OnBeforeResourceStarted((_, e, _) =>    
+            {
+                Assert.NotNull(e.Services);
+                Assert.NotNull(e.Resource);
+                beforeResourceStartedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
 
         using var app = builder.Build();
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
@@ -238,6 +236,7 @@ public class DistributedApplicationBuilderEventingTests
             beforeStartEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
@@ -245,6 +244,7 @@ public class DistributedApplicationBuilderEventingTests
             afterEndpointsAllocatedEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);

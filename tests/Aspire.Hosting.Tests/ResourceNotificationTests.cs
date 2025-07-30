@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -397,6 +396,39 @@ public class ResourceNotificationTests
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains($"CreationTimeStamp = {createdDate:s}"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("State = { Text = SomeState"));
         Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("ExitCode = 0"));
+    }
+
+    [Fact]
+    public void IsMicrosoftOpenType_ReturnsFalse_ForNonMicrosoftResourceTypes()
+    {
+        var resourceTypes = new[]
+        {
+            typeof(XunitDelayEnumeratedTheoryTestCase),
+            typeof(Polly.DelayBackoffType),
+        };
+
+        foreach (var type in resourceTypes)
+        {
+            var result = ResourceNotificationService.IsMicrosoftOpenType(type);
+            Assert.False(result, $"Expected {type.Name} to not be a Microsoft OpenType, but it was.");
+        }
+    }
+
+    [Fact]
+    public void IsMicrosoftOpenType_ReturnsTrue_ForAspireTypes()
+    {
+        var resourceTypes = new[]
+        {
+            typeof(CustomResource),
+            typeof(ContainerResource),
+            typeof(PostgresServerResource)
+        };
+
+        foreach (var type in resourceTypes)
+        {
+            var result = ResourceNotificationService.IsMicrosoftOpenType(type);
+            Assert.True(result);
+        }
     }
 
     private sealed class CustomResource(string name) : Resource(name),

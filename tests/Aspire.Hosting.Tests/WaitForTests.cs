@@ -7,7 +7,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -531,12 +530,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         });
 
         var resourceReadyTcs = new TaskCompletionSource();
-        var dependency = builder.AddResource(new CustomResource("test"));
+        var dependency = builder.AddResource(new CustomResource("test"))
+            .OnResourceReady((_, _, _) => resourceReadyTcs.Task);
+
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitFor(dependency);
-
-        builder.Eventing.Subscribe<ResourceReadyEvent>(dependency.Resource, (e, ct) => resourceReadyTcs.Task);
 
         using var app = builder.Build();
 

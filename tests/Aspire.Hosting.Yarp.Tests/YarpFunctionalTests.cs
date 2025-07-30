@@ -3,8 +3,8 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Yarp.Transforms;
 using Aspire.TestUtilities;
-using Xunit;
 
 namespace Aspire.Hosting.Yarp.Tests;
 public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
@@ -12,7 +12,19 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
     [Fact]
     [RequiresDocker]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
-    public async Task VerifyYarpResource()
+    public async Task VerifyYarpResourceExtensionsConfig()
+    {
+        await VerifyYarpResource((yarp, endpoint) =>
+        {
+            yarp.WithConfiguration(builder =>
+            {
+                builder.AddRoute("/aspnetapp/{**catch-all}", endpoint)
+                       .WithTransformPathRemovePrefix("/aspnetapp");
+            });
+        });
+    }
+
+    private async Task VerifyYarpResource(Action<IResourceBuilder<YarpResource>, EndpointReference> configurator)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -23,16 +35,17 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
             .WithHttpEndpoint(targetPort: 8080)
             .WithExternalHttpEndpoints();
 
-        var yarp = builder
-            .AddYarp("yarp")
-            .WithConfigFile("yarp.json")
-            .WithReference(backend.GetEndpoint("http"))
-            .WithHttpHealthCheck("/heath", 404); // TODO we don't have real health check path yet
+        var yarp = builder.AddYarp("yarp");
+
+        configurator(yarp, backend.GetEndpoint("http"));
+
+        yarp.WithHttpHealthCheck("/heath", 404); // TODO we don't have real health check path yet
 
         var app = builder.Build();
 
         await app.StartAsync();
 
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(backend.Resource.Name, cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync(yarp.Resource.Name, cts.Token);
 
         var endpoint = yarp.Resource.GetEndpoint("http");

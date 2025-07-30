@@ -69,12 +69,15 @@ The payload is best explained using an example:
         {
             // Indicates the type of the launch configuration. 
             // This is a required property for all kinds of launch configurations.
+            // The value "project" indicates this is a service that has an associated Visual Studio project file.
             "type": "project",
 
             "project_path": "(Path to Visual Studio project file for the program)",
             
             // ... other launch configuration properties
         }
+
+        // ... other launch configurations may be included, as appropriate for the service being launched
     ]
 
     // Environment variable settings (added on top of those inherited from IDE/user environment,
@@ -99,46 +102,6 @@ If the execution session is created successfully, the return status code should 
 `Location: https://localhost:<IDE endpoint port>/run_session/<new run ID>`
 
 If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, [or in the response body](#error-reporting).
-
-### Launch configurations
-
-The run session creation request contains one or more launch configurations for the session. 
-
-The following launch configuration types are recognized by Visual Studio IDE:
-
-**Project launch configuration** <br/>
-
-Project launch configuration contains details for launching programs that have project files compatible with Visual Studio IDE.
-
-| Property | Description | Required? |
-| --- | --------- | --- |
-| `type` | Launch configuration type indicator; must be `project`. | Required |
-| `project_path` | Path to the project file for the program that is being launched. | Required |
-| `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
-| `launch_profile` | The name of the launch profile to be used for project execution. See below for more details on how the launch profile should be processed. | Optional |
-| `disable_launch_profile` | If set to `true`, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
-
-> In Aspire version 1 release only a single launch configuration instance, of type `project`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
-
-### Launch profile processing (project launch configuration)
-
-Launch profiles should be applied to service run sessions according to the following rules:
-
-1. The values of `launch_profile` and `disable_launch_profile` properties determine the **base profile** used for the service run session. The base profile may be nonexistent (empty), or it might be that one of the launch profiles defined for the service project serves as the base profile, see point 3 below.
-
-2. Environment variable values (`env` property) and invocation arguments (`args` property) specified by the run session request always take precedence over settings present in the launch profile. Specifically:
-
-    a. Environment variable values **override** (are applied on top of) the environment variable values from the base profile.
-    
-    b. **If present**, invocation arguments from the run session request **completely replace** invocation arguments from the base profile. In particular, an empty array (`[]`) specified in the request means no invocation arguments should be used at all, even if base profile is present and has some invocation arguments specified. On the other hand, if the `args` run session request property is absent, or set to `null`, it means the run session request does not specify any invocation arguments for the service, and thus if the base profile exists and contains invocation arguments, those from the base profile should be used.
-
-3. The base profile is determined according to following rules:
-
-    a. If `disable_launch_profile` property is set to `true` in project launch configuration, there is no base profile, regardless of the value of `launch_profile` property.
-
-    b. If the `launch_profile` property is set, the IDE should check whether the service project has a launch profile with the name equal to the value of `launch_profile` property. If such profile is found, it should serve as the base profile. If not, there is no base profile.
-
-    b. If `launch_profile` property is absent, the IDE should check whether the service project has a launch profile with the same name as the profile used to launch Aspire application host project. If such profile is found, it should serve as the base profile. Otherwise there is no base profile.
 
 ### Stop session request
 
@@ -197,6 +160,48 @@ The properties of the IDE endpoint information document are:
 | Property | Description | Type |
 | --- | --------- | --- |
 | `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
+
+## Launch configurations (run session requests)
+
+The run session creation request contains one or more launch configurations for the session. The following launch configuration types are well-known:
+
+### Project launch configuration (type: `project`)
+
+Project launch configuration contains details for launching programs that have project files compatible with Visual Studio IDE.
+
+**Project launch configuration properties**
+
+| Property | Description | Required? |
+| --- | --------- | --- |
+| `type` | Launch configuration type indicator; must be `project`. | Required |
+| `project_path` | Path to the project file for the program that is being launched. | Required |
+| `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
+| `launch_profile` | The name of the launch profile to be used for project execution. See below for more details on how the launch profile should be processed. | Optional |
+| `disable_launch_profile` | If set to `true`, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
+
+**Launch profile processing**
+
+Launch profiles should be applied to service run sessions according to the following rules:
+
+1. The values of `launch_profile` and `disable_launch_profile` properties determine the **base profile** used for the service run session. The base profile may be nonexistent (empty), or it might be that one of the launch profiles defined for the service project serves as the base profile, see point 3 below.
+
+2. Environment variable values (`env` property) and invocation arguments (`args` property) specified by the run session request always take precedence over settings present in the launch profile. Specifically:
+
+    a. Environment variable values **override** (are applied on top of) the environment variable values from the base profile.
+    
+    b. **If present**, invocation arguments from the run session request **completely replace** invocation arguments from the base profile. In particular, an empty array (`[]`) specified in the request means no invocation arguments should be used at all, even if base profile is present and has some invocation arguments specified. On the other hand, if the `args` run session request property is absent, or set to `null`, it means the run session request does not specify any invocation arguments for the service, and thus if the base profile exists and contains invocation arguments, those from the base profile should be used.
+
+3. The base profile is determined according to following rules:
+
+    a. If `disable_launch_profile` property is set to `true` in project launch configuration, there is no base profile, regardless of the value of `launch_profile` property.
+
+    b. If the `launch_profile` property is set, the IDE should check whether the service project has a launch profile with the name equal to the value of `launch_profile` property. If such profile is found, it should serve as the base profile. If not, there is no base profile.
+
+    c. If `launch_profile` property is absent, the IDE should check whether the service project has a launch profile with the same name as the profile used to launch Aspire application host project. If such profile is found, it should serve as the base profile. Otherwise there is no base profile.
+
+**Working folder for project execution**
+
+Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory). 
 
 ## Run session change notifications
 

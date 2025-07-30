@@ -1,0 +1,5 @@
+# Build artifacts
+dist/
+.localization/
+out/
+node_modules/

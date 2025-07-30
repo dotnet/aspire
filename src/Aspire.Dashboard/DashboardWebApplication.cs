@@ -444,6 +444,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
+        _app.MapDashboardBlazor();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

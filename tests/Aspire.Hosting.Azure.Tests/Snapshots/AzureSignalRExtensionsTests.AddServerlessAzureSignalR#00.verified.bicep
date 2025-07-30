@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
@@ -10,6 +10,7 @@ resource signalr 'Microsoft.SignalRService/signalR@2024-03-01' = {
         '*'
       ]
     }
+    disableLocalAuth: true
     features: [
       {
         flag: 'ServiceMode'

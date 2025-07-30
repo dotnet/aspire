@@ -243,6 +243,10 @@ public sealed class TelemetryRepository : IDisposable
         {
             application.SetUninstrumentedPeer(uninstrumentedPeer);
         }
+        else
+        {
+            _logger.LogTrace("New application added: {ApplicationKey}", key);
+        }
         return (Application: application, IsNew: newApplication);
     }
 
@@ -332,7 +336,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var sl in scopeLogs)
             {
-                if (!OtlpHelpers.TryAddScope(_logScopes, sl.Scope, _otlpContext, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_logScopes, sl.Scope, _otlpContext, TelemetryType.Logs, out var scope))
                 {
                     context.FailureCount += sl.LogRecords.Count;
                     continue;
@@ -364,7 +368,7 @@ public sealed class TelemetryRepository : IDisposable
                         // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
                         // We don't increment the count if there are active read subscriptions because the count will be quickly decremented when the subscription callback is run.
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
-                        if (logEntry.Severity >= LogLevel.Error)
+                        if (logEntry.IsError)
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
                             {
@@ -378,6 +382,7 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             _logPropertyKeys.Add((applicationView.Application, kvp.Key));
                         }
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -760,13 +765,34 @@ public sealed class TelemetryRepository : IDisposable
         return attributesValues;
     }
 
+    public bool HasUpdatedTrace(OtlpTrace trace)
+    {
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            var latestTrace = GetTraceUnsynchronized(trace.TraceId);
+            if (latestTrace == null)
+            {
+                // Trace must have been removed. Technically there is an update (nothing).
+                return true;
+            }
+
+            return latestTrace.LastUpdatedDate > trace.LastUpdatedDate;
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
     public OtlpTrace? GetTrace(string traceId)
     {
         _tracesLock.EnterReadLock();
 
         try
         {
-            return GetTraceUnsynchronized(traceId);
+            return GetTraceAndCloneUnsynchronized(traceId);
         }
         finally
         {
@@ -782,18 +808,28 @@ public sealed class TelemetryRepository : IDisposable
         {
             if (OtlpHelpers.MatchTelemetryId(traceId, trace.TraceId))
             {
-                return OtlpTrace.Clone(trace);
+                return trace;
             }
         }
 
         return null;
     }
 
-    private OtlpSpan? GetSpanUnsynchronized(string traceId, string spanId)
+    private OtlpTrace? GetTraceAndCloneUnsynchronized(string traceId)
     {
-        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanUnsynchronized)}.");
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceAndCloneUnsynchronized)}.");
 
         var trace = GetTraceUnsynchronized(traceId);
+
+        return trace != null ? OtlpTrace.Clone(trace) : null;
+    }
+
+    private OtlpSpan? GetSpanAndCloneUnsynchronized(string traceId, string spanId)
+    {
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanAndCloneUnsynchronized)}.");
+
+        // Trace and its spans are cloned here.
+        var trace = GetTraceAndCloneUnsynchronized(traceId);
         if (trace != null)
         {
             foreach (var span in trace.Spans)
@@ -814,7 +850,7 @@ public sealed class TelemetryRepository : IDisposable
 
         try
         {
-            return GetSpanUnsynchronized(traceId, spanId);
+            return GetSpanAndCloneUnsynchronized(traceId, spanId);
         }
         finally
         {
@@ -913,7 +949,7 @@ public sealed class TelemetryRepository : IDisposable
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                if (!OtlpHelpers.TryAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, out var scope))
+                if (!OtlpHelpers.TryGetOrAddScope(_traceScopes, scopeSpan.Scope, _otlpContext, TelemetryType.Traces, out var scope))
                 {
                     context.FailureCount += scopeSpan.Spans.Count;
                     continue;
@@ -933,7 +969,7 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                             {
-                                trace = new OtlpTrace(span.TraceId.Memory);
+                                trace = new OtlpTrace(span.TraceId.Memory, DateTime.UtcNow);
                                 newTrace = true;
                             }
                         }
@@ -956,7 +992,7 @@ public sealed class TelemetryRepository : IDisposable
                         {
                             _spanLinks.Add(link);
 
-                            var linkedSpan = GetSpanUnsynchronized(link.TraceId, link.SpanId);
+                            var linkedSpan = GetSpanAndCloneUnsynchronized(link.TraceId, link.SpanId);
                             linkedSpan?.BackLinks.Add(link);
                         }
 
@@ -1024,6 +1060,7 @@ public sealed class TelemetryRepository : IDisposable
                         Debug.Assert(_traces.Contains(trace), "Trace not found in traces collection.");
 
                         updatedTraces[trace.Key] = trace;
+                        context.SuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -1082,13 +1119,13 @@ public sealed class TelemetryRepository : IDisposable
                     continue;
                 }
 
-                var appKey = ApplicationKey.Create(uninstrumentedPeer.Name);
+                var appKey = ApplicationKey.Create(name: uninstrumentedPeer.DisplayName, instanceId: uninstrumentedPeer.Name);
                 var (app, _) = GetOrAddApplication(appKey, uninstrumentedPeer: true);
-                span.UninstrumentedPeer = app;
+                trace.SetSpanUninstrumentedPeer(span, app);
             }
             else
             {
-                span.UninstrumentedPeer = null;
+                trace.SetSpanUninstrumentedPeer(span, null);
             }
         }
     }

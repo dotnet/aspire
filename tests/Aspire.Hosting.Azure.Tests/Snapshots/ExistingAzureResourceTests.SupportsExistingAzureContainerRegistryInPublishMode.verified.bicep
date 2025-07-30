@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 
 param existingResourceName string
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   name: existingResourceName
 }
 

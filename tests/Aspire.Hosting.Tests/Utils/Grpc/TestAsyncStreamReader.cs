@@ -27,9 +27,9 @@ public class TestAsyncStreamReader<T> : IAsyncStreamReader<T> where T : class
         }
     }
 
-    public void Complete()
+    public void Complete(Exception? ex = null)
     {
-        _channel.Writer.Complete();
+        _channel.Writer.Complete(ex);
     }
 
     public async Task<bool> MoveNext(CancellationToken cancellationToken)

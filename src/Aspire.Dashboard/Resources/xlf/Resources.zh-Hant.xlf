@@ -17,11 +17,6 @@
         <target state="translated">結構化記錄</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">找不到此資源的遙測。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">追蹤</target>
@@ -52,16 +47,6 @@
         <target state="translated">檢視主控台記錄</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">端點 URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">Proxy URL</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">檢視主機記錄</target>
@@ -86,6 +71,11 @@
         <source>View options</source>
         <target state="translated">檢視選項</target>
         <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">連接字串</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
@@ -152,6 +142,11 @@
         <target state="translated">健全狀態</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">值</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">專案路徑</target>
@@ -170,11 +165,6 @@
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
         <target state="translated">停止時間</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">環境</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
@@ -232,19 +222,9 @@
         <target state="translated">狀態</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">{0} 的環境變數</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">資源</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">沒有任何環境變數</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">

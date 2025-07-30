@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <IsCliToolProject>true</IsCliToolProject>
+  </PropertyGroup>
+
+  <Import Project="Aspire.Cli.csproj" />
+
+</Project>

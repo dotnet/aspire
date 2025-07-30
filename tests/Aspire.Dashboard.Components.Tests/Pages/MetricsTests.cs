@@ -12,6 +12,7 @@ using Aspire.Dashboard.Utils;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -47,6 +48,52 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task InitialLoad_SingleResource_RedirectToResource()
+    {
+        // Arrange
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+
+        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var changeHandler = navigationManager.RegisterLocationChangingHandler(c =>
+        {
+            targetLocationTcs.SetResult(c.TargetLocation);
+            return ValueTask.CompletedTask;
+        });
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        var cut = RenderComponent<Metrics>(builder =>
+        {
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // Assert
+        Assert.NotNull(targetLocationTcs);
+        Assert.Equal("/metrics/resource/TestApp?duration=5", await targetLocationTcs.Task.DefaultTimeout());
+    }
+
+    [Fact]
     public void InitialLoad_HasSessionState_RedirectUsingState()
     {
         // Arrange
@@ -58,7 +105,7 @@ public partial class MetricsTests : DashboardTestContext
                 {
                     var state = new MetricsPageState
                     {
-                        ApplicationName = "TestApp",
+                        ApplicationName = "TestApp2",
                         MeterName = "test-meter",
                         InstrumentName = "test-instrument",
                         DurationMinutes = 720,
@@ -101,6 +148,21 @@ public partial class MetricsTests : DashboardTestContext
                         }
                     }
                 }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp2"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
             }
         });
 
@@ -112,7 +174,7 @@ public partial class MetricsTests : DashboardTestContext
 
         // Assert
         Assert.NotNull(loadRedirect);
-        Assert.Equal("/metrics/resource/TestApp", loadRedirect.AbsolutePath);
+        Assert.Equal("/metrics/resource/TestApp2", loadRedirect.AbsolutePath);
 
         var query = HttpUtility.ParseQueryString(loadRedirect.Query);
         Assert.Equal("test-meter", query["meter"]);

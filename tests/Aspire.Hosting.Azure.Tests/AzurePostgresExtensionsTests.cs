@@ -9,7 +9,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzurePostgresExtensionsTests(ITestOutputHelper output)
+public class AzurePostgresExtensionsTests
 {
     [Theory]
     // [InlineData(true, true)] this scenario is covered in RoleAssignmentTests.PostgresSupport. The output doesn't match the pattern here because the role assignment isn't generated
@@ -93,26 +93,10 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         postgres.AddDatabase("db1", "db1Name");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
-        var expectedManifest = $$"""
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{{{kvName}}.secrets.connectionstrings--postgres-data}",
-              "path": "postgres-data.module.bicep",
-              "params": {
-                "administratorLogin": "{{{userName?.Resource.Name ?? "postgres-data-username"}}.value}",
-                "administratorLoginPassword": "{{{password?.Resource.Name ?? "postgres-data-password"}}.value}",
-                "keyVaultName": "{{{kvName}}.outputs.name}"
-              }
-            }
-            """;
-
-        var m = manifest.ManifestNode.ToString();
-        output.WriteLine(m);
-        Assert.Equal(expectedManifest, m);
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+                .AppendContentAsFile(manifest.ToString(), "json");
             
     }
 
@@ -500,5 +484,20 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzurePostgresFlexibleServerResource()
+    {
+        // Arrange
+        var postgresResource = new AzurePostgresFlexibleServerResource("test-postgres", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(postgresResource, "test-postgres");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = postgresResource.AddAsExistingResource(infrastructure);
+        var secondResult = postgresResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 }

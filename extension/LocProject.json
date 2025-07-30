@@ -1,0 +1,14 @@
+{
+    "Projects": [
+      {
+        "LanguageSet": "VS_Main_Languages",
+        "LocItems": [
+          {
+            "SourceFile": "loc\\xliff\\enu\\aspire-vscode.xlf",
+            "CopyOption": "LangIDOnPath",
+            "OutputPath": "loc\\xliff"
+          }
+        ]
+      }
+    ]
+  }

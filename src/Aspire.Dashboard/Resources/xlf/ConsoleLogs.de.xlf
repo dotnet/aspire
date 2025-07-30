@@ -2,9 +2,9 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../ConsoleLogs.resx">
     <body>
-      <trans-unit id="ConsoleLogsFailedToInitialize">
-        <source>Failed to initialize</source>
-        <target state="translated">Fehler beim Initialisieren.</target>
+      <trans-unit id="ConsoleLogsErrorWatchingLogs">
+        <source>Error watching logs</source>
+        <target state="translated">Fehler beim Überwachen von Protokollen.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -15,11 +15,6 @@
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
         <target state="translated">Konsolenprotokolle</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ConsoleLogsInitializingLogViewer">
-        <source>Initializing log viewer...</source>
-        <target state="translated">Protokollanzeige wird initialisiert...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
@@ -37,6 +32,11 @@
         <target state="translated">Keine Ressource ausgewählt</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="translated">Protokollzeilen nicht umbrechen</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">{0} Konsolenprotokolle</target>
@@ -52,19 +52,14 @@
         <target state="translated">&lt;Protokollerfassung wurde zwischen {0} und {1} angehalten, {2} Protokoll(e) herausgefiltert&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Ressourcenaktionen</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Ressource auswählen</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Einstellungen für Konsolenprotokolle</target>
+        <source>Settings</source>
+        <target state="new">Settings</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -90,6 +85,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">Protokolle werden überwacht...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="translated">Protokollzeilen umbrechen</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

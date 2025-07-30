@@ -6,7 +6,7 @@ using Aspire.Hosting.Qdrant;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.Qdrant.Client.Tests;
 

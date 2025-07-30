@@ -108,7 +108,21 @@ builder.AddChatCompletionsClient("connectionName", settings => settings.DisableT
 You can also setup the [AzureAIInferenceClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.inference.AzureAIInferenceClientOptions) using the optional `Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>> configureClientBuilder` parameter of the `AddChatCompletionsClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddChatCompletionsClient("connectionName", configureClientBuilder: configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
+builder.AddChatCompletionsClient("connectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
+```
+
+This can also be used to add a custom scope for the `TokenCredential` when the specific error message is returned:
+
+> 401 Unauthorized. Access token is missing, invalid, audience is incorrect, or have expired.
+
+```csharp
+builder.AddAzureChatCompletionsClient("chat", configureClientBuilder: builder =>
+{
+    var credential = new DefaultAzureCredential();
+    var tokenPolicy = new BearerTokenAuthenticationPolicy(credential, "https://cognitiveservices.azure.us/.default");
+    builder.ConfigureOptions(options => options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry));
+}
+);
 ```
 
 ## Experimental Telemetry

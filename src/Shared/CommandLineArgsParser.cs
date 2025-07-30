@@ -7,6 +7,16 @@ namespace Aspire.Hosting.Utils;
 
 internal static class CommandLineArgsParser
 {
+    /// <summary>Parses a command-line string into a command executable and the list of arguments</summary>
+    public static (string exe, string[] args) ParseCommand(string arguments)
+    {
+        var result = new List<string>();
+        ParseArgumentsIntoList(arguments, result);
+        var exe = result.First();
+        var args = result.Count > 1 ? result.Skip(1).ToArray() : Array.Empty<string>();
+        return (exe, args);
+    }
+
     /// <summary>Parses a command-line argument string into a list of arguments.</summary>
     public static List<string> Parse(string arguments)
     {

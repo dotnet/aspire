@@ -184,15 +184,16 @@ internal static class TelemetryTestHelpers
         return span;
     }
 
-    public static LogRecord CreateLogRecord(DateTime? time = null, DateTime? observedTime = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, bool? skipBody = null)
+    public static LogRecord CreateLogRecord(DateTime? time = null, DateTime? observedTime = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null,
+        bool? skipBody = null, string? traceId = null, string? spanId = null)
     {
         attributes ??= [new KeyValuePair<string, string>("{OriginalFormat}", "Test {Log}"), new KeyValuePair<string, string>("Log", "Value!")];
 
         var logRecord = new LogRecord
         {
             Body = (skipBody ?? false) ? null : new AnyValue { StringValue = message ?? "Test Value!" },
-            TraceId = ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
-            SpanId = ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
+            TraceId = (traceId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(traceId)) : ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
+            SpanId = (spanId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(spanId)) : ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
             TimeUnixNano = time != null ? DateTimeToUnixNanoseconds(time.Value) : 1000,
             ObservedTimeUnixNano = observedTime != null ? DateTimeToUnixNanoseconds(observedTime.Value) : 1000,
             SeverityNumber = severity ?? SeverityNumber.Info
@@ -303,13 +304,13 @@ internal static class TelemetryTestHelpers
 
     public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
         KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified,
-        OtlpApplication? uninstrumentedPeer = null)
+        OtlpApplication? uninstrumentedPeer = null, DateTime? endDate = null)
     {
         return new OtlpSpan(app.GetView([]), trace, scope)
         {
             Attributes = attributes ?? [],
             BackLinks = [],
-            EndTime = DateTime.MaxValue,
+            EndTime = endDate ?? DateTime.MaxValue,
             Events = [],
             Kind = kind,
             Links = [],

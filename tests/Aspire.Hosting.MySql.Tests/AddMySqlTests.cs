@@ -7,7 +7,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.MySql.Tests;
 
@@ -239,9 +238,9 @@ public class AddMySqlTests
         // Add fake allocated endpoints.
         mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var myAdmin = builder.Resources.Single(r => r.Name.Equals("phpmyadmin"));
+
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(myAdmin, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
@@ -271,9 +270,9 @@ public class AddMySqlTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
-
         var myAdmin = builder.Resources.Single(r => r.Name.Equals("phpmyadmin"));
+        builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(myAdmin, app.Services));
+
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         using var stream = File.OpenRead(volume.Source!);

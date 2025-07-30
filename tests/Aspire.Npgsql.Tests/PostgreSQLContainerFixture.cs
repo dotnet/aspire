@@ -5,7 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.Postgres;
 using Testcontainers.PostgreSql;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.Npgsql.Tests;
 

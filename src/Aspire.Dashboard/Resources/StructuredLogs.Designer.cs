@@ -95,24 +95,8 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("PauseInProgressText", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Add filter.
-        /// </summary>
-        public static string StructuredLogsAddFilter {
-            get {
-                return ResourceManager.GetString("StructuredLogsAddFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Edit filter.
-        /// </summary>
-        public static string StructuredLogsEditFilter {
-            get {
-                return ResourceManager.GetString("StructuredLogsEditFilter", resourceCulture);
-            }
-        }
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to Log entry details.
@@ -122,15 +106,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StructuredLogsEntryDetails", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Filters.
-        /// </summary>
-        public static string StructuredLogsFilters {
-            get {
-                return ResourceManager.GetString("StructuredLogsFilters", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to Structured logs.
@@ -185,15 +161,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StructuredLogsMinimumLogFilter", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No filters.
-        /// </summary>
-        public static string StructuredLogsNoFilters {
-            get {
-                return ResourceManager.GetString("StructuredLogsNoFilters", resourceCulture);
-            }
-        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to No structured logs found.

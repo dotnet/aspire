@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource kv3 'Microsoft.KeyVault/vaults@2023-07-01' = {
+resource kv3 'Microsoft.KeyVault/vaults@2024-11-01' = {
   name: take('kv3-${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {

@@ -13,7 +13,7 @@
     <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" VersionOverride="[8.0.2,9.0.0)" />
     <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
 
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
     <PackageReference Include="Testcontainers.RabbitMq" />
   </ItemGroup>

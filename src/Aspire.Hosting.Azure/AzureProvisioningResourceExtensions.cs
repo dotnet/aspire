@@ -274,7 +274,7 @@ public static class AzureProvisioningResourceExtensions
         {
             parameterName = parameterName[1..];
         }
-        return parameterName;
+        return Infrastructure.NormalizeBicepIdentifier(parameterName);
     }
 }
 

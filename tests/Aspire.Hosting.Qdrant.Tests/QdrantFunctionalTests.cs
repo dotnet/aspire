@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
-using Xunit;
 
 namespace Aspire.Hosting.Qdrant.Tests;
 
@@ -227,8 +226,10 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var qdrant = builder.AddQdrant("qdrant");
 
+        var qdrantResource = builder.Resources.Single(r => r.Name.Equals("qdrant"));
+
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(qdrantResource, (e, ct) =>
         {
             tcs.SetResult();
             return Task.CompletedTask;

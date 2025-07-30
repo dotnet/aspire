@@ -10,7 +10,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Health;
 
@@ -145,15 +144,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             return HealthCheckResult.Healthy();
         });
 
-        var resource = builder.AddResource(new ParentResource("resource"))
-            .WithHealthCheck("healthcheck_a");
-
         var channel = Channel.CreateUnbounded<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, (@event, ct) =>
-        {
-            channel.Writer.TryWrite(@event);
-            return Task.CompletedTask;
-        });
+        var resource = builder.AddResource(new ParentResource("resource"))
+            .WithHealthCheck("healthcheck_a")
+            .OnResourceReady((_, @event, _) =>
+            {
+                channel.Writer.TryWrite(@event);
+                return Task.CompletedTask;
+            });
 
         await using var app = await builder.BuildAsync().DefaultTimeout();
 
@@ -335,14 +333,14 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     public async Task ResourcesWithoutHealthCheckAnnotationsGetReadyEventFired()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var resource = builder.AddResource(new ParentResource("resource"));
 
         var blockAssert = new TaskCompletionSource<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, (@event, ct) =>
-        {
-            blockAssert.SetResult(@event);
-            return Task.CompletedTask;
-        });
+        var resource = builder.AddResource(new ParentResource("resource"))
+                              .OnResourceReady((_, @event, _) =>
+                              {
+                                  blockAssert.SetResult(@event);
+                                  return Task.CompletedTask;
+                              });
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync();
@@ -410,17 +408,16 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             return checkStatus;
         });
 
-        var parent = builder.AddResource(new ParentResource("parent"))
-                            .WithHealthCheck("parent_test");
-
         // Handle ResourceReadyEvent and use it to control when we drop through to do our assert
         // on the health test being executed.
         var resourceReadyEventFired = new TaskCompletionSource<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(parent.Resource, (@event, ct) =>
-        {
-            resourceReadyEventFired.SetResult(@event);
-            return Task.CompletedTask;
-        });
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithHealthCheck("parent_test")
+                            .OnResourceReady((_, @event, _) =>
+                            {
+                                resourceReadyEventFired.SetResult(@event);
+                                return Task.CompletedTask;
+                            });
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync().DefaultTimeout(TestConstants.LongTimeoutDuration);
@@ -468,18 +465,17 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
             return HealthCheckResult.Healthy();
         });
 
-        var parent = builder.AddResource(new ParentResource("parent"))
-                            .WithHealthCheck("parent_test");
-
         // Handle ResourceReadyEvent and use it to control when we drop through to do our assert
         // on the health test being executed.
         var eventHits = 0;
         var resourceReadyEventFired = new TaskCompletionSource<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(parent.Resource, (@event, ct) =>
-        {
-            Interlocked.Increment(ref eventHits);
-            return Task.CompletedTask;
-        });
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithHealthCheck("parent_test")
+                            .OnResourceReady((_, @event, _) =>
+                            {
+                                Interlocked.Increment(ref eventHits);
+                                return Task.CompletedTask;
+                            });
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync().DefaultTimeout();
@@ -516,24 +512,23 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         builder.Services.AddHealthChecks().AddCheck("parent_test", () => HealthCheckResult.Healthy());
-        var parent = builder.AddResource(new ParentResource("parent"))
-                            .WithHealthCheck("parent_test");
 
         var parentReady = new TaskCompletionSource<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(parent.Resource, (@event, ct) =>
-        {
-            parentReady.SetResult(@event);
-            return Task.CompletedTask;
-        });
-
-        var child = builder.AddResource(new ChildResource("child", parent.Resource));
+        var parent = builder.AddResource(new ParentResource("parent"))
+                            .WithHealthCheck("parent_test")
+                            .OnResourceReady((_, @event, _) =>
+                            {
+                                parentReady.SetResult(@event);
+                                return Task.CompletedTask;
+                            });
 
         var childReady = new TaskCompletionSource<ResourceReadyEvent>();
-        builder.Eventing.Subscribe<ResourceReadyEvent>(child.Resource, (@event, ct) =>
-        {
-            childReady.SetResult(@event);
-            return Task.CompletedTask;
-        });
+        var child = builder.AddResource(new ChildResource("child", parent.Resource))
+                           .OnResourceReady((_, @event, _) =>
+                           {
+                               childReady.SetResult(@event);
+                               return Task.CompletedTask;
+                           });
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync();

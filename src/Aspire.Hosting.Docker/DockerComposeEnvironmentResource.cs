@@ -7,6 +7,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Docker;
@@ -34,7 +35,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     public bool BuildContainerImages { get; set; } = true;
 
+    /// <summary>
+    /// Determines whether to include an Aspire dashboard for telemetry visualization in this environment.
+    /// </summary>
+    public bool DashboardEnabled { get; set; } = true;
+
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
+
+    internal IResourceBuilder<DockerComposeAspireDashboardResource>? Dashboard { get; set; }
 
     /// <summary>
     /// Gets the collection of environment variables captured from the Docker Compose environment.
@@ -42,7 +50,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     internal Dictionary<string, (string? Description, string? DefaultValue, object? Source)> CapturedEnvironmentVariables { get; } = [];
 
-    internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceComparer());
+    internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
     internal PortAllocator PortAllocator { get; } = new();
 
@@ -55,12 +63,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PublishingContext context)
     {
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
             imageBuilder,
-            context.OutputPath,
+            outputPath,
             context.Logger,
+            context.ActivityReporter,
             context.CancellationToken);
 
         return dockerComposePublishingContext.WriteModelAsync(context.Model, this);

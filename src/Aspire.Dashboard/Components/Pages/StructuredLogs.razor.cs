@@ -148,6 +148,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override void OnInitialized()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -203,8 +204,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             UpdateApplications();
             StateHasChanged();
         }));
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -301,7 +300,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
-            Width = "450px"
+            Width = ViewportInformation.IsDesktop ? "450px" : "100%"
         };
         var data = new FilterDialogViewModel
         {
@@ -310,6 +309,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             KnownKeys = KnownStructuredLogFields.AllFields,
             GetFieldValues = TelemetryRepository.GetLogsFieldValues
         };
+
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
 
@@ -336,7 +336,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task HandleAfterFilterBindAsync()
@@ -490,13 +490,13 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.TracesBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.StructuredLogs);
 
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsSelectedLogLevel, new AspireTelemetryProperty(PageViewModel.SelectedLogLevel.Id?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.StructuredLogsFilterCount, new AspireTelemetryProperty(ViewModel.Filters.Count.ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric))
-        ]);
+        ], Logger);
     }
 }

@@ -10,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureCosmosDatabase("db")
     .AddKeyedContainer("entries")
-    .AddKeyedContainer("users");
+    .AddKeyedContainer("users")
+    .AddKeyedContainer("user-todo");
 builder.AddCosmosDbContext<TestCosmosContext>("db", configureDbContextOptions =>
 {
     configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);
@@ -58,6 +59,17 @@ app.MapGet("/users", async ([FromKeyedServices("users")] Container container) =>
     return await AddAndGetStatus(container, newEntry);
 });
 
+app.MapGet("/user-todo", async ([FromKeyedServices("user-todo")] Container container) =>
+{
+    var newEntry = new UserTodo
+    {
+        Id = Guid.NewGuid(),
+        UserId = Guid.NewGuid().ToString(),
+        Task = "Sample task"
+    };
+    return await AddAndGetStatus(container, newEntry);
+});
+
 app.MapGet("/ef", async (TestCosmosContext context) =>
 {
     await context.Database.EnsureCreatedAsync();
@@ -80,6 +92,15 @@ public class Entry
 {
     [JsonProperty("id")]
     public string? Id { get; set; }
+}
+
+public class UserTodo
+{
+    [JsonProperty("id")]
+    public required Guid Id { get; set; }
+    [JsonProperty("userId")]
+    public required string UserId { get; set; }
+    public required string Task { get; set; }
 }
 
 public class TestCosmosContext(DbContextOptions<TestCosmosContext> options) : DbContext(options)

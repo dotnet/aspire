@@ -22,24 +22,9 @@
         <target state="translated">L'acquisizione dei log strutturati è stata sospesa alle {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Aggiungi filtro</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Modifica filtro</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Dettagli della voce di log</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtri</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -70,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">Filtro livello di log minimo</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Nessun filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

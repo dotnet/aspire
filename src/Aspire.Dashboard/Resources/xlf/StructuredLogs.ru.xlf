@@ -22,24 +22,9 @@
         <target state="translated">Запись структурированных журналов приостановлена в {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Добавить фильтр</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Изменить фильтр</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Подробности записи журнала</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Фильтры</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -70,11 +55,6 @@
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
         <target state="translated">Фильтр минимального уровня ведения журнала</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Нет фильтров</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">

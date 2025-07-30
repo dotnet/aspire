@@ -4,7 +4,7 @@
 using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.ResourceService.Proto.V1;
+namespace Aspire.DashboardService.Proto.V1;
 
 partial class Resource
 {
@@ -18,7 +18,8 @@ partial class Resource
             Uid = snapshot.Uid,
             State = snapshot.State ?? "",
             StateStyle = snapshot.StateStyle ?? "",
-            IsHidden = snapshot.IsHidden
+            IsHidden = snapshot.IsHidden,
+            SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
         };
 
         if (snapshot.CreationTimeStamp.HasValue)

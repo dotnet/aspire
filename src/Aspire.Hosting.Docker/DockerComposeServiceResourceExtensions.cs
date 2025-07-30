@@ -89,9 +89,9 @@ internal static class DockerComposeServiceResourceExtensions
     {
         return property switch
         {
-            EndpointProperty.Url => GetHostValue($"{mapping.Scheme}://", suffix: mapping.IsHttpIngress ? null : $":{mapping.InternalPort}"),
+            EndpointProperty.Url => GetHostValue($"{mapping.Scheme}://", $":{mapping.InternalPort}"),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => mapping.InternalPort.ToString(CultureInfo.InvariantCulture),
+            EndpointProperty.Port => mapping.InternalPort,
             EndpointProperty.HostAndPort => GetHostValue(suffix: $":{mapping.InternalPort}"),
             EndpointProperty.TargetPort => $"{mapping.InternalPort}",
             EndpointProperty.Scheme => mapping.Scheme,

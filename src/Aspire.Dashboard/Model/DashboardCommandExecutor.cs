@@ -43,7 +43,7 @@ public sealed class DashboardCommandExecutor(
         var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
             new Dictionary<string, AspireTelemetryProperty>
             {
-                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(resource.ResourceType)) },
+                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(resource.ResourceType, resource.SupportsDetailedTelemetry)) },
                 { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(TelemetryPropertyValues.GetCommandNameTelemetryValue(command.Name)) },
             });
 
@@ -62,7 +62,7 @@ public sealed class DashboardCommandExecutor(
         {
             if (operationId is not null)
             {
-                telemetryService.EndUserTask(operationId, TelemetryResult.Failure, ex.Message);
+                telemetryService.EndOperation(operationId, TelemetryResult.Failure, ex.Message);
             }
         }
         finally

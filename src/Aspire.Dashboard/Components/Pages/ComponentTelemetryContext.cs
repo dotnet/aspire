@@ -26,16 +26,24 @@ public sealed class ComponentTelemetryContextProvider
     }
 }
 
+public enum ComponentType
+{
+    Page,
+    Control
+}
+
 public sealed class ComponentTelemetryContext : IDisposable
 {
     private DashboardTelemetryService? _telemetryService;
     private OperationContext? _initializeCorrelation;
-    private readonly string _componentType;
+    private readonly string _componentId;
+    private readonly ComponentType _type;
     private bool _disposed;
 
-    public ComponentTelemetryContext(string componentType)
+    public ComponentTelemetryContext(ComponentType type, string componentId)
     {
-        _componentType = componentType;
+        _componentId = componentId;
+        _type = type;
     }
 
     // Internal for testing
@@ -45,7 +53,8 @@ public sealed class ComponentTelemetryContext : IDisposable
     {
         _telemetryService = telemetryService;
 
-        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentType);
+        Properties[TelemetryPropertyKeys.DashboardComponentId] = new AspireTelemetryProperty(_componentId);
+        Properties[TelemetryPropertyKeys.DashboardComponentType] = new AspireTelemetryProperty(_type.ToString());
         if (browserUserAgent != null)
         {
             Properties[TelemetryPropertyKeys.UserAgent] = new AspireTelemetryProperty(browserUserAgent);
@@ -54,14 +63,10 @@ public sealed class ComponentTelemetryContext : IDisposable
         _initializeCorrelation = telemetryService.PostUserTask(
             TelemetryEventKeys.ComponentInitialize,
             TelemetryResult.Success,
-            properties: new Dictionary<string, AspireTelemetryProperty>
-            {
-                // Component properties
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentType) }
-            });
+            properties: CreateInitializeAndDisposeProperties());
     }
 
-    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties)
+    public bool UpdateTelemetryProperties(ReadOnlySpan<ComponentTelemetryProperty> modifiedProperties, ILogger logger)
     {
         // Only send updated properties if they are different from the existing ones.
         var anyChange = false;
@@ -82,17 +87,18 @@ public sealed class ComponentTelemetryContext : IDisposable
 
         if (anyChange)
         {
-            PostProperties();
+            PostProperties(logger);
         }
 
         return anyChange;
     }
 
-    private void PostProperties()
+    private void PostProperties(ILogger logger)
     {
         if (_telemetryService == null)
         {
-            throw new InvalidOperationException("InitializeAsync has not been called.");
+            logger.LogWarning("Telemetry service for '{ComponentType}' is not initialized. Cannot post properties.", _componentId);
+            return;
         }
 
         _telemetryService.PostOperation(
@@ -102,6 +108,16 @@ public sealed class ComponentTelemetryContext : IDisposable
             correlatedWith: _initializeCorrelation?.Properties);
     }
 
+    private Dictionary<string, AspireTelemetryProperty> CreateInitializeAndDisposeProperties()
+    {
+        return new Dictionary<string, AspireTelemetryProperty>
+        {
+            // Component properties
+            { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentId) },
+            { TelemetryPropertyKeys.DashboardComponentType, new AspireTelemetryProperty(_type.ToString()) },
+        };
+    }
+
     public void Dispose()
     {
         if (!_disposed)
@@ -109,10 +125,7 @@ public sealed class ComponentTelemetryContext : IDisposable
             _telemetryService?.PostOperation(
                 TelemetryEventKeys.ComponentDispose,
                 TelemetryResult.Success,
-                properties: new Dictionary<string, AspireTelemetryProperty>
-                {
-                { TelemetryPropertyKeys.DashboardComponentId, new AspireTelemetryProperty(_componentType) }
-                },
+                properties: CreateInitializeAndDisposeProperties(),
                 correlatedWith: _initializeCorrelation?.Properties);
 
             _disposed = true;

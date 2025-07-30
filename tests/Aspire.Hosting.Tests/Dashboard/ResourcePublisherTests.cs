@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
@@ -203,7 +202,8 @@ public class ResourcePublisherTests
             HealthReports = [],
             Commands = [],
             Relationships = [],
-            IsHidden = false
+            IsHidden = false,
+            SupportsDetailedTelemetry = false
         };
     }
 

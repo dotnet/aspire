@@ -20,7 +20,7 @@ internal static class BrowserStorageKeys
     public const string TextVisualizerDialogSettings = "Aspire_TextVisualizerDialog_TextVisualizerDialogSettings";
     public const string ResourcesShowResourceTypes = "Aspire_Resources_ShowResourceTypes";
 
-    public const string DashboardTelemetrySettings = "Aspire_Settings_DashboardTelemetry";
+    public const string ResourcesShowHiddenResources = "Aspire_Resources_ShowHiddenResources";
 
     public static string SplitterOrientationKey(string viewKey)
     {

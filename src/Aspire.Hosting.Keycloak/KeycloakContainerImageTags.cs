@@ -13,5 +13,11 @@ internal static class KeycloakContainerImageTags
 
     /// <remarks>26.2</remarks>
     public const string Tag = "26.2";
+
+    // <remarks>1000</remarks>>
+    public const int ContainerUser = 1000;
+
+    // <remarks>1000</remarks>
+    public const int ContainerGroup = 1000;
 }
 

@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Keycloak.Tests;
 
@@ -167,10 +166,7 @@ public class KeycloakPublicApiTests
 
         var entries = await containerAnnotation.Callback(new() { Model = keycloakResource, ServiceProvider = app.Services }, CancellationToken.None);
 
-        Assert.Equal("/opt/keycloak/data", containerAnnotation.DestinationPath);
-        var importDirectory = Assert.IsType<ContainerDirectory>(entries.First());
-        Assert.Equal("import", importDirectory.Name);
-        Assert.Empty(importDirectory.Entries);
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.DestinationPath);
     }
 
     [Fact]
@@ -197,10 +193,8 @@ public class KeycloakPublicApiTests
 
         var entries = await containerAnnotation.Callback(new() { Model = keycloakResource, ServiceProvider = app.Services }, CancellationToken.None);
 
-        Assert.Equal("/opt/keycloak/data", containerAnnotation.DestinationPath);
-        var importDirectory = Assert.IsType<ContainerDirectory>(entries.First());
-        Assert.Equal("import", importDirectory.Name);
-        var realmFile = Assert.IsType<ContainerFile>(Assert.Single(importDirectory.Entries));
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.DestinationPath);
+        var realmFile = Assert.IsType<ContainerFile>(Assert.Single(entries));
         Assert.Equal(file, realmFile.Name);
         Assert.Equal(filePath, realmFile.SourcePath);
     }

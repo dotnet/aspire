@@ -29,6 +29,9 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(environment);
 
+        // Add annotation to mark this resource as having OTLP exporter configured
+        resource.Annotations.Add(new OtlpExporterAnnotation());
+
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
@@ -97,9 +100,11 @@ public static class OtlpConfigurationExtensions
 
     /// <summary>
     /// Injects the appropriate environment variables to allow the resource to enable sending telemetry to the dashboard.
-    /// 1. It sets the OTLP endpoint to the value of the ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL environment variable.
-    /// 2. It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.
-    /// 3. It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
+    /// <list type="number">
+    ///   <item>It sets the OTLP endpoint to the value of the <c>ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL</c> environment variable.</item>
+    ///   <item>It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.</item>
+    ///   <item>It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.</item>
+    /// </list>
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -109,6 +114,7 @@ public static class OtlpConfigurationExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
+        
         return builder;
     }
 }

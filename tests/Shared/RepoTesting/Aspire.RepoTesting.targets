@@ -67,9 +67,6 @@
          But when they are built without Arcade outside the repo, these need to be added
          explicitly. -->
     <PackageReference Include="xunit.v3" />
-    <PackageReference Include="xunit.v3.core" />
-    <PackageReference Include="xunit.analyzers" />
-    <PackageReference Include="xunit.v3.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.Testing.Platform" />
     <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />

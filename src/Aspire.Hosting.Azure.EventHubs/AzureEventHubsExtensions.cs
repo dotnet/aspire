@@ -61,6 +61,7 @@ public static class AzureEventHubsExtensions
 
                     var resource = new AzureProvisioning.EventHubsNamespace(infrastructure.AspireResource.GetBicepIdentifier())
                     {
+                        DisableLocalAuth = true,
                         Sku = new AzureProvisioning.EventHubsSku()
                         {
                             Name = skuParameter
@@ -217,6 +218,9 @@ public static class AzureEventHubsExtensions
         {
             return builder;
         }
+
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)

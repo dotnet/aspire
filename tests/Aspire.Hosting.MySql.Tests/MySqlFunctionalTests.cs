@@ -16,7 +16,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using MySqlConnector;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.MySql.Tests;
 
@@ -130,7 +129,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mysql1 = builder1.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = mysql1.Resource.PasswordParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var db1 = mysql1.AddDatabase(mySqlDbName);
 
@@ -404,10 +405,11 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var mySqlDbName = "db1";
 
-            var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
-            var db = mysql.AddDatabase(mySqlDbName);
+            var mysql = builder.AddMySql("mysql")
+                               .WithEnvironment("MYSQL_DATABASE", mySqlDbName)
+                               .WithInitFiles(initFilesPath);
 
-            mysql.WithInitFiles(initFilesPath);
+            var db = mysql.AddDatabase(mySqlDbName);
 
             using var app = builder.Build();
 

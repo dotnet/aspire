@@ -24,6 +24,34 @@ public class LogEntriesTests
     }
 
     [Fact]
+    public void Clear_AfterEarliestTimestampIndex_Success()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+
+        // Act
+        var logParser = new LogParser(ConsoleColor.Black);
+
+        // Insert log with no timestamp.
+        var logEntry1 = logParser.CreateLogEntry("Test", isErrorOutput: false);
+        logEntries.InsertSorted(logEntry1);
+
+        // Insert log with timestamp that ensures collections timestamp value is not zero.
+        var logEntry2 = logParser.CreateLogEntry("2024-08-19T06:12:01.000Z Test", isErrorOutput: false);
+        logEntries.InsertSorted(logEntry2);
+
+        logEntries.Clear(keepActivePauseEntries: true);
+        logEntries.BaseLineNumber = 0;
+
+        // Insert another log entry after clearing.
+        var logEntry3 = logParser.CreateLogEntry("2024-08-19T06:12:02.000Z Test", isErrorOutput: false);
+        logEntries.InsertSorted(logEntry3);
+
+        // Assert
+        Assert.Single(logEntries.GetEntries());
+    }
+
+    [Fact]
     public void Add_PauseAndThenRemove_ActivePauseKept()
     {
         // Arrange

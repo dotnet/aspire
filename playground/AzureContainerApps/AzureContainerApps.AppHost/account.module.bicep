@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param keyVaultName string
+param account_kv_outputs_name string
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
   name: take('account-${uniqueString(resourceGroup().id)}', 44)
@@ -11,6 +11,11 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
       {
         locationName: location
         failoverPriority: 0
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
       }
     ]
     consistencyPolicy: {
@@ -36,11 +41,11 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
   parent: account
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: account_kv_outputs_name
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--account'
   properties: {
     value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey}'
@@ -48,7 +53,7 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
 }
 
-resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource db_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   name: 'connectionstrings--db'
   properties: {
     value: 'AccountEndpoint=${account.properties.documentEndpoint};AccountKey=${account.listKeys().primaryMasterKey};Database=db'

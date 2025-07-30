@@ -17,23 +17,6 @@
         <target state="translated">バインド マウントでは、ソース パスを指定する必要があります。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりませんでした。コンテナー ランタイム チェックのエラー: {1}.
-サポートされているコンテナー ランタイムの詳細については、https://aka.ms/dotnet/aspire/containers を参照してください。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、異常な可能性があります。コンテナー ランタイム チェックのエラー: {1}。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、応答していないようです。コマンド '{0}' が {1} 秒後に返されませんでした。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">アプリケーション オーケストレーターの依存関係チェックでエラー {0} が返されました。</target>

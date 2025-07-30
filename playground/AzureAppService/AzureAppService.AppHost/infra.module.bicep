@@ -5,13 +5,13 @@ param userPrincipalId string
 
 param tags object = { }
 
-resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
   tags: tags
 }
 
-resource infra_acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+resource infra_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: take('infraacr${uniqueString(resourceGroup().id)}', 50)
   location: location
   sku: {
@@ -30,7 +30,7 @@ resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@202
   scope: infra_acr
 }
 
-resource infra_asplan 'Microsoft.Web/serverfarms@2024-04-01' = {
+resource infra_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: take('infraasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -42,6 +42,8 @@ resource infra_asplan 'Microsoft.Web/serverfarms@2024-04-01' = {
     tier: 'Premium'
   }
 }
+
+output name string = infra_asplan.name
 
 output planId string = infra_asplan.id
 

@@ -117,47 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="UrlsColumnDisplayPlaceholder" xml:space="preserve">
-    <value>Starting...</value>
-  </data>
-  <data name="ResourceNameDisplayProcessIdText" xml:space="preserve">
-    <value>Process ID: {0}</value>
-    <comment>{0} is a numeric id</comment>
-  </data>
-  <data name="ResourceNameDisplayCopyContainerIdText" xml:space="preserve">
-    <value>Copy container ID to clipboard</value>
-  </data>
-  <data name="ResourceNameDisplayContainerIdText" xml:space="preserve">
-    <value>Container ID: {0}</value>
-    <comment>{0} is an alphanumeric id</comment>
-  </data>
-  <data name="SourceColumnDisplayWorkingDirectory" xml:space="preserve">
-    <value>Working directory: {0}</value>
-    <comment>{0} is a path</comment>
-  </data>
-  <data name="SourceColumnDisplayPort" xml:space="preserve">
-    <value>Port: {0}</value>
-    <comment>{0} is a port number</comment>
-  </data>
-  <data name="SourceColumnDisplayPorts" xml:space="preserve">
-    <value>Ports: {0}</value>
-    <comment>{0} is a list of ports</comment>
-  </data>
-  <data name="SourceColumnDisplayContainerCommandTitle" xml:space="preserve">
-    <value>Container command</value>
-  </data>
-  <data name="SourceColumnDisplayContainerArgsTitle" xml:space="preserve">
-    <value>Container args</value>
-  </data>
-  <data name="SourceColumnDisplayContainerCommand" xml:space="preserve">
-    <value>Command: {0}</value>
-  </data>
-  <data name="SourceColumnSourceCopyFullPathToClipboard" xml:space="preserve">
-    <value>Copy file path to clipboard</value>
-  </data>
-  <data name="SourceColumnSourceCopyContainerToClipboard" xml:space="preserve">
-    <value>Copy image name and tag to clipboard</value>
-  </data>
   <data name="StateColumnResourceExitedUnexpectedly" xml:space="preserve">
     <value>{0} exited unexpectedly with exit code {1}</value>
     <comment>{0} is a resource type, {1} is a number</comment>

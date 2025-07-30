@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
@@ -19,8 +20,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ResourceNotificationService : IDisposable
 {
-    // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
-    private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+    // Resource state is keyed by the unique name of the resource. This could be the name of the resource, or a replica ID.
+    private readonly ConcurrentDictionary<string, ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _disposing = new();
@@ -431,9 +432,66 @@ public class ResourceNotificationService : IDisposable
     private readonly object _onResourceUpdatedLock = new();
 
     /// <summary>
+    /// Attempts to retrieve the current state of a resource by resourceId.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A resource id can be either the unique id of the resource or the displayed resource name.
+    /// </para>
+    /// <para>
+    /// Projects, executables and containers typically have a unique id that combines the display name and a unique suffix. For example, a resource named <c>cache</c> could have a resource id of <c>cache-abcdwxyz</c>.
+    /// This id is used to uniquely identify the resource in the app host.
+    /// </para>
+    /// <para>
+    /// The resource name can be also be used to retrieve the resource state, but it must be unique. If there are multiple resources with the same name, then this method will not return a match.
+    /// For example, if a resource named <c>cache</c> has multiple replicas, then specifing <c>cache</c> won't return a match.
+    /// </para>
+    /// </remarks>
+    /// <param name="resourceId">The resource id. This id can either exactly match the unique id of the resource or the displayed resource name if the resource name doesn't have duplicates (i.e. replicas).</param>
+    /// <param name="resourceEvent">When this method returns, contains the <see cref="ResourceEvent"/> for the specified resource id, if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if specified resource id was found; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetCurrentState(string resourceId, [NotNullWhen(true)] out ResourceEvent? resourceEvent)
+    {
+        // Find exact match.
+        if (_resourceNotificationStates.TryGetValue(resourceId, out var state))
+        {
+            if (state.LastSnapshot is { } snapshot)
+            {
+                resourceEvent = new ResourceEvent(state.Resource, resourceId, snapshot);
+                return true;
+            }
+        }
+
+        // Fallback to finding match on resource name. If there are multiple resources with the same name (e.g. replicas) then don't match.
+        KeyValuePair<string, ResourceNotificationState>? nameMatch = null;
+        foreach (var matchingResource in _resourceNotificationStates.Where(s => string.Equals(s.Value.Resource.Name, resourceId, StringComparisons.ResourceName)))
+        {
+            if (nameMatch == null)
+            {
+                nameMatch = matchingResource;
+            }
+            else
+            {
+                // Second match found, so we can't return a match based on the name.
+                nameMatch = null;
+                break;
+            }
+        }
+        
+        if (nameMatch is { } m && m.Value.LastSnapshot != null)
+        {
+            resourceEvent = new ResourceEvent(m.Value.Resource, m.Key, m.Value.LastSnapshot);
+            return true;
+        }
+
+        // No match.
+        resourceEvent = null;
+        return false;
+    }
+
+    /// <summary>
     /// Watch for changes to the state for all resources.
     /// </summary>
-    /// <returns></returns>
     public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<ResourceEvent>();
@@ -450,17 +508,17 @@ public class ResourceNotificationService : IDisposable
         // We do this after subscribing to the event to avoid missing any updates.
 
         // Keep track of the versions we have seen so far to avoid duplicates.
-        var versionsSeen = new Dictionary<(IResource, string), long>();
+        var versionsSeen = new Dictionary<string, long>();
 
         foreach (var state in _resourceNotificationStates)
         {
-            var (resource, resourceId) = state.Key;
+            var resourceId = state.Key;
 
             if (state.Value.LastSnapshot is { } snapshot)
             {
-                versionsSeen[state.Key] = snapshot.Version;
+                versionsSeen[resourceId] = snapshot.Version;
 
-                yield return new ResourceEvent(resource, resourceId, snapshot);
+                yield return new ResourceEvent(state.Value.Resource, resourceId, snapshot);
             }
         }
 
@@ -469,11 +527,11 @@ public class ResourceNotificationService : IDisposable
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 // Skip events that are older than the max version we have seen so far. This avoids duplicates.
-                if (versionsSeen.TryGetValue((item.Resource, item.ResourceId), out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
+                if (versionsSeen.TryGetValue(item.ResourceId, out var maxVersionSeen) && item.Snapshot.Version <= maxVersionSeen)
                 {
                     // We can remove the version from the seen list since we have seen it already.
                     // We only care about events we have returned to the caller
-                    versionsSeen.Remove((item.Resource, item.ResourceId));
+                    versionsSeen.Remove(item.ResourceId);
                     continue;
                 }
 
@@ -499,7 +557,11 @@ public class ResourceNotificationService : IDisposable
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
     public Task PublishUpdateAsync(IResource resource, string resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        var notificationState = GetResourceNotificationState(resource, resourceId);
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        if (notificationState.Resource != resource)
+        {
+            throw new InvalidOperationException($"Resource instance doesn't match resource previously registered with specified resource id '{resourceId}'.");
+        }
 
         lock (notificationState)
         {
@@ -686,13 +748,18 @@ public class ResourceNotificationService : IDisposable
                 Properties = [],
                 Relationships = ResourceSnapshotBuilder.BuildRelationships(resource)
             };
+
+            previousState = previousState with
+            {
+                SupportsDetailedTelemetry = IsMicrosoftOpenType(resource.GetType())
+            };
         }
 
         return previousState;
     }
 
-    private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
-        _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
+    private ResourceNotificationState GetResourceNotificationState(string resourceId, IResource resource) =>
+        _resourceNotificationStates.GetOrAdd(resourceId, _ => new ResourceNotificationState(resource));
 
     /// <inheritdoc/>
     public void Dispose()
@@ -703,11 +770,29 @@ public class ResourceNotificationService : IDisposable
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
-    private sealed class ResourceNotificationState
+    private sealed class ResourceNotificationState(IResource resource)
     {
         private long _lastVersion = 1;
         public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
+        public IResource Resource { get; } = resource;
+    }
+
+    internal static bool IsMicrosoftOpenType(Type type)
+    {
+        var microsoftOpenPublicKey = new byte[]
+        {
+            0, 36, 0, 0, 4, 128, 0, 0, 148, 0, 0, 0, 6, 2, 0, 0, 0, 36, 0, 0, 82, 83, 65, 49, 0, 4, 0, 0, 1, 0, 1,
+            0, 75, 134, 196, 203, 120, 84, 155, 52, 186, 182, 26, 59, 24, 0, 226, 59, 254, 181, 179, 236, 57, 0,
+            116, 4, 21, 54, 167, 227, 203, 217, 127, 95, 4, 207, 15, 133, 113, 85, 168, 146, 142, 170, 41, 235, 253,
+            17, 207, 187, 173, 59, 167, 14, 254, 167, 189, 163, 34, 108, 106, 141, 55, 10, 76, 211, 3, 247, 20, 72,
+            107, 110, 188, 34, 89, 133, 166, 56, 71, 30, 110, 245, 113, 204, 146, 164, 97, 60, 0, 184, 250, 101,
+            214, 28, 206, 224, 203, 229, 243, 99, 48, 201, 160, 31, 65, 131, 85, 159, 27, 239, 36, 204, 41, 23, 198,
+            217, 19, 227, 165, 65, 51, 58, 29, 5, 217, 190, 210, 43, 56, 203
+        };
+
+        var publicKey = type.Assembly.GetName().GetPublicKey();
+        return publicKey is not null && microsoftOpenPublicKey.SequenceEqual(publicKey);
     }
 }
 
