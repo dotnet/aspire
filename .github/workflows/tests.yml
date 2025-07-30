@@ -74,7 +74,13 @@ jobs:
     runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:
-        targets: [{os: ubuntu-latest, rids: linux-x64}, {os: windows-latest, rids: win-x64}, {os: macos-latest, rids: osx-arm64}]
+        targets:
+          - os: ubuntu-latest
+            rids: linux-x64
+          - os: windows-latest
+            rids: win-x64
+          - os: macos-latest
+            rids: osx-arm64
 
     steps:
       - name: Checkout code
