@@ -23,31 +23,32 @@ runs:
       with:
         global-json-file: global.json
 
-    - name: Setup vars (Linux)
-      shell: pwsh
-      if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
-      run: |
-        echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
-        echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
-        echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
-
-    - name: Setup vars (Windows)
-      shell: bash
-      if: ${{ inputs.os == 'windows-latest' }}
-      run: |
-        echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
-        echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
-        echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
-
-    - name: Build CLI packages
+    - name: Build CLI packages (Windows)
       env:
         CI: false
+      if: ${{ inputs.os == 'windows-latest' }}
       shell: pwsh
       run: >
-        ./eng/build.ps1
+        .\build.cmd
         -ci
         -build
         -restore
+        /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+        /p:ContinuousIntegrationBuild=true
+        /p:SkipManagedBuild=true
+        /p:TargetRids=${{ inputs.TargetRids }}
+        ${{ inputs.extraBuildArgs }}
+
+    - name: Build CLI packages (Windows)
+      env:
+        CI: false
+      if: ${{ inputs.os != 'windows-latest' }}
+      shell: bash
+      run: >
+        ./build.sh
+        --ci
+        --build
+        --restore
         /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
         /p:ContinuousIntegrationBuild=true
         /p:SkipManagedBuild=true
@@ -65,5 +66,5 @@ runs:
       if: always()
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
       with:
-        name: build-cli-archives-${{ join('_', inputs.targetRids) }}
+        name: build-cli-archives-${{ inputs.targetRids }}
         path: artifacts/packages
