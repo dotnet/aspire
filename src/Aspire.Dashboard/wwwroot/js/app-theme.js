@@ -140,15 +140,15 @@ function getBaseLayerLuminanceForTheme(theme) {
 }
 
 /**
- * Configures the accent color palette based on Fluent Design purple
+ * Configures the accent color palette based on the .NET purple
  */
 function setAccentColor() {
     // Convert the base color ourselves to avoid pulling in the
     // @microsoft/fast-colors library just for one call to parseColorHexRGB
-    const baseColor = { // #8764B8
-        r: 0x87 / 255.0,
-        g: 0x64 / 255.0,
-        b: 0xB8 / 255.0
+    const baseColor = { // #512BD4
+        r: 0x51 / 255.0,
+        g: 0x2B / 255.0,
+        b: 0xD4 / 255.0
     };
 
     const accentBase = SwatchRGB.create(baseColor.r, baseColor.g, baseColor.b);
