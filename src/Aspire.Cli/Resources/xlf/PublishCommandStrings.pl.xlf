@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
-        <target state="new">PUBLISHING COMPLETED</target>
+        <target state="translated">UKOŃCZONO PUBLIKOWANIE</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>PUBLISHING FAILED</source>
-        <target state="new">PUBLISHING FAILED</target>
+        <target state="translated">PUBLIKOWANIE NIE POWIODŁO SIĘ</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">

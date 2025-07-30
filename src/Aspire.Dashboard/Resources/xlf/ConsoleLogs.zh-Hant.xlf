@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
         <source>Settings</source>
-        <target state="needs-review-translation">主控台記錄設定</target>
+        <target state="new">Settings</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
