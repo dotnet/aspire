@@ -70,7 +70,7 @@ jobs:
 
   # Build CLI native archives
   build_cli_archives:
-    name: Build CLI (${{ runner.os }})
+    name: Build CLI (${{ matrix.targets.os }})
     runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:
