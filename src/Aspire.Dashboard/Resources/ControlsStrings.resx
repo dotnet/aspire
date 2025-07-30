@@ -475,4 +475,7 @@
   <data name="HideHiddenResources" xml:space="preserve">
     <value>Hide hidden resources</value>
   </data>
+  <data name="ResourceActions" xml:space="preserve">
+    <value>Resource actions</value>
+  </data>
 </root>

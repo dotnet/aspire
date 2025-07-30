@@ -300,7 +300,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
-            Width = "450px"
+            Width = ViewportInformation.IsDesktop ? "450px" : "100%"
         };
         var data = new FilterDialogViewModel
         {
@@ -309,6 +309,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             KnownKeys = KnownStructuredLogFields.AllFields,
             GetFieldValues = TelemetryRepository.GetLogsFieldValues
         };
+
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
 
@@ -335,7 +336,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             }
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task HandleAfterFilterBindAsync()

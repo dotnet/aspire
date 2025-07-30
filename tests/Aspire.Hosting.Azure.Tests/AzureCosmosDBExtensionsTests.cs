@@ -550,6 +550,21 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureCosmosDBResource()
+    {
+        // Arrange
+        var cosmosDBResource = new AzureCosmosDBResource("test-cosmosdb", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(cosmosDBResource, "test-cosmosdb");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+        var secondResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

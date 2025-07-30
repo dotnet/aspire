@@ -7,6 +7,12 @@
     font-weight: 600;
 }
 
+::deep .trace-details-mobile {
+    padding-left: var(--layout-left-padding);
+    padding-right: var(--layout-right-padding);
+    padding-bottom: 4px;
+}
+
 ::deep .trace-id {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;

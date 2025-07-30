@@ -362,6 +362,11 @@
         <target state="translated">Valore</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceActions">
+        <source>Resource actions</source>
+        <target state="new">Resource actions</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
         <source>Back references</source>
         <target state="translated">Riferimenti indietro</target>
