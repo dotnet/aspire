@@ -30,12 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/build-cli
-        id: build_cli
-        with:
-          targetRids:
-            linux-x64
-
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
@@ -51,12 +45,6 @@ jobs:
       templates_tests_matrix: ${{ steps.generate_tests_matrix.outputs.templates_tests_matrix }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: ./.github/actions/build-cli
-        id: build_cli
-        with:
-          targetRids:
-            osx-arm64
 
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
@@ -74,17 +62,22 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: ./.github/actions/build-cli
-        id: build_cli
-        with:
-          targetRids:
-            win-x64
-
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
           includeIntegrations: true
           includeTemplates: true
+
+  build_cli_archives:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [{os: ubuntu-latest, rids: linux-x64}, {os: windows-latest, rids: win-x64}, {os: macos-latest, rids: osx-arm64}]
+
+    steps:
+      - uses: ./.github/actions/build-cli
+        with:
+          targetRids: ${{ matrix.rids }}
 
   build_packages:
     name: Build packages
@@ -243,6 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Results
     needs: [
+      build_cli_archives,
       endtoend_tests,
       extension_tests_win,
       integrations_test_lin,
