@@ -1,8 +1,37 @@
 <Project>
   <PropertyGroup>
     <IsCliToolProject>true</IsCliToolProject>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_EmbedFDDToolInTopLevelToolManifest</TargetsForTfmSpecificContentInPackage>
+    <GenerateNuspecDependsOn>$(GenerateNuspecDependsOn);_FiddleWithToolConfig</GenerateNuspecDependsOn>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU5118</WarningsNotAsErrors>
   </PropertyGroup>
 
   <Import Project="Aspire.Cli.csproj" />
+
+  <Target Name="_EmbedFDDToolInTopLevelToolManifest" Condition="'$(RuntimeIdentifier)' == ''">
+    <ItemGroup>
+      <_FddBuild Include="$(MSBuildProjectFullPath)"
+        AdditionalProperties="RuntimeIdentifiers=;RuntimeIdentifier=;" />
+    </ItemGroup>
+    <!-- We're gonna call PackTool on ourself with no RID-specificity and ensure that gets put into the top-level tool manifest -->
+    <!-- The trick will be to ensure that we can maintain the manifest -->
+     <MSBuild Projects="@(_FddBuild)" Targets="PackTool">
+        <Output TaskParameter="TargetOutputs" ItemName="TfmSpecificPackageFile" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="_FiddleWithToolConfig">
+    <!-- Need to use the XmlPoke Task to make the v2 config also look like a v1 config -->
+     <XmlPoke
+      XmlInputPath="$(_ToolsSettingsFilePath)"
+      Value="1"
+      Query="/DotNetCliTool/@Version"
+      Namespaces="$(Namespace)"/>
+    <XmlPoke
+      XmlInputPath="$(_ToolsSettingsFilePath)"
+      Value="&lt;Command Name=&quot;$(AssemblyName)&quot; EntryPoint=&quot;$(AssemblyName).dll&quot; Runner=&quot;dotnet&quot; /&gt;"
+      Query="/DotNetCliTool/Commands"
+      Namespaces="$(Namespace)"/>
+  </Target>
 
 </Project>
