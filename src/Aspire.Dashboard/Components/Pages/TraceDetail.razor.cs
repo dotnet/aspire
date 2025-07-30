@@ -75,7 +75,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<Dashboard.Resources.StructuredLogs> StructuredLogsLoc { get; init; }
 
     [Inject]
-    public required IStringLocalizer<ControlsStrings> ControlsLoc { get; init; }
+    public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -109,7 +109,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
+            Text = ControlStringsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowExpandAll(),
             OnClick = ExpandAllSpansAsync,
             IsDisabled = !HasCollapsedSpans()
@@ -117,7 +117,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = ControlsLoc[nameof(ControlsStrings.CollapseAllSpansText)],
+            Text = ControlStringsLoc[nameof(ControlsStrings.CollapseAllSpansText)],
             Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
             OnClick = CollapseAllSpansAsync,
             IsDisabled = !HasExpandedSpans()
