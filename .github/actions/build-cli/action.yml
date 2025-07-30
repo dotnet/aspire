@@ -39,7 +39,7 @@ runs:
         /p:TargetRids=${{ inputs.TargetRids }}
         ${{ inputs.extraBuildArgs }}
 
-    - name: Build CLI packages (Windows)
+    - name: Build CLI packages (Unix)
       env:
         CI: false
       if: ${{ inputs.os != 'windows-latest' }}
