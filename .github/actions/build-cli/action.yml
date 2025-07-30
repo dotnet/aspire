@@ -48,7 +48,7 @@ runs:
         -ci
         -build
         -restore
-        -bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+        /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
         /p:ContinuousIntegrationBuild=true
         /p:SkipManagedBuild=true
         /p:TargetRids=${{ inputs.TargetRids }}
