@@ -143,6 +143,8 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
+        Logger.LogInformation($"Start index: {request.StartIndex}, count: {request.Count}, Result item count: {logs.TotalItemCount}");
+
         return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
