@@ -29,6 +29,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly IServiceProvider _serviceProvider;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -40,8 +41,8 @@ internal sealed class RunCommand : BaseCommand
         IConfiguration configuration,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier
-        )
+        ICliUpdateNotifier updateNotifier,
+        IServiceProvider serviceProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -60,6 +61,7 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
+        _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project");
@@ -110,7 +112,13 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var watch = parseResult.GetValue<bool>("--watch");
+            var startDebugSession = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
+                RunCommandStrings.PromptForDebugging,
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
+
+            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _) && !startDebugSession);
 
             if (!watch)
             {
@@ -120,13 +128,18 @@ internal sealed class RunCommand : BaseCommand
                     StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                if (buildExitCode != 0)
+                // The extension host will build the app host project itself, so we don't need to do it here if host exists.
+                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
+                    || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
+                    }
                 }
             }
 
@@ -141,6 +154,7 @@ internal sealed class RunCommand : BaseCommand
             {
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
+                StartDebugSession = startDebugSession
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
