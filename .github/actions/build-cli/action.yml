@@ -1,0 +1,58 @@
+---
+name: 'Build CLI archives'
+description: 'Build CLI archives'
+inputs:
+  targetRids:
+    description: 'Target RIDs'
+    required: true
+    type: object
+    default: ''
+  extraBuildArgs: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+    - name: Setup vars (Linux)
+      if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
+      run: |
+        echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+        echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+        echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
+
+    - name: Setup vars (Windows)
+      if: ${{ inputs.os == 'windows-latest' }}
+      run: |
+        echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+        echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+        echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
+
+    - name: Build CLI packages
+      env:
+        CI: false
+      run: >
+        ${{ env.BUILD_SCRIPT }}
+        --ci
+        --build
+        --restore
+        -bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+        /p:ContinuousIntegrationBuild=true
+        /p:SkipManagedBuild=true
+        /p:TargetRids=${{ join(':', inputs.targetRids) }}
+        ${{ inputs.extraBuildArgs }}
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+      with:
+        name: build-cli-logs
+        path: artifacts/log/**
+
+    - name: Upload CLI archives
+      if: always()
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+      with:
+        name: build-cli-archives-${{ join('_', inputs.targetRids) }}
+        path: artifacts/packages

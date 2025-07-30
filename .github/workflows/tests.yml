@@ -36,6 +36,12 @@ jobs:
           includeIntegrations: true
           includeTemplates: true
 
+      - uses: ./.github/actions/build-cli
+        id: build_cli
+        with:
+          targetRids:
+            linux-x64
+
   setup_for_tests_macos:
     name: Setup for tests (macOS)
     if: ${{ github.repository_owner == 'dotnet' }}
@@ -52,6 +58,12 @@ jobs:
           includeIntegrations: true
           includeTemplates: true
 
+      - uses: ./.github/actions/build-cli
+        id: build_cli
+        with:
+          targetRids:
+            macos-arm64
+
   setup_for_tests_win:
     name: Setup for tests (Windows)
     if: ${{ github.repository_owner == 'dotnet' }}
@@ -67,6 +79,12 @@ jobs:
         with:
           includeIntegrations: true
           includeTemplates: true
+
+      - uses: ./.github/actions/build-cli
+        id: build_cli
+        with:
+          targetRids:
+            win-x64
 
   build_packages:
     name: Build packages
