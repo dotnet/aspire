@@ -68,6 +68,7 @@ jobs:
           includeIntegrations: true
           includeTemplates: true
 
+  # Build CLI native archives
   build_cli_archives:
     runs-on: ${{ matrix.targets.os }}
     strategy:
@@ -75,9 +76,53 @@ jobs:
         targets: [{os: ubuntu-latest, rids: linux-x64}, {os: windows-latest, rids: win-x64}, {os: macos-latest, rids: osx-arm64}]
 
     steps:
-      - uses: ./.github/actions/build-cli
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Build CLI packages (Windows)
+        env:
+          CI: false
+        if: ${{ matrix.targets.os == 'windows-latest' }}
+        shell: pwsh
+        run: >
+          .\build.cmd
+          -ci
+          -build
+          -restore
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:SkipManagedBuild=true
+          /p:TargetRids=${{ inputs.TargetRids }}
+          ${{ inputs.extraBuildArgs }}
+
+      - name: Build CLI packages (Unix)
+        env:
+          CI: false
+        if: ${{ matrix.targets.os != 'windows-latest' }}
+        shell: bash
+        run: >
+          ./build.sh
+          --ci
+          --build
+          --restore
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
+          /p:ContinuousIntegrationBuild=true
+          /p:SkipManagedBuild=true
+          /p:TargetRids=${{ matrix.targets.rids }}
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
         with:
-          targetRids: ${{ matrix.targets.rids }}
+          name: build-cli-logs-${{ runner.os }}
+          path: artifacts/log/**
+
+      - name: Upload CLI archives
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        with:
+          name: cli-native-archives-${{ inputs.targetRids }}
+          path: artifacts/packages/**/aspire-cli*
 
   build_packages:
     name: Build packages
