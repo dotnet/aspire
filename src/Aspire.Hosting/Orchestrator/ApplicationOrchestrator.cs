@@ -398,14 +398,34 @@ internal sealed class ApplicationOrchestrator
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
-        await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
+        Exception? dcpExecutionException = null;
+        
+        try
+        {
+            await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Capture the exception but continue to fire the AfterResourcesCreatedEvent
+            // to ensure consistent behavior regardless of WaitFor dependencies
+            dcpExecutionException = ex;
+        }
 
+        // Always fire the AfterResourcesCreatedEvent to ensure consistent behavior
+        // This event represents that the application model resources have been processed,
+        // not that they have successfully started
         var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
         await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {
             await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Re-throw the exception after firing the event to maintain existing error handling behavior
+        if (dcpExecutionException is not null)
+        {
+            throw dcpExecutionException;
         }
     }
 

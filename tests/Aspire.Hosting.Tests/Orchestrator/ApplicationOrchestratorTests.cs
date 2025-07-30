@@ -436,6 +436,72 @@ public class ApplicationOrchestratorTests
         Assert.True(isSensitive);
     }
 
+    [Fact]
+    public async Task AfterResourcesCreatedEvent_FiresConsistently_EvenWhenDcpExecutorThrows()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("database", "image");
+        
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var applicationEventing = new DistributedApplicationEventing();
+        
+        var eventFired = false;
+        applicationEventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+        {
+            eventFired = true;
+            return Task.CompletedTask;
+        });
+
+        // Use a DCP executor that throws an exception to simulate Docker unavailability
+        var throwingDcpExecutor = new ThrowingTestDcpExecutor();
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var resourceLoggerService = new ResourceLoggerService();
+
+        var appOrchestrator = new ApplicationOrchestrator(
+            distributedAppModel,
+            throwingDcpExecutor,
+            events,
+            [],
+            resourceNotificationService,
+            resourceLoggerService,
+            applicationEventing,
+            serviceProvider,
+            new DistributedApplicationExecutionContext(
+                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider }),
+            new ParameterProcessor(
+                resourceNotificationService,
+                resourceLoggerService,
+                CreateInteractionService(),
+                NullLogger<ParameterProcessor>.Instance,
+                new DistributedApplicationOptions())
+        );
+
+        // The DCP executor will throw an exception, but the AfterResourcesCreatedEvent should still fire
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => appOrchestrator.RunApplicationAsync());
+        Assert.Equal("Simulated Docker unavailability", exception.Message);
+        
+        // Despite the exception, the event should have fired
+        Assert.True(eventFired, "AfterResourcesCreatedEvent should fire even when DcpExecutor throws an exception");
+    }
+
+    private sealed class ThrowingTestDcpExecutor : IDcpExecutor
+    {
+        public IResourceReference GetResource(string resourceName) => throw new NotImplementedException();
+
+        public Task RunApplicationAsync(CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Simulated Docker unavailability");
+
+        public Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
     private static ApplicationOrchestrator CreateOrchestrator(
         DistributedApplicationModel distributedAppModel,
         ResourceNotificationService notificationService,
