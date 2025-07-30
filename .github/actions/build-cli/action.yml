@@ -29,6 +29,7 @@ runs:
       run: |
         echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
         echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+        echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
     - name: Setup vars (Windows)
       shell: bash
@@ -36,18 +37,21 @@ runs:
       run: |
         echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
         echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+        echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
 
     - name: Build CLI packages
       env:
         CI: false
       shell: pwsh
       run: >
-        dotnet build
-        -restore
+        ./eng/build.ps1
+        --ci
+        --build
+        --restore
         -bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
         /p:ContinuousIntegrationBuild=true
         /p:SkipManagedBuild=true
-        /p:TargetRids=${{ inputs.targetRids }}
+        /p:TargetRids=${{ inputs.TargetRids }}
         ${{ inputs.extraBuildArgs }}
 
     - name: Upload logs
