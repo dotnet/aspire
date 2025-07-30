@@ -158,11 +158,6 @@
     color: var(--neutral-foreground-rest);
 }
 
-::deep .span-row-error,
-::deep .span-row-error fluent-button[appearance=lightweight]:not(:hover)::part(control) {
-    background-color: var(--log-error);
-}
-
 ::deep .pane-details-title {
     text-overflow: ellipsis;
     white-space: nowrap;
