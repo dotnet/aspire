@@ -8,10 +8,21 @@ using Microsoft.FluentUI.AspNetCore.Components;
 internal static class ResourceIconHelpers
 {
     /// <summary>
-    /// Maps a resource to a default icon.
+    /// Maps a resource to an icon, checking for custom icons first, then falling back to default icons.
     /// </summary>
     public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize)
     {
+        // Check if the resource has a custom icon specified
+        if (!string.IsNullOrWhiteSpace(resource.IconName))
+        {
+            var customIcon = IconResolver.ResolveIconName(resource.IconName, desiredSize, resource.IconVariant ?? IconVariant.Filled);
+            if (customIcon != null)
+            {
+                return customIcon;
+            }
+        }
+
+        // Fall back to default icons based on resource type
         var icon = resource.ResourceType switch
         {
             KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),

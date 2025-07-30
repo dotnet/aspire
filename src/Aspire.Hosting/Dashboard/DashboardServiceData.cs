@@ -39,6 +39,9 @@ internal sealed class DashboardServiceData : IDisposable
         {
             static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, string resourceId, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
             {
+                // Extract icon information from resource annotations
+                var iconAnnotation = resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
+                
                 return new GenericResourceSnapshot(snapshot)
                 {
                     Uid = resourceId,
@@ -57,7 +60,9 @@ internal sealed class DashboardServiceData : IDisposable
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands,
                     IsHidden = snapshot.IsHidden,
-                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
+                    IconName = iconAnnotation?.IconName,
+                    IconVariant = iconAnnotation?.IconVariant
                 };
             }
 

@@ -43,6 +43,8 @@ public sealed class ResourceViewModel
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
     public bool SupportsDetailedTelemetry { get; init; }
+    public string? IconName { get; init; }
+    public Microsoft.FluentUI.AspNetCore.Components.IconVariant? IconVariant { get; init; }
 
     /// <summary>
     /// Gets the cached addresses for this resource that can be used for peer matching.

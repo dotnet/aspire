@@ -22,6 +22,16 @@ partial class Resource
             SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
         };
 
+        if (snapshot.IconName is not null)
+        {
+            resource.IconName = snapshot.IconName;
+        }
+
+        if (snapshot.IconVariant is not null)
+        {
+            resource.IconVariant = MapIconVariant(snapshot.IconVariant);
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
