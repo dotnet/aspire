@@ -471,8 +471,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        // We still need to add the no selection option if there are no resources, as otherwise
-        // the dropdown will not have any options to select.
+        // If there is one resource then it is automatically selected. Remove None button so there is no way to unselect.
+        // If there are multiple resources, or zero, then none is the default so add it.
         if (builder.Count != 1)
         {
             builder.Insert(0, noSelectionViewModel);
