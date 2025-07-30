@@ -26,7 +26,7 @@ runs:
     - name: Build CLI packages (Windows)
       env:
         CI: false
-      if: ${{ inputs.os == 'windows-latest' }}
+      if: ${{ runner.os == 'Windows' }}
       shell: pwsh
       run: >
         .\build.cmd
@@ -42,7 +42,7 @@ runs:
     - name: Build CLI packages (Unix)
       env:
         CI: false
-      if: ${{ inputs.os != 'windows-latest' }}
+      if: ${{ runner.os != 'Windows' }}
       shell: bash
       run: >
         ./build.sh
