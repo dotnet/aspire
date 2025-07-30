@@ -19,6 +19,7 @@ runs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
     - name: Setup vars (Linux)
+      shell: pwsh
       if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
       run: |
         echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
@@ -26,6 +27,7 @@ runs:
         echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
     - name: Setup vars (Windows)
+      shell: bash
       if: ${{ inputs.os == 'windows-latest' }}
       run: |
         echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
