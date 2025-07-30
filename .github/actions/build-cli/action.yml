@@ -7,7 +7,10 @@ inputs:
     required: true
     type: object
     default: ''
-  extraBuildArgs: ''
+  extraBuildArgs:
+    required: false
+    type: string
+    default: ''
 
 runs:
   using: "composite"
@@ -32,6 +35,10 @@ runs:
     - name: Build CLI packages
       env:
         CI: false
+      ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}:
+        shell: bash
+      ${{ inputs.os == 'windows-latest' }}:
+        shell: pwsh
       run: >
         ${{ env.BUILD_SCRIPT }}
         --ci
