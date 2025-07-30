@@ -136,14 +136,14 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             message.Close();
         }
 
+        Logger.LogTrace("Log data updated. Start index: {RequestStartIndex}, count: {RequestCount}, result item count: {ResultTotalItemCount}", request.StartIndex, request.Count, logs.TotalItemCount);
+
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to explicitly update and refresh the control.
         _totalItemsCount = logs.TotalItemCount;
         _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
-
-        Logger.LogInformation($"Start index: {request.StartIndex}, count: {request.Count}, Result item count: {logs.TotalItemCount}");
 
         return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
