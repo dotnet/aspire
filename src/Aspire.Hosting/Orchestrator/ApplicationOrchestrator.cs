@@ -398,34 +398,16 @@ internal sealed class ApplicationOrchestrator
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
-        Exception? dcpExecutionException = null;
-        
-        try
-        {
-            await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            // Capture the exception but continue to fire the AfterResourcesCreatedEvent
-            // to ensure consistent behavior regardless of WaitFor dependencies
-            dcpExecutionException = ex;
-        }
+        await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
 
-        // Always fire the AfterResourcesCreatedEvent to ensure consistent behavior
-        // This event represents that the application model resources have been processed,
-        // not that they have successfully started
+#pragma warning disable CS0618 // Type or member is obsolete
         var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
         await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {
             await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Re-throw the exception after firing the event to maintain existing error handling behavior
-        if (dcpExecutionException is not null)
-        {
-            throw dcpExecutionException;
         }
     }
 
