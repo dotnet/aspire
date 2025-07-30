@@ -3,17 +3,20 @@
 
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace Aspire.Cli.Tests.TestServices;
 
-internal sealed class TestExtensionInteractionService : IExtensionInteractionService
+internal sealed class TestExtensionInteractionService(IServiceProvider serviceProvider) : IExtensionInteractionService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Action? LaunchAppHostCallback { get; set; }
+
+    public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {

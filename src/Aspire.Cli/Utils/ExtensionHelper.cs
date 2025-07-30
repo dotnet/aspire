@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Utils;
 
@@ -14,18 +13,18 @@ internal class ExtensionHelper
     public const string CSharpCapability = "csharp";
 
     public static bool IsExtensionHost(
-        IServiceProvider serviceProvider,
-        [NotNullWhen(true)] out IExtensionInteractionService? interactionService,
+        IInteractionService interactionService,
+        [NotNullWhen(true)] out IExtensionInteractionService? extensionInteractionService,
         [NotNullWhen(true)] out IExtensionBackchannel? extensionBackchannel)
     {
-        if (serviceProvider.GetRequiredService<IInteractionService>() is IExtensionInteractionService extensionInteractionService)
+        if (interactionService is IExtensionInteractionService eis)
         {
-            interactionService = extensionInteractionService;
-            extensionBackchannel = serviceProvider.GetRequiredService<IExtensionBackchannel>();
+            extensionInteractionService = eis;
+            extensionBackchannel = eis.Backchannel;
             return true;
         }
 
-        interactionService = null;
+        extensionInteractionService = null;
         extensionBackchannel = null;
         return false;
     }

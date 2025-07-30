@@ -67,6 +67,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
+        services.AddSingleton(options.ExtensionRpcTargetFactory);
+        services.AddTransient(options.ExtensionBackchannelFactory);
         services.AddSingleton(options.InteractionServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
@@ -78,7 +80,6 @@ internal static class CliTestHelper
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
-        services.AddSingleton(options.ExtensionRpcTargetFactory);
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
@@ -89,7 +90,6 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
-        services.AddTransient(options.ExtensionBackchannelFactory);
 
         return services;
     }
@@ -205,7 +205,9 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration);
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, interactionService);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -43,7 +44,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool StartDebugSession { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IInteractionService interactionService) : IDotNetCliRunner
 {
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
@@ -450,9 +451,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null
             && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(serviceProvider, out var interactionService, out _))
+            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
         {
-            await interactionService.LaunchAppHostAsync(
+            await extensionInteractionService.LaunchAppHostAsync(
                 projectFile.FullName,
                 startInfo.WorkingDirectory,
                 startInfo.ArgumentList.ToList(),

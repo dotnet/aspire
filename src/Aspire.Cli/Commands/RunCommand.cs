@@ -112,13 +112,13 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var startDebugSession = ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
+            var startDebugSession = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
                 RunCommandStrings.PromptForDebugging,
                 [TemplatingStrings.Yes, TemplatingStrings.No],
                 c => c,
                 cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
 
-            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out _) && !startDebugSession);
+            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _) && !startDebugSession);
 
             if (!watch)
             {
@@ -129,7 +129,7 @@ internal sealed class RunCommand : BaseCommand
                 };
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                if (!ExtensionHelper.IsExtensionHost(_serviceProvider, out _, out extensionBackchannel)
+                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
                     var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);

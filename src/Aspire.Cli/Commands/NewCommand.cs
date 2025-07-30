@@ -116,7 +116,7 @@ internal sealed class NewCommand : BaseCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null && _interactionService is IExtensionInteractionService extensionInteractionService)
+        if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenNewProject(templateResult.OutputPath);
         }

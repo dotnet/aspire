@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -24,6 +25,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions()
         {
@@ -35,6 +37,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -67,6 +70,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -75,6 +79,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -109,6 +114,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -117,6 +123,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -141,6 +148,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -149,6 +157,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -182,6 +191,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -190,6 +200,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
@@ -226,6 +237,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -234,6 +246,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -272,6 +285,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -280,6 +294,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
+            interactionService,
             (args, _, _, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
@@ -310,9 +325,9 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var launchAppHostCalledTcs = new TaskCompletionSource();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestExtensionInteractionService
+            options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp)
             {
-                LaunchAppHostCallback = () => launchAppHostCalledTcs.SetResult()
+                LaunchAppHostCallback = () => launchAppHostCalledTcs.SetResult(),
             };
             options.ConfigurationCallback = configBuilder =>
             {
@@ -327,12 +342,14 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var runner = new DotNetCliRunner(
             logger,
             provider,
             new AspireCliTelemetry(),
-            provider.GetRequiredService<IConfiguration>()
+            provider.GetRequiredService<IConfiguration>(),
+            interactionService
         );
 
         var exitCode = await runner.ExecuteAsync(
@@ -355,9 +372,10 @@ internal sealed class AssertingDotNetCliRunner(
     IServiceProvider serviceProvider,
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
+    IInteractionService interactionService,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, interactionService)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
