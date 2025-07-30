@@ -56,7 +56,7 @@ jobs:
         id: build_cli
         with:
           targetRids:
-            macos-arm64
+            osx-arm64
 
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
