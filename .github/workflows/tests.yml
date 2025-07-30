@@ -123,6 +123,8 @@ jobs:
         with:
           name: cli-native-archives-${{ matrix.targets.rids }}
           path: artifacts/packages/**/aspire-cli*
+          retention-days: 15
+          if-no-files-found: error
 
   build_packages:
     name: Build packages
