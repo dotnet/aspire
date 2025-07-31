@@ -572,11 +572,6 @@
         <target state="translated">세로 분할</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="translated">총: &lt;strong&gt;{0}개 결과 찾음&lt;/strong&gt;</target>
-        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
-      </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
         <target state="translated">탑재 유형</target>
