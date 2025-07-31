@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -37,7 +39,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
     private string _filter = string.Empty;
-    private readonly List<MenuButtonItem> _traceActionsMenuItems = new();
+    private readonly List<MenuButtonItem> _traceActionsMenuItems = [];
+    private AspirePageContentLayout? _layout;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -101,7 +104,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         UpdateTraceActionsMenu();
     }
-    
+
     private void UpdateTraceActionsMenu()
     {
         _traceActionsMenuItems.Clear();
@@ -210,7 +213,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
             _resourceCount = 0;
-            UpdateTraceActionsMenu(); // Update menu when no trace
+            UpdateTraceActionsMenu();
             return;
         }
 
@@ -245,8 +248,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         }
         _resourceCount = apps.Count;
-        
-        UpdateTraceActionsMenu(); // Update menu whenever view data changes
+
+        UpdateTraceActionsMenu();
     }
 
     private async Task HandleAfterFilterBindAsync()
@@ -333,6 +336,12 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         UpdateDetailViewData();
         UpdateTraceActionsMenu();
         await _dataGrid.SafeRefreshDataAsync();
+
+        await InvokeAsync(StateHasChanged);
+
+        // Close mobile toolbar if open, as the content has changed.
+        Debug.Assert(_layout is not null);
+        await _layout.CloseMobileToolbarAsync();
     }
 
     private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
