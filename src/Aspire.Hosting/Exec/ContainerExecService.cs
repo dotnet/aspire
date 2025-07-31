@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Logging;
@@ -138,7 +137,17 @@ public class ContainerExecService
             }
         }
 
-        // wait for the resource to complete execution
-        await runResourceTask.ConfigureAwait(false);
+        AppResource? containerExecEphemeralResource = null;
+        try
+        {
+            // wait for the resource to complete execution
+            containerExecEphemeralResource = await runResourceTask.ConfigureAwait(false);
+        }
+        finally
+        {
+            // we know that resource has completed, and we have collected logs of execution (see the loop above).
+            // it is an ephemeral resource, so we dont want to leave it hanging in the DCP side - we need to delete it immediately here.
+            _dcpExecutor.DeleteEphemeralResource(containerExecEphemeralResource);
+        }
     }
 }

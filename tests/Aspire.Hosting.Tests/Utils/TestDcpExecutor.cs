@@ -17,5 +17,6 @@ internal sealed class TestDcpExecutor : IDcpExecutor
 
     public Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public Task RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task<AppResource> RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public void DeleteEphemeralResource(AppResource? ephemeralResource) { }
 }

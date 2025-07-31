@@ -21,21 +21,19 @@ internal sealed class DcpResourceState(Dictionary<string, IResource> application
     public Dictionary<string, IResource> ApplicationModel { get; } = applicationModel;
     public List<AppResource> AppResources { get; } = appResources;
 
-    public void AddResource(AppResource appResource)
+    public void Remove(AppResource appResource)
+    {
+        ApplicationModel.Remove(appResource.ModelResource.Name);
+        AppResources.Remove(appResource);
+    }
+
+    public void Add(AppResource appResource)
     {
         var modelResource = appResource.ModelResource;
-        //var dcpResource = appResource.DcpResource;
-
         ApplicationModel.TryAdd(modelResource.Name, modelResource);
         if (!AppResources.Contains(appResource))
         {
             AppResources.Add(appResource);
         }
-
-        //_ = appResource.DcpResource switch
-        //{
-        //    Container c => ContainersMap.TryAdd(dcpResource.Name(), c),
-        //    _ => false
-        //};
     }
 }

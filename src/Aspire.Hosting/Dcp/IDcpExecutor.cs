@@ -13,5 +13,6 @@ internal interface IDcpExecutor
     Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken);
     Task StopResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken);
 
-    Task RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken);
+    Task<AppResource> RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken);
+    void DeleteEphemeralResource(AppResource? ephemeralResource);
 }

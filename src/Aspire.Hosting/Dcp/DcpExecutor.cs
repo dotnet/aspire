@@ -1883,7 +1883,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    public Task RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken)
+    public async Task<AppResource> RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken)
     {
         switch (ephemeralResource)
         {
@@ -1891,13 +1891,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 var appResource = PrepareContainerExecutableResource(containerExecutableResource);
 
-                // do we need to add to _resourceState or it will be added automatically while watching the k8s resource?
-                _resourceState.AddResource(appResource);
+                // we need to add it to the resource state manually, so that all infra monitoring works
+                _resourceState.Add(appResource);
 
-                return CreateContainerExecutablesAsync([appResource], cancellationToken);
+                await CreateContainerExecutablesAsync([appResource], cancellationToken).ConfigureAwait(false);
+                return appResource;
             }
 
             default: throw new InvalidOperationException($"Resource '{ephemeralResource.Name}' is not supported to run dynamically.");
+        }
+    }
+    public void DeleteEphemeralResource(AppResource? ephemeralResource)
+    {
+        if (ephemeralResource is null)
+        {
+            return;
+        }
+
+        if (ephemeralResource.ModelResource is ContainerExecutableResource)
+        {
+            _resourceState.Remove(ephemeralResource);
+            _appResources.Remove(ephemeralResource);
         }
     }
 

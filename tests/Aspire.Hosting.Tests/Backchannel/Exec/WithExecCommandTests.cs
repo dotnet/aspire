@@ -59,7 +59,7 @@ public class WithExecCommandTests : ExecTestsBase
     {
         TaskCompletionSource<bool> resourcesCreated = new();
 
-        using var app = builder.Build();
+        var app = builder.Build();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         var sub = eventing.Subscribe<AfterResourcesCreatedEvent>((afterResourcesCreatedEvent, token) =>
         {
