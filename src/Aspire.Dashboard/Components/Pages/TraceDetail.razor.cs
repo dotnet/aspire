@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -37,6 +39,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
     private string _filter = string.Empty;
+    private readonly List<MenuButtonItem> _traceActionsMenuItems = [];
+    private AspirePageContentLayout? _layout;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -97,6 +101,29 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             }));
         }
+
+        UpdateTraceActionsMenu();
+    }
+
+    private void UpdateTraceActionsMenu()
+    {
+        _traceActionsMenuItems.Clear();
+
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = ControlStringsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
+            Icon = new Icons.Regular.Size16.ArrowExpandAll(),
+            OnClick = ExpandAllSpansAsync,
+            IsDisabled = !HasCollapsedSpans()
+        });
+
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = ControlStringsLoc[nameof(ControlsStrings.CollapseAllSpansText)],
+            Icon = new Icons.Regular.Size16.ArrowCollapseAll(),
+            OnClick = CollapseAllSpansAsync,
+            IsDisabled = !HasExpandedSpans()
+        });
     }
 
     // Internal to be used in unit tests
@@ -186,6 +213,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             _spanWaterfallViewModels = null;
             _maxDepth = 0;
             _resourceCount = 0;
+            UpdateTraceActionsMenu();
             return;
         }
 
@@ -220,6 +248,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         }
         _resourceCount = apps.Count;
+
+        UpdateTraceActionsMenu();
     }
 
     private async Task HandleAfterFilterBindAsync()
@@ -282,21 +312,36 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private async Task OnToggleCollapse(SpanWaterfallViewModel viewModel)
     {
+        SetSpanCollapsedState(viewModel, !viewModel.IsCollapsed);
+        await RefreshSpanViewAsync();
+    }
+
+    private void SetSpanCollapsedState(SpanWaterfallViewModel viewModel, bool isCollapsed)
+    {
         // View model data is recreated if the trace updates.
         // Persist the collapsed state in a separate list.
-        if (viewModel.IsCollapsed)
+        viewModel.IsCollapsed = isCollapsed;
+        if (isCollapsed)
         {
-            viewModel.IsCollapsed = false;
-            _collapsedSpanIds.Remove(viewModel.Span.SpanId);
+            _collapsedSpanIds.Add(viewModel.Span.SpanId);
         }
         else
         {
-            viewModel.IsCollapsed = true;
-            _collapsedSpanIds.Add(viewModel.Span.SpanId);
+            _collapsedSpanIds.Remove(viewModel.Span.SpanId);
         }
+    }
 
+    private async Task RefreshSpanViewAsync()
+    {
         UpdateDetailViewData();
+        UpdateTraceActionsMenu();
         await _dataGrid.SafeRefreshDataAsync();
+
+        await InvokeAsync(StateHasChanged);
+
+        // Close mobile toolbar if open, as the content has changed.
+        Debug.Assert(_layout is not null);
+        await _layout.CloseMobileToolbarAsync();
     }
 
     private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
@@ -362,6 +407,62 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         _elementIdBeforeDetailsViewOpened = null;
+    }
+
+    private bool HasCollapsedSpans()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return false;
+        }
+
+        return _spanWaterfallViewModels.Any(vm => vm.IsCollapsed);
+    }
+
+    private bool HasExpandedSpans()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return false;
+        }
+
+        return _spanWaterfallViewModels.Any(vm => !vm.IsCollapsed && vm.Children.Count > 0);
+    }
+
+    private async Task CollapseAllSpansAsync()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return;
+        }
+
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
+            {
+                SetSpanCollapsedState(viewModel, true);
+            }
+        }
+
+        await RefreshSpanViewAsync();
+    }
+
+    private async Task ExpandAllSpansAsync()
+    {
+        if (_spanWaterfallViewModels is null)
+        {
+            return;
+        }
+
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (viewModel.IsCollapsed)
+            {
+                SetSpanCollapsedState(viewModel, false);
+            }
+        }
+
+        await RefreshSpanViewAsync();
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
