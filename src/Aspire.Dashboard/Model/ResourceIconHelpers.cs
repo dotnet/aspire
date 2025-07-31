@@ -16,12 +16,12 @@ internal static class ResourceIconHelpers
     {
         var icon = resource.ResourceType switch
         {
-            KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
+            KnownResourceTypes.Executable => IconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
             KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
             KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
-            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, desiredVariant),
+            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
             KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
-            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("CloudArrowUp", desiredSize, desiredVariant),
+            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("GlobeArrowForward", desiredSize, desiredVariant),
             string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, desiredVariant),
             _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
         };
