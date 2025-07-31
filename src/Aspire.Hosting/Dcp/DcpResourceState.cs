@@ -4,8 +4,6 @@
 using System.Collections.Concurrent;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
-//using System.Collections.Generic;
-//using k8s.Models;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -25,6 +23,12 @@ internal sealed class DcpResourceState(Dictionary<string, IResource> application
     {
         ApplicationModel.Remove(appResource.ModelResource.Name);
         AppResources.Remove(appResource);
+
+        _ = appResource.DcpResource switch
+        {
+            ContainerExec c => ContainerExecsMap.TryRemove(c.Metadata.Name, out _),
+            _ => false
+        };
     }
 
     public void Add(AppResource appResource)
