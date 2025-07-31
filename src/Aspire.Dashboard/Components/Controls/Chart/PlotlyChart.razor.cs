@@ -153,9 +153,22 @@ public partial class PlotlyChart : ChartBase
 
         foreach (var exemplar in exemplarGroups.SelectMany(g => g.Value))
         {
-            var title = exemplar.Span != null
-                ? SpanWaterfallViewModel.GetTitle(exemplar.Span, Applications)
-                : $"{Loc[nameof(ControlsStrings.PlotlyChartTrace)]}: {OtlpHelpers.ToShortenedId(exemplar.TraceId)}";
+            string title;
+            if (exemplar.Span != null)
+            {
+                title = SpanWaterfallViewModel.GetTitle(exemplar.Span, Applications);
+            }
+            else if (!string.IsNullOrEmpty(exemplar.TraceId))
+            {
+                // Exemplar has trace information but isn't matched to a span in the system.
+                title = $"{Loc[nameof(ControlsStrings.PlotlyChartTrace)]}: {OtlpHelpers.ToShortenedId(exemplar.TraceId)}";
+            }
+            else
+            {
+                // Exemplar has no span information. Use generic title.
+                title = Loc[nameof(ControlsStrings.PlotlyChartExemplar)];
+            }
+
             var tooltip = FormatTooltip(title, exemplar.Value, exemplar.Start);
 
             exemplarTraceDto.X.Add(exemplar.Start);

@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Stress.ApiService;
 
@@ -23,7 +24,12 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName)
         .AddSource("Services.Api"))
-    .WithMetrics(metrics => metrics.AddMeter(TestMetrics.MeterName));
+    .WithMetrics(metrics =>
+    {
+        metrics.AddMeter(TestMetrics.MeterName);
+        metrics.SetExemplarFilter(ExemplarFilterType.AlwaysOn);
+
+    });
 builder.Services.AddSingleton<TestMetrics>();
 
 var app = builder.Build();
@@ -61,6 +67,18 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
     metrics.IncrementCounter(3, default);
 
     return "Counter incremented";
+});
+
+app.MapGet("/exemplars-no-span", (TestMetrics metrics) =>
+{
+    var activity = Activity.Current;
+    Activity.Current = null;
+
+    metrics.RecordHistogram(Random.Shared.NextDouble(), new TagList());
+
+    Activity.Current = activity;
+
+    return "Exemplar recorded";
 });
 
 app.MapGet("/overflow-counter", (TestMetrics metrics) =>
