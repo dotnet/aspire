@@ -1,0 +1,9 @@
+﻿@using Aspire.Dashboard.Utils
+
+@* Do this to trim significant whitespace so there isn't a space added between icon and text *@
+@{
+    <FluentIcon Value="@_stateViewModel.Icon"
+                Color="@_stateViewModel.Color"
+                Class="severity-icon" />
+}
+<FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />

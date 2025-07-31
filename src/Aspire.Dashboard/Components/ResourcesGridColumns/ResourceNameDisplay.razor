@@ -7,16 +7,17 @@
 @inject IStringLocalizer<Columns> Loc
 
 <span class="resource-name-container">
-    <FluentIcon Width="16px"
-                Class="resource-icon"
-                Color="Color.Custom"
-                CustomColor="@ColorGenerator.Instance.GetColorHexByKey(FormatName(Resource))"
-                Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
-
-    <span class="resource-name-text">
-        <FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" />
-    </span>
-
+    @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
+    @{
+        <FluentIcon Width="16px"
+                    Class="resource-icon"
+                    Color="Color.Custom"
+                    CustomColor="@ColorGenerator.Instance.GetColorHexByKey(FormatName(Resource))"
+                    Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
+    }
+    @{
+        <span class="resource-name-text"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+    }
     @if (Resource.Properties.TryGetValue(KnownProperties.Container.Lifetime, out var value) &&
         value.Value.HasStringValue &&
         StringComparer.Ordinal.Equals(value.Value.StringValue, KnownContainerLifetimes.Persistent))
