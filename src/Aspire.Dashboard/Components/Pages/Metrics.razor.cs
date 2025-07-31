@@ -190,7 +190,6 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         else
         {
             PageViewModel.SelectedApplication = _applicationViewModels.Single();
-            NavigationManager.NavigateTo(GetUrlFromSerializableViewModel(ConvertViewModelToSerializable()));
         }
 
         UpdateSubscription();

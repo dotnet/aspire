@@ -519,12 +519,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private void UpdateResourcesList()
     {
         _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
+
         if (optionToSelect is not null)
         {
             Debug.Assert(optionToSelect.Id?.InstanceId is not null);
             PageViewModel.SelectedOption = optionToSelect;
             PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
-            NavigationManager.NavigateTo(GetUrlFromSerializableViewModel(ConvertViewModelToSerializable()));
         }
     }
 
