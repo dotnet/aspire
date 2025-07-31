@@ -11,8 +11,8 @@ public partial class ResourceNameValue
     [Parameter, EditorRequired]
     public required string Value { get; set; }
 
-    [Parameter, EditorRequired]
-    public required string HighlightText { get; set; }
+    [Parameter]
+    public string? HighlightText { get; set; }
 
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
