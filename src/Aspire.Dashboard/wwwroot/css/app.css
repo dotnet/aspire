@@ -77,6 +77,7 @@ fluent-toolbar::part(end) {
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
     --layout-left-padding: calc(var(--design-unit) * 4.5px);
     --layout-right-padding: calc(var(--design-unit) * 2px);
+    --inline-icon-margin: 5px;
     /*
         --neutral-layer-2 is the background for the body of most of the site so
         we can default the datagrid hover color to that and just override it as
@@ -324,6 +325,14 @@ td .long-inner-content {
     flex-grow: 0;
 }
 
+.button-hyperlink::part(control), .button-hyperlink-no-icon::part(control) {
+    padding: 0;
+}
+
+.button-hyperlink::part(start) {
+    margin-inline-end: var(--inline-icon-margin);
+}
+
 .ellipsis-overflow {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -360,12 +369,12 @@ td .long-inner-content {
 
 .severity-icon {
     vertical-align: text-bottom;
-    margin-right: 3px;
+    margin-right: var(--inline-icon-margin);
 }
 
 .persistent-container-icon {
     vertical-align: text-bottom;
-    margin-left: 4px;
+    margin-left: var(--inline-icon-margin);
 }
 
 .align-text-bottom {
@@ -821,7 +830,7 @@ fluent-tooltip[anchor="dialog_close"] > div {
 
 .resource-icon {
     vertical-align: text-bottom;
-    margin-right: 3px;
+    margin-right: var(--inline-icon-margin);
 }
 
 .aspire-menu-container > fluent-menu > fluent-menu-item::part(content) {

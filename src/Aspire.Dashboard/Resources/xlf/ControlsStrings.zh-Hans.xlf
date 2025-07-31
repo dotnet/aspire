@@ -582,11 +582,6 @@
         <target state="translated">垂直拆分</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="translated">总计: &lt;strong&gt;&lt;/strong&gt;找到 {0} 个结果</target>
-        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
-      </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
         <target state="translated">装载类型</target>

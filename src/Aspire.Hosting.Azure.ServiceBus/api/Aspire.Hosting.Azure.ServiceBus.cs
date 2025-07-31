@@ -126,6 +126,8 @@ namespace Aspire.Hosting.Azure
 
         public bool IsEmulator { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public BicepOutputReference ServiceBusEndpoint { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }

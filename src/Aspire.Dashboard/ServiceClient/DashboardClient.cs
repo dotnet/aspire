@@ -550,6 +550,16 @@ internal sealed class DashboardClient : IDashboardClient
             ?? "Aspire";
     }
 
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        EnsureInitialized();
+        if (_resourceByName.TryGetValue(resourceName, out var resource))
+        {
+            return resource;
+        }
+        return null;
+    }
+
     public async Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         EnsureInitialized();

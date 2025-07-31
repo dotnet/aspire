@@ -9,8 +9,10 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -40,9 +42,10 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public Action<string>? StandardErrorCallback { get; set; }
 
     public bool NoLaunchProfile { get; set; }
+    public bool StartDebugSession { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService) : IDotNetCliRunner
 {
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
@@ -169,10 +172,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var exitCode = await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: projectFile,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: null,
             options: options,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         var stdout = stdoutBuilder.ToString();
         var stderr = stderrBuilder.ToString();
@@ -226,6 +230,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
+            projectFile: projectFile,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
             options: options,
@@ -240,6 +245,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -254,6 +260,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -299,6 +306,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 // See NOTE: below
                 [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
             },
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -384,6 +392,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -405,7 +414,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return socketPath;
     }
 
-    public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -453,6 +462,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
+
+        if (backchannelCompletionSource is not null
+            && projectFile is not null
+            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+        {
+            await extensionInteractionService.LaunchAppHostAsync(
+                projectFile.FullName,
+                startInfo.WorkingDirectory,
+                startInfo.ArgumentList.ToList(),
+                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                options.StartDebugSession);
+
+            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+            return ExitCodeConstants.Success;
+        }
 
         var process = new Process { StartInfo = startInfo };
 
@@ -534,7 +559,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
+    private async Task StartBackchannelAsync(Process? process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -554,10 +579,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
                 await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
+                backchannel.AddDisconnectHandler((_, _) =>
+                {
+                    // If the backchannel disconnects, we want to stop the CLI process
+                    Environment.Exit(ExitCodeConstants.Success);
+                });
+
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
             }
-            catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
+            catch (SocketException ex) when (process is not null && process.HasExited && process.ExitCode != 0)
             {
                 logger.LogError(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
                 var backchannelException = new FailedToConnectBackchannelConnection($"AppHost process has exited unexpectedly. Use --debug to see more details.", process, ex);
@@ -623,6 +654,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
+            projectFile: projectFilePath,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
@@ -655,6 +687,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var result = await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: projectFilePath,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
@@ -715,6 +748,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var result = await ExecuteAsync(
             args: cliArgs.ToArray(),
             env: null,
+            projectFile: null,
             workingDirectory: workingDirectory!,
             backchannelCompletionSource: null,
             options: options,

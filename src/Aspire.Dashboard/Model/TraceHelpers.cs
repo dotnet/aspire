@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Otlp.Model;
+using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model;
 
@@ -88,6 +90,60 @@ public static class TraceHelpers
             appFirstTimes.Add(
                 application,
                 new OrderedApplication(application, appFirstTimes.Count, currentMinDate, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
+        }
+    }
+
+    private static readonly Icon s_serverFilled = new Icons.Filled.Size16.Server();
+    private static readonly Icon s_serverRegular = new Icons.Regular.Size16.Server();
+
+    private static readonly Icon s_mailboxFilled = new Icons.Filled.Size16.Mailbox();
+    private static readonly Icon s_mailboxRegular = new Icons.Regular.Size16.Mailbox();
+
+    private static readonly Icon s_contentSettingsFilled = new Icons.Filled.Size16.ContentSettings();
+    private static readonly Icon s_contentSettingsRegular = new Icons.Regular.Size16.ContentSettings();
+
+    private static readonly Icon s_mailFilled = new Icons.Filled.Size16.Mail();
+    private static readonly Icon s_mailRegular = new Icons.Regular.Size16.Mail();
+
+    private static readonly Icon s_boxFilled = new Icons.Filled.Size16.Box();
+    private static readonly Icon s_boxRegular = new Icons.Regular.Size16.Box();
+
+    public static Icon? TryGetSpanIcon(OtlpSpan span, IconVariant iconVariant)
+    {
+        switch (span.Kind)
+        {
+            case OtlpSpanKind.Server:
+                return GetIcon(s_serverRegular, s_serverFilled, iconVariant);
+            case OtlpSpanKind.Consumer:
+                if (span.Attributes.HasKey("messaging.system"))
+                {
+                    return GetIcon(s_mailboxRegular, s_mailboxFilled, iconVariant);
+                }
+                else
+                {
+                    return GetIcon(s_contentSettingsRegular, s_contentSettingsFilled, iconVariant);
+                }
+            case OtlpSpanKind.Producer:
+                if (span.Attributes.HasKey("messaging.system"))
+                {
+                    return GetIcon(s_mailRegular, s_mailFilled, iconVariant);
+                }
+                else
+                {
+                    return GetIcon(s_boxRegular, s_boxFilled, iconVariant);
+                }
+            default:
+                return null;
+        }
+
+        static Icon GetIcon(Icon regular, Icon filled, IconVariant iconVariant)
+        {
+            return iconVariant switch
+            {
+                IconVariant.Filled => filled,
+                IconVariant.Regular => regular,
+                _ => throw new ArgumentOutOfRangeException(nameof(iconVariant), iconVariant, $"Unsupported icon variant: {iconVariant}")
+            };
         }
     }
 }
