@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
@@ -12,6 +12,38 @@ namespace Aspire.Dashboard.Tests.ConsoleLogsTests;
 
 public class CreateResourceSelectModelsTests
 {
+    [Fact]
+    public void GetViewModels_OneResource_OptionToSelectNotNull()
+    {
+        // Arrange
+        var applications = new List<ResourceViewModel>
+        {
+            ModelTestHelpers.CreateResource(appName: "App1", state: KnownResourceState.Running, displayName: "App1")
+        };
+
+        var resourcesByName = new ConcurrentDictionary<string, ResourceViewModel>(applications.ToDictionary(app => app.Name));
+
+        var unknownStateText = "unknown-state";
+        var selectAResourceText = "select-a-resource";
+        var noSelectionViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = selectAResourceText };
+
+        // Act
+        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText, false, out var optionToSelect);
+
+        // Assert
+        Assert.NotNull(optionToSelect);
+
+        Assert.Collection(viewModels,
+            entry =>
+            {
+                Assert.NotNull(entry.Id);
+                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal("App1", entry.Id.InstanceId);
+
+                Assert.Equal("App1", entry.Name);
+            });
+    }
+
     [Fact]
     public void GetViewModels_ReturnsRightReplicas()
     {
@@ -39,9 +71,12 @@ public class CreateResourceSelectModelsTests
         var noSelectionViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = selectAResourceText };
 
         // Act
-        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText, false);
+        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText, false, out var optionToSelect);
 
         // Assert
+
+        Assert.Null(optionToSelect);
+
         Assert.Collection(viewModels,
             entry =>
             {
