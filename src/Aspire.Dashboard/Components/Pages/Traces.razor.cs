@@ -224,6 +224,16 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
+    private static string GetRowClass(OtlpTrace entry)
+    {
+        if (entry.Spans.Any(span => span.Status == OtlpSpanStatusCode.Error))
+        {
+            return "trace-row-error";
+        }
+
+        return string.Empty;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)
