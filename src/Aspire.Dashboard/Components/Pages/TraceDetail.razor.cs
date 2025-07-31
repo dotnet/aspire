@@ -15,7 +15,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -147,26 +146,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         var headerSpan = _trace.RootOrFirstSpan;
         return $"{GetResourceName(headerSpan.Source)}: {headerSpan.Name}";
-    }
-
-    private static Icon GetSpanIcon(OtlpSpan span)
-    {
-        switch (span.Kind)
-        {
-            case OtlpSpanKind.Server:
-                return new Icons.Filled.Size16.Server();
-            case OtlpSpanKind.Consumer:
-                if (span.Attributes.HasKey("messaging.system"))
-                {
-                    return new Icons.Filled.Size16.Mailbox();
-                }
-                else
-                {
-                    return new Icons.Filled.Size16.ContentSettings();
-                }
-            default:
-                throw new InvalidOperationException($"Unsupported span kind when resolving icon: {span.Kind}");
-        }
     }
 
     protected override async Task OnParametersSetAsync()

@@ -152,7 +152,7 @@
                                                 <FluentIcon Class="span-kind-icon"
                                                             Color="Color.Custom"
                                                             CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                                            Value="@GetSpanIcon(context.Span)"/>
+                                                            Value="@TraceHelpers.TryGetSpanIcon(context.Span, IconVariant.Filled)"/>
                                             }
 
                                             @if (context.IsError)
