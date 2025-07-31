@@ -110,6 +110,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private IJSObjectReference? _jsModule;
     private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
+    private TotalItemsFooter _totalItemsFooter = default!;
+    private int _totalItemsCount;
 
     private AspireMenu? _contextMenu;
     private bool _contextMenuOpen;
@@ -419,6 +421,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             .Skip(request.StartIndex)
             .Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount)
             .ToList();
+
+        _totalItemsCount = orderedResources.Count;
+        _totalItemsFooter.UpdateDisplayedCount(query.Count);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
     }
