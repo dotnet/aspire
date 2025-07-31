@@ -19,7 +19,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
     ///
     /// Also awaits the app startup. It has to be built before running this method.
     /// </summary>
-    internal async Task<List<BackchannelCommandOutput>> ExecWithLogCollectionAsync(
+    internal async Task<List<CommandOutput>> ExecWithLogCollectionAsync(
         DistributedApplication app,
         int timeoutSec = 30)
     {
@@ -28,7 +28,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
         var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
 
-        var logs = new List<BackchannelCommandOutput>();
+        var logs = new List<CommandOutput>();
         var startTask = app.StartAsync(cts.Token);
         await foreach (var message in outputStream)
         {
@@ -58,7 +58,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         return logs;
     }
 
-    internal static void AssertLogsContain(List<BackchannelCommandOutput> logs, params string[] expectedLogMessages)
+    internal static void AssertLogsContain(List<CommandOutput> logs, params string[] expectedLogMessages)
     {
         if (expectedLogMessages.Length == 0)
         {

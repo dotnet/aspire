@@ -179,7 +179,7 @@ internal class AppHostRpcTarget(
         }
     }
 
-    public async IAsyncEnumerable<BackchannelCommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
         var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
