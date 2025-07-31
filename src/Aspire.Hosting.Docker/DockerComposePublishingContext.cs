@@ -90,6 +90,7 @@ internal sealed class DockerComposePublishingContext(
                 var composeService = serviceResource.BuildComposeService();
 
                 HandleComposeFileVolumes(serviceResource, composeFile);
+                HandleComposeFileBindMounts(serviceResource);
 
                 composeService.Networks =
                 [
@@ -256,6 +257,85 @@ internal sealed class DockerComposePublishingContext(
             };
 
             composeFile.AddVolume(newVolume);
+        }
+    }
+
+    private void HandleComposeFileBindMounts(DockerComposeServiceResource serviceResource)
+    {
+        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type == "bind"))
+        {
+            if (string.IsNullOrEmpty(volume.Source))
+            {
+                continue;
+            }
+
+            try
+            {
+                // Determine the destination path for copying the bind mount source
+                var serviceDir = Path.Combine(OutputPath, serviceResource.Name);
+                Directory.CreateDirectory(serviceDir);
+
+                string copiedSourcePath;
+                if (File.Exists(volume.Source))
+                {
+                    // Handle file bind mount
+                    var fileName = Path.GetFileName(volume.Source);
+                    copiedSourcePath = Path.Combine(serviceDir, fileName);
+                    File.Copy(volume.Source, copiedSourcePath, overwrite: true);
+                    
+                    // Update the volume source to use relative path
+                    // Use unix style path separators even on Windows for docker-compose compatibility
+                    volume.Source = Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
+                }
+                else if (Directory.Exists(volume.Source))
+                {
+                    // Handle directory bind mount
+                    var sourceDirName = Path.GetFileName(volume.Source.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                    if (string.IsNullOrEmpty(sourceDirName))
+                    {
+                        // If the source is a root path, use a generic folder name
+                        sourceDirName = "data";
+                    }
+                    
+                    copiedSourcePath = Path.Combine(serviceDir, sourceDirName);
+                    CopyDirectory(volume.Source, copiedSourcePath);
+                    
+                    // Update the volume source to use relative path
+                    // Use unix style path separators even on Windows for docker-compose compatibility
+                    volume.Source = Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
+                }
+                else
+                {
+                    logger.LogWarning("Bind mount source '{Source}' does not exist and will not be copied.", volume.Source);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to copy bind mount source '{Source}' to output folder.", volume.Source);
+                throw;
+            }
+        }
+    }
+
+    private static void CopyDirectory(string sourceDir, string destDir)
+    {
+        // Create destination directory if it doesn't exist
+        Directory.CreateDirectory(destDir);
+
+        // Copy all files
+        foreach (string file in Directory.GetFiles(sourceDir))
+        {
+            string fileName = Path.GetFileName(file);
+            string destFile = Path.Combine(destDir, fileName);
+            File.Copy(file, destFile, overwrite: true);
+        }
+
+        // Copy all subdirectories recursively
+        foreach (string subDir in Directory.GetDirectories(sourceDir))
+        {
+            string subDirName = Path.GetFileName(subDir);
+            string destSubDir = Path.Combine(destDir, subDirName);
+            CopyDirectory(subDir, destSubDir);
         }
     }
 }
