@@ -20,9 +20,15 @@
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
 
-  <Target Name="_SetVersionTextReplacementValue" BeforeTargets="GatherTextReplacementValues" DependsOnTargets="SetVersions" >
+  <Target Name="_SetVersionTextReplacementValue" BeforeTargets="GatherTextReplacementValues" >
+    <PropertyGroup>
+      <!-- Use VersionPrefix as the version for workload packaging, falling back to PackageVersion if it exists -->
+      <WorkloadPackageVersion Condition="'$(WorkloadPackageVersion)' == ''">$(VersionPrefix)</WorkloadPackageVersion>
+      <WorkloadPackageVersion Condition="'$(WorkloadPackageVersion)' == '' AND '$(PackageVersion)' != ''">$(PackageVersion)</WorkloadPackageVersion>
+      <WorkloadPackageVersion Condition="'$(WorkloadPackageVersion)' == ''">1.0.0</WorkloadPackageVersion>
+    </PropertyGroup>
     <ItemGroup>
-      <TextReplacementValue Include="VERSION" NewValue="$(PackageReferenceVersion)" />
+      <TextReplacementValue Include="VERSION" NewValue="$(WorkloadPackageVersion)" />
     </ItemGroup>
   </Target>
 
