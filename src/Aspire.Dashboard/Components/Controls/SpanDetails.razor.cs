@@ -140,6 +140,15 @@ public partial class SpanDetails : IDisposable
                     Type = typeof(SpanStatusValue),
                     Parameters = { ["Span"] = _viewModel.Span }
                 },
+                [KnownTraceFields.KindField] = new ComponentMetadata
+                {
+                    Type = typeof(SpanKindValue),
+                    Parameters = { ["Span"] = _viewModel.Span }
+                },
+                [KnownTraceFields.SpanIdField] = new ComponentMetadata
+                {
+                    Type = typeof(SpanIdValue)
+                },
             };
         }
     }

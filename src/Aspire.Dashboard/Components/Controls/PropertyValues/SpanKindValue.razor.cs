@@ -2,21 +2,27 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Model;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls.PropertyValues;
 
-public partial class ResourceNameValue
+public partial class SpanKindValue
 {
+    private Icon? _icon;
+
     [Parameter, EditorRequired]
     public required string Value { get; set; }
 
-    [Parameter]
-    public string? HighlightText { get; set; }
+    [Parameter, EditorRequired]
+    public required string HighlightText { get; set; }
 
     [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
+    public required OtlpSpan Span { get; set; }
 
-    [Parameter, EditorRequired]
-    public required Func<ResourceViewModel, string> FormatName { get; set; }
+    protected override void OnParametersSet()
+    {
+        _icon = TraceHelpers.TryGetSpanIcon(Span, IconVariant.Regular);
+    }
 }
