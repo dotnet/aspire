@@ -142,7 +142,7 @@ public static class TraceHelpers
             {
                 IconVariant.Filled => filled,
                 IconVariant.Regular => regular,
-                _ => throw new ArgumentOutOfRangeException(nameof(iconVariant), iconVariant, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(iconVariant), iconVariant, $"Unsupported icon variant: {iconVariant}")
             };
         }
     }
