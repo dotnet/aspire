@@ -364,7 +364,7 @@
       </trans-unit>
       <trans-unit id="ResourceActions">
         <source>Resource actions</source>
-        <target state="new">Resource actions</target>
+        <target state="translated">Akce prostředku</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
