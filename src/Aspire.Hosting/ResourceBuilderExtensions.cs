@@ -1545,15 +1545,15 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds an executable command to the resource builder with the specified name, display name, and command string.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="displayName"></param>
-    /// <param name="command"></param>
-    /// <param name="commandOptions"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder to which the command will be added.</param>
+    /// <param name="name">The unique name of the command.</param>
+    /// <param name="displayName">The display name of the command, shown in the dashboard.</param>
+    /// <param name="command">The command string to be executed.</param>
+    /// <param name="commandOptions">Optional settings for the command, such as description and icon.</param>
+    /// <returns>The resource builder, allowing for method chaining.</returns>
     public static IResourceBuilder<T> WithExecCommand<T>(
         this IResourceBuilder<T> builder,
         string name,

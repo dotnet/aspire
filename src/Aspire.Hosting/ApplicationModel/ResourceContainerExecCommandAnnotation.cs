@@ -12,7 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class ResourceContainerExecCommandAnnotation : ResourceCommandAnnotationBase
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ResourceCommandAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="ResourceContainerExecCommandAnnotation"/> class.
     /// </summary>
     public ResourceContainerExecCommandAnnotation(
         string name,
