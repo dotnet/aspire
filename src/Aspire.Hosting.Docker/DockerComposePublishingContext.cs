@@ -87,10 +87,11 @@ internal sealed class DockerComposePublishingContext(
                     containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
+                HandleComposeFileBindMounts(serviceResource);
+
                 var composeService = serviceResource.BuildComposeService();
 
                 HandleComposeFileVolumes(serviceResource, composeFile);
-                HandleComposeFileBindMounts(serviceResource);
 
                 composeService.Networks =
                 [
