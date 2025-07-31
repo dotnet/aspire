@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -629,7 +630,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
             BaseUrlWithLoginToken = "http://localhost:5000",
             CodespacesUrlWithLoginToken = null
         });
-        
+
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
@@ -648,6 +649,11 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         await Task.CompletedTask; // Suppress CS1998
         yield break;
     }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        // No-op for test implementation
+    }
 }
 
 // Data structures for tracking prompts
@@ -661,12 +667,12 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 {
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
-    
+
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
     public List<string> DisplayedErrors { get; } = [];
-    
+
     public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
     public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
     public void SetupBooleanResponse(bool response) => _responses.Enqueue((response.ToString().ToLower(), ResponseType.Boolean));
@@ -683,7 +689,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         StringPromptCalls.Add(new StringPromptCall(promptText, defaultValue, isSecret));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();
@@ -720,7 +726,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();

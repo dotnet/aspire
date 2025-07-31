@@ -167,7 +167,7 @@
 ::deep .span-overview-container {
     height: 24px;
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
 }
 
 ::deep .trace-header {

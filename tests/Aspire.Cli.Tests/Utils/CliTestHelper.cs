@@ -67,6 +67,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
+        services.AddSingleton(options.ExtensionRpcTargetFactory);
+        services.AddTransient(options.ExtensionBackchannelFactory);
         services.AddSingleton(options.InteractionServiceFactory);
         services.AddSingleton(options.CertificateServiceFactory);
         services.AddSingleton(options.NewCommandPrompterFactory);
@@ -204,7 +206,9 @@ internal sealed class CliServiceCollectionTestOptions
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features);
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -226,6 +230,20 @@ internal sealed class CliServiceCollectionTestOptions
         var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new AppHostBackchannel(logger, telemetry);
+    };
+
+    public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new ExtensionRpcTarget(configuration);
+    };
+
+    public Func<IServiceProvider, IExtensionBackchannel> ExtensionBackchannelFactory { get; set; } = serviceProvider =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ExtensionBackchannel>>();
+        var rpcTarget = serviceProvider.GetRequiredService<IExtensionRpcTarget>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new ExtensionBackchannel(logger, rpcTarget, configuration);
     };
 
     public Func<IServiceProvider, IFeatures> FeatureFlagsFactory { get; set; } = (IServiceProvider serviceProvider) =>

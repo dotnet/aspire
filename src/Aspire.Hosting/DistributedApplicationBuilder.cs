@@ -355,11 +355,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
-            // Devcontainers & Codespaces
+            // Devcontainers & Codespaces & SSH Remote
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
             _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
             _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
         }

@@ -441,7 +441,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
         string resourceUnknownStateText,
-        bool showHiddenResources)
+        bool showHiddenResources,
+        out SelectViewModel<ResourceTypeDetails>? optionToSelect)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
@@ -473,7 +474,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        builder.Insert(0, noSelectionViewModel);
+        // If there is one resource then it is automatically selected. Remove None button so there is no way to unselect.
+        // If there are multiple resources, or zero, then none is the default so add it.
+        if (builder.Count != 1)
+        {
+            builder.Insert(0, noSelectionViewModel);
+            optionToSelect = null;
+        }
+        else
+        {
+            optionToSelect = builder.Single();
+        }
+
         return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
@@ -507,7 +519,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
+    private void UpdateResourcesList()
+    {
+        _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
+
+        if (optionToSelect is not null)
+        {
+            Debug.Assert(optionToSelect.Id?.InstanceId is not null);
+            PageViewModel.SelectedOption = optionToSelect;
+            PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
+        }
+    }
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -787,6 +809,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             else if (TryGetSingleResource() is { } r)
             {
                 // If there is no app selected and there is only one application available, select it.
+                viewModel.SelectedOption = _resources.GetApplication(Logger, r.Name, canSelectGrouping: false, fallback: _noSelection);
                 viewModel.SelectedResource = r;
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }

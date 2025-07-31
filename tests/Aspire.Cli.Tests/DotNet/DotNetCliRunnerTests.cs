@@ -4,7 +4,9 @@
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions()
         {
@@ -36,7 +39,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
+            interactionService,
+            (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
 
@@ -68,6 +72,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -77,7 +82,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) => 
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -111,6 +117,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         });
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -120,7 +127,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) => 
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -144,6 +152,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -153,7 +162,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) => 
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -186,6 +196,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -195,7 +206,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) => 
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
                 // or should be null if no env was provided
@@ -231,6 +243,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -240,7 +253,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) => 
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
                 Assert.True(env.ContainsKey("DOTNET_CLI_USE_MSBUILD_SERVER"));
@@ -278,6 +292,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
 
         var options = new DotNetCliRunnerInvocationOptions();
 
@@ -287,7 +302,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            (args, env, _, _, _) =>
+            interactionService,
+            (args, env, _, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
                 Assert.Contains("new", args);
@@ -306,6 +322,58 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(73, exitCode);
     }
+
+    [Fact]
+    public async Task ExecuteAsyncLaunchesAppHostInExtensionHostIfConnected()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var launchAppHostCalledTcs = new TaskCompletionSource();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp)
+            {
+                LaunchAppHostCallback = () => launchAppHostCalledTcs.SetResult(),
+            };
+            options.ConfigurationCallback = configBuilder =>
+            {
+                configBuilder["ASPIRE_EXTENSION_TOKEN"] = "extension-token";
+            };
+            options.ExtensionBackchannelFactory = _ => new TestExtensionBackchannel
+            {
+                HasCapabilityAsyncCallback = (c, _) => Task.FromResult(c is "devkit" or "csharp"),
+            };
+            options.AppHostBackchannelFactory = _ => new TestAppHostBackchannel();
+        });
+
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var runner = new DotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService
+        );
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: null,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: new TaskCompletionSource<IAppHostBackchannel>(),
+            options: new DotNetCliRunnerInvocationOptions(),
+            cancellationToken: CancellationToken.None
+        );
+
+        await launchAppHostCalledTcs.Task;
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
@@ -314,13 +382,14 @@ internal sealed class AssertingDotNetCliRunner(
     AspireCliTelemetry telemetry,
     IConfiguration configuration,
     IFeatures features,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    IInteractionService interactionService,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService)
 {
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
-        assertionCallback(args, env, workingDirectory, backchannelCompletionSource, options);
+        assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
         return Task.FromResult(exitCode);
     }
 }
