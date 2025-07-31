@@ -21,7 +21,7 @@ internal interface IAppHostBackchannel
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
-    IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<BackchannelCommandOutput> ExecAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -194,13 +194,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<BackchannelCommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogDebug("Requesting execution.");
-        var commandOutputs = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<CommandOutput>>(
+        var commandOutputs = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<BackchannelCommandOutput>>(
             "ExecAsync",
             Array.Empty<object>(),
             cancellationToken);

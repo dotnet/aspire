@@ -194,7 +194,7 @@ internal class BackchannelLogEntry
     public required string CategoryName { get; set; }
 }
 
-internal class CommandOutput
+internal class BackchannelCommandOutput
 {
     public required string Text { get; init; }
     public bool IsErrorMessage { get; init; }

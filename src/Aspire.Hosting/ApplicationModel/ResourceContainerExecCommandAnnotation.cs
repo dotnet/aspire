@@ -37,7 +37,28 @@ public sealed class ResourceContainerExecCommandAnnotation : ResourceCommandAnno
     public string Command { get; }
 
     /// <summary>
-    /// 
+    /// The working directory in the container where the command will be executed.
     /// </summary>
     public string? WorkingDirectory { get; }
+}
+
+/// <summary>
+/// The output of a command executed in a container.
+/// </summary>
+public class ContainerExecCommandOutput
+{
+    /// <summary>
+    /// The text output of the command.
+    /// </summary>
+    public required string Text { get; init; }
+
+    /// <summary>
+    /// Indicates whether the output is an error message.
+    /// </summary>
+    public required bool IsErrorMessage { get; init; }
+
+    /// <summary>
+    /// Represents the line number in the output where this message originated, if applicable.
+    /// </summary>
+    public int? LineNumber { get; init; }
 }

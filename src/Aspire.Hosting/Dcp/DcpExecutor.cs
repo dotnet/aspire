@@ -1890,7 +1890,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             case ContainerExecutableResource containerExecutableResource:
             {
                 var appResource = PrepareContainerExecutableResource(containerExecutableResource);
+
                 // do we need to add to _resourceState or it will be added automatically while watching the k8s resource?
+                _resourceState.AddResource(appResource);
 
                 return CreateContainerExecutablesAsync([appResource], cancellationToken);
             }

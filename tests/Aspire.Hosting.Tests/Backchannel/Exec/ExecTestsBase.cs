@@ -19,7 +19,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
     ///
     /// Also awaits the app startup. It has to be built before running this method.
     /// </summary>
-    internal async Task<List<CommandOutput>> ExecWithLogCollectionAsync(
+    internal async Task<List<BackchannelCommandOutput>> ExecWithLogCollectionAsync(
         DistributedApplication app,
         int timeoutSec = 30)
     {
@@ -28,7 +28,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         var appHostRpcTarget = app.Services.GetRequiredService<AppHostRpcTarget>();
         var outputStream = appHostRpcTarget.ExecAsync(cts.Token);
 
-        var logs = new List<CommandOutput>();
+        var logs = new List<BackchannelCommandOutput>();
         var startTask = app.StartAsync(cts.Token);
         await foreach (var message in outputStream)
         {
@@ -43,7 +43,37 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         return logs;
     }
 
-    internal static void AssertLogsContain(List<CommandOutput> logs, params string[] expectedLogMessages)
+    protected async Task<List<ContainerExecCommandOutput>> ProcessAndCollectLogs(IAsyncEnumerable<ContainerExecCommandOutput> containerExecLogs)
+    {
+        var logs = new List<ContainerExecCommandOutput>();
+        await foreach (var message in containerExecLogs)
+        {
+            var logLevel = message.IsErrorMessage ? "error" : "info";
+            var log = $"Received output: #{message.LineNumber} [level={logLevel}] {message.Text}";
+
+            logs.Add(message);
+            _outputHelper.WriteLine(log);
+        }
+
+        return logs;
+    }
+
+    internal static void AssertLogsContain(List<BackchannelCommandOutput> logs, params string[] expectedLogMessages)
+    {
+        if (expectedLogMessages.Length == 0)
+        {
+            Assert.Empty(logs);
+            return;
+        }
+
+        foreach (var expectedMessage in expectedLogMessages)
+        {
+            var logFound = logs.Any(x => x.Text.Contains(expectedMessage));
+            Assert.True(logFound, $"Expected log message '{expectedMessage}' not found in logs.");
+        }
+    }
+
+    internal static void AssertLogsContain(List<ContainerExecCommandOutput> logs, params string[] expectedLogMessages)
     {
         if (expectedLogMessages.Length == 0)
         {

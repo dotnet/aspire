@@ -37,7 +37,7 @@ internal class ExecResourceManager
         _resourceNotificationService = resourceNotificationService ?? throw new ArgumentNullException(nameof(resourceNotificationService));
     }
 
-    public async IAsyncEnumerable<CommandOutput> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<BackchannelCommandOutput> StreamExecResourceLogs([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (!_execOptions.Enabled)
         {
@@ -46,7 +46,7 @@ internal class ExecResourceManager
 
         string type = "waiting";
 
-        yield return new CommandOutput
+        yield return new BackchannelCommandOutput
         {
             Text = $"Waiting for resources to be initialized...",
             Type = type
@@ -73,7 +73,7 @@ internal class ExecResourceManager
 
         if (execResourceInitializationException is not null)
         {
-            yield return new CommandOutput
+            yield return new BackchannelCommandOutput
             {
                 Text = execResourceInitializationException.Message,
                 IsErrorMessage = true,
@@ -85,7 +85,7 @@ internal class ExecResourceManager
         // dcp annotation is populated by other handler of BeforeStartEvent
         var dcpExecResourceName = execResource!.GetResolvedResourceName();
 
-        yield return new CommandOutput
+        yield return new BackchannelCommandOutput
         {
             Text = $"Aspire exec starting...",
             Type = type
@@ -114,7 +114,7 @@ internal class ExecResourceManager
         {
             foreach (var log in logs)
             {
-                yield return new CommandOutput
+                yield return new BackchannelCommandOutput
                 {
                     Text = log.Content,
                     IsErrorMessage = log.IsErrorMessage,
@@ -132,7 +132,7 @@ internal class ExecResourceManager
         int? exitCode;
         if ((exitCode = resourceEvent?.Snapshot?.ExitCode) is not null)
         {
-            yield return new CommandOutput
+            yield return new BackchannelCommandOutput
             {
                 Text = "Aspire exec exit code: " + exitCode.Value,
                 IsErrorMessage = false,
@@ -143,7 +143,7 @@ internal class ExecResourceManager
 
         if (resourceEvent?.Snapshot.State == KnownResourceStates.FailedToStart)
         {
-            yield return new CommandOutput
+            yield return new BackchannelCommandOutput
             {
                 Text = "Aspire exec failed to start",
                 IsErrorMessage = true,
