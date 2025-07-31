@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -453,7 +455,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             BicepValue<string> s => s,
             string s => s,
             ProvisioningParameter p => p,
-            BicepFormatString fs => BicepFunction2.Interpolate(fs),
+            FormattableString fs => BicepFunction.Interpolate(fs),
             _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
         };
     }
@@ -615,7 +617,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 args[index++] = val;
             }
 
-            return (new BicepFormatString(expr.Format, args), finalSecretType);
+            return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
 
         }
 

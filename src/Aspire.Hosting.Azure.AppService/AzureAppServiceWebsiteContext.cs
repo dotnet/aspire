@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+using System.Runtime.CompilerServices;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
@@ -178,7 +179,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 args[index++] = val;
             }
 
-            return (new BicepFormatString(expr.Format, args), finalSecretType);
+            return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)
@@ -196,7 +197,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             BicepValue<string> s => s,
             string s => s,
             ProvisioningParameter p => p,
-            BicepFormatString fs => BicepFunction2.Interpolate(fs),
+            FormattableString fs => BicepFunction.Interpolate(fs),
             _ => throw new NotSupportedException($"Unsupported value type {val.GetType()}")
         };
     }
