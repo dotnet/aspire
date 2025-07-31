@@ -443,6 +443,23 @@ public class ExternalServiceTests
         Assert.Contains(healthCheckKey, result.Entries.Keys);
     }
 
+    [Fact]
+    public async Task ExternalServiceWithParameterPublishManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var urlParam = builder.AddParameter("external-url");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        var project = builder.AddProject<TestProject>("project")
+                     .WithReference(externalService)
+                     .WithEnvironment("EXTERNAL_SERVICE", externalService);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource);
+
+        await Verify(manifest.ToString(), extension: "json");
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "testproject";
