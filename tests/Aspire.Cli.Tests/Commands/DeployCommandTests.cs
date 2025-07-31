@@ -324,16 +324,14 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.NotNull(capturedOutputPath);
         
-        // Verify the output path is in the temporary directory
-        var tempPath = Path.GetTempPath();
-        Assert.StartsWith(tempPath, capturedOutputPath);
+        // Verify the output path is in the project directory structure
+        var currentDir = Environment.CurrentDirectory;
+        Assert.StartsWith(currentDir, capturedOutputPath);
         
-        // Verify it has the expected naming pattern
-        var outputDirName = Path.GetFileName(capturedOutputPath);
-        Assert.StartsWith("aspire-deploy-", outputDirName);
+        // Verify it has the expected .aspire/deploy structure with hash
+        Assert.Contains(Path.Combine(".aspire", "deploy"), capturedOutputPath);
         
         // Verify it's not the old default (current directory + "deploy")
-        var currentDir = Environment.CurrentDirectory;
         var oldDefaultPath = Path.Combine(currentDir, "deploy");
         Assert.NotEqual(oldDefaultPath, capturedOutputPath);
     }
