@@ -11,6 +11,7 @@ using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -749,6 +750,25 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Collection(app.ValidationFailures,
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
+    }
+
+    [Fact]
+    public async Task Configuration_ForwardedHeaders_OverrideDefaults()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
+            },
+            clearLogFilterRules: false);
+
+        // Assert
+        await app.StartAsync().DefaultTimeout();
+
+        var options = app.Services.GetRequiredService<IOptions<ForwardedHeadersOptions>>();
+
+        Assert.Equal(ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost, options.Value.ForwardedHeaders);
     }
 
     [Theory]
