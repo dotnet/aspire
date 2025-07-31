@@ -1078,15 +1078,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;.
-        /// </summary>
-        public static string TotalItemsFooterText {
-            get {
-                return ResourceManager.GetString("TotalItemsFooterText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to View.
         /// </summary>
         public static string ViewAction {
