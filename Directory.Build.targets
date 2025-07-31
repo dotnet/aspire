@@ -14,8 +14,6 @@
     <None Include="$(PackageThirdPartyNoticesFile)" Pack="true" PackagePath="." />
   </ItemGroup>
 
-
-
   <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 
   <ItemGroup Condition="'$(ReadMeExists)' == 'true'">
