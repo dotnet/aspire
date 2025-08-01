@@ -4,7 +4,7 @@ This directory contains the modular documentation for generating professional As
 
 ## 📁 Documentation Structure
 
-- **[overview.md](overview.md)** - Main goals, process overview, and data collection steps
+- **[data-collection.md](data-collection.md)** - Data collection steps and output verification
 - **[commit-analysis.md](commit-analysis.md)** - Comprehensive guide to analyzing commits and extracting features
 - **[api-documentation.md](api-documentation.md)** - API verification, code samples, and accuracy guidelines
 - **[writing-guidelines.md](writing-guidelines.md)** - Documentation style, structure, and template requirements
@@ -12,7 +12,7 @@ This directory contains the modular documentation for generating professional As
 
 ## 🎯 Quick Start
 
-1. Read [overview.md](overview.md) for the main process
+1. Read [data-collection.md](data-collection.md) for the data collection process
 2. Follow [commit-analysis.md](commit-analysis.md) for analyzing changes
 3. Use [api-documentation.md](api-documentation.md) for accurate code samples
 4. Apply [writing-guidelines.md](writing-guidelines.md) for proper formatting
