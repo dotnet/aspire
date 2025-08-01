@@ -1883,17 +1883,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
+    /// <inheritdoc/>
     public async Task<AppResource> RunEphemeralResourceAsync(IResource ephemeralResource, CancellationToken cancellationToken)
     {
         switch (ephemeralResource)
         {
             case ContainerExecutableResource containerExecutableResource:
             {
+                // prepare adds resource to the _appResources collection
                 var appResource = PrepareContainerExecutableResource(containerExecutableResource);
 
                 // we need to add it to the resource state manually, so that all infra monitoring works
                 _resourceState.Add(appResource);
 
+                _logger.LogInformation("Starting ephemeral ContainerExec resource {DcpResourceName}", appResource.DcpResourceName);
                 await CreateContainerExecutablesAsync([appResource], cancellationToken).ConfigureAwait(false);
                 return appResource;
             }
@@ -1901,18 +1904,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             default: throw new InvalidOperationException($"Resource '{ephemeralResource.Name}' is not supported to run dynamically.");
         }
     }
-    public void DeleteEphemeralResource(AppResource? ephemeralResource)
-    {
-        if (ephemeralResource is null)
-        {
-            return;
-        }
 
-        if (ephemeralResource.ModelResource is ContainerExecutableResource)
-        {
-            _resourceState.Remove(ephemeralResource);
-            _appResources.Remove(ephemeralResource);
-        }
+    /// <inheritdoc/>
+    public Task DeleteEphemeralResourceAsync(AppResource ephemeralResource)
+    {
+        _logger.LogInformation("Removing {DcpResourceName}", ephemeralResource.DcpResourceName);
+        _resourceState.Remove(ephemeralResource);
+        _appResources.Remove(ephemeralResource);
+
+        return Task.CompletedTask;
     }
 
     private async Task<(List<(string Value, bool IsSensitive)>, bool)> BuildArgsAsync(ILogger resourceLogger, IResource modelResource, CancellationToken cancellationToken)

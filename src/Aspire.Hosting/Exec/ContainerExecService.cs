@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Exec;
 /// <summary>
 /// A service to execute container exec commands.
 /// </summary>
-public class ContainerExecService
+internal class ContainerExecService : IContainerExecService
 {
     private readonly ResourceNotificationService _resourceNotificationService;
     private readonly ResourceLoggerService _resourceLoggerService;
@@ -19,7 +19,7 @@ public class ContainerExecService
     private readonly IDcpExecutor _dcpExecutor;
     private readonly DcpNameGenerator _dcpNameGenerator;
 
-    internal ContainerExecService(
+    public ContainerExecService(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         IDcpExecutor dcpExecutor,

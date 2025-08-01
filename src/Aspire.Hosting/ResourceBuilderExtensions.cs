@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -1564,18 +1565,13 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(displayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
-        commandOptions ??= CommandOptions.Default;
-
-        // Replace existing annotation with the same name.
-        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == name);
-        if (existingAnnotation is not null)
+        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand = async context =>
         {
-            builder.Resource.Annotations.Remove(existingAnnotation);
-        }
+            var serviceProvider = context.ServiceProvider;
+        };
 
-        return builder.WithAnnotation(new ResourceContainerExecCommandAnnotation(name, displayName, command, workingDirectory: null, commandOptions.Description, commandOptions.Parameter, commandOptions.ConfirmationMessage, commandOptions.IconName, commandOptions.IconVariant, commandOptions.IsHighlighted));
+        return builder.WithCommand(name, displayName, executeCommand, commandOptions);
     }
 
     /// <summary>
