@@ -66,28 +66,52 @@ c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
 4ee28c24b Only expose endpoint port in docker compose if external is set to true (#9604)
 ```
 
-#### Step 2: Look Up GitHub Issues for Additional Context
+#### Step 2: Look Up GitHub Issues and Pull Requests for Additional Context
 
-When commit messages include GitHub issue references (e.g., `#10587`), look up the issue for deeper understanding:
+**CRITICAL**: When commit messages include GitHub issue references (e.g., `#10587`, `(#10648)`), **always look up the issue/PR for deeper understanding**:
 
-- **Use GitHub API tools** to fetch issue details: `mcp_github_get_issue`
-- **Extract issue descriptions** to understand the problem being solved
+- **Use GitHub API tools** to fetch PR/issue details: `mcp_github_get_pull_request` or `mcp_github_get_issue`
+- **Extract PR descriptions** to understand the problem being solved and implementation details
 - **Review customer impact** statements and use cases from the issue
 - **Identify related issues** if the commit references a backport or duplicate
-- **Incorporate issue context** into feature descriptions for better developer understanding
+- **Examine PR body for screenshots, examples, and detailed explanations**
+- **Incorporate GitHub context** into feature descriptions for better developer understanding
+- **Include GitHub links** in the final documentation for traceability
 
 #### Example: Enhancing commit understanding with GitHub issues
 
 ```markdown
 # Commit message:
-036b4bfa6 [release/9.4] Use proxied endpoints for aspire dashboard (#10587)
+9ccd68154 Add links between telemetry and resources in grid values (#10648)
 
-# After looking up GitHub issue #10587:
-- Problem: Dashboard port conflicts during rapid restart cycles
-- Solution: Switch from fixed ports to DCP proxies with automatic retry
-- Customer impact: Eliminates port conflicts with Aspire CLI fast restart scenarios
-- Use this context to write more comprehensive feature documentation
+# After looking up GitHub PR #10648:
+- Problem: Difficulty navigating between telemetry data and resources in dashboard
+- Solution: Custom components for clickable resource names, span IDs, and trace IDs
+- Screenshots: Shows before/after navigation experience
+- Customer impact: Reduces time to correlate telemetry across distributed applications
+- Implementation: Property grid value components with navigation links
+
+# Final documentation includes GitHub reference:
+### ✨ Enhanced telemetry navigation
+The dashboard now provides better navigation between telemetry data and resources ([#10648](https://github.com/dotnet/aspire/pull/10648)).
 ```
+
+#### GitHub Issue Pattern Recognition
+
+**Look for these patterns in commit messages:**
+- `(#12345)` - Pull request reference
+- `Fixes #12345` - Closes an issue  
+- `Closes #12345` - Closes an issue
+- `[release/X.Y] ... (#12345)` - Backport with PR reference
+- Multiple references: `(#10170) (#10313) (#10316)` - Related PRs/issues
+
+**For each GitHub reference found:**
+1. **Fetch the PR/issue details** using GitHub API tools
+2. **Read the description** for implementation context
+3. **Extract user-facing benefits** from problem statements
+4. **Note any breaking changes** mentioned in PR descriptions
+5. **Use screenshots/examples** from PRs to enhance documentation
+6. **Add GitHub links** to the final What's New document
 
 #### Step 3: Identify Feature Types by Commit Message Patterns
 
@@ -491,6 +515,20 @@ Before publishing any release notes:
 
    ```bash
    grep -n "MethodName" analysis-output/api-changes-build-current/all-api-changes.txt
+   ```
+
+6. **Store traceability references** for each documented change:
+   - **Commit SHA or message** from component analysis
+   - **GitHub Issue ID** (if referenced in commit message)
+   - **GitHub Pull Request number** (if available)
+   - **Component name** where the change was found
+
+   This enables verification and backtracking to actual source changes. Example format:
+   ```
+   Feature: Dashboard telemetry navigation improvements
+   Source: commit "Add telemetry peer navigation" in Aspire.Dashboard
+   GitHub PR: #10648
+   GitHub Issue: #10645 (if referenced)
    ```
 
 ### Template Structure Requirements
