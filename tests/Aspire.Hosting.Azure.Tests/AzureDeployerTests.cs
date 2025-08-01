@@ -24,6 +24,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory(".azure-deployer-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName, isDeploy: true);
+        // Configure Azure settings to avoid prompting during deployment for this test case
+        builder.Configuration["Azure:SubscriptionId"] = "12345678-1234-1234-1234-123456789012";
+        builder.Configuration["Azure:ResourceGroup"] = "test-rg";
+        builder.Configuration["Azure:Location"] = "westus2";
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
