@@ -15,15 +15,13 @@ builder.Services.AddHealthChecks().AddAsyncCheck("health-test", async (ct) =>
 for (var i = 0; i < 5; i++)
 {
     var name = $"test-{i:0000}";
-    var rb = builder.AddTestResource(name)
-                   .WithResourceIcon("TestBeaker");
+    var rb = builder.AddTestResource(name);
     IResource parent = rb.Resource;
 
     for (var j = 0; j < 3; j++)
     {
         name += $"-n{j}";
-        var nestedRb = builder.AddNestedResource(name, parent)
-                             .WithResourceIcon("FlaskConical", IconVariant.Regular);
+        var nestedRb = builder.AddNestedResource(name, parent);
         parent = nestedRb.Resource;
     }
 }
@@ -35,8 +33,7 @@ builder.AddContainer("hiddenContainer", "alpine")
         ResourceType = "CustomHiddenContainerType",
         Properties = [],
         IsHidden = true
-    })
-    .WithResourceIcon("Package");
+    });
 
 // TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
 // See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
@@ -93,7 +90,6 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrl("https://someotherplace.com/some-path", "Some other place")
        .WithUrl("https://extremely-long-url.com/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz//abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmno")
        .AddInteractionCommands()
-       .WithResourceIcon("ChartLineUp")
        .WithCommand(
            name: "long-command",
            displayName: "This is a custom command with a very long command display name",
@@ -131,12 +127,9 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
-builder.AddExecutable("executableWithSingleArg", "dotnet", Environment.CurrentDirectory, "--version")
-       .WithResourceIcon("Terminal");
-builder.AddExecutable("executableWithSingleEscapedArg", "dotnet", Environment.CurrentDirectory, "one two")
-       .WithResourceIcon("CommandPrompt", IconVariant.Regular);
-builder.AddExecutable("executableWithMultipleArgs", "dotnet", Environment.CurrentDirectory, "--version", "one two")
-       .WithResourceIcon("PowerShell");
+builder.AddExecutable("executableWithSingleArg", "dotnet", Environment.CurrentDirectory, "--version");
+builder.AddExecutable("executableWithSingleEscapedArg", "dotnet", Environment.CurrentDirectory, "one two");
+builder.AddExecutable("executableWithMultipleArgs", "dotnet", Environment.CurrentDirectory, "--version", "one two");
 
 IResourceBuilder<IResource>? previousResourceBuilder = null;
 
