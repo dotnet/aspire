@@ -19,6 +19,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -259,6 +260,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddScoped<IThemeResolver, BrowserThemeResolver>();
         builder.Services.AddScoped<ThemeManager>();
+        builder.Services.AddScoped<ColorGenerator>();
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
