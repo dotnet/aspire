@@ -15,16 +15,6 @@ This file contains:
 - **All components**: Azure services, hosting platforms, data services
 - **Exact method signatures** including parameter names and types
 
-### Component Coverage in Uber File
-
-The uber file includes verified APIs for:
-
-- **Azure Services**: AIFoundry, AppConfiguration, AppContainers, ApplicationInsights, AppService, CognitiveServices, CosmosDB, EventHubs, KeyVault, OperationalInsights, PostgreSQL, Redis, Search, ServiceBus, SignalR, Sql, Storage, WebPubSub
-- **Hosting Platforms**: Docker, Kubernetes, GitHub.Models
-- **Data Services**: MongoDB, MySql, Oracle, PostgreSQL
-- **Infrastructure**: Azure (base), Hosting (base), Yarp
-- **Client Components**: Azure.Data.Tables, Azure.Storage.Blobs, Azure.Storage.Queues, Microsoft.Extensions.Configuration.AzureAppConfiguration
-
 ## Writing Accurate Documentation
 
 ### Example Workflow: Azure AI Foundry
