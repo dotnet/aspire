@@ -25,6 +25,10 @@
                     "AzureAppConfiguration": {
                       "type": "object",
                       "properties": {
+                        "ConnectionString": {
+                          "type": "string",
+                          "description": "Gets or sets the connection string used to connect to the App Configuration service."
+                        },
                         "DisableTracing": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
