@@ -1,42 +1,58 @@
 # API Documentation and Code Samples
 
-## 🔑 **PRIMARY API SOURCE: THE UBER FILE**
+## 🔑 **API SOURCES**
 
-The **UBER API FILE** is the single source of truth for all API references:
+### **API CHANGES DIFF** - Source of Truth for What's New:
+
+```text
+analysis-output/api-changes-build-current/api-changes-diff.txt
+```
+
+**START HERE** - This file contains **ONLY NEW/CHANGED APIs** between releases:
+- **New APIs** added in this release
+- **Modified API signatures** 
+- **Breaking changes** and removals
+- **Actual API diffs** showing what developers need to know
+
+### **UBER FILE** - Complete API Reference for Usage Examples:
 
 ```text
 analysis-output/api-changes-build-current/all-api-changes.txt
 ```
 
-This file contains:
-
-- **Complete API files** with method signatures for all components
-- **Actual API definitions** from the current build
+**Use for writing accurate code samples** - This file contains **ALL APIs** from the current build:
+- **Complete API files** with method signatures for all components  
 - **All components**: Azure services, hosting platforms, data services
 - **Exact method signatures** including parameter names and types
 
 ## Writing Accurate Documentation
 
-### Example Workflow: Azure AI Foundry
+### Workflow for Documenting API Changes
 
-#### Step 1: Search Uber File
+#### Step 1: Start with API Changes Diff to Identify What's New
+
+```bash
+grep -A 5 -B 2 "AddAzureAIFoundry" analysis-output/api-changes-build-current/api-changes-diff.txt
+```
+
+#### Step 2: Use Uber File Only for Writing Accurate Usage Examples  
 
 ```bash
 grep -A 10 -B 2 "AddAzureAIFoundry" analysis-output/api-changes-build-current/all-api-changes.txt
 ```
 
-#### Step 2: Find Actual API
+#### Step 3: Extract Complete API Signatures for Code Samples
 
 ```csharp
-// From uber file: 
+// From uber file - get complete API signature for accurate usage examples: 
 public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> AddAzureAIFoundry(this IDistributedApplicationBuilder builder, string name)
 public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> builder, string name, string modelName, string modelVersion, string format)
 ```
 
-#### Step 3: Create Accurate Example
+#### Step 4: Write Usage Example with Correct API Signatures
 
 ```csharp
-// ✅ CORRECT: Based on actual APIs from uber file
+// ✅ CORRECT: Usage example based on actual API signatures from uber file
 var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
 var deployment = aiFoundry.AddDeployment("gpt-4", "gpt-4", "1106", "OpenAI");
 ```
@@ -44,11 +60,11 @@ var deployment = aiFoundry.AddDeployment("gpt-4", "gpt-4", "1106", "OpenAI");
 ## Do Not Invent APIs
 
 ```csharp
-// ❌ WRONG: These methods are NOT in the uber file
+// ❌ WRONG: These methods are NOT found in the API diff or uber file
 builder.AddAzureAIFoundry("ai")
-    .WithModel("gpt-4", modelId: "gpt-4-1106")      // INVENTED
-    .WithEndpoint("chat", deployment: "chat-latest") // INVENTED
-    .WithRoleAssignments(roles: KeyVaultBuiltInRole.SecretsUser) // INVENTED
+    .WithModel("gpt-4", modelId: "gpt-4-1106")      // INVENTED - not in uber file
+    .WithEndpoint("chat", deployment: "chat-latest") // INVENTED - not in uber file
+    .WithRoleAssignments(roles: KeyVaultBuiltInRole.SecretsUser) // INVENTED - not in uber file
 ```
 
 ## Builder Context Matters
@@ -113,25 +129,30 @@ analysis-output/Aspire.Cli.md
 
 Before writing any API samples:
 
-1. **Search for APIs** before writing any example:
+1. **Check API changes diff first** to identify what's actually new:
+
+   ```bash
+   grep -n "MethodName" analysis-output/api-changes-build-current/api-changes-diff.txt
+   ```
+
+2. **Get complete API details** from uber file for accurate samples:
 
    ```bash
    grep -n "MethodName" analysis-output/api-changes-build-current/all-api-changes.txt
    ```
 
-2. **Cross-reference all code samples** with the uber file
 3. **Verify CLI commands** against Aspire.Cli.md commit analysis
-4. **Check breaking changes** against actual API diffs
+4. **Cross-reference commit analysis** to understand the context of changes
 
 ## API Documentation Rules
 
 ### Core Rules
 
-1. **Every API change must include a code sample**
-2. **Search uber file before writing ANY code sample**
-3. **Match parameter names and types exactly as shown**
-4. **Show migration steps for breaking changes found in diffs**
-5. **Never invent or assume APIs exist**
+1. **Always start with API changes diff** to identify what's new in this release
+2. **Only use uber file for writing usage examples** with correct API signatures
+3. **Match parameter names and types exactly** as shown in uber file
+4. **Show migration steps for breaking changes** found in diffs
+5. **Never invent or assume APIs exist** - verify everything starts in the diff
 
 ### CLI Documentation Rules
 
@@ -142,8 +163,9 @@ Before writing any API samples:
 
 ### Accuracy Standards
 
-- **✅ USE ONLY CONFIRMED APIS**: If it's not in the uber file, it doesn't exist
-- **💻 PROVIDE SAMPLES FOR API CHANGES**: Every API change mentioned should include a code sample
+- **🔍 START WITH DIFF**: Check api-changes-diff.txt first to identify what's actually new
+- **✅ USE UBER FILE FOR SAMPLES**: Get complete API signatures from all-api-changes.txt  
+- **💻 PROVIDE SAMPLES FOR API CHANGES**: Every new API should include a code sample
 - **⚡ INCLUDE CLI COMMANDS**: Every CLI change should show the actual command syntax
 - **❌ NEVER INVENT APIS**: No made-up methods, parameters, or fluent chains
 
