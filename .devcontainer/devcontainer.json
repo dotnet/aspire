@@ -46,8 +46,7 @@
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.azure-dev",
 				"GitHub.copilot",
-				"ms-kubernetes-tools.vscode-kubernetes-tools",
-        		"microsoft-aspire.aspire-vscode"
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,
@@ -60,6 +59,7 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
+	"postCreateCommand": "cd extension && npm install && npm run package && npx vsce package && code --install-extension *.vsix",
 	"postStartCommand": "dotnet dev-certs https --trust",
 
 	"remoteEnv": {
