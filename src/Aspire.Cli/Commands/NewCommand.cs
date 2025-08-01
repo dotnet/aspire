@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -13,7 +12,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Semver;
-using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -203,9 +201,6 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
-            validator: name => ProjectNameValidator.IsProjectNameValid(name)
-                ? ValidationResult.Success()
-                : ValidationResult.Error(NewCommandStrings.InvalidProjectName),
             cancellationToken: cancellationToken);
     }
 
@@ -217,17 +212,5 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => t.Description,
             cancellationToken
         );
-    }
-}
-
-internal static partial class ProjectNameValidator
-{
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
-    internal static partial Regex GetAssemblyNameRegex();
-
-    public static bool IsProjectNameValid(string projectName)
-    {
-        var regex = GetAssemblyNameRegex();
-        return regex.IsMatch(projectName);
     }
 }
