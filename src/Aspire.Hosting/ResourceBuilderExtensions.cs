@@ -2115,18 +2115,18 @@ public static class ResourceBuilderExtensions
     /// Set a Redis resource to use the Database icon:
     /// <code lang="C#">
     /// var redis = builder.AddContainer("redis", "redis:latest")
-    ///     .WithResourceIcon("Database");
+    ///     .WithIconName("Database");
     /// </code>
     /// </example>
     /// <example>
     /// Set a custom service to use a specific icon with Regular variant:
     /// <code lang="C#">
     /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
-    ///     .WithResourceIcon("CloudArrowUp", IconVariant.Regular);
+    ///     .WithIconName("CloudArrowUp", IconVariant.Regular);
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithResourceIcon<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource
+    public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(iconName);

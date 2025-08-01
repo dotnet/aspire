@@ -39,7 +39,7 @@ builder.AddContainer("hiddenContainer", "alpine")
 // See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null)
     .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_METRICS_EMIT_OVERFLOW_ATTRIBUTE", "true")
-    .WithResourceIcon("Server");
+    .WithIconName("Server");
 serviceBuilder
     .WithEnvironment("HOST", $"{serviceBuilder.GetEndpoint("http").Property(EndpointProperty.Host)}")
     .WithEnvironment("PORT", $"{serviceBuilder.GetEndpoint("http").Property(EndpointProperty.Port)}")
@@ -136,7 +136,7 @@ IResourceBuilder<IResource>? previousResourceBuilder = null;
 for (var i = 0; i < 3; i++)
 {
     var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}")
-                                .WithResourceIcon("Document");
+                                .WithIconName("Document");
     if (previousResourceBuilder != null)
     {
         resourceBuilder.WaitFor(previousResourceBuilder);

@@ -5,15 +5,15 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests;
 
-public class WithResourceIconTests
+public class WithIconNameTests
 {
     [Fact]
-    public void WithResourceIcon_SetsIconNameAndDefaultVariant()
+    public void WithIconName_SetsIconNameAndDefaultVariant()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                              .WithResourceIcon("Database");
+                              .WithIconName("Database");
 
         // Verify the annotation was added
         var iconAnnotation = container.Resource.Annotations.OfType<ResourceIconAnnotation>().Single();
@@ -22,12 +22,12 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_SetsIconNameAndCustomVariant()
+    public void WithIconName_SetsIconNameAndCustomVariant()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                              .WithResourceIcon("CloudArrowUp", IconVariant.Regular);
+                              .WithIconName("CloudArrowUp", IconVariant.Regular);
 
         // Verify the annotation was added with correct variant
         var iconAnnotation = container.Resource.Annotations.OfType<ResourceIconAnnotation>().Single();
@@ -36,40 +36,40 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_ThrowsOnNullIconName()
+    public void WithIconName_ThrowsOnNullIconName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentNullException>(() => container.WithResourceIcon(null!));
+        Assert.Throws<ArgumentNullException>(() => container.WithIconName(null!));
     }
 
     [Fact]
-    public void WithResourceIcon_ThrowsOnEmptyIconName()
+    public void WithIconName_ThrowsOnEmptyIconName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentException>(() => container.WithResourceIcon(""));
-        Assert.Throws<ArgumentException>(() => container.WithResourceIcon("   "));
+        Assert.Throws<ArgumentException>(() => container.WithIconName(""));
+        Assert.Throws<ArgumentException>(() => container.WithIconName("   "));
     }
 
     [Fact]
-    public void WithResourceIcon_CanBeCalledOnAnyResourceType()
+    public void WithIconName_CanBeCalledOnAnyResourceType()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Test on different resource types
         var container = builder.AddContainer("container", "image")
-                              .WithResourceIcon("Box");
+                              .WithIconName("Box");
 
         var parameter = builder.AddParameter("param")
-                              .WithResourceIcon("Settings", IconVariant.Regular);
+                              .WithIconName("Settings", IconVariant.Regular);
 
         var project = builder.AddProject<TestProject>("project")
-                            .WithResourceIcon("CodeCircle");
+                            .WithIconName("CodeCircle");
 
         // Verify all have the annotations
         Assert.Single(container.Resource.Annotations.OfType<ResourceIconAnnotation>());
@@ -78,13 +78,13 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_OverridesExistingIconAnnotation()
+    public void WithIconName_OverridesExistingIconAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                              .WithResourceIcon("Database")
-                              .WithResourceIcon("CloudArrowUp", IconVariant.Regular);
+                              .WithIconName("Database")
+                              .WithIconName("CloudArrowUp", IconVariant.Regular);
 
         // Should only have one annotation with the latest values
         var iconAnnotations = container.Resource.Annotations.OfType<ResourceIconAnnotation>().ToList();
