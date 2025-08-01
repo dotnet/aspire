@@ -37,117 +37,110 @@ internal class ContainerExecService : IContainerExecService
     /// </summary>
     /// <param name="resourceId">The specific id of the resource instance.</param>
     /// <param name="commandName">The command name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
-    public async IAsyncEnumerable<ContainerExecCommandOutput> ExecuteCommandAsync(string resourceId, string commandName, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public ExecCommandRun ExecuteCommand(string resourceId, string commandName)
     {
         if (!_resourceNotificationService.TryGetCurrentState(resourceId, out var resourceEvent))
         {
-            yield return new()
+            return new()
             {
-                Text = $"Resource '{resourceId}' not found.",
-                IsErrorMessage = true
+                ExecuteCommand = token => Task.FromResult(CommandResults.Failure($"Failed to get the resource {resourceId}"))
             };
-            yield break;
         }
 
-        if (resourceEvent.Resource is not ContainerResource containerResource)
+        var resource = resourceEvent.Resource;
+        if (resource is not ContainerResource containerResource)
         {
-            yield return new()
-            {
-                Text = $"Resource '{resourceId}' is not a container resource.",
-                IsErrorMessage = true
-            };
-            yield break;
+            throw new ArgumentException("Resource is not a container resource.", nameof(resourceId));
         }
 
-        var outputLogs = ExecuteCommandCoreAsync(resourceEvent.ResourceId, containerResource, commandName, cancellationToken);
-        await foreach (var output in outputLogs.WithCancellation(cancellationToken))
+        return ExecuteCommand(containerResource, commandName);
+    }
+
+    public ExecCommandRun ExecuteCommand(ContainerResource containerResource, string commandName)
+    {
+        var annotation = containerResource.Annotations.OfType<ResourceExecCommandAnnotation>().SingleOrDefault(a => a.Name == commandName);
+        if (annotation is null)
         {
-            yield return output;
+            return new()
+            {
+                ExecuteCommand = token => Task.FromResult(CommandResults.Failure($"Failed to get the resource {containerResource.Name}"))
+            };
         }
+
+        return ExecuteCommandCore(containerResource, annotation.Name, annotation.Command, annotation.WorkingDirectory);
     }
 
     /// <summary>
-    /// Execute a command for the specified resource.
+    /// Executes a command for the specified resource.
     /// </summary>
-    /// <param name="resource">The resource. If the resource has multiple instances, such as replicas, then the command will be executed for each instance.</param>
-    /// <param name="commandName">The command name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The <see cref="ExecuteCommandResult" /> indicates command success or failure.</returns>
-    public IAsyncEnumerable<ContainerExecCommandOutput> ExecuteCommandAsync(ContainerResource resource, string commandName, CancellationToken cancellationToken = default)
-    {
-        var names = resource.GetResolvedResourceNames();
-        return ExecuteCommandCoreAsync(names[0], resource, commandName, cancellationToken);
-    }
-
-    internal async IAsyncEnumerable<ContainerExecCommandOutput> ExecuteCommandCoreAsync(
-        string resourceId,
+    /// <param name="resource">The resource to execute a command in.</param>
+    /// <param name="commandName"></param>
+    /// <param name="command"></param>
+    /// <param name="workingDirectory"></param>
+    /// <returns></returns>
+    private ExecCommandRun ExecuteCommandCore(
         ContainerResource resource,
         string commandName,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        string command,
+        string? workingDirectory)
     {
+        var resourceId = resource.GetResolvedResourceNames().First();
+
         var logger = _resourceLoggerService.GetLogger(resourceId);
-        logger.LogInformation("Executing command '{CommandName}'.", commandName);
+        logger.LogInformation("Starting command '{Command}' on resource {ResourceId}", command, resourceId);
 
-        var annotation = resource.Annotations.OfType<ResourceContainerExecCommandAnnotation>().SingleOrDefault(a => a.Name == commandName);
-        if (annotation is null)
-        {
-            logger.LogInformation("Command '{CommandName}' not available.", commandName);
-            yield return new()
-            {
-                Text = $"Command '{commandName}' not available for resource '{resourceId}'.",
-                IsErrorMessage = true,
-            };
-
-            yield break;
-        }
-
-        var containerExecResource = new ContainerExecutableResource(annotation.Name, resource, annotation.Command, annotation.WorkingDirectory);
+        var containerExecResource = new ContainerExecutableResource(commandName, resource, command, workingDirectory);
         _dcpNameGenerator.EnsureDcpInstancesPopulated(containerExecResource);
         var dcpResourceName = containerExecResource.GetResolvedResourceName();
 
-        // in the background wait for the exec resource to reach terminal state. Once done we can complete logging
-        _ = Task.Run(async () =>
+        Func<CancellationToken, Task<ExecuteCommandResult>> commandResultTask = async (CancellationToken cancellationToken) =>
         {
+            await _dcpExecutor.RunEphemeralResourceAsync(containerExecResource, cancellationToken).ConfigureAwait(false);
             await _resourceNotificationService.WaitForResourceAsync(containerExecResource.Name, targetStates: KnownResourceStates.TerminalStates, cancellationToken).ConfigureAwait(false);
 
-            // hack: https://github.com/dotnet/aspire/issues/10245
-            // workarounds the race-condition between streaming all logs from the resource, and resource completion
-            await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
-
-            _resourceLoggerService.Complete(dcpResourceName); // complete stops the `WatchAsync` async-foreach below
-        }, cancellationToken);
-
-        // start the ephemeral resource execution
-        var runResourceTask = _dcpExecutor.RunEphemeralResourceAsync(containerExecResource, cancellationToken);
-
-        // subscribe to the logs of the resource
-        // log stream will be stopped by the background "completion awaiting" task
-        await foreach (var logs in _resourceLoggerService.WatchAsync(dcpResourceName).WithCancellation(cancellationToken).ConfigureAwait(false))
-        {
-            foreach (var log in logs)
+            if (!_resourceNotificationService.TryGetCurrentState(dcpResourceName, out var resourceEvent))
             {
-                yield return new ContainerExecCommandOutput
-                {
-                    Text = log.Content,
-                    IsErrorMessage = log.IsErrorMessage,
-                    LineNumber = log.LineNumber
-                };
+                return CommandResults.Failure("Failed to fetch command results.");
             }
+
+            // resource completed execution, so we can complete the log stream
+            _resourceLoggerService.Complete(dcpResourceName);
+
+            var snapshot = resourceEvent.Snapshot;
+            return snapshot.ExitCode is 0
+                ? CommandResults.Success()
+                : CommandResults.Failure($"Command failed with exit code {snapshot.ExitCode}. Final state: {resourceEvent.Snapshot.State?.Text}.");
+        };
+
+        return new ExecCommandRun
+        {
+            ExecuteCommand = commandResultTask,
+            GetOutputStream = token => GetResourceLogsStreamAsync(dcpResourceName, token)
+        };
+    }
+
+    private async IAsyncEnumerable<LogLine> GetResourceLogsStreamAsync(string dcpResourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        IAsyncEnumerable<IReadOnlyList<LogLine>> source;
+        if (_resourceNotificationService.TryGetCurrentState(dcpResourceName, out var resourceEvent)
+            && resourceEvent.Snapshot.ExitCode is not null)
+        {
+            // If the resource is already in a terminal state, we can just return the logs that were already collected.
+            source = _resourceLoggerService.GetAllAsync(dcpResourceName);
+        }
+        else
+        {
+            // resource is still running, so we can stream the logs as they come in.
+            source = _resourceLoggerService.WatchAsync(dcpResourceName);
         }
 
-        AppResource? containerExecEphemeralResource = null;
-        try
+        await foreach (var batch in source.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            // wait for the resource to complete execution
-            containerExecEphemeralResource = await runResourceTask.ConfigureAwait(false);
-        }
-        finally
-        {
-            // we know that resource has completed, and we have collected logs of execution (see the loop above).
-            // it is an ephemeral resource, so we dont want to leave it hanging in the DCP side - we need to delete it immediately here.
-            _dcpExecutor.DeleteEphemeralResource(containerExecEphemeralResource);
+            foreach (var logLine in batch)
+            {
+                yield return logLine;
+            }
         }
     }
 }

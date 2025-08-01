@@ -18,18 +18,55 @@ public class WithExecCommandTests : ExecTestsBase
 
     [Fact]
     [RequiresDocker]
-    public async Task WithExecCommand_NginxContainer_ListFiles_ProducesLogs_Success()
+    public async Task WithExecCommand_NginxContainer_ListFiles_WatchLogStream_Success()
     {
         using var builder = PrepareBuilder(["--operation", "run"]);
         var (container, containerBuilder) = WithContainerWithExecCommand(builder);
         containerBuilder.WithExecCommand("list", "List files", "ls");
 
         var app = await EnsureAppStartAsync(builder);
-        var containerExecService = app.Services.GetRequiredService<ContainerExecService>();
+        var containerExecService = app.Services.GetRequiredService<IContainerExecService>();
+
+        var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         // executing command on the container. We know it is running since DCP has already started.
-        var executionLogs = containerExecService.ExecuteCommandAsync(container, "list", CancellationToken.None);
-        var processedLogs = await ProcessAndCollectLogs(executionLogs);
+        var execCommandRun = containerExecService.ExecuteCommand(container, "list");
+        var runCommandTask = execCommandRun.ExecuteCommand(cancellationTokenSource.Token);
+
+        // the option here is either to execute the command, and collect logs later;
+        // or to run the command and immediately attach to the output stream. This will make
+        // the logs to be streamed in parallel with the command execution.
+        var output = execCommandRun.GetOutputStream(cancellationTokenSource.Token);
+        var processedLogs = await ProcessAndCollectLogs(output);
+
+        var result = await runCommandTask;
+        Assert.True(result.Success);
+
+        AssertLogsContain(processedLogs,
+            "bin", "boot", "dev" // typical output of `ls` in a container
+        );
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithExecCommand_NginxContainer_ListFiles_GetsAllLogs_Success()
+    {
+        using var builder = PrepareBuilder(["--operation", "run"]);
+        var (container, containerBuilder) = WithContainerWithExecCommand(builder);
+        containerBuilder.WithExecCommand("list", "List files", "ls");
+
+        var app = await EnsureAppStartAsync(builder);
+        var containerExecService = app.Services.GetRequiredService<IContainerExecService>();
+
+        var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        // executing command on the container. We know it is running since DCP has already started.
+        var execCommandRun = containerExecService.ExecuteCommand(container, "list");
+        var result = await execCommandRun.ExecuteCommand(cancellationTokenSource.Token);
+        Assert.True(result.Success);
+
+        var output = execCommandRun.GetOutputStream(cancellationTokenSource.Token);
+        var processedLogs = await ProcessAndCollectLogs(output);
         AssertLogsContain(processedLogs,
             "bin", "boot", "dev" // typical output of `ls` in a container
         );

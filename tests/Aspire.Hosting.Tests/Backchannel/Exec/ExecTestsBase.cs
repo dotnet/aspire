@@ -43,13 +43,13 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         return logs;
     }
 
-    protected async Task<List<ContainerExecCommandOutput>> ProcessAndCollectLogs(IAsyncEnumerable<ContainerExecCommandOutput> containerExecLogs)
+    protected async Task<List<LogLine>> ProcessAndCollectLogs(IAsyncEnumerable<LogLine> containerExecLogs)
     {
-        var logs = new List<ContainerExecCommandOutput>();
+        var logs = new List<LogLine>();
         await foreach (var message in containerExecLogs)
         {
             var logLevel = message.IsErrorMessage ? "error" : "info";
-            var log = $"Received output: #{message.LineNumber} [level={logLevel}] {message.Text}";
+            var log = $"Received output: #{message.LineNumber} [level={logLevel}] {message.Content}";
 
             logs.Add(message);
             _outputHelper.WriteLine(log);
@@ -73,7 +73,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
         }
     }
 
-    internal static void AssertLogsContain(List<ContainerExecCommandOutput> logs, params string[] expectedLogMessages)
+    internal static void AssertLogsContain(List<LogLine> logs, params string[] expectedLogMessages)
     {
         if (expectedLogMessages.Length == 0)
         {
@@ -83,7 +83,7 @@ public abstract class ExecTestsBase(ITestOutputHelper outputHelper)
 
         foreach (var expectedMessage in expectedLogMessages)
         {
-            var logFound = logs.Any(x => x.Text.Contains(expectedMessage));
+            var logFound = logs.Any(x => x.Content.Contains(expectedMessage));
             Assert.True(logFound, $"Expected log message '{expectedMessage}' not found in logs.");
         }
     }
