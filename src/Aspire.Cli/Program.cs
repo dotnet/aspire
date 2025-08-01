@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.PackageChannels;
 
 #if DEBUG
 using OpenTelemetry;
@@ -112,6 +113,7 @@ public class Program
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
+        builder.Services.AddSingleton<IPackageChannelService, PackageChannelService>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
