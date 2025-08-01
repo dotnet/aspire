@@ -16,7 +16,7 @@ Collect all necessary data to generate accurate, comprehensive release notes by 
 
 **Example:**
 ```bash
-./analyze-all-components.sh release/9.0 main
+./analyze-all-components.sh release/9.4 main
 ```
 
 #### **What This Generates:**
