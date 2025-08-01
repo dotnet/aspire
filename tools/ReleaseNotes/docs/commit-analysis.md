@@ -31,11 +31,56 @@ c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
 - **Extract PR descriptions** to understand the problem being solved and implementation details
 - **Review customer impact** statements and use cases from the issue
 - **Identify related issues** if the commit references a backport or duplicate
+- **Look for linked issues** in PR descriptions (e.g., "Fixes #10591", "Closes #10699")
 - **Examine PR body for screenshots, examples, and detailed explanations**
+- **Extract user pain points** from issue descriptions to understand the "why" behind changes
 - **Incorporate GitHub context** into feature descriptions for better developer understanding
 - **Include GitHub links** in the final documentation for traceability
 
-#### Example: Enhancing commit understanding with GitHub issues
+#### Real Example: Deep Issue Context Extraction
+
+**Commit:** `5e8824d70 Various aspire exec improvements (#10606)`
+
+**Step 2a: Look up the PR:**
+```markdown
+# PR #10606 Description:
+- Title: "aspire exec fail fast improvements"
+- Fixes issues: #10591 and #10592
+- Implementation: Better error handling and validation
+```
+
+**Step 2b: Look up the linked issues:**
+```markdown
+# Issue #10591: "aspire exec - No target resource specified error comes after searching for app host"
+- User Problem: CLI wasted time searching for projects before showing required arg errors
+- Pain Point: "CLI should immediately fail because of them rather than wasting the user's time"
+- User Impact: Faster feedback, better developer experience
+
+# Issue #10592: "aspire exec - Failed to parse command."
+- User Problem: Confusing error message "Failed to parse command" when command not specified
+- Pain Point: Unclear what was actually wrong with the command
+- User Impact: Better error messages, clearer guidance
+```
+
+**Step 2c: Extract comprehensive context:**
+```markdown
+# Combined Understanding:
+- Root Cause: aspire exec had poor validation order and unclear error messages
+- User Experience: Developers frustrated by slow feedback and confusing errors
+- Solution: Fail-fast validation + improved error messaging
+- Business Value: Reduced developer friction, faster development iterations
+
+# Enhanced Feature Documentation:
+### ⚡ Faster aspire exec validation
+The `aspire exec` command now provides immediate validation feedback, failing fast when required arguments are missing instead of spending time searching for projects first. Error messages have also been improved to be more actionable ([#10606](https://github.com/dotnet/aspire/pull/10606)).
+
+**Before:** CLI searches for projects, then shows confusing "Failed to parse command" error
+**After:** Immediate "Target resource is not specified" error with clear guidance
+
+This improvement reduces development friction by providing faster, clearer feedback during the development workflow.
+```
+
+#### Example: Multiple Issue References in Single Commit
 
 ```markdown
 # Commit message:
@@ -58,7 +103,7 @@ The dashboard now provides better navigation between telemetry data and resource
 **Look for these patterns in commit messages:**
 
 - `(#12345)` - Pull request reference
-- `Fixes #12345` - Closes an issue
+- `Fixes #12345` - Closes an issue  
 - `Closes #12345` - Closes an issue
 - `[release/X.Y] ... (#12345)` - Backport with PR reference
 - Multiple references: `(#10170) (#10313) (#10316)` - Related PRs/issues
@@ -71,6 +116,57 @@ The dashboard now provides better navigation between telemetry data and resource
 4. **Note any breaking changes** mentioned in PR descriptions
 5. **Use screenshots/examples** from PRs to enhance documentation
 6. **Add GitHub links** to the final What's New document
+
+#### Real Examples from Aspire.Cli Analysis
+
+**Pattern 1: Single PR with Multiple Linked Issues**
+```markdown
+# Commit: 5e8824d70 Various aspire exec improvements (#10606)
+# PR #10606 description mentions: "Fixes #10591 and #10592"
+
+# Required GitHub API calls:
+- mcp_github_get_pull_request(pullNumber=10606) → Get PR context
+- mcp_github_get_issue(issue_number=10591) → Get first linked issue  
+- mcp_github_get_issue(issue_number=10592) → Get second linked issue
+
+# Result: Complete understanding of user problems and solutions
+```
+
+**Pattern 2: Configuration Bug with Detailed Reproduction Steps**
+```markdown
+# Commit: 8f0e3850 aspire config set writes appHostPath to ~/.aspire/settings.json globally (#10700)
+# PR #10700 description mentions: "Fixes #10699"
+
+# GitHub API calls reveal:
+- Issue #10699: Detailed macOS reproduction steps
+- Problem: Global vs local settings file confusion
+- User Impact: Incorrect path resolution breaking aspire run
+- Root Cause: FindNearestSettingsFile() method walking up directory tree incorrectly
+```
+
+**Pattern 3: Copilot-Generated Enhancement**
+```markdown
+# Commit: b167ea5c Enhance orphan detection in Aspire AppHost (#10673)
+# PR #10673: Created by GitHub Copilot coding agent
+
+# GitHub lookup reveals:
+- Problem: PID reuse vulnerability in orphan detection
+- Technical Solution: Added ASPIRE_CLI_STARTED environment variable
+- Implementation: Process start time verification with ±1 second tolerance
+- Backwards Compatibility: Graceful fallback to PID-only logic
+```
+
+**Pattern 4: Help/UX Improvement Chain**
+```markdown
+# Commit: c4ead669 chore: aspire exec --help improvements (#10598)
+# PR #10598 description mentions: "Fixes #10594"
+
+# Issue #10594: "aspire exec - Unhelpful help"
+- User Problem: CLI help didn't explain how to specify commands
+- Specific Quote: "Nothing in the CLI help says how to specify the command"
+- Solution: Added -- separator documentation and usage examples
+- User Impact: Better discoverability of exec command syntax
+```
 
 ### Step 3: Identify Feature Types by Commit Message Patterns
 
