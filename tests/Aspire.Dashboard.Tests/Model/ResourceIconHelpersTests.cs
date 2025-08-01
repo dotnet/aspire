@@ -14,7 +14,7 @@ public sealed class ResourceIconHelpersTests
     public void GetIconForResource_WithCustomIcon_ReturnsCustomIcon()
     {
         // Arrange
-        var resource = CreateResourceWithIcon("Database", IconVariant.Filled);
+        var resource = ModelTestHelpers.CreateResource(iconName: "Database", iconVariant: IconVariant.Filled);
 
         // Act
         var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
@@ -29,7 +29,7 @@ public sealed class ResourceIconHelpersTests
     public void GetIconForResource_WithCustomIconRegularVariant_ReturnsCustomIcon()
     {
         // Arrange
-        var resource = CreateResourceWithIcon("CloudArrowUp", IconVariant.Regular);
+        var resource = ModelTestHelpers.CreateResource(iconName: "CloudArrowUp", iconVariant: IconVariant.Regular);
 
         // Act
         var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size16);
@@ -56,7 +56,7 @@ public sealed class ResourceIconHelpersTests
     public void GetIconForResource_WithInvalidCustomIcon_FallsBackToDefault()
     {
         // Arrange
-        var resource = CreateResourceWithIcon("NonExistentIcon", IconVariant.Filled, KnownResourceTypes.Project);
+        var resource = ModelTestHelpers.CreateResource(resourceType: KnownResourceTypes.Project, iconName: "NonExistentIcon", iconVariant: IconVariant.Filled);
 
         // Act
         var icon = ResourceIconHelpers.GetIconForResource(resource, IconSize.Size20);
@@ -99,34 +99,4 @@ public sealed class ResourceIconHelpersTests
         // Should match the database special case
     }
 
-    private static ResourceViewModel CreateResourceWithIcon(
-        string iconName,
-        IconVariant iconVariant,
-        string resourceType = KnownResourceTypes.Container)
-    {
-        var baseResource = ModelTestHelpers.CreateResource(resourceType: resourceType);
-        return new ResourceViewModel
-        {
-            Name = baseResource.Name,
-            ResourceType = baseResource.ResourceType,
-            DisplayName = baseResource.DisplayName,
-            Uid = baseResource.Uid,
-            State = baseResource.State,
-            StateStyle = baseResource.StateStyle,
-            CreationTimeStamp = baseResource.CreationTimeStamp,
-            StartTimeStamp = baseResource.StartTimeStamp,
-            StopTimeStamp = baseResource.StopTimeStamp,
-            Environment = baseResource.Environment,
-            Urls = baseResource.Urls,
-            Volumes = baseResource.Volumes,
-            Relationships = baseResource.Relationships,
-            Properties = baseResource.Properties,
-            Commands = baseResource.Commands,
-            HealthReports = baseResource.HealthReports,
-            KnownState = baseResource.KnownState,
-            SupportsDetailedTelemetry = baseResource.SupportsDetailedTelemetry,
-            IconName = iconName,
-            IconVariant = iconVariant
-        };
-    }
 }
