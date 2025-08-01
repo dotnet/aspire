@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Configuration;
+using Aspire.Cli.PackageChannels;
 
 #if DEBUG
 using OpenTelemetry;
@@ -112,6 +113,7 @@ public class Program
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
+        builder.Services.AddSingleton<IPackageChannelService, PackageChannelService>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
