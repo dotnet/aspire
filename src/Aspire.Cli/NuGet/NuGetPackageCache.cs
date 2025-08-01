@@ -39,7 +39,14 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
     public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", prerelease, source, cancellationToken);
+        var key = $"IntegrationPackages-{workingDirectory.FullName}-{prerelease}-{source}";
+
+        var packages = await diskCache.GetOrCreateAsync(key, async (entry) =>
+        {
+            return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", prerelease, source, cancellationToken);
+        }) ?? [];
+
+        return packages;
     }
 
     public async Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
