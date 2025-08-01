@@ -21,7 +21,7 @@ The primary objective is to generate a comprehensive `whats-new-{version}.md` do
      - Overall change statistics
      - Complete commit history
      - Top contributors
-     - Categorized commits (features/bugs/breaking changes)
+          - Categorized commits (features/bugs/breaking changes)
 
 2. **Extract API Changes**
 
@@ -42,7 +42,6 @@ The primary objective is to generate a comprehensive `whats-new-{version}.md` do
    - **Use API changes summary** from `analysis-output/api-changes-build-current/api-changes-summary.md`
    - Focus on developer impact with accurate code samples for API changes
    - Include CLI commands for CLI-related changes
-
 
 ## 🔍 COMMIT ANALYSIS AND FEATURE EXTRACTION
 
@@ -68,6 +67,7 @@ Each component analysis file (`analysis-output/*.md`) contains:
 c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
 4ee28c24b Only expose endpoint port in docker compose if external is set to true (#9604)
 ```
+
 
 #### Step 2: Look Up GitHub Issues and Pull Requests for Additional Context
 
@@ -102,13 +102,15 @@ The dashboard now provides better navigation between telemetry data and resource
 #### GitHub Issue Pattern Recognition
 
 **Look for these patterns in commit messages:**
+
 - `(#12345)` - Pull request reference
-- `Fixes #12345` - Closes an issue  
+- `Fixes #12345` - Closes an issue
 - `Closes #12345` - Closes an issue
 - `[release/X.Y] ... (#12345)` - Backport with PR reference
 - Multiple references: `(#10170) (#10313) (#10316)` - Related PRs/issues
 
 **For each GitHub reference found:**
+
 1. **Fetch the PR/issue details** using GitHub API tools
 2. **Read the description** for implementation context
 3. **Extract user-facing benefits** from problem statements
@@ -150,7 +152,6 @@ c5e604f4b Add dashboard resource to AddDockerComposeEnvironment (#9597)
    - **Feature**: Docker Compose with integrated Aspire Dashboard
    - **User Impact**: Developers can now add dashboard integration to Docker Compose environments
    - **API Change**: New `.WithDashboard()` method on `AddDockerComposeEnvironment`
-
 2. **Commit 4ee28c24b**: "Only expose endpoint port in docker compose if external is set to true"
    - **Feature**: Enhanced Docker Compose security
    - **User Impact**: Better security by selective port exposure
@@ -177,16 +178,14 @@ Example: Azure Storage API consolidation appears in multiple files:
 
 After this detailed analysis, continue with:
 
-5. **Prioritize commits for inclusion:**
+1. **Prioritize commits for inclusion:**
    - High priority: New resource types, integration support, breaking API changes, major CLI features, security improvements.
    - Medium priority: Performance, configuration, error handling, developer experience.
    - Low priority: Bug fixes (unless critical), refactoring, documentation, tests, code cleanup.
-
-6. **Verify APIs and CLI commands:**
+2. **Verify APIs and CLI commands:**
    - Use `analysis-output/api-changes-build-current/all-api-changes.txt` (the uber file) to confirm all API references and code samples.
    - For CLI changes, use commit analysis from `Aspire.Cli.md`.
-
-7. **Document accurately:**
+3. **Document accurately:**
    - Never invent APIs or CLI commands; only document what is confirmed in the analysis and uber file.
    - Provide migration guidance for breaking changes.
 
@@ -343,24 +342,25 @@ The uber file includes verified APIs for:
    - **How do they use it?** (the API/CLI)
 
 3. **Find Related Documentation**
+
 - Using the MicrosoftDocs MCP, search for existing documentation about the feature, starting with Aspire documentation.
 - Documentation can be referenced in multiple ways. If the doc is part of the aspire docset (learn.microsoft.com/dotnet/aspire/*) you can use a relative path (assume What's New is one level - ie ../ - below "root" dotnet/aspire/)
 - If the docset is on learn.microsoft.com, but not from Aspire, you can use an xref in the link path - for example, something under Azure docs (learn.microsoft.com/azure/ai-foundry/overview) would be [Azure AI Foundry documentation](xref:/azure/ai-foundry/overview)
-- If a new API is explicitly called out, use an xref to the API docs via the fully qualified API namespace For example, `Aspire.Hosting.ApplicationModel.BeforeStartEvent` or simply `BeforeStartEvent` becomes <xref:aspire.hosting.applicationmodel.beforestartevent> 
+- If a new API is explicitly called out, use an xref to the API docs via the fully qualified API namespace. For example, `Aspire.Hosting.ApplicationModel.BeforeStartEvent` or simply `BeforeStartEvent` becomes <xref:aspire.hosting.applicationmodel.beforestartevent>
 - Do NOT put links to docs or APIs in the sample code. Only put them in the brief description above to set context, or the explanation for follow up content and API docs.
 - Some conceptual docs may not exist yet. If you are unsure of if a link's content fits, or if something is relevant, do not add a link at all.
 
 1. **Create Feature Section Structure**
 
    ```markdown
-   ### ✨ [Feature Name]
-   
+   ### ✨ Feature Name
+
    [Brief description of the new capability and its value]
-   
+
    ```csharp
    // Code example using verified APIs from uber file
    ```
-   
+
    [Explanation of the example, key benefits, and where to learn more]
 
 ### Real Examples of Commit-to-Feature Translation
@@ -410,11 +410,25 @@ This feature streamlines container deployment to Azure App Service by building a
 
 When multiple commits contribute to a single user-facing capability:
 
+```text
+Multiple Related Commits:
+```
+
 **Multiple Related Commits:**
+
+```text
+
+
+
+**Multiple Related Commits:**
+
 - `853c91898 Rename IPublishingActivityProgressReporter to IPublishingActivityReporter`
 - `d4eacc676 Improve the publish/deploy output with better progress reporting`
 - `a1b2c3d4e Add structured logging to publish operations`
 
+**Unified Feature Section:**
+
+```markdown
 **Unified Feature Section:**
 
 ```markdown
