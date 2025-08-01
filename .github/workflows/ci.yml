@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+    paths-ignore:
+      - '**/*.md'
+
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths-ignore:
+      - '**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+
+  tests:
+    uses: ./.github/workflows/tests.yml
+    name: Tests
+
+  build_cli_archives:
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    name: Build native CLI archives
