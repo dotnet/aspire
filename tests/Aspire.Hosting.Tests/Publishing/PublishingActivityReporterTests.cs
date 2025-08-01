@@ -280,13 +280,13 @@ public class PublishingActivityReporterTests
     [InlineData(CompletionState.Completed, "Publishing completed successfully", false)]
     [InlineData(CompletionState.CompletedWithError, "Publishing completed with errors", true)]
     [InlineData(CompletionState.CompletedWithWarning, "Publishing completed with warnings", false)]
-    public async Task CompletePublishAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
+    public async Task CompleteAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
         var reporter = new PublishingActivityReporter(_interactionService);
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, isDeploy: false, CancellationToken.None);
+        await reporter.CompleteAsync(null, completionState, isDeploy: false, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -300,14 +300,14 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task CompletePublishAsync_EmitsCorrectActivity_WithCompletionMessage()
+    public async Task CompleteAsync_EmitsCorrectActivity_WithCompletionMessage()
     {
         // Arrange
         var reporter = new PublishingActivityReporter(_interactionService);
         var expectedStatusText = "Some error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: false, CancellationToken.None);
+        await reporter.CompleteAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: false, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -320,7 +320,7 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task CompletePublishAsync_AggregatesStateFromSteps()
+    public async Task CompleteAsync_AggregatesStateFromSteps()
     {
         // Arrange
         var reporter = new PublishingActivityReporter(_interactionService);
@@ -347,7 +347,7 @@ public class PublishingActivityReporterTests
         while (activityReader.TryRead(out _)) { }
 
         // Act - Complete publish without specifying state (should aggregate)
-        await reporter.CompletePublishAsync(isDeploy: false, cancellationToken: CancellationToken.None);
+        await reporter.CompleteAsync(isDeploy: false, cancellationToken: CancellationToken.None);
 
         // Assert
         Assert.True(activityReader.TryRead(out var activity));
@@ -666,13 +666,13 @@ public class PublishingActivityReporterTests
     [InlineData(CompletionState.Completed, "Deployment completed successfully", false)]
     [InlineData(CompletionState.CompletedWithError, "Deployment completed with errors", true)]
     [InlineData(CompletionState.CompletedWithWarning, "Deployment completed with warnings", false)]
-    public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
+    public async Task CompleteAsync_WithDeployFlag_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
         var reporter = new PublishingActivityReporter(_interactionService);
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, isDeploy: true, CancellationToken.None);
+        await reporter.CompleteAsync(null, completionState, isDeploy: true, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -686,14 +686,14 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity_WithCompletionMessage()
+    public async Task CompleteAsync_WithDeployFlag_EmitsCorrectActivity_WithCompletionMessage()
     {
         // Arrange
         var reporter = new PublishingActivityReporter(_interactionService);
         var expectedStatusText = "Some deployment error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: true, CancellationToken.None);
+        await reporter.CompleteAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: true, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
