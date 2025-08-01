@@ -7,7 +7,6 @@ jobs:
 
   build_cli_archives:
     name: Build CLI (${{ matrix.targets.os }})
-    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:

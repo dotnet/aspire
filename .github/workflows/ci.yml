@@ -24,7 +24,9 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
     name: Tests
+    if: ${{ github.repository_owner == 'dotnet' }}
 
   build_cli_archives:
     uses: ./.github/workflows/build-cli-native-archives.yml
     name: Build native CLI archives
+    if: ${{ github.repository_owner == 'dotnet' }}
