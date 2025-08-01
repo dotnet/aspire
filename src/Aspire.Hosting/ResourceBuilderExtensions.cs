@@ -2101,6 +2101,42 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Specifies the icon to use when displaying the resource in the dashboard.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="iconName">The name of the FluentUI icon to use. See https://aka.ms/fluentui-system-icons for available icons.</param>
+    /// <param name="iconVariant">The variant of the icon (Regular or Filled). Defaults to Filled.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a custom FluentUI icon that will be displayed for the resource in the dashboard.
+    /// If no custom icon is specified, the dashboard will use default icons based on the resource type.
+    /// </para>
+    /// <example>
+    /// Set a Redis resource to use the Database icon:
+    /// <code lang="C#">
+    /// var redis = builder.AddContainer("redis", "redis:latest")
+    ///     .WithIconName("Database");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Set a custom service to use a specific icon with Regular variant:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithIconName("CloudArrowUp", IconVariant.Regular);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(iconName);
+
+        return builder.WithAnnotation(new ResourceIconAnnotation(iconName, iconVariant));
+    }
+
+    /// <summary>
     /// Configures the compute environment for the compute resource.
     /// </summary>
     /// <param name="builder">The compute resource builder.</param>

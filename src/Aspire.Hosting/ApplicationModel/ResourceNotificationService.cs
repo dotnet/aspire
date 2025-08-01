@@ -574,6 +574,8 @@ public class ResourceNotificationService : IDisposable
 
             newState = UpdateCommands(resource, newState);
 
+            newState = UpdateIcons(resource, newState);
+
             notificationState.LastSnapshot = newState;
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
@@ -714,6 +716,36 @@ public class ResourceNotificationService : IDisposable
 
             return new ResourceCommandSnapshot(annotation.Name, state, annotation.DisplayName, annotation.DisplayDescription, annotation.Parameter, annotation.ConfirmationMessage, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
+    }
+
+    /// <summary>
+    /// Use icon annotations to update resource snapshot.
+    /// </summary>
+    private static CustomResourceSnapshot UpdateIcons(IResource resource, CustomResourceSnapshot previousState)
+    {
+        var iconAnnotation = resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
+        
+        if (iconAnnotation == null)
+        {
+            // No icon annotation, keep existing icon information
+            return previousState;
+        }
+
+        // Only update icon information if not already set
+        var newIconName = string.IsNullOrEmpty(previousState.IconName) ? iconAnnotation.IconName : previousState.IconName;
+        var newIconVariant = previousState.IconVariant ?? iconAnnotation.IconVariant;
+
+        // Only create new snapshot if there are changes
+        if (previousState.IconName == newIconName && previousState.IconVariant == newIconVariant)
+        {
+            return previousState;
+        }
+
+        return previousState with 
+        { 
+            IconName = newIconName,
+            IconVariant = newIconVariant
+        };
     }
 
     /// <summary>
