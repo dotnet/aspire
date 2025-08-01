@@ -458,7 +458,20 @@ public class ExternalServiceTests
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
-        await Verify(manifest.ToString(), extension: "json");
+        Assert.Equal(
+            """
+            {
+              "type": "project.v0",
+              "path": "testproject",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "services__external__default__0": "{external-url.value}",
+                "EXTERNAL_SERVICE": "{external-url.value}"
+              }
+            }
+            """, manifest.ToString());
     }
 
     private sealed class TestProject : IProjectMetadata
