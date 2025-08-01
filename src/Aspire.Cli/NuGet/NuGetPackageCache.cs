@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Cache;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
 using System.Globalization;
 using Aspire.Cli.Telemetry;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -18,7 +18,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IDiskCache diskCache, AspireCliTelemetry telemetry) : INuGetPackageCache
 {
 
     private const int SearchPageSize = 1000;
@@ -27,7 +27,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
     {
         var key = $"TemplatePackages-{workingDirectory.FullName}-{prerelease}-{source}";
 
-        var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
+        var packages = await diskCache.GetOrCreateAsync(key, async (entry) =>
         {
             var packages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", prerelease, source, cancellationToken);
             return packages.Where(p => p.Id.Equals("Aspire.ProjectTemplates", StringComparison.OrdinalIgnoreCase));
@@ -46,7 +46,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
     {
         var key = $"CliPackages-{workingDirectory.FullName}-{prerelease}-{source}";
 
-        var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
+        var packages = await diskCache.GetOrCreateAsync(key, async (entry) =>
         {
             // Set cache expiration to 1 hour for CLI updates
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);

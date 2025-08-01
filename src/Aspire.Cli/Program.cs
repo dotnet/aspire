@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using Aspire.Cli.Cache;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -112,7 +113,7 @@ public class Program
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
-        builder.Services.AddMemoryCache();
+        builder.Services.AddSingleton<IDiskCache, DiskCache>();
 
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
