@@ -1,11 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(DefaultTargetFramework)</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <Using Include="System.Net.Http" />
+    <Using Include="System.Threading.Tasks" />
+    
+    <PackageReference Include="System.Threading.Channels" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
@@ -15,5 +23,4 @@
     <ProjectReference Include="..\..\src\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
   </ItemGroup>
-
 </Project>

@@ -1,21 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(DefaultTargetFramework);net462</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsAotCompatible Condition=" '$(TargetFramework)' != 'net462' ">true</IsAotCompatible>
     <Description>Provides extensions to HttpClient that enable service discovery based on configuration.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
-    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Tests"/>
-    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests"/>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Tests" />
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Dns.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
   </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+
+  <Import Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>
