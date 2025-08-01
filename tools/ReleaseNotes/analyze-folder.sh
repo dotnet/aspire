@@ -28,6 +28,7 @@ echo "📁 ANALYZING: $FOLDER"
 echo "🔄 Comparing: $BASE_BRANCH → $TARGET_BRANCH"
 echo "📂 Working from: $(pwd)"
 echo "⏱️  Starting detailed analysis..."
+echo "🔍 Note: Only analyzing commits in $TARGET_BRANCH that are NOT in $BASE_BRANCH (excluding cherry-picks)"
 echo "========================================"
 
 # Start timing
@@ -42,21 +43,22 @@ else
     exit 0
 fi
 
-echo -e "\n All Commits:"
-git log --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- $FOLDER/
+echo -e "\n📝 All Commits (new in $TARGET_BRANCH, excluding cherry-picks):"
+# Use --cherry-pick to exclude commits that were cherry-picked from base branch
+git log --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- $FOLDER/
 
 echo -e "\n👥 Top Contributors:"
-git log --format="%an" $BASE_BRANCH..$TARGET_BRANCH -- $FOLDER/ | sort | uniq -c | sort -nr | head -5
+git log --format="%an" --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- $FOLDER/ | sort | uniq -c | sort -nr | head -5
 
-echo -e "\n📝 Sample Commit Messages (categorized):"
+echo -e "\n📝 Sample Commit Messages (categorized, new commits only):"
 echo "Feature commits:"
-git log --grep="feat\|feature\|add" --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- $FOLDER/ | head -5
+git log --grep="feat\|feature\|add" --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- $FOLDER/ | head -5
 
 echo "Bug fixes:"
-git log --grep="fix\|bug" --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- $FOLDER/ | head -5
+git log --grep="fix\|bug" --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- $FOLDER/ | head -5
 
 echo "Breaking changes:"
-git log --grep="breaking\|BREAKING" --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- $FOLDER/ | head -5
+git log --grep="breaking\|BREAKING" --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- $FOLDER/ | head -5
 
 # Calculate and display timing
 ANALYSIS_END_TIME=$(date +%s)

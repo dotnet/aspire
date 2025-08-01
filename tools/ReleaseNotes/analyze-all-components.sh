@@ -89,7 +89,7 @@ analyze_component() {
     
     # Check if there are any changes in this component first
     local change_count=$(git diff --name-status $BASE_BRANCH..$TARGET_BRANCH -- "$component_path/" 2>/dev/null | wc -l | tr -d ' ')
-    local commit_count=$(git log --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- "$component_path/" 2>/dev/null | wc -l | tr -d ' ')
+    local commit_count=$(git log --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- "$component_path/" 2>/dev/null | wc -l | tr -d ' ')
     
     # Return to original directory
     cd "$original_dir"
@@ -117,7 +117,7 @@ analyze_component() {
         git diff --stat $BASE_BRANCH..$TARGET_BRANCH -- "$component_path/" >> "$output_file" 2>/dev/null || echo "No changes found" >> "$output_file"
         echo "" >> "$output_file"
         echo "## All Commits" >> "$output_file"
-        git log --oneline --no-merges $BASE_BRANCH..$TARGET_BRANCH -- "$component_path/" >> "$output_file" 2>/dev/null || echo "No commits found" >> "$output_file"
+        git log --oneline --no-merges --cherry-pick --right-only $BASE_BRANCH...$TARGET_BRANCH -- "$component_path/" >> "$output_file" 2>/dev/null || echo "No commits found" >> "$output_file"
         
         # Add playground/test examples if available
         if [[ "$component_path" == "playground/" ]] || [[ "$component_path" == "tests/" ]]; then
