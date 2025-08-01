@@ -43,7 +43,10 @@ The primary objective is to generate a comprehensive `whats-new-{version}.md` do
    - Focus on developer impact with accurate code samples for API changes
    - Include CLI commands for CLI-related changes
 
+
 ## 🔍 COMMIT ANALYSIS AND FEATURE EXTRACTION
+
+To extract features for release notes, follow this comprehensive process:
 
 ### Understanding Component Analysis Files
 
@@ -121,7 +124,7 @@ The dashboard now provides better navigation between telemetry data and resource
 - **"Fix"** commits → Bug fixes (usually not featured unless significant)
 - **"Support for"** commits → New platform/technology integrations
 
-#### Step 3: Extract User-Facing Impact
+#### Step 4: Extract User-Facing Impact
 
 For each significant commit, determine:
 
@@ -169,6 +172,25 @@ Example: Azure Storage API consolidation appears in multiple files:
 2. **Find the theme**: API consolidation and standardization
 3. **Create unified feature**: "Azure Storage API consolidation" section
 4. **Show migration path**: Before/after examples for all affected components
+
+---
+
+After this detailed analysis, continue with:
+
+5. **Prioritize commits for inclusion:**
+   - High priority: New resource types, integration support, breaking API changes, major CLI features, security improvements.
+   - Medium priority: Performance, configuration, error handling, developer experience.
+   - Low priority: Bug fixes (unless critical), refactoring, documentation, tests, code cleanup.
+
+6. **Verify APIs and CLI commands:**
+   - Use `analysis-output/api-changes-build-current/all-api-changes.txt` (the uber file) to confirm all API references and code samples.
+   - For CLI changes, use commit analysis from `Aspire.Cli.md`.
+
+7. **Document accurately:**
+   - Never invent APIs or CLI commands; only document what is confirmed in the analysis and uber file.
+   - Provide migration guidance for breaking changes.
+
+This approach ensures a comprehensive, accurate, and traceable process for commit analysis and feature extraction.
 
 ## 🎯 COMPREHENSIVE ANALYSIS APPROACH
 
