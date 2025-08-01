@@ -6,6 +6,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -45,6 +46,7 @@ public sealed class AzureEnvironmentResource : Resource
     public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new DeployingCallbackAnnotation(DeployAsync));
 
         Location = location;
         ResourceGroupName = resourceGroupName;
@@ -62,5 +64,17 @@ public sealed class AzureEnvironmentResource : Resource
             context.ActivityReporter);
 
         return azureCtx.WriteModelAsync(context.Model, this);
+    }
+
+    private Task DeployAsync(DeployingContext context)
+    {
+        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+
+        var azureCtx = new AzureDeployingContext(
+            provisioningContextProvider,
+            userSecretsManager);
+
+        return azureCtx.DeployModelAsync(context.CancellationToken);
     }
 }

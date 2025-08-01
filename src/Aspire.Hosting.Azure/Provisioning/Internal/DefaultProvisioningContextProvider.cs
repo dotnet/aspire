@@ -27,7 +27,8 @@ internal sealed partial class DefaultProvisioningContextProvider(
     ILogger<DefaultProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
-    ITokenCredentialProvider tokenCredentialProvider) : IProvisioningContextProvider
+    ITokenCredentialProvider tokenCredentialProvider,
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
 
@@ -38,7 +39,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
         if (!interactionService.IsAvailable ||
             (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
         {
-            // If the interaction service is not available, or 
+            // If the interaction service is not available, or
             // if both options are already set, we can skip the prompt
             _provisioningOptionsAvailable.TrySetResult();
             return;
@@ -95,7 +96,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
                 var result = await interactionService.PromptInputsAsync(
                     "Azure provisioning",
                     """
-                    The model contains Azure resources that require an Azure Subscription. 
+                    The model contains Azure resources that require an Azure Subscription.
 
                     To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).
                     """,
@@ -289,6 +290,8 @@ internal sealed partial class DefaultProvisioningContextProvider(
             normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
         }
 
-        return $"{prefix}-{normalizedApplicationName}-{suffix}";
+        return distributedApplicationExecutionContext.IsPublishMode
+            ? $"{prefix}-{normalizedApplicationName}"
+            : $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 }
