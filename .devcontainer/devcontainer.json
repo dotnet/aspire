@@ -59,7 +59,7 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
-	"postStartCommand": "dotnet dev-certs https --trust && dotnet build src/Aspire.Cli/Aspire.Cli.csproj && /workspaces/aspire/.devcontainer/scripts/build-install-extension.sh",
+	"postStartCommand": "/workspaces/aspire/.devcontainer/scripts/postStartCommand.sh",
 
 	"remoteEnv": {
 		// When the project is built the Aspire.Cli project produces an executable which can be useful to
