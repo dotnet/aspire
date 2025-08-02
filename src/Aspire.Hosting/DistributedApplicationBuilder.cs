@@ -189,7 +189,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
-        AppHostPath = Path.Join(AppHostDirectory, appHostName);
+        var appHostPath = Path.Join(AppHostDirectory, appHostName);
+        
+        // Normalize the AppHost path for consistent behavior across platforms and execution contexts
+        AppHostPath = Path.GetFullPath(appHostPath);
+        if (OperatingSystem.IsWindows())
+        {
+            // Normalize casing on Windows since file paths are case-insensitive
+            AppHostPath = AppHostPath.ToLowerInvariant();
+        }
 
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
