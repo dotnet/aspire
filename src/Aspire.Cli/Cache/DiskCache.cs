@@ -18,7 +18,6 @@ internal sealed class DiskCache : IDiskCache
 {
     private readonly ILogger<DiskCache> _logger;
     private readonly string _cacheDirectory;
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         WriteIndented = false,
@@ -38,8 +37,7 @@ internal sealed class DiskCache : IDiskCache
         var fileName = GetCacheFileName(key);
         var filePath = Path.Combine(_cacheDirectory, fileName);
 
-        await _semaphore.WaitAsync();
-        try
+        return await ExecuteWithFileLockAsync(filePath, async () =>
         {
             // Try to load from cache first
             if (await TryLoadFromCacheAsync<TItem>(filePath) is { } cachedValue)
@@ -58,11 +56,7 @@ internal sealed class DiskCache : IDiskCache
             await SaveToCacheAsync(filePath, value, cacheEntry);
 
             return value;
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        });
     }
 
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Cache entries are known types")]
@@ -137,6 +131,50 @@ internal sealed class DiskCache : IDiskCache
         var hashBytes = SHA256.HashData(keyBytes);
         var hash = Convert.ToHexString(hashBytes);
         return $"{hash.ToLowerInvariant()}.json";
+    }
+
+    /// <summary>
+    /// Executes an operation with file-based locking to ensure multi-process safety.
+    /// </summary>
+    private async Task<T> ExecuteWithFileLockAsync<T>(string filePath, Func<Task<T>> operation)
+    {
+        var lockFilePath = filePath + ".lock";
+        var timeout = TimeSpan.FromSeconds(30);
+        var retryDelay = TimeSpan.FromMilliseconds(50);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        while (stopwatch.Elapsed < timeout)
+        {
+            FileStream? lockFileStream = null;
+            try
+            {
+                // Try to create and lock the lock file
+                lockFileStream = new FileStream(
+                    lockFilePath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 1,
+                    FileOptions.DeleteOnClose);
+
+                // We have the lock, execute the operation
+                return await operation();
+            }
+            catch (IOException) when (lockFileStream is null)
+            {
+                // Lock file is in use by another process, wait and retry
+                await Task.Delay(retryDelay);
+                continue;
+            }
+            finally
+            {
+                lockFileStream?.Dispose();
+            }
+        }
+
+        // If we get here, we timed out waiting for the lock
+        _logger.LogWarning("Timed out waiting for file lock: {LockFilePath}", lockFilePath);
+        throw new TimeoutException($"Timed out waiting for file lock: {lockFilePath}");
     }
 
     private void EnsureCacheDirectoryExists()
