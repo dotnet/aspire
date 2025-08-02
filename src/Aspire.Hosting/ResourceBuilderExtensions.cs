@@ -179,12 +179,14 @@ public static class ResourceBuilderExtensions
         {
             builder.WithEnvironment(async context =>
             {
-                var url = await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-
                 // In publish mode we can't validate the parameter value so we'll just use it without validating.
-                if (!context.ExecutionContext.IsPublishMode && !ExternalServiceResource.UrlIsValidForExternalService(url, out var _, out var message))
+                if (!context.ExecutionContext.IsPublishMode)
                 {
-                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                    var url = await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+                    if (!ExternalServiceResource.UrlIsValidForExternalService(url, out var _, out var message))
+                    {
+                        throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                    }
                 }
 
                 context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
