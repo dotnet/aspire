@@ -15,8 +15,7 @@
 				"ms-dotnettools.csdevkit",
 				"ms-azuretools.vscode-bicep",
 				"GitHub.copilot-chat",
-				"GitHub.copilot",
-        		"microsoft-aspire.aspire-vscode"
+				"GitHub.copilot"
       ],
 			"settings": {
 				"remote.autoForwardPorts": true,
@@ -29,6 +28,6 @@
 	},
 	"workspaceFolder": "/workspaces/dogfood",  // Empty directory for clean testing
 	"onCreateCommand": "sudo chown -R vscode:vscode /workspaces/dogfood && dotnet new install Aspire.ProjectTemplates::*-*",
-	"postStartCommand": "dotnet dev-certs https --trust",
+	"postStartCommand": "/workspaces/aspire/.devcontainer/scripts/postStartCommand.sh",
 	"forwardPorts": []
 }
