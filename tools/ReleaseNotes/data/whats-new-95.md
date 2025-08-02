@@ -59,6 +59,8 @@ aspire exec --resource webapi bash
 > [!NOTE]
 > Container exec functionality is currently feature-flagged and may require enabling through configuration.
 
+For more details, see [GitHub issue #10301](https://github.com/dotnet/aspire/issues/10301).
+
 ### 🛠️ Enhanced debugging support
 
 VS Code extension now provides improved debugging capabilities for AppHost projects:
@@ -79,6 +81,7 @@ Added first-class support for SSH Remote VS Code development environments with a
 ```
 
 Port forwarding settings are now automatically configured for:
+
 - **Codespaces** (existing)
 - **Devcontainers** (existing)  
 - **SSH Remote** (new in 9.5)
@@ -115,6 +118,8 @@ Significant improvements to trace detail pages:
 - **Resource linking**: Navigate directly from telemetry data to associated resources
 - **Improved filtering**: Better resource filtering with grouping labels
 - **Cleaner display**: Hide "(None)" text when only one resource is available
+
+Enhanced dashboard peer visualization includes support for uninstrumented resources like parameters, connection strings, and GitHub models. See [GitHub issue #10338](https://github.com/dotnet/aspire/issues/10338).
 
 ### 🎨 UI improvements
 
@@ -165,4 +170,4 @@ This release focuses heavily on quality improvements, bug fixes, and developer e
 
 ---
 
-*For the complete list of changes, bug fixes, and improvements in this release, see the [.NET Aspire 9.5 release notes on GitHub](https://github.com/dotnet/aspire/releases).*
+_For the complete list of changes, bug fixes, and improvements in this release, see the [.NET Aspire 9.5 release notes on GitHub](https://github.com/dotnet/aspire/releases)._
