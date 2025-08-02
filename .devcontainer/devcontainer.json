@@ -59,8 +59,7 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
-	"postCreateCommand": "cd extension && npm install && npm run package && npx vsce package && code --install-extension *.vsix",
-	"postStartCommand": "dotnet dev-certs https --trust",
+	"postStartCommand": "dotnet dev-certs https --trust && dotnet build src/Aspire.Cli/Aspire.Cli.csproj && /workspaces/aspire/.devcontainer/scripts/build-install-extension.sh",
 
 	"remoteEnv": {
 		// When the project is built the Aspire.Cli project produces an executable which can be useful to

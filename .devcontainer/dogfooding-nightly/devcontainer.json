@@ -28,7 +28,6 @@
 	},
 	"workspaceFolder": "/workspaces/dogfood",  // Empty directory for clean testing
 	"onCreateCommand": "sudo chown -R vscode:vscode /workspaces/dogfood && dotnet new install Aspire.ProjectTemplates::*-*",
-	"postCreateCommand": "cd /workspaces/aspire/extension && npm install && npm run package && npx vsce package && code --install-extension *.vsix",
-	"postStartCommand": "dotnet dev-certs https --trust",
+	"postStartCommand": "dotnet dev-certs https --trust && dotnet build /workspaces/aspire/src/Aspire.Cli/Aspire.Cli.csproj && /workspaces/aspire/.devcontainer/scripts/build-install-extension.sh",
 	"forwardPorts": []
 }
