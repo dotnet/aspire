@@ -18,4 +18,26 @@ internal sealed class DcpResourceState(Dictionary<string, IResource> application
 
     public Dictionary<string, IResource> ApplicationModel { get; } = applicationModel;
     public List<AppResource> AppResources { get; } = appResources;
+
+    public void Remove(AppResource appResource)
+    {
+        ApplicationModel.Remove(appResource.ModelResource.Name);
+        AppResources.Remove(appResource);
+
+        _ = appResource.DcpResource switch
+        {
+            ContainerExec c => ContainerExecsMap.TryRemove(c.Metadata.Name, out _),
+            _ => false
+        };
+    }
+
+    public void Add(AppResource appResource)
+    {
+        var modelResource = appResource.ModelResource;
+        ApplicationModel.TryAdd(modelResource.Name, modelResource);
+        if (!AppResources.Contains(appResource))
+        {
+            AppResources.Add(appResource);
+        }
+    }
 }
