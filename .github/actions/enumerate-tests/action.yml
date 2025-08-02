@@ -26,9 +26,7 @@ runs:
     - name: Set up .NET Core
       uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
       with:
-        dotnet-version: |
-          9.x
-          10.x
+        global-json-file: ${{ github.workspace }}/global.json
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
