@@ -1,0 +1,116 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.RegularExpressions;
+
+namespace Aspire.Cli.Utils;
+
+/// <summary>
+/// Converts basic Markdown syntax to Spectre.Console markup for CLI display.
+/// </summary>
+internal static partial class MarkdownToSpectreConverter
+{
+    /// <summary>
+    /// Converts markdown text to Spectre.Console markup.
+    /// Supports basic markdown elements: headers, bold, italic, links, and inline code.
+    /// </summary>
+    /// <param name="markdown">The markdown text to convert.</param>
+    /// <returns>The converted Spectre.Console markup text.</returns>
+    public static string ConvertToSpectre(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            return markdown;
+        }
+
+        var result = markdown;
+
+        // Process headers (# ## ###)
+        result = ConvertHeaders(result);
+
+        // Process bold text (**bold** or __bold__)
+        result = ConvertBold(result);
+
+        // Process italic text (*italic* or _italic_)
+        result = ConvertItalic(result);
+
+        // Process inline code (`code`)
+        result = ConvertInlineCode(result);
+
+        // Process links [text](url)
+        result = ConvertLinks(result);
+
+        return result;
+    }
+
+    private static string ConvertHeaders(string text)
+    {
+        // Convert ### Header 3
+        text = HeaderLevel3Regex().Replace(text, "[bold yellow]$1[/]");
+        
+        // Convert ## Header 2
+        text = HeaderLevel2Regex().Replace(text, "[bold blue]$1[/]");
+        
+        // Convert # Header 1
+        text = HeaderLevel1Regex().Replace(text, "[bold green]$1[/]");
+
+        return text;
+    }
+
+    private static string ConvertBold(string text)
+    {
+        // Convert **bold** and __bold__
+        text = BoldDoubleAsterisksRegex().Replace(text, "[bold]$1[/]");
+        text = BoldDoubleUnderscoresRegex().Replace(text, "[bold]$1[/]");
+        
+        return text;
+    }
+
+    private static string ConvertItalic(string text)
+    {
+        // Convert *italic* and _italic_ (but not ** or __)
+        text = ItalicSingleAsteriskRegex().Replace(text, "[italic]$1[/]");
+        text = ItalicSingleUnderscoreRegex().Replace(text, "[italic]$1[/]");
+        
+        return text;
+    }
+
+    private static string ConvertInlineCode(string text)
+    {
+        // Convert `code`
+        return InlineCodeRegex().Replace(text, "[grey][bold]$1[/][/]");
+    }
+
+    private static string ConvertLinks(string text)
+    {
+        // Convert [text](url) to just the text with underline and blue color
+        return LinkRegex().Replace(text, "[blue underline]$1[/]");
+    }
+
+    [GeneratedRegex(@"^### (.+)$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel3Regex();
+
+    [GeneratedRegex(@"^## (.+)$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel2Regex();
+
+    [GeneratedRegex(@"^# (.+)$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel1Regex();
+
+    [GeneratedRegex(@"\*\*([^*]+)\*\*")]
+    private static partial Regex BoldDoubleAsterisksRegex();
+
+    [GeneratedRegex(@"__([^_]+)__")]
+    private static partial Regex BoldDoubleUnderscoresRegex();
+
+    [GeneratedRegex(@"(?<!\*)\*([^*\n]+)\*(?!\*)")]
+    private static partial Regex ItalicSingleAsteriskRegex();
+
+    [GeneratedRegex(@"(?<!_)_([^_\n]+)_(?!_)")]
+    private static partial Regex ItalicSingleUnderscoreRegex();
+
+    [GeneratedRegex(@"`([^`]+)`")]
+    private static partial Regex InlineCodeRegex();
+
+    [GeneratedRegex(@"\[([^\]]+)\]\([^)]+\)")]
+    private static partial Regex LinkRegex();
+}

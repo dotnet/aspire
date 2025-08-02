@@ -753,6 +753,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
 
