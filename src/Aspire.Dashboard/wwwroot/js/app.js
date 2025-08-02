@@ -62,6 +62,7 @@ window.getIsScrolledToContent = function () {
 window.setIsScrolledToContent = function (value) {
     if (isScrolledToContent != value) {
         isScrolledToContent = value;
+        console.log(`isScrolledToContent=${isScrolledToContent}`);
     }
 }
 
@@ -82,8 +83,11 @@ window.initializeContinuousScroll = function () {
 
     // The scroll event is used to detect when the user scrolls to view content.
     container.addEventListener('scroll', () => {
-        var v = !isScrolledToBottom(container);
-        setIsScrolledToContent(v);
+        var atBottom = isScrolledToBottom(container);
+        if (atBottom === null) {
+            return;
+        }
+        setIsScrolledToContent(!atBottom);
    }, { passive: true });
 
     // The ResizeObserver reports changes in the grid size.
@@ -91,8 +95,18 @@ window.initializeContinuousScroll = function () {
     // unless the user has scrolled to view content.
     const observer = new ResizeObserver(function () {
         lastScrollHeight = container.scrollHeight;
-        if (!getIsScrolledToContent()) {
+
+        if (lastScrollHeight == container.clientHeight) {
+            // There is no scrollbar. This could be because there's no content, or the content might have been cleared.
+            // Reset to default behavior: scroll to bottom
+            setIsScrolledToContent(false);
+            return;
+        }
+
+        var isScrolledToContent = getIsScrolledToContent();
+        if (!isScrolledToContent) {
             container.scrollTop = lastScrollHeight;
+            return;
         }
     });
     for (const child of container.children) {
@@ -108,6 +122,9 @@ function isScrolledToBottom(container) {
     if (!getIsScrolledToContent()) {
         if (lastScrollHeight != container.scrollHeight) {
             console.log(`lastScrollHeight ${lastScrollHeight} doesn't equal container scrollHeight ${container.scrollHeight}.`);
+
+            // Unknown because the container size changed.
+            return null;
         }
     }
 
@@ -115,7 +132,8 @@ function isScrolledToBottom(container) {
     const containerScrollBottom = lastScrollHeight - container.clientHeight;
     const difference = containerScrollBottom - container.scrollTop;
 
-    return difference < marginOfError;
+    var atBottom = difference < marginOfError;
+    return atBottom;
 }
 
 window.buttonOpenLink = function (element) {
