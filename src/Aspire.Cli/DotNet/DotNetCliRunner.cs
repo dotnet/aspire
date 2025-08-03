@@ -465,8 +465,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null
             && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
             await extensionInteractionService.LaunchAppHostAsync(
                 projectFile.FullName,
                 startInfo.WorkingDirectory,
