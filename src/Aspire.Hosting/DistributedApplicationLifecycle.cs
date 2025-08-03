@@ -36,10 +36,9 @@ internal sealed class DistributedApplicationLifecycle(
                     // Wait for the dashboard to become healthy before showing the startup message
                     await resourceNotificationService.WaitForResourceHealthyAsync(KnownResourceNames.AspireDashboard, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (ex is OperationCanceledException or DistributedApplicationException)
+                catch
                 {
-                    // If waiting for dashboard health fails or is cancelled, we still want to show the message
-                    // This ensures the user gets feedback even if dashboard health checking has issues
+                    // Ignore any errors from waiting for the dashboard. This is the wrong place to handle or report problems about the dashboard.
                 }
             }
 
