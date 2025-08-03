@@ -57,16 +57,16 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Trust HTTPS development certificate (Linux)
+      - name: 🐧 Trust HTTPS development certificate
         if: matrix.tests.os == 'ubuntu-latest'
         run: ./dotnet.sh dev-certs https --trust
 
-      - name: Setup vars (Linux)
+      - name: 🐧🍎 Setup vars
         if: ${{ matrix.tests.os == 'ubuntu-latest' || matrix.tests.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
 
-      - name: Setup vars (Windows)
+      - name: 🪟 Setup vars
         if: ${{ matrix.tests.os == 'windows-latest' }}
         run: |
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV

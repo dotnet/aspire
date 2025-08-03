@@ -46,7 +46,7 @@ jobs:
   test:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
-    name: ${{ inputs.testShortName }} (${{ inputs.os }})
+    name: ${{ inputs.os == 'ubuntu-latest' && '🐧' || inputs.os == 'macos-latest' && '🍎' || '🪟' }} ${{ inputs.testShortName }}
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
@@ -62,7 +62,7 @@ jobs:
       # from the repo always use restored dotnet. For tests run from outside
       # the repo we install system dotnet earlier in the build
 
-      - name: Setup vars (Linux)
+      - name: 🐧 Setup vars
         if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
@@ -70,7 +70,7 @@ jobs:
           echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
           echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
 
-      - name: Setup vars (Windows)
+      - name: 🪟 Setup vars
         if: ${{ inputs.os == 'windows-latest' }}
         run: |
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
@@ -91,7 +91,7 @@ jobs:
             9.x
             10.x
 
-      - name: Trust HTTPS development certificate (Linux)
+      - name: 🐧 Trust HTTPS development certificate
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
 
