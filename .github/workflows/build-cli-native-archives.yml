@@ -6,7 +6,7 @@ on:
 jobs:
 
   build_cli_archives:
-    name: ${{ matrix.targets.os == 'ubuntu-latest' && '🐧' || matrix.targets.os == 'macos-latest' && '🍎' || '🪟' }} Build CLI
+    name: ${{ matrix.targets.os == 'ubuntu-latest' && '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="16" height="16"/>' || matrix.targets.os == 'macos-latest' && '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="16" height="16"/>' || '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="16" height="16"/>' }} Build CLI
     runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:

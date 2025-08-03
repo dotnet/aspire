@@ -9,7 +9,7 @@ jobs:
   # setup jobs
 
   setup_for_tests_lin:
-    name: 🐧 Setup for tests
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="16" height="16"/> Setup for tests
     runs-on: ubuntu-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -24,7 +24,7 @@ jobs:
           includeTemplates: true
 
   setup_for_tests_macos:
-    name: 🍎 Setup for tests
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="16" height="16"/> Setup for tests
     runs-on: macos-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -39,7 +39,7 @@ jobs:
           includeTemplates: true
 
   setup_for_tests_win:
-    name: 🪟 Setup for tests
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="16" height="16"/> Setup for tests
     runs-on: windows-latest
     outputs:
       integrations_tests_matrix: ${{ steps.generate_tests_matrix.outputs.integrations_tests_matrix }}
@@ -80,7 +80,7 @@ jobs:
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
-    name: 🐧 Integrations
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="16" height="16"/> Integrations
     needs: setup_for_tests_lin
     strategy:
       fail-fast: false
@@ -93,7 +93,7 @@ jobs:
 
   integrations_test_macos:
     uses: ./.github/workflows/run-tests.yml
-    name: 🍎 Integrations
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="16" height="16"/> Integrations
     needs: setup_for_tests_macos
     strategy:
       fail-fast: false
@@ -106,7 +106,7 @@ jobs:
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
-    name: 🪟 Integrations
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="16" height="16"/> Integrations
     needs: setup_for_tests_win
     strategy:
       fail-fast: false
@@ -118,7 +118,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\""
 
   templates_test_lin:
-    name: 🐧 Templates
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="16" height="16"/> Templates
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_lin, build_packages]
     strategy:
@@ -135,7 +135,7 @@ jobs:
       requiresTestSdk: true
 
   templates_test_macos:
-    name: 🍎 Templates
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="16" height="16"/> Templates
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_macos, build_packages]
     strategy:
@@ -152,7 +152,7 @@ jobs:
       requiresTestSdk: true
 
   templates_test_win:
-    name: 🪟 Templates
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="16" height="16"/> Templates
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_win, build_packages]
     strategy:
@@ -169,7 +169,7 @@ jobs:
       requiresTestSdk: true
 
   endtoend_tests:
-    name: 🐧 EndToEnd
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="16" height="16"/> EndToEnd
     uses: ./.github/workflows/run-tests.yml
     needs: build_packages
     with:
@@ -180,7 +180,7 @@ jobs:
       requiresNugets: true
 
   extension_tests_win:
-    name: 🪟 Run VS Code extension tests
+    name: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="16" height="16"/> Run VS Code extension tests
     runs-on: windows-latest
     defaults:
       run:
