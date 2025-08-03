@@ -54,7 +54,7 @@ jobs:
           includeTemplates: true
 
   build_packages:
-    name: Build packages
+    name: 🐧 Build packages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

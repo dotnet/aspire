@@ -6,7 +6,7 @@ on:
 jobs:
 
   build_cli_archives:
-    name: Build CLI
+    name: ${{ matrix.targets.os == 'ubuntu-latest' && '🐧' || matrix.targets.os == 'macos-latest' && '🍎' || '🪟' }} Build CLI
     runs-on: ${{ matrix.targets.os }}
     strategy:
       matrix:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: 🪟 Build CLI packages
+      - name: Build CLI packages
         env:
           CI: false
         if: ${{ matrix.targets.os == 'windows-latest' }}
@@ -37,7 +37,7 @@ jobs:
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
 
-      - name: 🐧🍎 Build CLI packages
+      - name: Build CLI packages
         env:
           CI: false
         if: ${{ matrix.targets.os != 'windows-latest' }}
