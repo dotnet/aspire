@@ -12,8 +12,11 @@ import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
+import { createDcpServer, DcpServer } from './dcp/dcpServer';
+import { AspireDebugAdapterDescriptorFactory } from './dcp/debugAdapterFactory';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
+export let dcpServer: DcpServer | undefined;
 export let extensionContext: vscode.ExtensionContext | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -25,6 +28,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		(connection, token: string) => new RpcClient(connection, token)
 	);
 
+	dcpServer = await createDcpServer();
+
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
 	const cliNewCommand = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', newCommand));
@@ -33,6 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
 
 	extensionContext = context; 
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
 import { execFile } from 'child_process';
@@ -10,7 +10,7 @@ import { getAspireTerminal } from '../utils/terminal';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<vscode.DebugSession | TerminalProgramRun | undefined> {
+export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<BaseDebugSession | undefined> {
     try {
         const outputPath = await getDotnetTargetPath(projectFile);
 

@@ -973,12 +973,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 .RemoveSuffix("Resource")
                 .Underscore();
 
-            if (GetDebugSupportedResourceTypes().Contains(resourceType) && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
+            if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                 projectLaunchConfiguration.Type = resourceType;
-                projectLaunchConfiguration.ProjectPath = executable.WorkingDirectory;
+                projectLaunchConfiguration.ProjectPath = GetDebugSupportedResourceTypes().Contains(resourceType)
+                    ? executable.WorkingDirectory
+                    : exePath;
 
                 if (_configuration[KnownConfigNames.ExtensionEndpoint] is not null)
                 {

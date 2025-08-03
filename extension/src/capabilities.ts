@@ -21,7 +21,7 @@ export function getSupportedCapabilities(): string[] {
     }
 
     if (isCsharpInstalled()) {
-        capabilities.push("csharp");
+        capabilities.push("csharp", "project");
     }
 
     return capabilities;

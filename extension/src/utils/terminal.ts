@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { rpcServerInfo } from '../extension';
+import { dcpServer, rpcServerInfo } from '../extension';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 
@@ -7,6 +7,10 @@ let hasRunGetAspireTerminal = false;
 export function getAspireTerminal(): vscode.Terminal {
     if (!rpcServerInfo) {
         throw new Error('RPC server is not initialized. Ensure activation before using this function.');
+    }
+
+    if (!dcpServer?.info) {
+        throw new Error('DCP server is not initialized. Ensure activation before using this function.');
     }
 
     const terminalName = aspireTerminalName;
@@ -35,6 +39,11 @@ export function getAspireTerminal(): vscode.Terminal {
 
         // Use the current locale in the CLI
         ASPIRE_LOCALE_OVERRIDE: vscode.env.language,
+
+        // Include DCP server info
+        DEBUG_SESSION_PORT: dcpServer.info.address,
+        DEBUG_SESSION_TOKEN: dcpServer.info.token,
+        //DEBUG_SESSION_SERVER_CERTIFICATE: Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64')
     };
 
     hasRunGetAspireTerminal = true;
@@ -45,9 +54,9 @@ export function getAspireTerminal(): vscode.Terminal {
     });
 }
 
-export function sendToAspireTerminal(command: string) {
+export function sendToAspireTerminal(command: string, preserveFocus?: boolean) {
     const terminal = getAspireTerminal();
     extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
-    terminal.show();
+    terminal.show(preserveFocus);
 }
