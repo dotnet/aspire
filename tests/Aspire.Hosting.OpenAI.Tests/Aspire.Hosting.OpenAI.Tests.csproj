@@ -1,7 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="OpenAITests.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting.OpenAI\Aspire.Hosting.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" />
