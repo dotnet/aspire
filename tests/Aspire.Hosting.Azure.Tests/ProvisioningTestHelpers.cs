@@ -13,6 +13,11 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -44,7 +49,7 @@ internal static class ProvisioningTestHelpers
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? new JsonObject());
     }
-    
+
     // Factory methods for test implementations of provisioning services interfaces
     public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
@@ -53,6 +58,43 @@ internal static class ProvisioningTestHelpers
     public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
+
+    /// <summary>
+    /// Creates test options for Azure provisioner.
+    /// </summary>
+    public static IOptions<AzureProvisionerOptions> CreateOptions(
+        string? subscriptionId = "12345678-1234-1234-1234-123456789012",
+        string? location = "westus2",
+        string? resourceGroup = "test-rg")
+    {
+        var options = new AzureProvisionerOptions
+        {
+            SubscriptionId = subscriptionId,
+            Location = location,
+            ResourceGroup = resourceGroup
+        };
+        return Options.Create(options);
+    }
+
+    /// <summary>
+    /// Creates a test host environment.
+    /// </summary>
+    public static IHostEnvironment CreateEnvironment()
+    {
+        var environment = new TestHostEnvironment
+        {
+            ApplicationName = "TestApp"
+        };
+        return environment;
+    }
+
+    /// <summary>
+    /// Creates a test logger for DefaultProvisioningContextProvider.
+    /// </summary>
+    public static ILogger<DefaultProvisioningContextProvider> CreateLogger()
+    {
+        return NullLogger<DefaultProvisioningContextProvider>.Instance;
+    }
 }
 
 /// <summary>
@@ -73,7 +115,7 @@ internal sealed class TestTokenCredential : TokenCredential
         var token = CreateTestJwtToken();
         return ValueTask.FromResult(new AccessToken(token, DateTimeOffset.UtcNow.AddHours(1)));
     }
-    
+
     private static string CreateTestJwtToken()
     {
         var headerJson = JsonSerializer.Serialize(new { alg = "RS256", typ = "JWT" });
@@ -81,7 +123,7 @@ internal sealed class TestTokenCredential : TokenCredential
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
-        
+
         var payload = new
         {
             oid = "11111111-2222-3333-4444-555555555555",
@@ -89,7 +131,7 @@ internal sealed class TestTokenCredential : TokenCredential
             exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
             iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
-        
+
         var payloadJson = JsonSerializer.Serialize(payload);
         var payloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payloadJson))
             .TrimEnd('=')
@@ -177,9 +219,9 @@ internal sealed class TestResourceGroupResource : IResourceGroupResource
 internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 {
     public Task<ArmOperation<ArmDeploymentResource>> CreateOrUpdateAsync(
-        WaitUntil waitUntil, 
-        string deploymentName, 
-        ArmDeploymentContent content, 
+        WaitUntil waitUntil,
+        string deploymentName,
+        ArmDeploymentContent content,
         CancellationToken cancellationToken = default)
     {
         var deployment = new TestArmDeploymentResource(deploymentName);
@@ -266,6 +308,17 @@ internal sealed class TestSecretClientProvider(ITokenCredentialProvider tokenCre
         var credential = tokenCredentialProvider.TokenCredential;
         return new SecretClient(vaultUri, credential);
     }
+}
+
+/// <summary>
+/// Test implementation of <see cref="IHostEnvironment"/>.
+/// </summary>
+internal sealed class TestHostEnvironment : IHostEnvironment
+{
+    public string EnvironmentName { get; set; } = "Test";
+    public string ApplicationName { get; set; } = "TestApp";
+    public string ContentRootPath { get; set; } = "/test";
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
 }
 
 internal sealed class TestBicepCompiler : IBicepCompiler
