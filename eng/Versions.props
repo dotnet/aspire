@@ -46,6 +46,9 @@
     <MicrosoftExtensionsHttpResilienceVersion>9.7.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.7.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.7.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <!-- dotnet/runtime BCL compat packages for netfx -->
+    <MicrosoftBclMemoryVersion>9.0.7</MicrosoftBclMemoryVersion>
+    <MicrosoftBclTimeProviderVersion>9.0.7</MicrosoftBclTimeProviderVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
@@ -126,6 +129,7 @@
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
     <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.6</SystemTextJsonLTSVersion>
+    <SystemThreadingChannelsLTSVersion>8.0.0</SystemThreadingChannelsLTSVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryLTSVersion>1.9.0</OpenTelemetryLTSVersion>
     <OpenTelemetryInstrumentationGrpcNetClientLTSVersion>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientLTSVersion>
