@@ -90,7 +90,7 @@ public static class AzureAppConfigurationExtensions
         {
             var surrogate = new AzureAppConfigurationEmulatorResource(builder.Resource);
             var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            surrogateBuilder.ConfigureAnonymousAccess(enabled: true, role: "Owner"); // enable anonymous access by default
+            surrogateBuilder.WithAnonymousAccess(enabled: true, role: "Owner"); // enable anonymous access by default
             configureEmulator(surrogateBuilder);
         }
 
@@ -101,35 +101,26 @@ public static class AzureAppConfigurationExtensions
     /// Adds a bind mount file for the storage of an Azure App Configuration emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</param>
-    /// <param name="filePath">File path to the AppHost where emulator storage is persisted between runs.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.aace'</param>
     /// <returns>A builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</returns>
-    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string? filePath = null)
+    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string path)
     {
-        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
 
-        const string DefaultDirectory = ".aace";
-        const string DefaultFileName = "kv.ndjson";
+        return builder.WithBindMount(path ?? $".aace", "/app/.aace", isReadOnly: false);
+    }
 
-        if (filePath == null)
-        {
-            Directory.CreateDirectory(DefaultDirectory);
-            filePath = Path.Combine(DefaultDirectory, DefaultFileName);
-        }
-        else
-        {
-            var directory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-        }
+    /// <summary>
+    /// Adds a named volume for the data folder to an Azure App Configuration emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <returns>A builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataVolume(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (!File.Exists(filePath))
-        {
-            using (File.Create(filePath)) { }
-        }
-
-        return builder.WithBindMount(filePath, "/app/.aace/kv.ndjson", isReadOnly: false);
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/app", isReadOnly: false);
     }
 
     /// <summary>
@@ -139,7 +130,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="enabled">Whether anonymous access is enabled. Defaults to <c>true</c>.</param>
     /// <param name="role">The role to assign to the anonymous user. Defaults to "Owner".</param>
     /// <returns>The updated resource builder for further configuration.</returns>
-    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> ConfigureAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, bool enabled = true, string role = "Owner")
+    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, bool enabled = true, string role = "Owner")
     {
         builder.Resource.ConfigureAnonymousAuthentication(enabled, role);
         builder.WithEnvironment("Tenant:AnonymousAuthEnabled", enabled.ToString().ToLower());
