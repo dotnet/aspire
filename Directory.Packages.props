@@ -228,7 +228,7 @@
     <PackageVersion Update="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpVersion)" />
     <PackageVersion Update="System.Formats.Asn1" Version="$(SystemFormatsAsn1Version)" />
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonVersion)" />
-    <PackageVersion Include="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
+    <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
   </ItemGroup>
 
   <!-- These are 9.x versions which are STS so should ONLY be referenced by netfx projects -->
