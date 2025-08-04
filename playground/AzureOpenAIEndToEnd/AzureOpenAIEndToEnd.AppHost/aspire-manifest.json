@@ -12,7 +12,7 @@
     },
     "webstory": {
       "type": "project.v0",
-      "path": "../OpenAIEndToEnd.WebStory/OpenAIEndToEnd.WebStory.csproj",
+      "path": "../AzureOpenAIEndToEnd.WebStory/AzureOpenAIEndToEnd.WebStory.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",

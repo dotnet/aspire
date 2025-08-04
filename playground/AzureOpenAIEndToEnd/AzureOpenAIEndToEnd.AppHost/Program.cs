@@ -3,9 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini");
+var chat = builder.AddAzureOpenAI("openai")
+    .AddDeployment("chat", "gpt-4o", "2024-05-13");
 
-builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
+builder.AddProject<Projects.AzureOpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
        .WithReference(chat);
 

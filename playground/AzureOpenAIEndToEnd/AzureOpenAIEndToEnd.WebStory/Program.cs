@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using OpenAIEndToEnd.WebStory.Components;
+using AzureOpenAIEndToEnd.WebStory.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddOpenAIClient("chat")
+builder.AddAzureOpenAIClient("chat")
        .AddChatClient();
 
 // Add services to the container.

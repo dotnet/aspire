@@ -29,7 +29,7 @@
 * Follow the instructions in the repo to build.
 * If temporarily introducing warnings during a refactoring, you can add the flag `/p:TreatWarningsAsErrors=false` to your build command to prevent the build from failing. However before you finish your work, you must strive to fix any warnings as well.
 
-In building and testing, never use `dotnet` without extension. Use `dotnet.sh` on Unix, `dotnet.cmd` on Windows.
+In building and testing, never use `dotnet` without extension. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
 
 ### Testing
 
