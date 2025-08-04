@@ -393,10 +393,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StopAsync" />
     public virtual async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
-
         // Reset locale override after stopping the host.
         var localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
+
+        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+
         ResetLocaleOverride(localeOverrideContext);
     }
 
