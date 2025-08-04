@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -12,6 +13,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Semver;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
@@ -201,6 +203,9 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
             defaultValue: defaultName,
+            validator: name => ProjectNameValidator.IsProjectNameValid(name)
+                ? ValidationResult.Success()
+                : ValidationResult.Error(NewCommandStrings.InvalidProjectName),
             cancellationToken: cancellationToken);
     }
 
@@ -212,5 +217,26 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
             t => t.Description,
             cancellationToken
         );
+    }
+}
+
+internal static partial class ProjectNameValidator
+{
+    // Regex for project name validation:
+    // - Can be any characters except path separators (/ and \)
+    // - Length: 1-254 characters
+    // - Must not be empty or whitespace only
+    [GeneratedRegex(@"^[^/\\]{1,254}$", RegexOptions.Compiled)]
+    internal static partial Regex GetProjectNameRegex();
+
+    public static bool IsProjectNameValid(string projectName)
+    {
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            return false;
+        }
+
+        var regex = GetProjectNameRegex();
+        return regex.IsMatch(projectName);
     }
 }

@@ -313,7 +313,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
     private async Task<string> GetProjectNameAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        if (parseResult.GetValue<string>("--name") is not { } name)
+        if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
         {
             var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
             name = await prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
