@@ -54,6 +54,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     private readonly IHost _host;
     private ResourceNotificationService? _resourceNotifications;
     private ResourceCommandService? _resourceCommands;
+    private LocaleOverrideContext? _localeOverrideContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -373,9 +374,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
         // Apply locale override before starting the host.
-        var localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
+        _localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
         var configuration = _host.Services.GetRequiredService<IConfiguration>();
-        ApplyLocaleOverride(configuration, localeOverrideContext);
+        ApplyLocaleOverride(configuration, _localeOverrideContext);
 
         // We only run the start lifecycle hook if we are in run mode or
         // publish mode. In inspect mode we try to avoid lifecycle hooks
@@ -393,12 +394,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StopAsync" />
     public virtual async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        // Reset locale override after stopping the host.
-        var localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
-
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
 
-        ResetLocaleOverride(localeOverrideContext);
+        // Reset locale override after stopping the host.
+        if (_localeOverrideContext is not null)
+        {
+            ResetLocaleOverride(_localeOverrideContext);
+        }
     }
 
     /// <summary>
