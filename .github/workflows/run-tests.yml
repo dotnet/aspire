@@ -256,6 +256,7 @@ jobs:
           -bl:${{ github.workspace }}/testresults/test.binlog
           --no-restore
           --no-build
+          --no-launch-profile
           --ignore-exit-code 8
           --no-progress
           --report-trx
