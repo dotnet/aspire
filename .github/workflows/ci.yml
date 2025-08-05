@@ -30,3 +30,19 @@ jobs:
     uses: ./.github/workflows/build-cli-native-archives.yml
     name: Build native CLI archives
     if: ${{ github.repository_owner == 'dotnet' }}
+
+  # This job is used for branch protection. It ensures all the jobs have passed
+  results:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [tests, build_cli_archives]
+
+    steps:
+      - name: Fail if any of the dependent jobs failed
+        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
+        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
+        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
+        run: |
+          echo "One or more dependent jobs failed."
+          exit 1
