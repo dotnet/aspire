@@ -229,6 +229,7 @@ jobs:
         run: >
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
+          --no-progress
           --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump
@@ -249,14 +250,14 @@ jobs:
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
         run: >
-          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.DOTNET_SCRIPT }} test --project ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
           /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
           -bl:${{ github.workspace }}/testresults/test.binlog
           --no-restore
           --no-build
-          --
           --ignore-exit-code 8
+          --no-progress
           --report-trx
           --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
           --crashdump

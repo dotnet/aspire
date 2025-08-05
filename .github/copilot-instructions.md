@@ -47,7 +47,7 @@ In building and testing, never use `dotnet` without extension. Use `dotnet.sh` o
 
 Note that tests for a project can be executed without first building from the root.
 
-(4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --logger "console;verbosity=detailed" -- --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
+(4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
 
 ### Important: Excluding Quarantined Tests
 
@@ -55,10 +55,10 @@ When running tests in automated environments (including Copilot agent), **always
 
 ```bash
 # Correct - excludes quarantined tests (use this in automation)
-dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter-not-trait "quarantined=true"
 
 # For specific test filters, combine with quarantine exclusion
-dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter "TestName" --filter-not-trait "quarantined=true"
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter "TestName" --filter-not-trait "quarantined=true"
 ```
 
 Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
