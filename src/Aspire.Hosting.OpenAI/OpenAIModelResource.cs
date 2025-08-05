@@ -8,7 +8,7 @@ namespace Aspire.Hosting.OpenAI;
 /// <summary>
 /// Represents an OpenAI Model resource.
 /// </summary>
-public class OpenAIModelResource : Resource, IResourceWithConnectionString, IResourceWithoutLifetime
+public class OpenAIModelResource : Resource, IResourceWithConnectionString
 {
     internal ParameterResource DefaultKeyParameter { get; set; }
 

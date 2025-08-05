@@ -3,11 +3,11 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini");
+var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini").WithHealthCheck();
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
-       .WithReference(chat);
+       .WithReference(chat).WaitFor(chat);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
