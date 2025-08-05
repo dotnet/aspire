@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting;
@@ -80,9 +82,9 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the input dialog interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing the user's inputs.
+    /// An <see cref="InteractionResult{T}"/> containing the user's inputs as an <see cref="InteractionInputCollection"/>.
     /// </returns>
-    Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Prompts the user with a notification.
@@ -104,9 +106,19 @@ public interface IInteractionService
 public sealed class InteractionInput
 {
     /// <summary>
-    /// Gets or sets the label for the input.
+    /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// </summary>
-    public required string Label { get; init; }
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the label for the input. If not specified, the name will be used as the label.
+    /// </summary>
+    public string? Label { get; init; }
+
+    /// <summary>
+    /// Gets the effective label for the input. Returns the Label if specified, otherwise returns the Name.
+    /// </summary>
+    public string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
 
     /// <summary>
     /// Gets or sets the description for the input.
@@ -165,6 +177,109 @@ public sealed class InteractionInput
 }
 
 /// <summary>
+/// A collection of interaction inputs that supports both indexed and name-based access.
+/// </summary>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Count = {Count}")]
+public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
+{
+    private readonly IReadOnlyList<InteractionInput> _inputs;
+    private readonly IReadOnlyDictionary<string, InteractionInput> _inputsByName;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InteractionInputCollection"/> class.
+    /// </summary>
+    /// <param name="inputs">The collection of interaction inputs to wrap.</param>
+    public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
+    {
+        var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Check for duplicate names
+        foreach (var input in inputs)
+        {
+            if (usedNames.Contains(input.Name))
+            {
+                throw new InvalidOperationException($"Duplicate input name '{input.Name}' found. Input names must be unique.");
+            }
+            usedNames.Add(input.Name);
+            inputsByName[input.Name] = input;
+        }
+
+        _inputs = inputs;
+        _inputsByName = inputsByName;
+    }
+
+    /// <summary>
+    /// Gets an input by its name.
+    /// </summary>
+    /// <param name="name">The name of the input.</param>
+    /// <returns>The input with the specified name.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when no input with the specified name exists.</exception>
+    public InteractionInput this[string name]
+    {
+        get
+        {
+            if (_inputsByName.TryGetValue(name, out var input))
+            {
+                return input;
+            }
+            throw new KeyNotFoundException($"No input with name '{name}' was found.");
+        }
+    }
+
+    /// <summary>
+    /// Gets an input by its index.
+    /// </summary>
+    /// <param name="index">The zero-based index of the input.</param>
+    /// <returns>The input at the specified index.</returns>
+    public InteractionInput this[int index] => _inputs[index];
+
+    /// <summary>
+    /// Gets the number of inputs in the collection.
+    /// </summary>
+    public int Count => _inputs.Count;
+
+    /// <summary>
+    /// Tries to get an input by its name.
+    /// </summary>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="input">When this method returns, contains the input with the specified name, if found; otherwise, null.</param>
+    /// <returns>true if an input with the specified name was found; otherwise, false.</returns>
+    public bool TryGetByName(string name, [NotNullWhen(true)] out InteractionInput? input)
+    {
+        return _inputsByName.TryGetValue(name, out input);
+    }
+
+    /// <summary>
+    /// Determines whether the collection contains an input with the specified name.
+    /// </summary>
+    /// <param name="name">The name to locate in the collection.</param>
+    /// <returns>true if the collection contains an input with the specified name; otherwise, false.</returns>
+    public bool ContainsName(string name)
+    {
+        return _inputsByName.ContainsKey(name);
+    }
+
+    /// <summary>
+    /// Gets the names of all inputs in the collection.
+    /// </summary>
+    public IEnumerable<string> Names => _inputsByName.Keys;
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    public IEnumerator<InteractionInput> GetEnumerator() => _inputs.GetEnumerator();
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    IEnumerator IEnumerable.GetEnumerator() => _inputs.GetEnumerator();
+}
+
+/// <summary>
 /// Specifies the type of input for an <see cref="InteractionInput"/>.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -217,7 +332,7 @@ public sealed class InputsDialogValidationContext
     /// <summary>
     /// Gets the inputs that are being validated.
     /// </summary>
-    public required IReadOnlyList<InteractionInput> Inputs { get; init; }
+    public required InteractionInputCollection Inputs { get; init; }
 
     /// <summary>
     /// Gets the cancellation token for the validation operation.

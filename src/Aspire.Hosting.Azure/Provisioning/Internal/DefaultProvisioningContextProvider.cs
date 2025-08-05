@@ -101,9 +101,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     AzureProvisioningStrings.InputsTitle,
                     AzureProvisioningStrings.InputsMessage,
                     [
-                        new InteractionInput { InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
-                        new InteractionInput { InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
+                        new InteractionInput { Name = "Location", InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
+                        new InteractionInput { Name = "SubscriptionId", InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
+                        new InteractionInput { Name = "ResourceGroup", InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
                     ],
                     new InputsDialogInteractionOptions
                     {
