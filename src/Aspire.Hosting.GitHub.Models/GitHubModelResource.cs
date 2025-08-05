@@ -8,7 +8,7 @@ namespace Aspire.Hosting.GitHub.Models;
 /// <summary>
 /// Represents a GitHub Model resource.
 /// </summary>
-public class GitHubModelResource : Resource, IResourceWithConnectionString, IResourceWithoutLifetime
+public class GitHubModelResource : Resource, IResourceWithConnectionString
 {
     internal ParameterResource DefaultKeyParameter { get; set; }
 
