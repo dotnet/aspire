@@ -184,9 +184,23 @@ public class KubernetesPublisherTests()
         var cs = builder.AddConnectionString("api-cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
 
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
-        builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
+
+        var containerResource = builder.AddContainer("Special-resource-with-hyphens", "my-image")
+            .AsHttp2Service()
+            .WithEnvironment("ORIGINAL_ENV", "value")
+            .WithHttpEndpoint(port: 80, targetPort: 80)
+            .WithHttpsEndpoint(port: 443, targetPort: 443)
+            .PublishAsKubernetesService(serviceResource =>
+            {
+                serviceResource.Workload!.PodTemplate.Spec.Containers[0].ImagePullPolicy = "Always";
+                (serviceResource.Workload as Deployment)!.Spec.RevisionHistoryLimit = 5;
+            });
+
+        var projectResource = builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
             .WithEnvironment("param3", param3)
-            .WithReference(cs);
+            .WithReference(cs)
+            .WithReference(containerResource.GetEndpoint("http"))
+            .WithReference(containerResource.GetEndpoint("https"));
 
         var app = builder.Build();
 
@@ -195,12 +209,15 @@ public class KubernetesPublisherTests()
         // Assert
         var expectedFiles = new[]
         {
-            "Chart.yaml",
-            "values.yaml",
-            "templates/SpeciaL-ApP/deployment.yaml",
-            "templates/SpeciaL-ApP/config.yaml",
-            "templates/SpeciaL-ApP/secrets.yaml"
-        };
+        "Chart.yaml",
+        "values.yaml",
+        "templates/SpeciaL-ApP/deployment.yaml",
+        "templates/SpeciaL-ApP/config.yaml",
+        "templates/SpeciaL-ApP/secrets.yaml",
+        "templates/Special-resource-with-hyphens/deployment.yaml",
+        "templates/Special-resource-with-hyphens/service.yaml",
+        "templates/Special-resource-with-hyphens/config.yaml"
+    };
 
         SettingsTask settingsTask = default!;
 

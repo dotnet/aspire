@@ -1,4 +1,4 @@
----
+﻿---
 apiVersion: "v1"
 kind: "ConfigMap"
 metadata:
@@ -11,3 +11,5 @@ data:
   OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES }}"
   OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY }}"
+  services__Special_resource_with_hyphens__http__0: "{{ .Values.config.SpeciaL_ApP.services__Special_resource_with_hyphens__http__0 }}"
+  services__Special_resource_with_hyphens__https__0: "{{ .Values.config.SpeciaL_ApP.services__Special_resource_with_hyphens__https__0 }}"
