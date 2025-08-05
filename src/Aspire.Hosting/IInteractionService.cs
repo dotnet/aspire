@@ -180,7 +180,11 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     private readonly IReadOnlyList<InteractionInput> _inputs;
     private readonly IReadOnlyDictionary<string, InteractionInput> _inputsByName;
 
-    internal InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InteractionInputCollection"/> class.
+    /// </summary>
+    /// <param name="inputs">The collection of interaction inputs to wrap.</param>
+    public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
     {
         // Create a new list with proper names assigned
         var processedInputs = new List<InteractionInput>();
