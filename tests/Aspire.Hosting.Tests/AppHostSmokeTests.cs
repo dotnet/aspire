@@ -69,7 +69,14 @@ public class AppHostSmokeTests
 
             if (!string.IsNullOrEmpty(expectedLocaleError))
             {
-                Assert.Contains(testSink.Writes, w => w.Message?.Contains(expectedLocaleError) ?? false);
+                var writes = testSink.Writes.ToArray();
+                var errorLog = testSink.Writes.SingleOrDefault(w => w.Message?.Contains(expectedLocaleError) ?? false);
+                Assert.True(
+                    errorLog != null,
+                    $"""
+                    Expected error log not found: {expectedLocaleError}
+                    Actual logs: {string.Join(", ", writes.Select(w => w.Message))}
+                    """);
             }
 
             // Test culture is reset

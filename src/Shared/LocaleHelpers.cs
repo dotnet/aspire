@@ -14,6 +14,13 @@ internal static class LocaleHelpers
 
     public static SetLocaleResult TrySetLocaleOverride(string localeOverride)
     {
+        // Explicitly check if this is a known culture.
+        // Linux/macOS don't thrown CultureNotFoundException so this check provides a consistent experience.
+        if (!IsKnownCulture(localeOverride))
+        {
+            return SetLocaleResult.InvalidLocale;
+        }
+
         try
         {
             var cultureInfo = new CultureInfo(localeOverride);
@@ -33,6 +40,13 @@ internal static class LocaleHelpers
         {
             return SetLocaleResult.InvalidLocale;
         }
+    }
+
+    private static bool IsKnownCulture(string cultureName)
+    {
+        return CultureInfo
+            .GetCultures(CultureTypes.AllCultures)
+            .Any(c => string.Equals(c.Name, cultureName, StringComparison.OrdinalIgnoreCase));
     }
 
     public static string? GetLocaleOverride(IConfiguration configuration)
