@@ -21,9 +21,20 @@ var regularExecutable = builder.AddExecutable("regularExecutable", "dotnet", "."
     .WithEnvironment("ASPNETCORE_URLS", "")
     .WithHttpHealthCheck("/health");
 
+var raw = builder.AddResource(new RawResource("raw"));
+
 var rawContainer = builder.AddResource(new RawResource("rawContainer"))
     .WithAnnotation(new ContainerImageAnnotation { Image = "aspire/playground/resourcesubstitution" })
     .WithHttpEndpoint(targetPort: 8080, env: "ASPNETCORE_HTTP_PORTS")
+    .WithHttpHealthCheck("/health");
+
+var rawExecutable = builder.AddResource(new RawResource("rawExecutable"))
+    .WithAnnotation(new ExecutableAnnotation { Command = "dotnet", WorkingDirectory = "." })
+    .WithArgs("run", "--project", new Projects.ResourceSubstitution_Project().ProjectPath)
+    // launch settings keep on overriding port env vars
+    .WithArgs("--launch-profile", "NoApplicationUrls")
+    .WithHttpEndpoint(env: "ASPNETCORE_HTTP_PORTS")
+    .WithHttpsEndpoint(env: "ASPNETCORE_HTTPS_PORTS")
     .WithHttpHealthCheck("/health");
 
 //TODO: raw exe
@@ -55,6 +66,8 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 builder.Build().Run();
 
-internal sealed class RawResource(string name) : Resource(name), IResourceWithEndpoints
+// Somewhat cheating right now by adding IResourceWithEndpoints & IResourceWithArgs
+// To give the easy extension methods, rather than add annotations raw
+internal sealed class RawResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithArgs, IResourceWithEnvironment
 {
 }

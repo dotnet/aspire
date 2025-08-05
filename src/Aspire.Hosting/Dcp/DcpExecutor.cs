@@ -945,18 +945,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void PreparePlainExecutables()
     {
-        var modelExecutableResources = _model.GetExecutableResources();
+        var modelExecutableResources = _model.GetExecutableResourcesByAnnotations();
 
         foreach (var executable in modelExecutableResources)
         {
+            if (!executable.TryGetLastAnnotation<ExecutableAnnotation>(out var executableAnnotation))
+            {
+                throw new InvalidOperationException("An executable resource is missing required ExecutableAnnotation"); // Should never happen.
+            }
+
             EnsureRequiredAnnotations(executable);
 
             var exeInstance = GetDcpInstance(executable, instanceIndex: 0);
-            var exePath = executable.Command;
+            var exePath = executableAnnotation.Command;
             var exe = Executable.Create(exeInstance.Name, exePath);
 
             // The working directory is always relative to the app host project directory (if it exists).
-            exe.Spec.WorkingDirectory = executable.WorkingDirectory;
+            exe.Spec.WorkingDirectory = executableAnnotation.WorkingDirectory;
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
