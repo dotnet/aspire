@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(DefaultTargetFramework);net462</TargetFrameworks>
+    <TargetFrameworks>net462;$(DefaultTargetFramework)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <IsAotCompatible Condition=" '$(TargetFramework)' != 'net462' ">true</IsAotCompatible>
     <Description>Provides extensions to HttpClient that enable service discovery based on configuration.</Description>
@@ -22,6 +22,6 @@
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
   </ItemGroup>
 
-  <Import Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'net462' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>

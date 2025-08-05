@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if NETFRAMEWORK
-
 using System.Runtime.CompilerServices;
 
 namespace System.Threading;
@@ -94,5 +92,3 @@ internal static partial class FxPolyfillInterlocked
             (ulong)Or(ref Unsafe.As<ulong, long>(ref location1), (long)value);
     }
 }
-
-#endif

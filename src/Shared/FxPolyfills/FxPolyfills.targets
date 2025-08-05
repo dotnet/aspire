@@ -1,15 +1,9 @@
-<!-- Licensed to the .NET Foundation under one or more agreements. -->
-<!-- The .NET Foundation licenses this file to you under the MIT license. -->
-
 <Project>
   <PropertyGroup>
-    <IsTargetingNetFramework>false</IsTargetingNetFramework>
-    <IsTargetingNetFramework Condition="$(TargetFramework.StartsWith('net4'))">true</IsTargetingNetFramework>
     <SharedFxPolyfillsDir>$(MSBuildThisFileDirectory)</SharedFxPolyfillsDir>
   </PropertyGroup>
 
-  <!-- Include all Framework Extension files from the shared location, excluding test-specific ones -->
-  <ItemGroup Condition="$(IsTargetingNetFramework)">
+  <ItemGroup>
     <Reference Include="System.Net.Http" />
 
     <Using Include="System.Net.Http" />

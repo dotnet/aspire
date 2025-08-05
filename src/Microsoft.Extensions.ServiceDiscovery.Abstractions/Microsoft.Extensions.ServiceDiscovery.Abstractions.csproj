@@ -23,6 +23,6 @@
     <PackageReference Include="Microsoft.Bcl.Memory" /> 
   </ItemGroup>
   
-  <Import Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'net462' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>

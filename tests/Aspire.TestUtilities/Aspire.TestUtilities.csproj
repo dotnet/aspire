@@ -14,5 +14,5 @@
     <PackageReference Include="Microsoft.Bcl.Memory" />
   </ItemGroup>
 
-  <Import Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'net472' " Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
 </Project>
