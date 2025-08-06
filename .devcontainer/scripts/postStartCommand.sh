@@ -13,6 +13,6 @@ dotnet build /workspaces/aspire/src/Aspire.Cli/Aspire.Cli.csproj
 
 # Build and install VSCode extension
 echo "Building and installing VSCode extension..."
-/workspaces/aspire/.devcontainer/scripts/build-install-extension.sh
+/workspaces/aspire/.devcontainer/scripts/build-extension.sh
 
 echo "Post-start setup completed successfully!"
