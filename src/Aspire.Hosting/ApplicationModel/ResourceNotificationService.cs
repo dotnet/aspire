@@ -238,6 +238,9 @@ public class ResourceNotificationService : IDisposable
     /// control this behavior use <see cref="WaitForResourceHealthyAsync(string, WaitBehavior, CancellationToken)"/>
     /// or configure the default behavior with <see cref="ResourceNotificationServiceOptions.DefaultWaitBehavior"/>.
     /// </para>
+    /// <para>
+    /// This method can be used independently of or together with the <see cref="WaitForResourceReadyAsync(string, CancellationToken)"/> method.
+    /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
@@ -255,14 +258,13 @@ public class ResourceNotificationService : IDisposable
     /// <returns>A task.</returns>
     /// <remarks>
     /// <para>
-    /// This method returns a task that will complete when the resource's ResourceReadyEvent 
-    /// is present and its associated EventTask has completed. This allows developers using 
-    /// the lower-level API to fine-tune what lifecycle event they wait for.
+    /// This method returns a task that completes when all subscriptions to the ResourceReadyEvent 
+    /// have completed (if any). If any throw an exception, this method will throw an exception. 
+    /// If none are present this method will return immediately.
     /// </para>
     /// <para>
-    /// If the resource doesn't have a ResourceReadyEvent or if the EventTask doesn't complete 
-    /// before <paramref name="cancellationToken"/> is signaled, this method will throw 
-    /// <see cref="OperationCanceledException"/>.
+    /// This method does not explicitly wait for the resource to be healthy and can be used 
+    /// independently of or together with the <see cref="WaitForResourceHealthyAsync(string, CancellationToken)"/> method.
     /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceReadyAsync(string resourceName, CancellationToken cancellationToken = default)
@@ -303,6 +305,9 @@ public class ResourceNotificationService : IDisposable
     /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
     /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an
     /// unavailable state.
+    /// </para>
+    /// <para>
+    /// This method can be used independently of or together with the <see cref="WaitForResourceReadyAsync(string, CancellationToken)"/> method.
     /// </para>
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
