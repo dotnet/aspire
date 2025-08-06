@@ -36,11 +36,6 @@ public class AddParameterTests
         Assert.Collection(state.Properties,
             prop =>
             {
-                Assert.Equal("parameter.secret", prop.Name);
-                Assert.Equal("True", prop.Value);
-            },
-            prop =>
-            {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
                 Assert.Equal("Parameters:pass", prop.Value);
             });
