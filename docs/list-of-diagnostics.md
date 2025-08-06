@@ -1,4 +1,5 @@
 # List of Diagnostics Produced by Aspire
+foo bar
 
 ## MSBuild Warnings
 
