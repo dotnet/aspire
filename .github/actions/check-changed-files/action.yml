@@ -35,16 +35,12 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout code
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      with:
-        fetch-depth: 0
-
     - name: Check changed files against patterns
       id: check_files
       shell: bash
       run: |
         set -e
+        set -x
 
         # Only support pull request events
         if [ "${{ github.event_name }}" != "pull_request" ]; then
