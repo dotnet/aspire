@@ -132,7 +132,7 @@
                                                     ResizeColumnOnAllRows="false"
                                                     GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                     RowClass="@(r => GetRowClass(r.Resource))"
-                                                    Loading="_isLoading"
+                                                    Loading="!_loadingTcs.Task.IsCompleted"
                                                     ShowHover="true"
                                                     TGridItem="ResourceGridViewModel"
                                                     ItemKey="@(r => r.Resource.Name)"
