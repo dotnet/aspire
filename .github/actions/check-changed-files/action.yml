@@ -65,8 +65,9 @@ runs:
 
         # Get list of changed files for pull requests
         BASE_REF="${{ github.event.pull_request.base.sha }}"
-        if ! CHANGED_FILES=$(git diff --name-only "$BASE_REF"..HEAD 2>/dev/null); then
-          echo "Error: Failed to get changed files. Base ref: $BASE_REF"
+        HEAD_REF="${{ github.event.pull_request.head.sha }}"
+        if ! CHANGED_FILES=$(git diff --name-only "$BASE_REF".."$HEAD_REF" 2>/dev/null); then
+          echo "Error: Failed to get changed files. Base ref: $BASE_REF HEAD ref: $HEAD_REF"
           exit 1
         fi
 
