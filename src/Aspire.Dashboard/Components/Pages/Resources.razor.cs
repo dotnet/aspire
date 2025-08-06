@@ -171,19 +171,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnInitializedAsync()
     {
-        if (ResourceName is not null)
-        {
-            NavigationManager.RegisterLocationChangingHandler(c =>
-            {
-                return ValueTask.CompletedTask;
-            });
-            NavigationManager.LocationChanged += (sender, args) =>
-            {
-                _ = sender;
-                _ = args;
-            };
-        }
-
         TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
