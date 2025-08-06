@@ -97,10 +97,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
+    private readonly TaskCompletionSource _loadingTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private string _filter = "";
     private bool _isFilterPopupVisible;
     private Task? _resourceSubscriptionTask;
-    private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
     private FluentDataGrid<ResourceGridViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
@@ -171,6 +171,19 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnInitializedAsync()
     {
+        if (ResourceName is not null)
+        {
+            NavigationManager.RegisterLocationChangingHandler(c =>
+            {
+                return ValueTask.CompletedTask;
+            });
+            NavigationManager.LocationChanged += (sender, args) =>
+            {
+                _ = sender;
+                _ = args;
+            };
+        }
+
         TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
@@ -235,7 +248,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
         });
 
-        _isLoading = false;
+        _loadingTcs.SetResult();
 
         async Task SubscribeResourcesAsync()
         {
@@ -522,6 +535,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return;
         }
 
+        // Wait until the initial data is loaded. This is required so there isn't a race between data loading and using resources here.
+        await _loadingTcs.Task;
+
         // If filters were saved in page state, resource filters now need to be recomputed since the URL has changed.
         foreach (var resourceViewModel in _resourceByName)
         {
@@ -533,6 +549,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
             {
                 await ShowResourceDetailsAsync(selectedResource, buttonId: null);
+            }
+            else
+            {
+                Logger.LogDebug("Can't navigate to {ResourceName} from URL. Resource not found.", ResourceName);
             }
 
             // Navigate to remove ?resource=xxx in the URL.
@@ -598,6 +618,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
+        Logger.LogDebug("Showing details for resource {ResourceName}.", resource.Name);
+
         _elementIdBeforeDetailsViewOpened = buttonId;
 
         if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
@@ -635,6 +657,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
+        Logger.LogDebug("Clearing selected resource.");
+
         SelectedResource = null;
 
         await InvokeAsync(StateHasChanged);
@@ -781,7 +805,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         if (id is null
             || !Enum.TryParse(typeof(ResourceViewKind), id, out var o)
-            || o is not ResourceViewKind viewKind)
+            || o is not ResourceViewKind viewKind
+            || PageViewModel.SelectedViewKind == viewKind)
         {
             return Task.CompletedTask;
         }
