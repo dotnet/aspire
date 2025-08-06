@@ -334,7 +334,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplar">
         <source>Exemplar</source>
-        <target state="new">Exemplar</target>
+        <target state="translated">Экземпляр</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
