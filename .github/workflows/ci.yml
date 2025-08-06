@@ -60,9 +60,11 @@ jobs:
 
     steps:
       - name: Fail if any of the dependent jobs failed
-        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
-        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        # Also, don't fail if the workflow is being skipped
+        # Don't fail if the workflow is being skipped.
+        #
+        # For others 'skipped' can be when a transitive dependency fails and the dependent job gets
+        # 'skipped'. For example, one of setup_* jobs failing and the Integration test jobs getting
+        # 'skipped'
         if: >-
           ${{ always() &&
               needs.check_changes.outputs.skip_workflow != 'true' &&
@@ -70,6 +72,5 @@ jobs:
                contains(needs.*.result, 'cancelled') ||
                contains(needs.*.result, 'skipped')) }}
         run: |
-          echo "skip: ${{ needs.check_changes.outputs.skip_workflow }}"
           echo "One or more dependent jobs failed."
           exit 1
