@@ -43,7 +43,7 @@ export function getAspireTerminal(): vscode.Terminal {
         // Include DCP server info
         DEBUG_SESSION_PORT: dcpServer.info.address,
         DEBUG_SESSION_TOKEN: dcpServer.info.token,
-        //DEBUG_SESSION_SERVER_CERTIFICATE: Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64')
+        DEBUG_SESSION_SERVER_CERTIFICATE: Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64')
     };
 
     hasRunGetAspireTerminal = true;
