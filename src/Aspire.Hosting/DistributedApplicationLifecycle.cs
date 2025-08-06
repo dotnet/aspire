@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,21 +12,38 @@ namespace Aspire.Hosting;
 internal sealed class DistributedApplicationLifecycle(
     ILogger<DistributedApplication> logger,
     IConfiguration configuration,
-    DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
+    DistributedApplicationExecutionContext executionContext,
+    DistributedApplicationModel applicationModel,
+    ResourceNotificationService resourceNotificationService) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
-    public Task StartedAsync(CancellationToken cancellationToken)
+    public async Task StartedAsync(CancellationToken cancellationToken)
     {
         if (executionContext.IsRunMode)
         {
+            // Check if aspire-dashboard resource exists
+            var dashboardResource = applicationModel.Resources
+                .FirstOrDefault(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+
+            if (dashboardResource is not null)
+            {
+                try
+                {
+                    // Wait for the dashboard to become healthy before showing the startup message
+                    await resourceNotificationService.WaitForResourceHealthyAsync(KnownResourceNames.AspireDashboard, cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore any errors from waiting for the dashboard. This is the wrong place to handle or report problems about the dashboard.
+                }
+            }
+
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }
-
-        return Task.CompletedTask;
     }
 
     public Task StartingAsync(CancellationToken cancellationToken)
