@@ -11,7 +11,7 @@ import { DcpServerInformation, ErrorDetails, ErrorResponse, RunSessionNotificati
 import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
 import { startDotNetProgram } from '../debugger/dotnet';
 import path from 'path';
-import { BaseDebugSession, startCliProgram } from '../debugger/common';
+import { BaseDebugSession, startCliProgram, TerminalProgramRun } from '../debugger/common';
 import { cwd } from 'process';
 
 const runsBySession = new Map<string, BaseDebugSession[]>();
@@ -128,21 +128,21 @@ export class DcpServer {
             app.delete('/run_session/:id', requireHeaders, async (req: Request, res: Response) => {
                 const runId = req.params.id;
                 if (runsBySession.has(runId)) {
-                    const sessions = runsBySession.get(runId);
-                    for (const session of sessions || []) {
-                        if (isTerminal(session)) {
+                    const baseDebugSessions = runsBySession.get(runId);
+                    for (const debugSession of baseDebugSessions || []) {
+                        if (isTerminal(debugSession.session)) {
                             try {
-                                session.dispose();
+                                debugSession.session.dispose();
                                 extensionLogOutputChannel.info(`Closed terminal for run session ${runId}`);
                             } catch (err) {
                                 extensionLogOutputChannel.error(`Failed to close terminal for run session ${runId}: ${err}`);
                             }
-                        } else if (session instanceof ChildProcess) {
+                        } else if (isTerminalProgramRun(debugSession.session)) {
                             // Kill the spawned process if it exists
-                            if (session.pid) {
+                            if (debugSession.session.terminal.processId) {
                                 try {
-                                    process.kill(-session.pid, 'SIGTERM');
-                                    extensionLogOutputChannel.info(`Killed process for run session ${runId} (pid: ${session.pid})`);
+                                    process.kill(-debugSession.session.terminal.processId, 'SIGTERM');
+                                    extensionLogOutputChannel.info(`Killed process for run session ${runId} (pid: ${debugSession.session.terminal.processId})`);
                                 } catch (err) {
                                     extensionLogOutputChannel.error(`Failed to kill process for run session ${runId}: ${err}`);
                                 }
@@ -162,6 +162,10 @@ export class DcpServer {
 
             function isTerminal(obj: any): obj is vscode.Terminal {
                 return obj && typeof obj.dispose === 'function' && typeof obj.sendText === 'function';
+            }
+
+            function isTerminalProgramRun(obj: any): obj is TerminalProgramRun {
+                return obj && typeof obj.pid === 'number' && typeof obj.terminal === 'object';
             }
 
             const server = http.createServer(app);
