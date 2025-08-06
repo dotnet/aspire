@@ -87,13 +87,13 @@ internal static partial class MarkdownToSpectreConverter
         return LinkRegex().Replace(text, "[blue underline]$1[/]");
     }
 
-    [GeneratedRegex(@"^### (.+)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^### (.+?)\s*$", RegexOptions.Multiline)]
     private static partial Regex HeaderLevel3Regex();
 
-    [GeneratedRegex(@"^## (.+)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^## (.+?)\s*$", RegexOptions.Multiline)]
     private static partial Regex HeaderLevel2Regex();
 
-    [GeneratedRegex(@"^# (.+)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^# (.+?)\s*$", RegexOptions.Multiline)]
     private static partial Regex HeaderLevel1Regex();
 
     [GeneratedRegex(@"\*\*([^*]+)\*\*")]
