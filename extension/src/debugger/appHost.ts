@@ -3,6 +3,7 @@ import { EnvVar } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { ICliRpcClient } from '../server/rpcClient';
 import { startDotNetProgram } from './dotnet';
+import { dcpServer } from '../extension';
 
 export let appHostDebugSession: vscode.DebugSession | undefined = undefined;
 
@@ -26,6 +27,7 @@ export async function startAppHost(projectFile: string, workingDirectory: string
                 // also stop the CLI to replicate the 'aspire run' CLI behavior.
                 extensionLogOutputChannel.info(`AppHost debug session terminated: ${session.name}`);
                 clearAppHostDebugSession();
+                dcpServer?.stop();
                 await rpcClient.stopCli();
                 disposable.dispose();
             }

@@ -174,7 +174,8 @@ export class DcpServer {
             server.on('upgrade', (request, socket, head) => {
                 if (request.url?.startsWith('/run_session/notify')) {
                     wss.handleUpgrade(request, socket, head, (ws) => {
-                        wss.emit('connection', ws, request);
+                        const dcpId = request.headers['microsoft-developer-dcp-instance-id'];
+                        extensionLogOutputChannel.info(`WebSocket connection established for DCP ID: ${dcpId}`);
                     });
                 } else {
                     socket.destroy();
