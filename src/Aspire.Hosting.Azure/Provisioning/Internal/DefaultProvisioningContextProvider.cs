@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -28,9 +29,11 @@ internal sealed partial class DefaultProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
+    IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
+    private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -217,14 +220,14 @@ internal sealed partial class DefaultProvisioningContextProvider(
             // Create a unique resource group name and save it in user secrets
             resourceGroupName = GetDefaultResourceGroupName();
 
-            createIfAbsent = true;
+            createIfAbsent = distributedApplicationExecutionContext.IsRunMode;
 
             userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
         }
         else
         {
             resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+            createIfAbsent = distributedApplicationExecutionContext.IsRunMode && (_options.AllowResourceGroupCreation ?? false);
         }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
@@ -259,6 +262,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
+        var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
                     credential,
@@ -268,7 +272,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets);
+                    userSecrets,
+                    distributedApplicationExecutionContext,
+                    outputPath);
     }
 
     private string GetDefaultResourceGroupName()
