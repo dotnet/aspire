@@ -1,11 +1,12 @@
 ﻿parameters:
-  ServiceA:
-    ServiceA_image: "ServiceA:latest"
+  myapp:
+    myapp_image: "myapp:latest"
 secrets: {}
 config:
-  ServiceA:
+  myapp:
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
     OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
     ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-    HTTP_PORTS: "8080"
+    HTTP_PORTS: "8080;8081"
+    HTTPS_PORTS: "8082"
