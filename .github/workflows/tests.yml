@@ -204,8 +204,7 @@ jobs:
           name: aspire-extension
           path: extension/out/aspire-extension.vsix
 
-  results: # This job is used for branch protection. It ensures all the above tests passed
-    if: ${{ always() }}
+  results:
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
