@@ -152,12 +152,12 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
-            new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
-            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
-            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
-            new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "20%", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "10%"),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "15%"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "50%", MobileWidth: "2.5fr"),
+            new GridColumn(Name: TraceColumn, DesktopWidth: "10%"),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "10%", MobileWidth: "0.8fr")
         ];
 
         if (!string.IsNullOrEmpty(TraceId))
@@ -379,25 +379,26 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await Task.Yield();
         if (_applicationChanged)
         {
-            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            //await JS.InvokeVoidAsync("resetContinuousScrollPosition");
             _applicationChanged = false;
         }
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("initializeContinuousScroll");
+            //await JS.InvokeVoidAsync("initializeContinuousScroll");
             DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
     private void OnBrowserResize(object? o, EventArgs args)
     {
-        InvokeAsync(async () =>
-        {
-            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            await JS.InvokeVoidAsync("initializeContinuousScroll");
-        });
+        //InvokeAsync(async () =>
+        //{
+        //    await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+        //    await JS.InvokeVoidAsync("initializeContinuousScroll");
+        //});
     }
 
     private string? PauseText => PauseManager.AreStructuredLogsPaused(out var startTime)
