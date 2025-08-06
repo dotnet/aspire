@@ -307,7 +307,7 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// <param name="name">The name of the input.</param>
     /// <param name="input">When this method returns, contains the input with the specified name, if found; otherwise, null.</param>
     /// <returns>true if an input with the specified name was found; otherwise, false.</returns>
-    public bool TryGetByName(string name, out InteractionInput? input)
+    public bool TryGetByName(string name, [NotNullWhen(true)] out InteractionInput? input)
     {
         return _inputsByName.TryGetValue(name, out input);
     }

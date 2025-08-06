@@ -422,20 +422,23 @@ public class InteractionServiceTests
         Assert.Equal(3, collection.Count);
         Assert.Equal("Username", collection["Username"].Label);
         Assert.Equal("Password", collection["Password"].Label);
-        Assert.Equal("RememberMe", collection["RememberMe"].Label);
-        
+        Assert.Equal("Remember Me", collection["RememberMe"].Label);
+
         // Check names collection
         Assert.Contains("Username", collection.Names);
         Assert.Contains("Password", collection.Names);
         Assert.Contains("RememberMe", collection.Names);
-        
+
         // Check TryGetByName
         Assert.True(collection.TryGetByName("Username", out var usernameInput));
-        Assert.Equal("Username", usernameInput!.Label);
-        
+        Assert.Equal("Username", usernameInput.Label);
+
         Assert.False(collection.TryGetByName("NonExistent", out var nonExistentInput));
         Assert.Null(nonExistentInput);
-        
+
+        Assert.True(collection.TryGetByName("RememberMe", out _));
+        Assert.False(collection.TryGetByName("Remember Me", out _));
+
         // Check ContainsName
         Assert.True(collection.ContainsName("Username"));
         Assert.False(collection.ContainsName("NonExistent"));

@@ -34,14 +34,14 @@ internal sealed class TestInteractionService : IInteractionService
     {
         var data = new InteractionData(title, message, new InteractionInputCollection(inputs), options, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);
-        var result = (InteractionResult<IReadOnlyList<InteractionInput>>)await data.CompletionTcs.Task;
-        
+        var result = (InteractionResult<InteractionInputCollection>)await data.CompletionTcs.Task;
+
         // Convert the result to use InteractionInputCollection
         if (result.Canceled)
         {
             return InteractionResult.Cancel<InteractionInputCollection>();
         }
-        
+
         return InteractionResult.Ok(new InteractionInputCollection(result.Data));
     }
 
