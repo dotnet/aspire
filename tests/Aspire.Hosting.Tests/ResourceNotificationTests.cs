@@ -526,6 +526,132 @@ public class ResourceNotificationTests
         Assert.Equal("Starting", value.Snapshot.State?.Text);
     }
 
+    [Fact]
+    public async Task WaitForResourceReadyAsync_ReturnsWhenResourceReadyEventIsPresent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a completed task for the ResourceReadyEvent
+        var completedTask = Task.CompletedTask;
+        var resourceReadyEvent = new EventSnapshot(completedTask);
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource");
+
+        // Publish an update with a ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_WaitsForEventTaskToComplete()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a task completion source to control when the EventTask completes
+        var tcs = new TaskCompletionSource();
+        var resourceReadyEvent = new EventSnapshot(tcs.Task);
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource");
+
+        // Publish an update with a ResourceReadyEvent that hasn't completed yet
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        // Wait should not complete yet since the EventTask hasn't completed
+        await Task.Delay(100);
+        Assert.False(waitTask.IsCompleted);
+
+        // Complete the EventTask
+        tcs.SetResult();
+
+        // Now the wait should complete
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_ThrowsOperationCanceledExceptionWhenCanceled()
+    {
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        using var cts = new CancellationTokenSource();
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", cts.Token);
+
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await waitTask;
+        }).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_ThrowsOperationCanceledExceptionWhenEventTaskIsCanceled()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a canceled task for the ResourceReadyEvent
+        using var eventCts = new CancellationTokenSource();
+        eventCts.Cancel();
+        var canceledTask = Task.FromCanceled(eventCts.Token);
+        var resourceReadyEvent = new EventSnapshot(canceledTask);
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource");
+
+        // Publish an update with a ResourceReadyEvent that has a canceled task
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await waitTask;
+        }).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_ReturnsImmediatelyWhenResourceReadyEventAlreadyPresent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a completed task for the ResourceReadyEvent
+        var completedTask = Task.CompletedTask;
+        var resourceReadyEvent = new EventSnapshot(completedTask);
+
+        // Publish the ResourceReadyEvent first
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        // Wait should complete immediately since the event is already present and completed
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource");
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
         IResourceWithConnectionString,

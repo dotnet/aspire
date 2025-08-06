@@ -248,6 +248,39 @@ public class ResourceNotificationService : IDisposable
     }
 
     /// <summary>
+    /// Waits for a resource to be ready.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method returns a task that will complete when the resource's ResourceReadyEvent 
+    /// is present and its associated EventTask has completed. This allows developers using 
+    /// the lower-level API to fine-tune what lifecycle event they wait for.
+    /// </para>
+    /// <para>
+    /// If the resource doesn't have a ResourceReadyEvent or if the EventTask doesn't complete 
+    /// before <paramref name="cancellationToken"/> is signaled, this method will throw 
+    /// <see cref="OperationCanceledException"/>.
+    /// </para>
+    /// </remarks>
+    public async Task<ResourceEvent> WaitForResourceReadyAsync(string resourceName, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Waiting for resource '{Name}' to be ready.", resourceName);
+        
+        // First wait for the ResourceReadyEvent to be present
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        
+        // Then await the EventTask to complete
+        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogDebug("Finished waiting for resource '{Name}' to be ready.", resourceName);
+        
+        return resourceEvent;
+    }
+
+    /// <summary>
     /// Waits for a resource to become healthy.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
