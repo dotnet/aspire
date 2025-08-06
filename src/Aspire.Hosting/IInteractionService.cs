@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting;
@@ -108,7 +109,7 @@ public sealed class InteractionInput
     /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// If not specified, a name will be generated automatically.
     /// </summary>
-    public string? Name { get; init; }
+    public string? Name { get; internal set; }
 
     /// <summary>
     /// Gets or sets the label for the input.
@@ -175,6 +176,7 @@ public sealed class InteractionInput
 /// A collection of interaction inputs that supports both indexed and name-based access.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Count = {Count}")]
 public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
 {
     private readonly IReadOnlyList<InteractionInput> _inputs;
@@ -190,7 +192,7 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
         var processedInputs = new List<InteractionInput>();
         var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        
+
         // First pass: collect explicit names and check for duplicates
         foreach (var input in inputs)
         {
@@ -203,13 +205,13 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
                 usedNames.Add(input.Name);
             }
         }
-        
+
         // Second pass: create new inputs with generated names where needed
-        for (int i = 0; i < inputs.Count; i++)
+        for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
             string finalName;
-            
+
             if (!string.IsNullOrWhiteSpace(input.Name))
             {
                 finalName = input.Name;
@@ -217,39 +219,25 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
             else
             {
                 // Generate a unique name based on the label or index
-                string baseName = GenerateBaseName(input.Label);
+                var baseName = GenerateBaseName(input.Label);
                 finalName = baseName;
-                int suffix = 1;
-                
+                var suffix = 1;
+
                 while (usedNames.Contains(finalName))
                 {
                     finalName = $"{baseName}_{suffix}";
                     suffix++;
                 }
-                
+
                 usedNames.Add(finalName);
+
+                input.Name = finalName;
             }
-            
-            // Create a new input with the final name if it was generated
-            var finalInput = string.IsNullOrWhiteSpace(input.Name) ? 
-                new InteractionInput
-                {
-                    Name = finalName,
-                    Label = input.Label,
-                    Description = input.Description,
-                    EnableDescriptionMarkdown = input.EnableDescriptionMarkdown,
-                    InputType = input.InputType,
-                    Required = input.Required,
-                    Options = input.Options,
-                    Value = input.Value,
-                    Placeholder = input.Placeholder,
-                    MaxLength = input.MaxLength
-                } : input;
-            
-            processedInputs.Add(finalInput);
-            inputsByName[finalName] = finalInput;
+
+            processedInputs.Add(input);
+            inputsByName[finalName] = input;
         }
-        
+
         _inputs = processedInputs;
         _inputsByName = inputsByName;
     }
@@ -260,14 +248,14 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
         {
             return "Input";
         }
-        
+
         // Convert to a valid identifier-like name
         var chars = label.ToCharArray();
         var result = new System.Text.StringBuilder();
-        
-        for (int i = 0; i < chars.Length; i++)
+
+        for (var i = 0; i < chars.Length; i++)
         {
-            char c = chars[i];
+            var c = chars[i];
             if (char.IsLetterOrDigit(c))
             {
                 result.Append(c);
@@ -277,9 +265,9 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
                 result.Append('_');
             }
         }
-        
+
         // Ensure we have a valid name
-        string name = result.ToString().Trim('_');
+        var name = result.ToString().Trim('_');
         return string.IsNullOrEmpty(name) ? "Input" : name;
     }
 
