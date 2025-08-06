@@ -170,14 +170,19 @@ internal sealed class BicepProvisioner(
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
 
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents),
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
-        })
-        { Location = context.Location },
-            cancellationToken).ConfigureAwait(false);
+        });
+        // Only set the location for publish mode deployments
+        // that are scoped to the resource
+        if (context.ExecutionContext.IsPublishMode)
+        {
+            deploymentContent.Location = context.Location;
+        }
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
         var url = GetDeploymentUrl(context, resourceGroup, resource.Name);

@@ -220,14 +220,14 @@ internal sealed partial class DefaultProvisioningContextProvider(
             // Create a unique resource group name and save it in user secrets
             resourceGroupName = GetDefaultResourceGroupName();
 
-            createIfAbsent = distributedApplicationExecutionContext.IsRunMode;
+            createIfAbsent = true;
 
             userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
         }
         else
         {
             resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = distributedApplicationExecutionContext.IsRunMode && (_options.AllowResourceGroupCreation ?? false);
+            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
         }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
