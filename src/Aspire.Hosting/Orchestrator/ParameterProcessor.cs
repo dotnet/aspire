@@ -69,7 +69,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, value, parameterResource.Secret),
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                    State = KnownResourceStates.Running
                 };
             })
             .ConfigureAwait(false);
