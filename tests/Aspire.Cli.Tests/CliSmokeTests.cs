@@ -21,7 +21,7 @@ public class CliSmokeTests
     [InlineData("fr", true)]
     [InlineData("fr", true, "DOTNET_CLI_UI_LANGUAGE")]
     [InlineData("el", false)]
-    public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_CLI_LOCALE_OVERRIDE")
+    public void LocaleOverrideReturnsExitCode(string locale, bool isValid, string environmentVariableName = "ASPIRE_LOCALE_OVERRIDE")
     {
         RemoteExecutor.Invoke(async (loc, validStr, envVar) =>
         {

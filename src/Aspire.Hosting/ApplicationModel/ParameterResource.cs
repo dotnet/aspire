@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using Aspire.Hosting.Resources;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -116,7 +119,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
             Label = Name,
             Description = Description,
             EnableDescriptionMarkdown = EnableDescriptionMarkdown,
-            Placeholder = $"Enter value for {Name}"
+            Placeholder = string.Format(CultureInfo.CurrentCulture, InteractionStrings.ParametersInputsParameterPlaceholder, Name)
         };
         return input;
     }
