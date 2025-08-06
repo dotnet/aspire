@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession, generateRunId, DebugConfigurationWithId } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
 import { execFile } from 'child_process';
@@ -18,23 +18,11 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             await buildDotNetProject(projectFile);
         }
 
-        if (!launchOptions.debug) {
-            // For now, launch all .NET programs using dotnet watch
-            // Consider a switch to use `dotnet run` in the future
-            return startCliProgram(
-                watchProject(path.basename(projectFile), 'dotnet'),
-                'dotnet',
-                args,
-                env,
-                workingDirectory
-            );
-        }
-
         if (!getSupportedCapabilities().includes('csharp')) {
             throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
         }
 
-        const config: vscode.DebugConfiguration = {
+        const config: DebugConfigurationWithId = {
             type: 'coreclr',
             request: 'launch',
             name: debugProject(path.basename(projectFile)),
@@ -44,6 +32,8 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             env: mergeEnvs(process.env, env),
             justMyCode: false,
             stopAtEntry: false,
+            noDebug: !launchOptions.debug,
+            runId: generateRunId()
         };
 
         // The build task brings the build terminal to the foreground. If build has succeeded,

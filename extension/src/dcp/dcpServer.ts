@@ -11,7 +11,7 @@ import { DcpServerInformation, ErrorDetails, ErrorResponse, RunSessionNotificati
 import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
 import { startDotNetProgram } from '../debugger/dotnet';
 import path from 'path';
-import { BaseDebugSession, startCliProgram, TerminalProgramRun } from '../debugger/common';
+import { BaseDebugSession, generateRunId, startCliProgram, TerminalProgramRun } from '../debugger/common';
 import { cwd } from 'process';
 
 const runsBySession = new Map<string, BaseDebugSession[]>();
@@ -76,7 +76,7 @@ export class DcpServer {
 
             app.put('/run_session', requireHeaders, async (req: Request, res: Response) => {
                 const payload: RunSessionPayload = req.body;
-                const runId = Math.random().toString(36).substring(2, 10);
+                const runId = generateRunId();
 
                 const processes: BaseDebugSession[] = [];
 
@@ -130,24 +130,7 @@ export class DcpServer {
                 if (runsBySession.has(runId)) {
                     const baseDebugSessions = runsBySession.get(runId);
                     for (const debugSession of baseDebugSessions || []) {
-                        if (isTerminal(debugSession.session)) {
-                            try {
-                                debugSession.session.dispose();
-                                extensionLogOutputChannel.info(`Closed terminal for run session ${runId}`);
-                            } catch (err) {
-                                extensionLogOutputChannel.error(`Failed to close terminal for run session ${runId}: ${err}`);
-                            }
-                        } else if (isTerminalProgramRun(debugSession.session)) {
-                            // Kill the spawned process if it exists
-                            if (debugSession.session.terminal.processId) {
-                                try {
-                                    process.kill(-debugSession.session.terminal.processId, 'SIGTERM');
-                                    extensionLogOutputChannel.info(`Killed process for run session ${runId} (pid: ${debugSession.session.terminal.processId})`);
-                                } catch (err) {
-                                    extensionLogOutputChannel.error(`Failed to kill process for run session ${runId}: ${err}`);
-                                }
-                            }
-                        }
+                        debugSession.stopSession();
                     }
 
                     // After all processes/terminals are cleaned up, check for any active Aspire debug session and send 'stopped'

@@ -28,7 +28,6 @@ export async function startAppHost(projectFile: string, workingDirectory: string
                 extensionLogOutputChannel.info(`AppHost debug session terminated: ${session.name}`);
                 clearAppHostDebugSession();
                 dcpServer?.stop();
-                await rpcClient.stopCli();
                 disposable.dispose();
             }
         });

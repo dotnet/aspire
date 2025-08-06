@@ -32,6 +32,10 @@ interface VsCodeDebugSession extends BaseGenericDebugSession<vscode.DebugSession
 interface TerminalDebugSession extends BaseGenericDebugSession<TerminalProgramRun> {
 }
 
+export interface DebugConfigurationWithId extends vscode.DebugConfiguration {
+    runId: string;
+}
+
 const debugSessions: BaseDebugSession[] = [];
 
 export function startCliProgram(terminalName: string, command: string, args?: string[], env?: EnvVar[], workingDirectory?: string): TerminalDebugSession {
@@ -45,7 +49,7 @@ export function startCliProgram(terminalName: string, command: string, args?: st
     terminal.sendText(`${command} ${(args ?? []).map(a => JSON.stringify(a)).join(' ')}`);
     terminal.show();
 
-    const runId = `${terminalName}-${Date.now()}`;
+    const runId = generateRunId();
     extensionLogOutputChannel.info(`Spawned terminal for run session ${runId}`);
 
     return ({
@@ -58,17 +62,18 @@ export function startCliProgram(terminalName: string, command: string, args?: st
     });
 }
 
-export async function startAndGetDebugSession(debugConfig: vscode.DebugConfiguration): Promise<VsCodeDebugSession | undefined> {
+export async function startAndGetDebugSession(debugConfig: DebugConfigurationWithId): Promise<VsCodeDebugSession | undefined> {
     return new Promise(async (resolve) => {
         const disposable = vscode.debug.onDidStartDebugSession(session => {
-            if (session.name === debugConfig.name) {
-                extensionLogOutputChannel.info(`Debug session started: ${session.name}`);
+            if (session.configuration.runId === debugConfig.runId) {
+                extensionLogOutputChannel.info(`Debug session started: ${session.name} (run id: ${session.configuration.runId})`);
                 disposable.dispose();
 
                 const vsCodeDebugSession: VsCodeDebugSession = {
                     id: session.id,
                     session: session,
                     stopSession: () => {
+                        extensionLogOutputChannel.info(`Stopping debug session: ${session.name} (run id: ${session.configuration.runId})`);
                         vscode.debug.stopDebugging(session);
                     }
                 };
@@ -102,4 +107,8 @@ export function stopAllDebuggingSessions() {
     if (appHostDebugSession) {
         clearAppHostDebugSession();
     }
+}
+
+export function generateRunId(): string {
+    return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 }
