@@ -37,7 +37,6 @@ jobs:
         with:
           patterns: |
             \.md$
-            \.yml$
 
   tests:
     uses: ./.github/workflows/tests.yml
