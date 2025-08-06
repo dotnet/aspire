@@ -10,6 +10,7 @@ description: |
 
   Outputs:
   - only_changed: Boolean indicating if all changed files matched the patterns
+  - no_changes: Boolean indicating if there were no changed files in the PR
   - changed_files: JSON array of all changed files in the PR
   - matched_files: JSON array of files that matched at least one pattern
   - unmatched_files: JSON array of files that didn't match any pattern
@@ -22,6 +23,9 @@ outputs:
   only_changed:
     description: 'True if all changed files match the provided patterns, false otherwise'
     value: ${{ steps.check_files.outputs.only_changed }}
+  no_changes:
+    description: 'True if there were no changed files in the PR, false otherwise'
+    value: ${{ steps.check_files.outputs.no_changes }}
   changed_files:
     description: 'List of changed files'
     value: ${{ steps.check_files.outputs.changed_files }}
@@ -39,8 +43,7 @@ runs:
       id: check_files
       shell: bash
       run: |
-        set -e
-        set -x
+        set -ex
 
         # Only support pull request events
         if [ "${{ github.event_name }}" != "pull_request" ]; then
@@ -99,6 +102,7 @@ runs:
         if [ -z "$CHANGED_FILES" ]; then
           echo "No files changed in this PR"
           ONLY_CHANGED="true"  # No files changed - treat as success
+          NO_CHANGES="true"
         else
           # Check each changed file against patterns
           while IFS= read -r file; do
@@ -128,6 +132,7 @@ runs:
           else
             ONLY_CHANGED="false"  # Some files didn't match
           fi
+          NO_CHANGES="false"
         fi
 
         # Convert arrays to JSON for output (handle empty arrays safely)
@@ -152,6 +157,7 @@ runs:
         # Set outputs with proper escaping
         {
           echo "only_changed=$ONLY_CHANGED"
+          echo "no_changes=$NO_CHANGES"
           echo "changed_files<<EOF"
           echo "$CHANGED_FILES_JSON"
           echo "EOF"
