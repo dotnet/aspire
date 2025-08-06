@@ -52,7 +52,7 @@ jobs:
 
   # This job is used for branch protection. It fails if any of the dependent jobs failed
   results:
-    if: ${{ always() }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [check_changes, tests, build_cli_archives]
