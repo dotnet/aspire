@@ -796,6 +796,57 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(KnownRelationshipTypes.WaitFor, relationshipAnnotation.Type);
     }
 
+    [Fact]
+    public void WaitForReadyAddsCorrectAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var dependency = builder.AddResource(new CustomResource("dependency"));
+        var resource = builder.AddResource(new CustomResource("resource"))
+                              .WaitForReady(dependency);
+
+        var waitAnnotations = resource.Resource.Annotations.OfType<WaitAnnotation>().ToArray();
+        var waitAnnotation = Assert.Single(waitAnnotations);
+        
+        Assert.Equal(dependency.Resource, waitAnnotation.Resource);
+        Assert.Equal(WaitType.WaitForReady, waitAnnotation.WaitType);
+        Assert.Equal(0, waitAnnotation.ExitCode);
+
+        var relationshipAnnotations = resource.Resource.Annotations.OfType<ResourceRelationshipAnnotation>().ToArray();
+        var relationshipAnnotation = Assert.Single(relationshipAnnotations);
+        
+        Assert.Equal(dependency.Resource, relationshipAnnotation.Resource);
+        Assert.Equal(KnownRelationshipTypes.WaitFor, relationshipAnnotation.Type);
+    }
+
+    [Fact]
+    public void WaitForReadyResourceCannotWaitForItself()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new CustomResource("test"));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitForReady(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForEx.Message);
+    }
+
+    [Fact]
+    public void WaitForReadyResourceCannotWaitForParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResource = builder.AddResource(new CustomResource("parent"));
+        var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResource.WaitForReady(parentResource);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForEx.Message);
+    }
+
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport
     {
         public CustomResource Parent => parent;

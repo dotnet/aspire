@@ -51,7 +51,12 @@ public enum WaitType
     /// <summary>
     /// Dependent resource will wait until resource completes.
     /// </summary>
-    WaitForCompletion
+    WaitForCompletion,
+
+    /// <summary>
+    /// Dependent resource will wait until resource ready event has completed.
+    /// </summary>
+    WaitForReady
 }
 
 /// <summary>

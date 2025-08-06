@@ -1293,6 +1293,38 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Waits for the dependency resource to be ready.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="dependency">The dependency resource to wait for.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method waits for the dependency resource's ready event to complete. This provides more granular control
+    /// over resource lifecycle waiting compared to <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// which waits for the resource to be healthy.
+    /// </remarks>
+    public static IResourceBuilder<T> WaitForReady<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
+
+        builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForReady));
+    }
+
+    /// <summary>
     /// Adds a <see cref="HealthCheckAnnotation"/> to the resource annotations to associate a resource with a named health check managed by the health check service.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
