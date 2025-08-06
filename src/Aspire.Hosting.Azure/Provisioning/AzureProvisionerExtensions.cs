@@ -36,8 +36,8 @@ public static class AzureProvisionerExtensions
 
         builder.Services.AddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
-        // Register BicepProvisioner directly
-        builder.Services.AddSingleton<BicepProvisioner>();
+        // Register BicepProvisioner via interface
+        builder.Services.AddSingleton<IBicepProvisioner, BicepProvisioner>();
 
         // Register the new internal services for testability
         builder.Services.AddSingleton<IArmClientProvider, DefaultArmClientProvider>();

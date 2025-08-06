@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -37,7 +38,9 @@ internal static class ProvisioningTestHelpers
         ITenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
-        JsonObject? userSecrets = null)
+        JsonObject? userSecrets = null,
+        DistributedApplicationExecutionContext? executionContext = null,
+        string? outputPath = null)
     {
         return new ProvisioningContext(
             credential ?? new TestTokenCredential(),
@@ -47,7 +50,9 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
-            userSecrets ?? new JsonObject());
+            userSecrets ?? new JsonObject(),
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            outputPath);
     }
 
     // Factory methods for test implementations of provisioning services interfaces
@@ -72,6 +77,16 @@ internal static class ProvisioningTestHelpers
             SubscriptionId = subscriptionId,
             Location = location,
             ResourceGroup = resourceGroup
+        };
+        return Options.Create(options);
+    }
+
+    public static IOptions<PublishingOptions> CreatePublishingOptions(
+        string? outputPath = null)
+    {
+        var options = new PublishingOptions
+        {
+            OutputPath = outputPath,
         };
         return Options.Create(options);
     }
@@ -168,6 +183,11 @@ internal sealed class TestSubscriptionResource : ISubscriptionResource
     public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012");
     public string? DisplayName { get; } = "Test Subscription";
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
+
+    public IArmDeploymentCollection GetArmDeployments()
+    {
+        return new TestArmDeploymentCollection();
+    }
 
     public IResourceGroupCollection GetResourceGroups()
     {
