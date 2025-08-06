@@ -269,17 +269,71 @@ public class ResourceNotificationService : IDisposable
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceReadyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
+        return await WaitForResourceReadyAsync(
+            resourceName,
+            DefaultWaitBehavior,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Waits for a resource to be ready.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="waitBehavior">The wait behavior.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method returns a task that completes when all subscriptions to the ResourceReadyEvent 
+    /// have completed (if any). If any throw an exception, this method will throw an exception. 
+    /// If none are present this method will return immediately. The
+    /// <see cref="WaitBehavior"/> controls how the wait operation behaves when the resource
+    /// enters an unavailable state such as <see cref="KnownResourceStates.FailedToStart"/>.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified the wait operation
+    /// will continue to wait until the resource's ResourceReadyEvent is present.
+    /// </para>
+    /// <para>
+    /// When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an
+    /// unavailable state.
+    /// </para>
+    /// <para>
+    /// This method does not explicitly wait for the resource to be healthy and can be used 
+    /// independently of or together with the <see cref="WaitForResourceHealthyAsync(string, CancellationToken)"/> method.
+    /// </para>
+    /// </remarks>
+    public async Task<ResourceEvent> WaitForResourceReadyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
+    {
         _logger.LogDebug("Waiting for resource '{Name}' to be ready.", resourceName);
-        
-        // First wait for the ResourceReadyEvent to be present
-        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
-        
+        var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => ShouldYield(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (resourceEvent.Snapshot.ResourceReadyEvent is null)
+        {
+            _logger.LogError("Stopped waiting for resource '{ResourceName}' to be ready because it failed to start.", resourceName);
+            throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to be ready because it failed to start.");
+        }
+
         // Then await the EventTask to complete
-        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-        
+        await resourceEvent.Snapshot.ResourceReadyEvent.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         _logger.LogDebug("Finished waiting for resource '{Name}' to be ready.", resourceName);
-        
+
         return resourceEvent;
+
+        // Determine if we should yield based on the wait behavior and the snapshot of the resource.
+        static bool ShouldYield(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
+            waitBehavior switch
+            {
+                WaitBehavior.WaitOnResourceUnavailable => snapshot.ResourceReadyEvent is not null,
+                WaitBehavior.StopOnResourceUnavailable => snapshot.ResourceReadyEvent is not null ||
+                                                      snapshot.State?.Text == KnownResourceStates.Finished ||
+                                                      snapshot.State?.Text == KnownResourceStates.Exited ||
+                                                      snapshot.State?.Text == KnownResourceStates.FailedToStart ||
+                                                      snapshot.State?.Text == KnownResourceStates.RuntimeUnhealthy,
+                _ => throw new DistributedApplicationException($"Unexpected wait behavior: {waitBehavior}")
+            };
     }
 
     /// <summary>

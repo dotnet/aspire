@@ -655,6 +655,131 @@ public class ResourceNotificationTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WaitForResourceReadyAsync_WithWaitBehaviorStopOnResourceUnavailable_ThrowsWhenResourceFailsToStart()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", WaitBehavior.StopOnResourceUnavailable);
+
+        // Publish an update indicating the resource failed to start
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = KnownResourceStates.FailedToStart
+        }).DefaultTimeout();
+
+        await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        {
+            await waitTask;
+        }).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_WithWaitBehaviorStopOnResourceUnavailable_ThrowsWhenResourceEntersRuntimeUnhealthy()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", WaitBehavior.StopOnResourceUnavailable);
+
+        // Publish an update indicating the resource is runtime unhealthy
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = KnownResourceStates.RuntimeUnhealthy
+        }).DefaultTimeout();
+
+        await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        {
+            await waitTask;
+        }).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_WithWaitBehaviorWaitOnResourceUnavailable_ContinuesWaitingWhenResourceFailsToStart()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", WaitBehavior.WaitOnResourceUnavailable);
+
+        // Publish an update indicating the resource failed to start
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = KnownResourceStates.FailedToStart
+        }).DefaultTimeout();
+
+        // Wait should not complete yet
+        await Task.Delay(100);
+        Assert.False(waitTask.IsCompleted);
+
+        // Create a completed task for the ResourceReadyEvent
+        var completedTask = Task.CompletedTask;
+        var resourceReadyEvent = new EventSnapshot(completedTask);
+
+        // Now publish a ResourceReadyEvent - this should complete the wait
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_WithWaitBehaviorStopOnResourceUnavailable_ReturnsWhenResourceReadyEventIsPresent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a completed task for the ResourceReadyEvent
+        var completedTask = Task.CompletedTask;
+        var resourceReadyEvent = new EventSnapshot(completedTask);
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", WaitBehavior.StopOnResourceUnavailable);
+
+        // Publish an update with a ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_WithWaitBehaviorWaitOnResourceUnavailable_ReturnsWhenResourceReadyEventIsPresent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a completed task for the ResourceReadyEvent
+        var completedTask = Task.CompletedTask;
+        var resourceReadyEvent = new EventSnapshot(completedTask);
+
+        var waitTask = notificationService.WaitForResourceReadyAsync("myResource", WaitBehavior.WaitOnResourceUnavailable);
+
+        // Publish an update with a ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            ResourceReadyEvent = resourceReadyEvent
+        }).DefaultTimeout();
+
+        var result = await waitTask.DefaultTimeout();
+
+        Assert.Equal(resource, result.Resource);
+        Assert.Equal("myResource", result.ResourceId);
+        Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
     public async Task WaitForResourceReadyAsync_EndToEnd()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
