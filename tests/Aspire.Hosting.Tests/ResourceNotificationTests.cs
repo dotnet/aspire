@@ -2,14 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Hosting.Tests;
 
-public class ResourceNotificationTests
+public class ResourceNotificationTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public void InitialStateCanBeSpecified()
@@ -650,6 +652,33 @@ public class ResourceNotificationTests
         Assert.Equal(resource, result.Resource);
         Assert.Equal("myResource", result.ResourceId);
         Assert.NotNull(result.Snapshot.ResourceReadyEvent);
+    }
+
+    [Fact]
+    public async Task WaitForResourceReadyAsync_EndToEnd()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        var ready = false;
+
+        var cache = builder.AddRedis("cache")
+            .OnResourceReady((red, e, ct) =>
+            {
+                ready = true;
+                return Task.CompletedTask;
+            });
+
+        var app = builder.Build();
+
+        await app.StartAsync();
+
+        var resourceNotification = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        // expected this to not complete until the OnResourceReady callback completes
+        await resourceNotification.WaitForResourceReadyAsync(cache.Resource.Name);
+        Assert.True(ready, "Resource should be ready after waiting.");
+
+        await app.StopAsync();
     }
 
     private sealed class CustomResource(string name) : Resource(name),
