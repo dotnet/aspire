@@ -626,8 +626,7 @@ function Test-FileChecksum {
 function Expand-AspireCliArchive {
     param(
         [string]$ArchiveFile,
-        [string]$DestinationPath,
-        [string]$OS
+        [string]$DestinationPath
     )
 
     Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
@@ -639,16 +638,14 @@ function Expand-AspireCliArchive {
             New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
         }
 
-        if ($OS -eq "win") {
-            # Use Expand-Archive for ZIP files on Windows
+        if ($ArchiveFile -match "\.zip$") {
             if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
                 throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
             }
 
             Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
         }
-        else {
-            # Use tar for tar.gz files on Unix systems
+        elseif ($ArchiveFile -match "\.tar\.gz$") {
             if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
                 throw "tar command not found. Please install tar to extract tar.gz files."
             }
@@ -657,10 +654,16 @@ function Expand-AspireCliArchive {
             try {
                 Set-Location $DestinationPath
                 & tar -xzf $ArchiveFile
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to extract tar.gz archive: $ArchiveFile. tar command returned exit code $LASTEXITCODE"
+                }
             }
             finally {
                 Set-Location $currentLocation
             }
+        }
+        else {
+            throw "Unsupported archive format: $ArchiveFile. Only .zip and .tar.gz files are supported."
         }
 
         Write-Message "Successfully unpacked archive" -Level Verbose
@@ -715,7 +718,7 @@ function Get-InstallPath {
         throw "Unable to determine user home directory. Please specify -InstallPath parameter."
     }
 
-    $defaultPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
+    $defaultPath = Join-Path $homeDirectory ".aspire"
     return [System.IO.Path]::GetFullPath($defaultPath)
 }
 
@@ -875,7 +878,7 @@ function Install-AspireCli {
 
         if ($PSCmdlet.ShouldProcess($InstallPath, "Install CLI")) {
             # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath -OS $targetOS
+            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath
 
             $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
             $cliPath = Join-Path $InstallPath $cliExe
