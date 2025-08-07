@@ -17,7 +17,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
 
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options => options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled]);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -35,7 +35,6 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -69,7 +68,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -103,7 +102,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -137,7 +136,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -201,7 +200,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
-            options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled];
+
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -256,38 +255,6 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public void DeployCommand_WhenFeatureFlagDisabled_IsNotAvailable()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-
-        // Check that the deploy command is not available in the subcommands
-        var deployCommand = command.Subcommands.FirstOrDefault(c => c.Name == "deploy");
-        Assert.Null(deployCommand);
-    }
-
-    [Fact]
-    public void DeployCommand_WhenFeatureFlagEnabled_IsAvailable()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(
-            workspace,
-            outputHelper,
-            options => options.EnabledFeatures = [KnownFeatures.DeployCommandEnabled]
-        );
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-
-        // Check that the deploy command is available in the subcommands
-        var deployCommand = command.Subcommands.FirstOrDefault(c => c.Name == "deploy");
-        Assert.NotNull(deployCommand);
     }
 }
 
