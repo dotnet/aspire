@@ -32,19 +32,19 @@ public sealed class TelemetryRepository : IDisposable
     private readonly object _lock = new();
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
 
-    private readonly List<Subscription> _applicationSubscriptions = new();
+    private readonly List<Subscription> _resourceSubscriptions = new();
     private readonly List<Subscription> _logSubscriptions = new();
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
-    private readonly ConcurrentDictionary<ApplicationKey, OtlpApplication> _applications = new();
+    private readonly ConcurrentDictionary<ResourceKey, OtlpResource> _resources = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
     private readonly CircularBuffer<OtlpLogEntry> _logs;
-    private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
-    private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _tracePropertyKeys = new();
-    private readonly Dictionary<ApplicationKey, int> _applicationUnviewedErrorLogs = new();
+    private readonly HashSet<(OtlpResource Resource, string PropertyKey)> _logPropertyKeys = new();
+    private readonly HashSet<(OtlpResource Resource, string PropertyKey)> _tracePropertyKeys = new();
+    private readonly Dictionary<ResourceKey, int> _resourceUnviewedErrorLogs = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpScope> _traceScopes = new();
@@ -95,35 +95,35 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public List<OtlpApplication> GetApplications(bool includeUninstrumentedPeers = false)
+    public List<OtlpResource> GetResources(bool includeUninstrumentedPeers = false)
     {
-        return GetApplicationsCore(includeUninstrumentedPeers, name: null);
+        return GetResourcesCore(includeUninstrumentedPeers, name: null);
     }
 
-    public List<OtlpApplication> GetApplicationsByName(string name, bool includeUninstrumentedPeers = false)
+    public List<OtlpResource> GetResourcesByName(string name, bool includeUninstrumentedPeers = false)
     {
-        return GetApplicationsCore(includeUninstrumentedPeers, name);
+        return GetResourcesCore(includeUninstrumentedPeers, name);
     }
 
-    private List<OtlpApplication> GetApplicationsCore(bool includeUninstrumentedPeers, string? name)
+    private List<OtlpResource> GetResourcesCore(bool includeUninstrumentedPeers, string? name)
     {
-        IEnumerable<OtlpApplication> results = _applications.Values;
+        IEnumerable<OtlpResource> results = _resources.Values;
         if (!includeUninstrumentedPeers)
         {
             results = results.Where(a => !a.UninstrumentedPeer);
         }
         if (name != null)
         {
-            results = results.Where(a => string.Equals(a.ApplicationKey.Name, name, StringComparisons.ResourceName));
+            results = results.Where(a => string.Equals(a.ResourceKey.Name, name, StringComparisons.ResourceName));
         }
 
-        var applications = results.OrderBy(a => a.ApplicationKey).ToList();
-        return applications;
+        var resources = results.OrderBy(a => a.ResourceKey).ToList();
+        return resources;
     }
 
-    public OtlpApplication? GetApplicationByCompositeName(string compositeName)
+    public OtlpResource? GetResourceByCompositeName(string compositeName)
     {
-        foreach (var kvp in _applications)
+        foreach (var kvp in _resources)
         {
             if (kvp.Key.EqualsCompositeName(compositeName))
             {
@@ -134,40 +134,40 @@ public sealed class TelemetryRepository : IDisposable
         return null;
     }
 
-    public OtlpApplication? GetApplication(ApplicationKey key)
+    public OtlpResource? GetResource(ResourceKey key)
     {
         if (key.InstanceId == null)
         {
-            throw new InvalidOperationException($"{nameof(ApplicationKey)} must have an instance ID.");
+            throw new InvalidOperationException($"{nameof(ResourceKey)} must have an instance ID.");
         }
 
-        _applications.TryGetValue(key, out var application);
-        return application;
+        _resources.TryGetValue(key, out var resource);
+        return resource;
     }
 
-    public List<OtlpApplication> GetApplications(ApplicationKey key, bool includeUninstrumentedPeers = false)
+    public List<OtlpResource> GetResources(ResourceKey key, bool includeUninstrumentedPeers = false)
     {
         if (key.InstanceId == null)
         {
-            return GetApplicationsByName(key.Name, includeUninstrumentedPeers: includeUninstrumentedPeers);
+            return GetResourcesByName(key.Name, includeUninstrumentedPeers: includeUninstrumentedPeers);
         }
 
-        var app = GetApplication(key);
-        if (app == null || (app.UninstrumentedPeer && !includeUninstrumentedPeers))
+        var resource = GetResource(key);
+        if (resource == null || (resource.UninstrumentedPeer && !includeUninstrumentedPeers))
         {
             return [];
         }
 
-        return [app];
+        return [resource];
     }
 
-    public Dictionary<ApplicationKey, int> GetApplicationUnviewedErrorLogsCount()
+    public Dictionary<ResourceKey, int> GetResourceUnviewedErrorLogsCount()
     {
         _logsLock.EnterReadLock();
 
         try
         {
-            return _applicationUnviewedErrorLogs.ToDictionary();
+            return _resourceUnviewedErrorLogs.ToDictionary();
         }
         finally
         {
@@ -175,7 +175,7 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    internal void MarkViewedErrorLogs(ApplicationKey? key)
+    internal void MarkViewedErrorLogs(ResourceKey? key)
     {
         _logsLock.EnterWriteLock();
 
@@ -184,18 +184,18 @@ public sealed class TelemetryRepository : IDisposable
             if (key == null)
             {
                 // Mark all logs as viewed.
-                if (_applicationUnviewedErrorLogs.Count > 0)
+                if (_resourceUnviewedErrorLogs.Count > 0)
                 {
-                    _applicationUnviewedErrorLogs.Clear();
+                    _resourceUnviewedErrorLogs.Clear();
                     RaiseSubscriptionChanged(_logSubscriptions);
                 }
                 return;
             }
-            var applications = GetApplications(key.Value);
-            foreach (var application in applications)
+            var resources = GetResources(key.Value);
+            foreach (var resource in resources)
             {
-                // Mark one application logs as viewed.
-                if (_applicationUnviewedErrorLogs.Remove(application.ApplicationKey))
+                // Mark one resource logs as viewed.
+                if (_resourceUnviewedErrorLogs.Remove(resource.ResourceKey))
                 {
                     RaiseSubscriptionChanged(_logSubscriptions);
                 }
@@ -207,73 +207,73 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    private OtlpApplicationView GetOrAddApplicationView(Resource resource)
+    private OtlpResourceView GetOrAddResourceView(Resource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var key = resource.GetApplicationKey();
+        var key = resource.GetResourceKey();
 
-        var (application, isNew) = GetOrAddApplication(key, uninstrumentedPeer: false);
+        var (otlpResource, isNew) = GetOrAddResource(key, uninstrumentedPeer: false);
         if (isNew)
         {
-            RaiseSubscriptionChanged(_applicationSubscriptions);
+            RaiseSubscriptionChanged(_resourceSubscriptions);
         }
 
-        return application.GetView(resource.Attributes);
+        return otlpResource.GetView(resource.Attributes);
     }
 
-    private (OtlpApplication Application, bool IsNew) GetOrAddApplication(ApplicationKey key, bool uninstrumentedPeer)
+    private (OtlpResource Resource, bool IsNew) GetOrAddResource(ResourceKey key, bool uninstrumentedPeer)
     {
         // Fast path.
-        if (_applications.TryGetValue(key, out var application))
+        if (_resources.TryGetValue(key, out var resource))
         {
-            application.SetUninstrumentedPeer(uninstrumentedPeer);
-            return (Application: application, IsNew: false);
+            resource.SetUninstrumentedPeer(uninstrumentedPeer);
+            return (Resource: resource, IsNew: false);
         }
 
         // Slower get or add path.
         // This GetOrAdd allocates a closure, so we avoid it if possible.
-        var newApplication = false;
-        application = _applications.GetOrAdd(key, _ =>
+        var newResource = false;
+        resource = _resources.GetOrAdd(key, _ =>
         {
-            newApplication = true;
-            return new OtlpApplication(key.Name, key.InstanceId!, uninstrumentedPeer, _otlpContext);
+            newResource = true;
+            return new OtlpResource(key.Name, key.InstanceId!, uninstrumentedPeer, _otlpContext);
         });
-        if (!newApplication)
+        if (!newResource)
         {
-            application.SetUninstrumentedPeer(uninstrumentedPeer);
+            resource.SetUninstrumentedPeer(uninstrumentedPeer);
         }
         else
         {
-            _logger.LogTrace("New application added: {ApplicationKey}", key);
+            _logger.LogTrace("New resource added: {ResourceKey}", key);
         }
-        return (Application: application, IsNew: newApplication);
+        return (Resource: resource, IsNew: newResource);
     }
 
-    public Subscription OnNewApplications(Func<Task> callback)
+    public Subscription OnNewResources(Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewApplications), null, SubscriptionType.Read, callback, _applicationSubscriptions);
+        return AddSubscription(nameof(OnNewResources), null, SubscriptionType.Read, callback, _resourceSubscriptions);
     }
 
-    public Subscription OnNewLogs(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewLogs(ResourceKey? resourceKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewLogs), applicationKey, subscriptionType, callback, _logSubscriptions);
+        return AddSubscription(nameof(OnNewLogs), resourceKey, subscriptionType, callback, _logSubscriptions);
     }
 
-    public Subscription OnNewMetrics(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewMetrics(ResourceKey? resourceKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewMetrics), applicationKey, subscriptionType, callback, _metricsSubscriptions);
+        return AddSubscription(nameof(OnNewMetrics), resourceKey, subscriptionType, callback, _metricsSubscriptions);
     }
 
-    public Subscription OnNewTraces(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewTraces(ResourceKey? resourceKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewTraces), applicationKey, subscriptionType, callback, _tracesSubscriptions);
+        return AddSubscription(nameof(OnNewTraces), resourceKey, subscriptionType, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string name, ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string name, ResourceKey? resourceKey, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
-        subscription = new Subscription(name, applicationKey, subscriptionType, callback, () =>
+        subscription = new Subscription(name, resourceKey, subscriptionType, callback, () =>
         {
             lock (_lock)
             {
@@ -310,25 +310,25 @@ public sealed class TelemetryRepository : IDisposable
 
         foreach (var rl in resourceLogs)
         {
-            OtlpApplicationView applicationView;
+            OtlpResourceView resourceView;
             try
             {
-                applicationView = GetOrAddApplicationView(rl.Resource);
+                resourceView = GetOrAddResourceView(rl.Resource);
             }
             catch (Exception ex)
             {
                 context.FailureCount += rl.ScopeLogs.Count;
-                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding resource.");
                 continue;
             }
 
-            AddLogsCore(context, applicationView, rl.ScopeLogs);
+            AddLogsCore(context, resourceView, rl.ScopeLogs);
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
-    public void AddLogsCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeLogs> scopeLogs)
+    public void AddLogsCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeLogs> scopeLogs)
     {
         _logsLock.EnterWriteLock();
 
@@ -346,7 +346,7 @@ public sealed class TelemetryRepository : IDisposable
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, applicationView, scope, _otlpContext);
+                        var logEntry = new OtlpLogEntry(record, resourceView, scope, _otlpContext);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -365,14 +365,14 @@ public sealed class TelemetryRepository : IDisposable
                             _logs.Insert(0, logEntry);
                         }
 
-                        // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
+                        // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the resource.
                         // We don't increment the count if there are active read subscriptions because the count will be quickly decremented when the subscription callback is run.
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.IsError)
                         {
-                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == applicationView.ApplicationKey || s.ApplicationKey == null)))
+                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ResourceKey == resourceView.ResourceKey || s.ResourceKey == null)))
                             {
-                                ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(_applicationUnviewedErrorLogs, applicationView.ApplicationKey, out _);
+                                ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(_resourceUnviewedErrorLogs, resourceView.ResourceKey, out _);
                                 // Adds to dictionary if not present.
                                 count++;
                             }
