@@ -1,6 +1,6 @@
 # Aspire.Hosting.OpenAI library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure OpenAI Models.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure OpenAI resources and models.
 
 ## Getting started
 
@@ -19,33 +19,42 @@ dotnet add package Aspire.Hosting.OpenAI
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, add an OpenAI Model resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an OpenAI resource and one or more model resources, and consume connections as needed:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini");
+var openai = builder.AddOpenAI("openai");
+var chat = openai.AddModel("chat", "gpt-4o-mini");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(chat);
 ```
 
-The `WithReference` method passes that connection information into a connection string named `chat` in the `MyService` project.
+The `WithReference` method passes that connection information into a connection string named `chat` in the `MyService` project. Multiple models can share the same OpenAI API key via the parent `OpenAIResource`.
 
 In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.OpenAI](https://www.nuget.org/packages/Aspire.OpenAI):
 
 #### OpenAI client usage
+
 ```csharp
 builder.AddOpenAIClient("chat");
 ```
 
+When no model resources are defined, clients can be created with the OpenAI resource only:
+
+```csharp
+builder.AddOpenAIClient("openai")
+       .AddChatClient("gpt-4o-mini");
+```
+
 ## Configuration
 
-The OpenAI Model resource can be configured with the following options:
+The OpenAI resources can be configured with the following options:
 
 ### API Key
 
-The API key can be set as a configuration value using the default name `{resource_name}-openai-apikey` or the `OPENAI_API_KEY` environment variable.
+The API key is configured on the parent OpenAI resource via a parameter named `{resource_name}-openai-apikey` or the `OPENAI_API_KEY` environment variable.
 
 Then in user secrets:
 
@@ -53,17 +62,20 @@ Then in user secrets:
 {
     "Parameters": 
     {
-        "chat-openai-apikey": "YOUR_OPENAI_API_KEY_HERE"
+        "openai-openai-apikey": "YOUR_OPENAI_API_KEY_HERE"
     }
 }
 ```
 
-Furthermore, the API key can be configured using a custom parameter:
+You can replace the parent API key with a custom parameter on the parent resource:
 
 ```csharp
 var apiKey = builder.AddParameter("my-api-key", secret: true);
-var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini")
-                  .WithApiKey(apiKey);
+var openai = builder.AddOpenAI("openai").WithApiKey(apiKey);
+
+// share a single key across multiple models
+var chat = openai.AddModel("chat", "gpt-4o-mini");
+var embeddings = openai.AddModel("embeddings", "text-embedding-3-small");
 ```
 
 Then in user secrets:
@@ -72,7 +84,8 @@ Then in user secrets:
 {
     "Parameters": 
     {
-        "my-api-key": "YOUR_OPENAI_API_KEY_HERE"
+        "my-api-key": "YOUR_OPENAI_API_KEY_HERE",
+        "alt-key": "ANOTHER_OPENAI_API_KEY"
     }
 }
 ```
@@ -91,6 +104,19 @@ OpenAI supports various AI models. Some popular options include:
 - `whisper-1`
 
 Check the [OpenAI Models documentation](https://platform.openai.com/docs/models) for the most up-to-date list of available models.
+
+### Custom endpoint
+
+By default, the OpenAI service endpoint is `https://api.openai.com/v1`. To use an OpenAI-compatible gateway or self-hosted endpoint, set a custom endpoint on the parent resource:
+
+```csharp
+var openai = builder.AddOpenAI("openai")
+                    .WithEndpoint("https://my-gateway.example.com/v1");
+
+var chat = openai.AddModel("chat", "gpt-4o-mini");
+```
+
+Both the parent and model connection strings will include the custom endpoint.
 
 ## Additional documentation
 

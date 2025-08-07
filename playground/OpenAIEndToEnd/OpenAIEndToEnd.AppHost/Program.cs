@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var chat = builder.AddOpenAIModel("chat", "gpt-4o-mini").WithHealthCheck();
+var chat = builder.AddOpenAI("openai");//.AddModel("chat", "gpt-4o-mini").WithHealthCheck();
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

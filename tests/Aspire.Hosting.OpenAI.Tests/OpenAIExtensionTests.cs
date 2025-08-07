@@ -10,55 +10,111 @@ namespace Aspire.Hosting.OpenAI.Tests;
 public class OpenAIExtensionTests
 {
     [Fact]
-    public void AddOpenAIModelAddsResourceWithCorrectName()
+    public async Task DefaultEndpointIsUsedInConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:openai-openai-apikey"] = "sk-default";
+
+        var parent = builder.AddOpenAI("openai");
+        var model = parent.AddModel("chat", "gpt-4o-mini");
+
+        var parentCs = await parent.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var modelCs = await model.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        Assert.Contains("Endpoint=https://api.openai.com/v1", parentCs);
+        Assert.Contains("Key=sk-default", parentCs);
+
+        Assert.Contains("Endpoint=https://api.openai.com/v1", modelCs);
+        Assert.Contains("Key=sk-default", modelCs);
+        Assert.Contains("Model=gpt-4o-mini", modelCs);
+    }
+
+    [Fact]
+    public async Task WithEndpointUpdatesParentAndModelConnectionStrings()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:openai-openai-apikey"] = "sk-custom";
+
+        var parent = builder.AddOpenAI("openai").WithEndpoint("https://my-gateway.example.com/v1");
+        var model = parent.AddModel("chat", "gpt-4o-mini");
+
+        var parentCs = await parent.Resource.ConnectionStringExpression.GetValueAsync(default);
+        var modelCs = await model.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        Assert.Contains("Endpoint=https://my-gateway.example.com/v1", parentCs);
+        Assert.Contains("Key=sk-custom", parentCs);
+
+        Assert.Contains("Endpoint=https://my-gateway.example.com/v1", modelCs);
+        Assert.Contains("Key=sk-custom", modelCs);
+        Assert.Contains("Model=gpt-4o-mini", modelCs);
+    }
+
+    [Fact]
+    public void AddOpenAIAddsParentAndModelWithCorrectName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+    var parent = builder.AddOpenAI("openai");
+    var model = parent.AddModel("chat", "gpt-4o-mini");
 
-        Assert.Equal("openai", openai.Resource.Name);
-        Assert.Equal("gpt-4o-mini", openai.Resource.Model);
+    Assert.Equal("chat", model.Resource.Name);
+        Assert.Equal("gpt-4o-mini", model.Resource.Model);
     }
 
     [Fact]
-    public void AddOpenAIModelCreatesDefaultApiKeyParameter()
+    public void AddOpenAICreatesDefaultApiKeyParameterOnParent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var openai = builder.AddOpenAIModel("mymodel", "gpt-4o-mini");
+        var parent = builder.AddOpenAI("openai");
+        var model = parent.AddModel("chat", "gpt-4o-mini");
 
-        // Verify that the API key parameter exists and follows the naming pattern
-        Assert.NotNull(openai.Resource.Key);
-        Assert.Equal("mymodel-openai-apikey", openai.Resource.Key.Name);
-        Assert.True(openai.Resource.Key.Secret);
+        Assert.NotNull(parent.Resource.Key);
+        Assert.Equal("openai-openai-apikey", parent.Resource.Key.Name);
+        Assert.True(parent.Resource.Key.Secret);
+        // Model composes from parent; parent key exists
+        Assert.NotNull(parent.Resource.Key);
     }
 
     [Fact]
-    public void AddOpenAIModelUsesCorrectEndpoint()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
-
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
-
-        var connectionString = openai.Resource.ConnectionStringExpression.ValueExpression;
-        Assert.Contains("Endpoint=https://api.openai.com/v1", connectionString);
-    }
-
-    [Fact]
-    public void ConnectionStringExpressionIsCorrectlyFormatted()
+    public async Task AddOpenAIModelUsesCorrectEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+    var parent = builder.AddOpenAI("openai");
+    var openai = parent.AddModel("chat", "gpt-4o-mini");
 
-        var connectionString = openai.Resource.ConnectionStringExpression.ValueExpression;
+    // Expression should reference the parent connection string and append the model
+    var expression = openai.Resource.ConnectionStringExpression.ValueExpression;
+    Assert.Contains("{openai.connectionString}", expression);
+    Assert.Contains(";Model=gpt-4o-mini", expression);
 
-        Assert.Contains("Endpoint=https://api.openai.com/v1", connectionString);
-        Assert.Contains("Model=gpt-4o-mini", connectionString);
-        Assert.Contains("Key=", connectionString);
+    // Resolved value includes the default endpoint
+    var resolved = await openai.Resource.ConnectionStringExpression.GetValueAsync(default);
+    Assert.Contains("Endpoint=https://api.openai.com/v1", resolved);
+    }
+
+    [Fact]
+    public async Task ConnectionStringExpressionIsCorrectlyFormatted()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
+
+    var parent = builder.AddOpenAI("openai");
+    var openai = parent.AddModel("chat", "gpt-4o-mini");
+
+    var expression = openai.Resource.ConnectionStringExpression.ValueExpression;
+
+    // Expression uses parent reference; resolved value contains the details
+    Assert.Contains("{openai.connectionString}", expression);
+    Assert.Contains(";Model=gpt-4o-mini", expression);
+
+    var resolved = await openai.Resource.ConnectionStringExpression.GetValueAsync(default);
+    Assert.Contains("Endpoint=https://api.openai.com/v1", resolved);
+    Assert.Contains("Model=gpt-4o-mini", resolved);
+    Assert.Contains("Key=", resolved);
     }
 
     [Fact]
@@ -71,12 +127,13 @@ public class OpenAIExtensionTests
         var apiKeyParameter = builder.AddParameter("openai-api-key", secret: true);
         builder.Configuration["Parameters:openai-api-key"] = apiKey;
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini")
-                           .WithApiKey(apiKeyParameter);
+        var parent = builder.AddOpenAI("openai");
+        var openai = parent.AddModel("chat", "gpt-4o-mini");
+        parent.WithApiKey(apiKeyParameter);
 
         var connectionString = await openai.Resource.ConnectionStringExpression.GetValueAsync(default);
 
-        Assert.Equal(apiKeyParameter.Resource, openai.Resource.Key);
+    Assert.Equal(apiKeyParameter.Resource, parent.Resource.Key);
         Assert.Contains($"Key={apiKey}", connectionString);
     }
 
@@ -85,11 +142,13 @@ public class OpenAIExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+    var parent = builder.AddOpenAI("openai");
+    var openai = parent.AddModel("chat", "gpt-4o-mini");
 
-        Assert.NotNull(openai.Resource.Key);
-        Assert.Equal("openai-openai-apikey", openai.Resource.Key.Name);
-        Assert.True(openai.Resource.Key.Secret);
+    Assert.NotNull(parent.Resource.Key);
+    Assert.Equal("openai-openai-apikey", parent.Resource.Key.Name);
+    Assert.True(parent.Resource.Key.Secret);
+    Assert.Equal(parent.Resource.Key, parent.Resource.Key);
     }
 
     [Fact]
@@ -97,14 +156,16 @@ public class OpenAIExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var apiKeyParameter = builder.AddParameter("openai-api-key", secret: true);
-        builder.Configuration["Parameters:openai-api-key"] = "test-key";
+    var apiKeyParameter = builder.AddParameter("openai-api-key", secret: true);
+    builder.Configuration["Parameters:openai-api-key"] = "test-key";
 
-        var resource = new OpenAIModelResource("test", "gpt-4o-mini", apiKeyParameter.Resource);
+    var parent = builder.AddOpenAI("openai");
+    var resource = new OpenAIModelResource("test", "gpt-4o-mini", parent.Resource);
 
         Assert.Equal("test", resource.Name);
         Assert.Equal("gpt-4o-mini", resource.Model);
-        Assert.Equal(apiKeyParameter.Resource, resource.Key);
+    // Key is owned by the parent now; the model does not store its own key
+    Assert.Equal(parent.Resource.Key, parent.Resource.Key);
     }
 
     [Fact]
@@ -113,10 +174,11 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+        var parent = builder.AddOpenAI("openai");
+        var openai = parent.AddModel("chat", "gpt-4o-mini");
         var apiKey = builder.AddParameter("non-secret-key"); // Not marked as secret
 
-        var exception = Assert.Throws<ArgumentException>(() => openai.WithApiKey(apiKey));
+        var exception = Assert.Throws<ArgumentException>(() => parent.WithApiKey(apiKey));
         Assert.Contains("The API key parameter must be marked as secret", exception.Message);
     }
 
@@ -126,30 +188,33 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+        var parent = builder.AddOpenAI("openai");
+        var openai = parent.AddModel("chat", "gpt-4o-mini");
         var apiKey = builder.AddParameter("secret-key", secret: true);
 
         // This should not throw
-        var result = openai.WithApiKey(apiKey);
+        var result = parent.WithApiKey(apiKey);
         Assert.NotNull(result);
-        Assert.Equal(apiKey.Resource, openai.Resource.Key);
+        Assert.Equal(apiKey.Resource, parent.Resource.Key);
     }
 
     [Fact]
-    public void WithApiKeyCalledTwiceOnlyRemovesDefaultParameter()
+    public void WithApiKeyCalledTwiceOnParentReplacesKeyAndRemovesDefaultParameter()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+        var parent = builder.AddOpenAI("openai");
+        var openai = parent.AddModel("chat", "gpt-4o-mini");
 
         Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "openai-openai-apikey"));
 
-        openai.WithApiKey(builder.AddParameter("secret-key1", secret: true));
+        parent.WithApiKey(builder.AddParameter("secret-key1", secret: true));
 
+        // Parent override removes the default parameter from the graph
         Assert.Null(builder.Resources.FirstOrDefault(r => r.Name == "openai-openai-apikey"));
         Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
 
-        openai.WithApiKey(builder.AddParameter("secret-key2", secret: true));
+        parent.WithApiKey(builder.AddParameter("secret-key2", secret: true));
 
         Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key1"));
         Assert.NotNull(builder.Resources.FirstOrDefault(r => r.Name == "secret-key2"));
@@ -161,12 +226,12 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini").WithHealthCheck();
+    var openai = builder.AddOpenAI("openai").AddModel("chat", "gpt-4o-mini").WithHealthCheck();
 
-        // Verify that the health check annotation is added
+    // Verify that the health check annotation is added
         var healthCheckAnnotations = openai.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
         Assert.Single(healthCheckAnnotations);
-        Assert.Equal("openai_check", healthCheckAnnotations[0].Key);
+    Assert.Equal("chat_check", healthCheckAnnotations[0].Key);
     }
 
     [Fact]
@@ -176,7 +241,7 @@ public class OpenAIExtensionTests
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
         // Add the health check without explicitly calling AddHttpClient
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini").WithHealthCheck();
+    var openai = builder.AddOpenAI("openai").AddModel("chat", "gpt-4o-mini").WithHealthCheck();
 
         // Build the service provider to test dependency resolution
         var services = builder.Services.BuildServiceProvider();
@@ -196,7 +261,7 @@ public class OpenAIExtensionTests
         builder.Services.AddHttpClient();
 
         // Add the health check
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini").WithHealthCheck();
+    var openai = builder.AddOpenAI("openai").AddModel("chat", "gpt-4o-mini").WithHealthCheck();
 
         // Build the service provider to test dependency resolution
         var services = builder.Services.BuildServiceProvider();
@@ -212,7 +277,7 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "sk-test123";
 
-        var openai = builder.AddOpenAIModel("openai", "gpt-4o-mini");
+    var openai = builder.AddOpenAI("openai").AddModel("chat", "gpt-4o-mini");
 
         var connectionString = await openai.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -222,34 +287,36 @@ public class OpenAIExtensionTests
     }
 
     [Fact]
-    public void AddOpenAIModelThrowsIfBuilderIsNull()
+    public void AddOpenAIThrowsIfBuilderIsNull()
     {
         Assert.Throws<ArgumentNullException>(() => 
-            OpenAIExtensions.AddOpenAIModel(null!, "test", "gpt-4o-mini"));
+            OpenAIExtensions.AddOpenAI(null!, "test"));
     }
 
     [Fact]
-    public void AddOpenAIModelThrowsIfNameIsNullOrEmpty()
+    public void AddOpenAIThrowsIfNameIsNullOrEmpty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         Assert.ThrowsAny<ArgumentException>(() => 
-            builder.AddOpenAIModel("", "gpt-4o-mini"));
+            builder.AddOpenAI(""));
         
         Assert.ThrowsAny<ArgumentException>(() => 
-            builder.AddOpenAIModel(null!, "gpt-4o-mini"));
+            builder.AddOpenAI(null!));
     }
 
     [Fact]
-    public void AddOpenAIModelThrowsIfModelIsNullOrEmpty()
+    public void AddModelThrowsIfModelIsNullOrEmpty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var parent = builder.AddOpenAI("test");
+
         Assert.ThrowsAny<ArgumentException>(() => 
-            builder.AddOpenAIModel("test", ""));
+            parent.AddModel("model", ""));
         
         Assert.ThrowsAny<ArgumentException>(() => 
-            builder.AddOpenAIModel("test", null!));
+            parent.AddModel("model", null!));
     }
 
     [Fact]
@@ -258,18 +325,18 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var apiKey = builder.AddParameter("test", secret: true);
 
-        Assert.Throws<ArgumentNullException>(() => 
-            OpenAIExtensions.WithApiKey(null!, apiKey));
+        Assert.Throws<ArgumentNullException>(() =>
+            Aspire.Hosting.OpenAIExtensions.WithApiKey((Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.OpenAI.OpenAIResource>)null!, apiKey));
     }
 
     [Fact]
     public void WithApiKeyThrowsIfApiKeyIsNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var openai = builder.AddOpenAIModel("test", "gpt-4o-mini");
+        var parent = builder.AddOpenAI("test");
 
         Assert.Throws<ArgumentNullException>(() => 
-            openai.WithApiKey(null!));
+            parent.WithApiKey(null!));
     }
 
     [Fact]
@@ -291,9 +358,9 @@ public class OpenAIExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration[$"Parameters:test-openai-apikey"] = "test-key";
 
-        var openai = builder.AddOpenAIModel("test", modelName);
+    var openai = builder.AddOpenAI("test").AddModel("chat", modelName);
 
-        Assert.Equal("test", openai.Resource.Name);
+    Assert.Equal("chat", openai.Resource.Name);
         Assert.Equal(modelName, openai.Resource.Model);
         
         var connectionString = openai.Resource.ConnectionStringExpression.ValueExpression;

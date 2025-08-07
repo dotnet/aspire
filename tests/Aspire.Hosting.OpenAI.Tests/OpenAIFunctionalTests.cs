@@ -28,8 +28,9 @@ public class OpenAIFunctionalTests
             return healthCheckTcs.Task;
         });
 
-        var resource = builder.AddOpenAIModel("resource", "gpt-4o-mini")
-                              .WithHealthCheck("blocking_check");
+    var resource = builder.AddOpenAI("resource")
+                  .AddModel("chat", "gpt-4o-mini")
+                  .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                                        .WaitFor(resource);
