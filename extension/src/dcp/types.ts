@@ -1,5 +1,3 @@
-import { BaseDebugSession } from "../debugger/common";
-
 export type ErrorResponse = {
     error: ErrorDetails;
 };

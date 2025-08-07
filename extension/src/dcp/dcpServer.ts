@@ -1,17 +1,14 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
-import { ChildProcess, spawn } from 'child_process';
-import { DebugConfiguration } from 'vscode';
 import * as vscode from 'vscode';
-import { mergeEnvs } from '../utils/environment';
 import { generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { DcpServerInformation, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
 import { startDotNetProgram, startPythonProgram } from '../debugger/dotnet';
 import path from 'path';
-import { BaseDebugSession, generateRunId, startCliProgram, TerminalProgramRun } from '../debugger/common';
+import { BaseDebugSession, generateRunId, startCliProgram } from '../debugger/common';
 import { cwd } from 'process';
 
 const runsBySession = new Map<string, BaseDebugSession[]>();

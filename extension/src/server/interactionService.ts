@@ -6,7 +6,6 @@ import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { startAppHost } from '../debugger/appHost';
-import { getAspireTerminal } from '../utils/terminal';
 import { EnvVar, stopAllDebuggingSessions } from '../debugger/common';
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';

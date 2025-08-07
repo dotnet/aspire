@@ -8,7 +8,6 @@ import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
 import { generateSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { get } from 'http';
 import { getSupportedCapabilities } from '../capabilities';
 
 export type RpcServerInformation = {
