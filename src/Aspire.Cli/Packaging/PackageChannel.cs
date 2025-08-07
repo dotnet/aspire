@@ -14,7 +14,7 @@ internal class PackageChannel(string name, PackageMapping[]? mappings, INuGetPac
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        using var tempNuGetConfig = await TemporaryNuGetConfig.CreateAsync(Mappings ?? []);
+        using var tempNuGetConfig = Mappings is not null ? await TemporaryNuGetConfig.CreateAsync(Mappings) : null;
         return await nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken);
     }
 
