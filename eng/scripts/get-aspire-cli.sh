@@ -239,6 +239,67 @@ detect_architecture() {
     esac
 }
 
+# Compute runtime identifier "<os>-<arch>" from optional inputs
+get_runtime_identifier() {
+    local _os="$1"
+    local _arch="$2"
+    local os_val arch_val
+
+    if [[ -z "$_os" ]]; then
+        if ! os_val=$(detect_os); then
+            say_error "Unsupported operating system. Current platform: $(uname -s)"
+            return 1
+        fi
+    else
+        os_val="$_os"
+    fi
+
+    if [[ -z "$_arch" ]]; then
+        if ! arch_val=$(get_cli_architecture_from_architecture "<auto>"); then
+            return 1
+        fi
+    else
+        if ! arch_val=$(get_cli_architecture_from_architecture "$_arch"); then
+            return 1
+        fi
+    fi
+
+    printf "%s-%s" "$os_val" "$arch_val"
+}
+
+# Create a temporary directory with a prefix. Honors DRY_RUN
+new_temp_dir() {
+    local prefix="$1"
+    if [[ "$DRY_RUN" == true ]]; then
+        printf "/tmp/%s-whatif" "$prefix"
+        return 0
+    fi
+    local dir
+    if ! dir=$(mktemp -d -t "${prefix}-XXXXXXXX"); then
+        say_error "Unable to create temporary directory"
+        return 1
+    fi
+    say_verbose "Creating temporary directory: $dir"
+    printf "%s" "$dir"
+}
+
+# Remove a temporary directory unless KEEP_ARCHIVE is set. Honors DRY_RUN
+remove_temp_dir() {
+    local dir="$1"
+    if [[ -z "$dir" || ! -d "$dir" ]]; then
+        return 0
+    fi
+    if [[ "$DRY_RUN" == true ]]; then
+        return 0
+    fi
+    if [[ "$KEEP_ARCHIVE" != true ]]; then
+        say_verbose "Cleaning up temporary files..."
+        rm -rf "$dir" || say_warn "Failed to clean up temporary directory: $dir"
+    else
+        printf "Archive files kept in: %s\n" "$dir"
+    fi
+}
+
 # Common function for HTTP requests with centralized configuration
 secure_curl() {
     local url="$1"
@@ -611,28 +672,11 @@ download_and_install_archive() {
     local os arch runtimeIdentifier url filename checksum_url checksum_filename extension
     local cli_exe cli_path
 
-    # Detect OS and architecture if not provided
-    if [[ -z "$OS" ]]; then
-        if ! os=$(detect_os); then
-            say_error "Unsupported operating system. Current platform: $(uname -s)"
-            return 1
-        fi
-    else
-        os="$OS"
+    # Construct the runtime identifier from inputs (or detect)
+    if ! runtimeIdentifier=$(get_runtime_identifier "${OS}" "${ARCH}"); then
+        return 1
     fi
-
-    if [[ -z "$ARCH" ]]; then
-        if ! arch=$(get_cli_architecture_from_architecture "<auto>"); then
-            return 1
-        fi
-    else
-        if ! arch=$(get_cli_architecture_from_architecture "$ARCH"); then
-            return 1
-        fi
-    fi
-
-    # Construct the runtime identifier
-    runtimeIdentifier="${os}-${arch}"
+    os="${runtimeIdentifier%%-*}"
 
     # Determine file extension based on OS
     if [[ "$os" == "win" ]]; then
@@ -714,34 +758,9 @@ else
     INSTALL_PATH_UNEXPANDED="$INSTALL_PATH"
 fi
 
-# Create a temporary directory for downloads
-if [[ "$DRY_RUN" == true ]]; then
-    temp_dir="/tmp/aspire-cli-dry-run"
-else
-    temp_dir=$(mktemp -d -t aspire-cli-download-XXXXXXXX)
-    say_verbose "Creating temporary directory: $temp_dir"
-fi
-
-# Cleanup function for temporary directory
-cleanup() {
-    # shellcheck disable=SC2317  # Function is called via trap
-    if [[ "$DRY_RUN" == true ]]; then
-        # No cleanup needed in dry-run mode
-        return 0
-    fi
-
-    if [[ -n "${temp_dir:-}" ]] && [[ -d "$temp_dir" ]]; then
-        if [[ "$KEEP_ARCHIVE" != true ]]; then
-            say_verbose "Cleaning up temporary files..."
-            rm -rf "$temp_dir" || say_warn "Failed to clean up temporary directory: $temp_dir"
-        else
-            printf "Archive files kept in: %s\n" "$temp_dir"
-        fi
-    fi
-}
-
-# Set trap for cleanup on exit
-trap cleanup EXIT
+# Create a temporary directory for downloads and set cleanup trap
+temp_dir=$(new_temp_dir "aspire-cli-download")
+trap 'remove_temp_dir "$temp_dir"' EXIT
 
 # Download and install the archive
 if ! download_and_install_archive "$temp_dir"; then
