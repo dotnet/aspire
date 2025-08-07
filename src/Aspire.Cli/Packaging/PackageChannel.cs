@@ -6,10 +6,24 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(INuGetPackageCache nuGetPackageCache)
+internal class PackageChannel(string name, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
 {
+    public string Name { get; } = name;
+    public PackageMapping[]? Mappings { get; } = mappings;
+    public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
+
     public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         return nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken);
+    }
+
+    public static PackageChannel CreateExplicitChannel(string name, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
+    {
+        return new PackageChannel(name, mappings, nuGetPackageCache);
+    }
+
+    public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)
+    {
+        return new PackageChannel("default", null, nuGetPackageCache);
     }
 }

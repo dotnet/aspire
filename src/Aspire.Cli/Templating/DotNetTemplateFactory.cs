@@ -335,7 +335,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, bool prerelease, string? source, CancellationToken cancellationToken)
     {
         var channels = await packagingService.GetChannelsAsync(cancellationToken);
-        var channel = channels.Single();
+        var channel = channels.Single(c => c.Name == "daily"); // Hardcoded for testing.
 
         if (parseResult.GetValue<string>("--version") is { } version)
         {

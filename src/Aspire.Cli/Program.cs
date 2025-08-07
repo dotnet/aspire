@@ -37,10 +37,17 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static string GetGlobalSettingsPath()
+    private static string GetUsersAspirePath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "globalsettings.json");
+        var aspirePath = Path.Combine(homeDirectory, ".aspire");
+        return aspirePath;
+    }
+
+    private static string GetGlobalSettingsPath()
+    {
+        var usersAspirePath = GetUsersAspirePath();
+        var globalSettingsPath = Path.Combine(usersAspirePath, "globalsettings.json");
         return globalSettingsPath;
     }
 
@@ -136,11 +143,19 @@ public class Program
         return app;
     }
 
+    private static DirectoryInfo GetHivesDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var hivesDirectory = Path.Combine(homeDirectory, "hives");
+        return new DirectoryInfo(hivesDirectory);
+    }
+
     private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
     {
         _ = serviceProvider;
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-        return new CliExecutionContext(workingDirectory);
+        var hivesDirectory = GetHivesDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
