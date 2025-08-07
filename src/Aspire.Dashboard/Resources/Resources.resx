@@ -288,4 +288,7 @@
     <value>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</value>
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
+  <data name="ResourcesCommands" xml:space="preserve">
+    <value>Commands</value>
+  </data>
 </root>

@@ -186,6 +186,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Commands.
+        /// </summary>
+        public static string ResourcesCommands {
+            get {
+                return ResourceManager.GetString("ResourcesCommands", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Connection string.
         /// </summary>
         public static string ResourcesDetailsConnectionStringProperty {
