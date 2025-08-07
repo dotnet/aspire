@@ -19,7 +19,9 @@ internal sealed class TemporaryNuGetConfig : IDisposable
 
     public static async Task<TemporaryNuGetConfig> CreateAsync(PackageMapping[] mappings)
     {
-        var tempFilePath = Path.GetTempFileName();
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+        var tempFilePath = Path.Combine(tempDirectory, "NuGet.config");
         var configFile = new FileInfo(tempFilePath);
         await GenerateNuGetConfigAsync(mappings, configFile);
         return new TemporaryNuGetConfig(configFile);
@@ -49,6 +51,11 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         
         // Write packageSources section
         await xmlWriter.WriteStartElementAsync(null, "packageSources", null);
+
+        // <clear />
+        await xmlWriter.WriteStartElementAsync(null, "clear", null);
+        await xmlWriter.WriteEndElementAsync();
+
         foreach (var sourceInfo in distinctSources)
         {
             await xmlWriter.WriteStartElementAsync(null, "add", null);

@@ -20,7 +20,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                 await nuGetPackageCache.GetTemplatePackagesAsync(
                     workingDirectory: executionContext.WorkingDirectory,
                     prerelease: true,
-                    source: null,
+                    nugetConfigFile: null,
                     cancellationToken: stoppingToken
                     );
             }
@@ -43,7 +43,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                     await nuGetPackageCache.GetCliPackagesAsync(
                         workingDirectory: executionContext.WorkingDirectory,
                         prerelease: true,
-                        source: null,
+                        nugetConfigFile: null,
                         cancellationToken: stoppingToken
                         );
                 }

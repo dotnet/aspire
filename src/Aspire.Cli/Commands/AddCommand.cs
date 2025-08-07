@@ -94,7 +94,7 @@ internal sealed class AddCommand : BaseCommand
                 () => _nuGetPackageCache.GetIntegrationPackagesAsync(
                     workingDirectory: effectiveAppHostProjectFile.Directory!,
                     prerelease: true,
-                    source: source,
+                    nugetConfigFile: null,
                     cancellationToken: cancellationToken)
                 );
 
