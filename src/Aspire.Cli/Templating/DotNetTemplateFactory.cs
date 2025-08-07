@@ -7,14 +7,14 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Semver;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter) : ITemplateFactory
+internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter) : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -334,6 +334,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
     private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, bool prerelease, string? source, CancellationToken cancellationToken)
     {
+        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var channel = channels.Single();
+
         if (parseResult.GetValue<string>("--version") is { } version)
         {
             return version;
@@ -344,7 +347,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var candidatePackages = await interactionService.ShowStatusAsync(
                 TemplatingStrings.SearchingForAvailableTemplateVersions,
-                () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
+                () => channel.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
                 );
 
             if (!candidatePackages.Any())
