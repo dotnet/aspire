@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { appHostDebugSession, clearAppHostDebugSession } from './appHost';
 import { mergeEnvs } from '../utils/environment';
+import { getSupportedDebugAdapters } from '../capabilities';
+import { dcpServer } from '../extension';
+import { ServiceLogsNotification } from '../dcp/types';
 
 export type EnvVar = {
     name: string;
@@ -11,6 +14,8 @@ export type EnvVar = {
 export type LaunchOptions = {
     debug: boolean;
     forceBuild?: boolean;
+    runId: string;
+    dcpId: string | null;
 };
 
 export type TerminalProgramRun = {
@@ -32,8 +37,9 @@ interface VsCodeDebugSession extends BaseGenericDebugSession<vscode.DebugSession
 interface TerminalDebugSession extends BaseGenericDebugSession<TerminalProgramRun> {
 }
 
-export interface DebugConfigurationWithId extends vscode.DebugConfiguration {
+export interface DcpDebugConfiguration extends vscode.DebugConfiguration {
     runId: string;
+    dcpId: string | null;
 }
 
 const debugSessions: BaseDebugSession[] = [];
@@ -62,7 +68,7 @@ export function startCliProgram(terminalName: string, command: string, args?: st
     });
 }
 
-export async function startAndGetDebugSession(debugConfig: DebugConfigurationWithId): Promise<VsCodeDebugSession | undefined> {
+export async function startAndGetDebugSession(debugConfig: DcpDebugConfiguration): Promise<VsCodeDebugSession | undefined> {
     return new Promise(async (resolve) => {
         const disposable = vscode.debug.onDidStartDebugSession(session => {
             if (session.configuration.runId === debugConfig.runId) {
@@ -111,4 +117,47 @@ export function stopAllDebuggingSessions() {
 
 export function generateRunId(): string {
     return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+export function createDebugAdapterTracker() {
+    for (const debugAdapter of getSupportedDebugAdapters()) {
+        vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
+            createDebugAdapterTracker(session: vscode.DebugSession) {
+                return {
+                    onDidSendMessage: message => {
+                        if (message.type === 'event' && message.event === 'output') {
+                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                                extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
+                                return;
+                            }
+
+                            if (!dcpServer) {
+                                extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
+                                return;
+                            }
+
+                            const { category, output } = message.body;
+                            if (category === 'stdout' || category === 'stderr') {
+                                const notification: ServiceLogsNotification = {
+                                    notification_type: 'serviceLogs',
+                                    session_id: session.configuration.runId,
+                                    dcp_id: session.configuration.dcpId,
+                                    is_std_err: category === 'stderr',
+                                    log_message: output
+                                };
+
+                                dcpServer.sendNotification(notification);
+                            }
+
+                            console.log(`[${category}] ${output}`);
+                        }
+                    }
+                };
+            }
+        });
+    }
+
+    function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is DcpDebugConfiguration {
+        return (session as DcpDebugConfiguration).runId !== undefined;
+    }
 }

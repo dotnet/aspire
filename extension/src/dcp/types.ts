@@ -1,3 +1,5 @@
+import { BaseDebugSession } from "../debugger/common";
+
 export type ErrorResponse = {
     error: ErrorDetails;
 };
@@ -36,27 +38,23 @@ export interface DcpServerInformation {
     certificate: string;
 }
 
-export type RunSessionNotification =
-    | ProcessRestartedNotification
-    | SessionTerminatedNotification
-    | ServiceLogsNotification;
-
-export interface BaseNotification {
+export interface RunSessionNotification {
     notification_type: 'processRestarted' | 'sessionTerminated' | 'serviceLogs';
     session_id: string;
+    dcp_id: string;
 }
 
-export interface ProcessRestartedNotification extends BaseNotification {
+export interface ProcessRestartedNotification extends RunSessionNotification {
     notification_type: 'processRestarted';
     pid?: number;
 }
 
-export interface SessionTerminatedNotification extends BaseNotification {
+export interface SessionTerminatedNotification extends RunSessionNotification {
     notification_type: 'sessionTerminated';
     exit_code: number;
 }
 
-export interface ServiceLogsNotification extends BaseNotification {
+export interface ServiceLogsNotification extends RunSessionNotification {
     notification_type: 'serviceLogs';
     is_std_err: boolean;
     log_message: string;

@@ -14,6 +14,7 @@ import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
 import { createDcpServer, DcpServer } from './dcp/dcpServer';
 import { AspireDebugAdapterDescriptorFactory } from './dcp/debugAdapterFactory';
+import { createDebugAdapterTracker as createDebugAdapterLogForwarder } from './debugger/common';
 
 export let rpcServerInfo: RpcServerInformation | undefined;
 export let dcpServer: DcpServer | undefined;
@@ -39,7 +40,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
-
+	createDebugAdapterLogForwarder();
+	
 	extensionContext = context; 
 
 	// Return exported API for tests or other extensions

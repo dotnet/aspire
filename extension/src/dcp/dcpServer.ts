@@ -7,14 +7,16 @@ import * as vscode from 'vscode';
 import { mergeEnvs } from '../utils/environment';
 import { generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { DcpServerInformation, ErrorDetails, ErrorResponse, RunSessionNotification, RunSessionPayload } from './types';
+import { DcpServerInformation, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
-import { startDotNetProgram } from '../debugger/dotnet';
+import { startDotNetProgram, startPythonProgram } from '../debugger/dotnet';
 import path from 'path';
 import { BaseDebugSession, generateRunId, startCliProgram, TerminalProgramRun } from '../debugger/common';
 import { cwd } from 'process';
 
 const runsBySession = new Map<string, BaseDebugSession[]>();
+const wsBySession = new Map<string, WebSocket>();
+const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
 
 export class DcpServer {
     public readonly info: DcpServerInformation;
@@ -45,7 +47,7 @@ export class DcpServer {
 
             function requireHeaders(req: Request, res: Response, next: NextFunction): void {
                 const auth = req.header('Authorization');
-                const dcpId = req.header('Microsoft-Developer-DCP-Instance-ID');
+                const dcpId = req.header('microsoft-developer-dcp-instance-id');
                 if (!auth || !dcpId) {
                     res.status(401).json({ error: { code: 'MissingHeaders', message: 'Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.' } });
                     return;
@@ -77,6 +79,7 @@ export class DcpServer {
             app.put('/run_session', requireHeaders, async (req: Request, res: Response) => {
                 const payload: RunSessionPayload = req.body;
                 const runId = generateRunId();
+                const dcpId = req.header('microsoft-developer-dcp-instance-id') as string;
 
                 const processes: BaseDebugSession[] = [];
 
@@ -84,11 +87,20 @@ export class DcpServer {
                     let debugSession: BaseDebugSession | undefined;
                     if (launchConfig.type === "project") {
                         debugSession = await startDotNetProgram(
-                            launchConfig.project_path, 
+                            launchConfig.project_path,
                             path.dirname(launchConfig.project_path),
                             payload.args ?? [],
                             payload.env ?? [],
-                            { debug: launchConfig.mode === "Debug" }
+                            { debug: launchConfig.mode === "Debug", runId, dcpId }
+                        );
+                    }
+                    else if (launchConfig.type === "python") {
+                        debugSession = await startPythonProgram(
+                            payload.args?.[0] ?? launchConfig.project_path,
+                            launchConfig.project_path,
+                            payload.args ?? [],
+                            payload.env ?? [],
+                            { debug: launchConfig.mode === "Debug", runId, dcpId }
                         );
                     }
                     else {
@@ -143,22 +155,29 @@ export class DcpServer {
                 }
             });
 
-            function isTerminal(obj: any): obj is vscode.Terminal {
-                return obj && typeof obj.dispose === 'function' && typeof obj.sendText === 'function';
-            }
-
-            function isTerminalProgramRun(obj: any): obj is TerminalProgramRun {
-                return obj && typeof obj.pid === 'number' && typeof obj.terminal === 'object';
-            }
-
             const server = http.createServer(app);
             const wss = new WebSocketServer({ noServer: true });
 
             server.on('upgrade', (request, socket, head) => {
                 if (request.url?.startsWith('/run_session/notify')) {
                     wss.handleUpgrade(request, socket, head, (ws) => {
-                        const dcpId = request.headers['microsoft-developer-dcp-instance-id'];
+                        const dcpId = request.headers['microsoft-developer-dcp-instance-id'] as string;
                         extensionLogOutputChannel.info(`WebSocket connection established for DCP ID: ${dcpId}`);
+                        wsBySession.set(dcpId, ws);
+
+                        const pendingNotifications = pendingNotificationQueueByDcpId.get(dcpId);
+                        if (pendingNotifications) {
+                            for (const notification of pendingNotifications) {
+                                DcpServer.sendNotificationCore(notification, ws);
+                            }
+
+                            pendingNotificationQueueByDcpId.delete(dcpId);
+                        }
+
+                        ws.onclose = () => {
+                            extensionLogOutputChannel.info(`WebSocket connection closed for DCP ID: ${dcpId}`);
+                            wsBySession.delete(dcpId);
+                        };
                     });
                 } else {
                     socket.destroy();
@@ -183,43 +202,56 @@ export class DcpServer {
                     reject(new Error('Failed to get server address'));
                 }
             });
+
             server.on('error', reject);
         });
     }
 
-    public emitProcessRestarted(session_id: string, pid?: number) {
-        this.broadcastNotification({
-            notification_type: 'processRestarted',
-            session_id,
-            pid
-        });
+    sendNotification(notification: RunSessionNotification) {
+        // If no WebSocket is available for the session, log a warning
+        const ws = wsBySession.get(notification.dcp_id);
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            extensionLogOutputChannel.warn(`No WebSocket found for DCP ID: ${notification.dcp_id} or WebSocket is not open (state: ${ws?.readyState})`);
+            pendingNotificationQueueByDcpId.set(notification.dcp_id, [...(pendingNotificationQueueByDcpId.get(notification.dcp_id) || []), notification]);
+            return;
+        }
+
+        DcpServer.sendNotificationCore(notification, ws);
     }
 
-    public emitSessionTerminated(session_id: string, exit_code: number) {
-        this.broadcastNotification({
-            notification_type: 'sessionTerminated',
-            session_id,
-            exit_code
-        });
-    }
+    static sendNotificationCore(notification: RunSessionNotification, ws: WebSocket) {
+        // Send the notification to the WebSocket
+        if (notification.notification_type === 'processRestarted') {
+            const processNotification = notification as ProcessRestartedNotification;
+            const message = JSON.stringify({
+                notification_type: 'processRestarted',
+                session_id: notification.session_id,
+                pid: processNotification.pid
+            });
 
-    public emitServiceLog(session_id: string, log_message: string, is_std_err: boolean = false) {
-        this.broadcastNotification({
-            notification_type: 'serviceLogs',
-            session_id,
-            is_std_err,
-            log_message
-        });
-    }
+            ws.send(message + '\n');
+        }
+        else if (notification.notification_type === 'sessionTerminated') {
+            const sessionTerminated = notification as SessionTerminatedNotification;
+            const message = JSON.stringify({
+                notification_type: 'sessionTerminated',
+                session_id: notification.session_id,
+                exit_code: sessionTerminated.exit_code
+            });
 
-    private broadcastNotification(notification: RunSessionNotification) {
-        if (!this.wss) { return; }
-        const line = JSON.stringify(notification) + '\n';
-        this.wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(line);
-            }
-        });
+            ws.send(message + '\n');
+        }
+        else if (notification.notification_type === 'serviceLogs') {
+            const serviceLogs = notification as ServiceLogsNotification;
+            const message = JSON.stringify({
+                notification_type: 'serviceLogs',
+                session_id: notification.session_id,
+                is_std_err: serviceLogs.is_std_err,
+                log_message: serviceLogs.log_message
+            });
+
+            ws.send(message + '\n');
+        }
     }
 
     public stop(): void {
@@ -232,6 +264,7 @@ export class DcpServer {
             });
             this.wss.close();
         }
+
         if (this.server) {
             this.server.close();
         }

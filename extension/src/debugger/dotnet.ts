@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession, generateRunId, DebugConfigurationWithId } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession, generateRunId, DcpDebugConfiguration } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
 import { execFile } from 'child_process';
@@ -22,7 +22,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
         }
 
-        const config: DebugConfigurationWithId = {
+        const config: DcpDebugConfiguration = {
             type: 'coreclr',
             request: 'launch',
             name: debugProject(path.basename(projectFile)),
@@ -33,7 +33,9 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             justMyCode: false,
             stopAtEntry: false,
             noDebug: !launchOptions.debug,
-            runId: generateRunId()
+            runId: launchOptions.runId,
+            dcpId: launchOptions.dcpId,
+            console: 'internalConsole'
         };
 
         // The build task brings the build terminal to the foreground. If build has succeeded,
@@ -46,6 +48,39 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
         if (error instanceof Error) {
             extensionLogOutputChannel.error(`Failed to start project: ${error.message}`);
             vscode.window.showErrorMessage(`Failed to start project: ${error.message}`);
+            return undefined;
+        }
+    }
+}
+
+export async function startPythonProgram(file: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<BaseDebugSession | undefined> {
+    try {
+        const config: DcpDebugConfiguration = {
+            type: 'python',
+            request: 'launch',
+            name: debugProject('Python Program'),
+            program: file,
+            args: args,
+            cwd: workingDirectory,
+            env: mergeEnvs(process.env, env),
+            justMyCode: false,
+            stopAtEntry: false,
+            noDebug: !launchOptions.debug,
+            runId: launchOptions.runId,
+            dcpId: launchOptions.dcpId,
+            console: 'internalConsole'
+        };
+
+        // The build task brings the build terminal to the foreground. If build has succeeded,
+        // we should then bring the Aspire terminal to the terminal foreground as it's actively running.
+        getAspireTerminal().show(true);
+
+        return await startAndGetDebugSession(config);
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            extensionLogOutputChannel.error(`Failed to start Python program: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to start Python program: ${error.message}`);
             return undefined;
         }
     }
