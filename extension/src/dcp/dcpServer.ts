@@ -4,25 +4,24 @@ import WebSocket, { WebSocketServer } from 'ws';
 import * as vscode from 'vscode';
 import { generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { DcpServerInformation, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
-import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
-import { startDotNetProgram, startPythonProgram } from '../debugger/dotnet';
+import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
+import { startDotNetProgram } from '../debugger/dotnet';
 import path from 'path';
-import { AspireResourceDebugSession, generateRunId } from '../debugger/common';
-import { cwd } from 'process';
+import { generateRunId } from '../debugger/common';
 import { unsupportedResourceType } from '../loc/strings';
+import { startPythonProgram } from '../debugger/python';
 
 const runsBySession = new Map<string, AspireResourceDebugSession[]>();
 const wsBySession = new Map<string, WebSocket>();
 const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
 
 export class DcpServer {
-    public readonly info: DcpServerInformation;
+    public readonly info: DcpServerConnectionInfo;
     public readonly app: express.Express;
     private server: http.Server;
     private wss: WebSocketServer;
 
-    private constructor(info: DcpServerInformation, app: express.Express, server: http.Server, wss: WebSocketServer) {
+    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: http.Server, wss: WebSocketServer) {
         this.info = info;
         this.app = app;
         this.server = server;
@@ -138,9 +137,6 @@ export class DcpServer {
                         debugSession.stopSession();
                     }
 
-                    // After all processes/terminals are cleaned up, check for any active Aspire debug session and send 'stopped'
-                    sendStoppedToAspireDebugSession();
-
                     runsBySession.delete(runId);
                     res.status(200).end();
                 } else {
@@ -185,7 +181,7 @@ export class DcpServer {
                 const addr = server.address();
                 if (typeof addr === 'object' && addr) {
                     console.log(`DCP IDE Execution server listening on port ${addr.port} (HTTP)`);
-                    const info: DcpServerInformation = {
+                    const info: DcpServerConnectionInfo = {
                         address: `localhost:${addr.port}`,
                         token: token,
                         certificate: ''
@@ -247,7 +243,7 @@ export class DcpServer {
         }
     }
 
-    public stop(): void {
+    public dispose(): void {
         // Send WebSocket close message to all clients before shutting down
         if (this.wss) {
             this.wss.clients.forEach(client => {

@@ -3,11 +3,10 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { codespacesLink, directLink } from '../../loc/strings';
-import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
+import { createRpcServer, RpcServerConnectionInfo } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import * as terminalUtils from '../../utils/terminal';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -196,7 +195,7 @@ suite('InteractionService endpoints', () => {
 });
 
 type RpcServerTestInfo = {
-	rpcServerInfo: RpcServerInformation;
+	rpcServerInfo: RpcServerConnectionInfo;
 	rpcClient: ICliRpcClient;
 	interactionService: IInteractionService;
 };

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, DcpDebugConfiguration, AspireResourceDebugSession } from './common';
+import { startAndGetDebugSession } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
 import { execFile } from 'child_process';
@@ -8,10 +8,13 @@ import { mergeEnvs } from '../utils/environment';
 import * as path from 'path';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
+import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from '../dcp/types';
+
+const execFileAsync = util.promisify(execFile);
 
 export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
     try {
-        const outputPath = await getDotnetTargetPath(projectFile);
+        const outputPath = await getDotNetTargetPath(projectFile);
 
         if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
             await buildDotNetProject(projectFile);
@@ -21,7 +24,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
         }
 
-        const config: DcpDebugConfiguration = {
+        const config: AspireExtendedDebugConfiguration = {
             type: 'coreclr',
             request: 'launch',
             name: debugProject(path.basename(projectFile)),
@@ -43,35 +46,6 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
         if (error instanceof Error) {
             extensionLogOutputChannel.error(`Failed to start project: ${error.message}`);
             vscode.window.showErrorMessage(`Failed to start project: ${error.message}`);
-            return undefined;
-        }
-    }
-}
-
-export async function startPythonProgram(file: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
-    try {
-        const config: DcpDebugConfiguration = {
-            type: 'python',
-            request: 'launch',
-            name: debugProject('Python Program'),
-            program: file,
-            args: args,
-            cwd: workingDirectory,
-            env: mergeEnvs(process.env, env),
-            justMyCode: false,
-            stopAtEntry: false,
-            noDebug: !launchOptions.debug,
-            runId: launchOptions.runId,
-            dcpId: launchOptions.dcpId,
-            console: 'internalConsole'
-        };
-
-        return await startAndGetDebugSession(config);
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            extensionLogOutputChannel.error(`Failed to start Python program: ${error.message}`);
-            vscode.window.showErrorMessage(`Failed to start Python program: ${error.message}`);
             return undefined;
         }
     }
@@ -122,9 +96,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
     });
 }
 
-const execFileAsync = util.promisify(execFile);
-
-async function getDotnetTargetPath(projectFile: string): Promise<string> {
+async function getDotNetTargetPath(projectFile: string): Promise<string> {
     const args = [
         'msbuild',
         projectFile,

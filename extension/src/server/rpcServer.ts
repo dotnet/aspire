@@ -10,7 +10,7 @@ import { generateSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
 
-export type RpcServerInformation = {
+export type RpcServerConnectionInfo = {
     address: string;
     token: string;
     server: tls.Server;
@@ -18,7 +18,7 @@ export type RpcServerInformation = {
     cert: string;
 };
 
-export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerInformation> {
+export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerConnectionInfo> {
     const token = generateToken();
     const { key, cert } = generateSelfSignedCert();
 
@@ -36,7 +36,7 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
         };
     }
 
-    return new Promise<RpcServerInformation>((resolve, reject) => {
+    return new Promise<RpcServerConnectionInfo>((resolve, reject) => {
         const rpcServer = tls.createServer({ key, cert }, (socket) => {
             extensionLogOutputChannel.info('Client connected to RPC server');
             const connection = createMessageConnection(

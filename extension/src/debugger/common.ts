@@ -1,37 +1,13 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { appHostDebugSession, clearAppHostDebugSession } from './appHost';
-import { mergeEnvs } from '../utils/environment';
+import { appHostDebugSession, stopAppHost } from './appHost';
 import { getSupportedDebugAdapters } from '../capabilities';
-import { dcpServer } from '../extension';
-import { ProcessRestartedNotification, ServiceLogsNotification, SessionTerminatedNotification } from '../dcp/types';
-
-export type EnvVar = {
-    name: string;
-    value: string;
-};
-
-export type LaunchOptions = {
-    debug: boolean;
-    forceBuild?: boolean;
-    runId: string;
-    dcpId: string | null;
-};
-
-export interface AspireResourceDebugSession {
-    id: string;
-    session: vscode.DebugSession;
-    stopSession(): void;
-}
-
-export interface DcpDebugConfiguration extends vscode.DebugConfiguration {
-    runId: string;
-    dcpId: string | null;
-}
+import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, ProcessRestartedNotification, ServiceLogsNotification, SessionTerminatedNotification } from '../dcp/types';
+import { extensionContext } from '../extension';
 
 const debugSessions: AspireResourceDebugSession[] = [];
 
-export async function startAndGetDebugSession(debugConfig: DcpDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
+export async function startAndGetDebugSession(debugConfig: AspireExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
         const disposable = vscode.debug.onDidStartDebugSession(session => {
             if (session.configuration.runId === debugConfig.runId) {
@@ -74,7 +50,7 @@ export function stopAllDebuggingSessions() {
     }
 
     if (appHostDebugSession) {
-        clearAppHostDebugSession();
+        stopAppHost();
     }
 }
 
@@ -94,7 +70,7 @@ export function createDebugAdapterTracker() {
                                 return;
                             }
 
-                            if (!dcpServer) {
+                            if (!extensionContext.dcpServer) {
                                 extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
                                 return;
                             }
@@ -109,7 +85,7 @@ export function createDebugAdapterTracker() {
                                     log_message: output
                                 };
 
-                                dcpServer.sendNotification(notification);
+                                extensionContext.dcpServer.sendNotification(notification);
                             }
 
                             console.log(`[${category}] ${output}`);
@@ -126,7 +102,7 @@ export function createDebugAdapterTracker() {
                                 return;
                             }
 
-                            if (!dcpServer) {
+                            if (!extensionContext.dcpServer) {
                                 extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
                                 return;
                             }
@@ -137,17 +113,12 @@ export function createDebugAdapterTracker() {
                                 pid: message.body.systemProcessId
                             };
 
-                            dcpServer.sendNotification(processNotification);
+                            extensionContext.dcpServer.sendNotification(processNotification);
                         }
                     },
                     onExit(code: number | undefined) {
                         if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
                             extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
-                            return;
-                        }
-
-                        if (!dcpServer) {
-                            extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
                             return;
                         }
 
@@ -158,14 +129,14 @@ export function createDebugAdapterTracker() {
                             exit_code: code ?? 0
                         };
 
-                        dcpServer.sendNotification(notification);
+                        extensionContext.dcpServer.sendNotification(notification);
                     }
                 };
             }
         });
     }
 
-    function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is DcpDebugConfiguration {
-        return (session as DcpDebugConfiguration).runId !== undefined;
+    function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is AspireExtendedDebugConfiguration {
+        return (session as AspireExtendedDebugConfiguration).runId !== undefined;
     }
 }

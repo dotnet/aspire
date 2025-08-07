@@ -89,10 +89,3 @@ class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 }
-
-// Export a function to send 'stopped' to the current Aspire debug session
-export function sendStoppedToAspireDebugSession(reason: string = 'stopped') {
-  if (currentAspireDebugSession) {
-    currentAspireDebugSession.sendStoppedEvent(reason);
-  }
-}

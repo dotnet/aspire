@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
-import { RpcServerInformation, createRpcServer } from './server/rpcServer';
+import { RpcServerConnectionInfo, createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
 import { newCommand } from './commands/new';
@@ -16,20 +16,51 @@ import { createDcpServer, DcpServer } from './dcp/dcpServer';
 import { AspireDebugAdapterDescriptorFactory } from './dcp/debugAdapterFactory';
 import { createDebugAdapterTracker as createDebugAdapterLogForwarder } from './debugger/common';
 
-export let rpcServerInfo: RpcServerInformation | undefined;
-export let dcpServer: DcpServer | undefined;
-export let extensionContext: vscode.ExtensionContext | undefined;
+export class AspireExtensionContext {
+	private _rpcServerInfo: RpcServerConnectionInfo | undefined;
+	private _dcpServer: DcpServer | undefined;
+	private _extensionContext: vscode.ExtensionContext | undefined;
+
+	constructor(rpcServerInfo?: RpcServerConnectionInfo, dcpServer?: DcpServer, context?: vscode.ExtensionContext) {
+		this._rpcServerInfo = rpcServerInfo;
+		this._dcpServer = dcpServer;
+		this._extensionContext = context;
+	}
+
+	get rpcServerInfo(): RpcServerConnectionInfo {
+		if (!this._rpcServerInfo) {
+			throw new Error('RPC Server is not initialized');
+		}
+		return this._rpcServerInfo;
+	}
+
+	get dcpServer(): DcpServer {
+		if (!this._dcpServer) {
+			throw new Error('DCP Server is not initialized');
+		}
+		return this._dcpServer;
+	}
+
+	get extensionContext(): vscode.ExtensionContext {
+		if (!this._extensionContext) {
+			throw new Error('Extension context is not initialized');
+		}
+		return this._extensionContext;
+	}
+}
+
+export let extensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
 	initializeTelemetry(context);
 	extensionLogOutputChannel.info("Activating Aspire extension");
 
-	rpcServerInfo = await createRpcServer(
+	const rpcServerInfo = await createRpcServer(
 		connection => new InteractionService(),
 		(connection, token: string) => new RpcClient(connection, token)
 	);
-
-	dcpServer = await createDcpServer();
+	const dcpServer = await createDcpServer();
+	extensionContext = new AspireExtensionContext(rpcServerInfo, dcpServer, context);
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -42,7 +73,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
 	createDebugAdapterLogForwarder();
 	
-	extensionContext = context; 
 
 	// Return exported API for tests or other extensions
 	return {
@@ -51,7 +81,8 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	rpcServerInfo?.dispose();
+	extensionContext.rpcServerInfo.dispose();
+	extensionContext.dcpServer.dispose();
 }
 
 async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {

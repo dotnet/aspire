@@ -6,9 +6,8 @@ import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { startAppHost } from '../debugger/appHost';
-import { EnvVar, stopAllDebuggingSessions } from '../debugger/common';
-
-type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
+import { stopAllDebuggingSessions } from '../debugger/common';
+import { EnvVar } from '../dcp/types';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -29,6 +28,8 @@ export interface IInteractionService {
     launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void>;
     stopDebugging: () => void;
 }
+
+type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
 type DashboardUrls = {
     baseUrlWithLoginToken: string;

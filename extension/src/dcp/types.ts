@@ -1,8 +1,10 @@
-export type ErrorResponse = {
+import * as vscode from 'vscode';
+
+export interface ErrorResponse {
     error: ErrorDetails;
 };
 
-export type ErrorDetails = {
+export interface ErrorDetails {
     code: string;
     message: string;
     details: ErrorDetails[];
@@ -30,7 +32,7 @@ export interface RunSessionPayload {
     args?: string[];
 }
 
-export interface DcpServerInformation {
+export interface DcpServerConnectionInfo {
     address: string;
     token: string;
     certificate: string;
@@ -56,4 +58,22 @@ export interface ServiceLogsNotification extends RunSessionNotification {
     notification_type: 'serviceLogs';
     is_std_err: boolean;
     log_message: string;
+}
+
+export interface LaunchOptions {
+    debug: boolean;
+    forceBuild?: boolean;
+    runId: string;
+    dcpId: string | null;
+};
+
+export interface AspireResourceDebugSession {
+    id: string;
+    session: vscode.DebugSession;
+    stopSession(): void;
+}
+
+export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
+    runId: string;
+    dcpId: string | null;
 }
