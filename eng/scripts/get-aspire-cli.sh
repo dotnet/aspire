@@ -47,7 +47,7 @@ DESCRIPTION:
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
-    -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
+    -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire)
     -q, --quality QUALITY       Quality to download (default: ${DEFAULT_QUALITY}). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
@@ -458,7 +458,6 @@ validate_checksum() {
 install_archive() {
     local archive_file="$1"
     local destination_path="$2"
-    local os="$3"
 
     if [[ "$DRY_RUN" == true ]]; then
         say_info "[DRY RUN] Would install archive $archive_file to $destination_path"
@@ -473,28 +472,27 @@ install_archive() {
         mkdir -p "$destination_path"
     fi
 
-    if [[ "$os" == "win" ]]; then
-        # Use unzip for ZIP files
+    if [[ "$archive_file" =~ \.zip$ ]]; then
         if ! command -v unzip >/dev/null 2>&1; then
             say_error "unzip command not found. Please install unzip to extract ZIP files."
             return 1
         fi
-
         if ! unzip -o "$archive_file" -d "$destination_path"; then
             say_error "Failed to extract ZIP archive: $archive_file"
             return 1
         fi
-    else
-        # Use tar for tar.gz files on Unix systems
+    elif [[ "$archive_file" =~ \.tar\.gz$ ]]; then
         if ! command -v tar >/dev/null 2>&1; then
             say_error "tar command not found. Please install tar to extract tar.gz files."
             return 1
         fi
-
         if ! tar -xzf "$archive_file" -C "$destination_path"; then
             say_error "Failed to extract tar.gz archive: $archive_file"
             return 1
         fi
+    else
+        say_error "Unsupported archive format: $archive_file. Only .zip and .tar.gz files are supported."
+        return 1
     fi
 
     say_verbose "Successfully installed archive"
@@ -715,7 +713,7 @@ download_and_install_archive() {
     fi
 
     # Install the archive
-    if ! install_archive "$filename" "$INSTALL_PATH" "$os"; then
+    if ! install_archive "$filename" "$INSTALL_PATH"; then
         return 1
     fi
 
@@ -752,8 +750,8 @@ fi
 
 # Set default install path if not provided
 if [[ -z "$INSTALL_PATH" ]]; then
-    INSTALL_PATH="$HOME/.aspire/bin"
-    INSTALL_PATH_UNEXPANDED="\$HOME/.aspire/bin"
+    INSTALL_PATH="$HOME/.aspire"
+    INSTALL_PATH_UNEXPANDED="\$HOME/.aspire"
 else
     INSTALL_PATH_UNEXPANDED="$INSTALL_PATH"
 fi
