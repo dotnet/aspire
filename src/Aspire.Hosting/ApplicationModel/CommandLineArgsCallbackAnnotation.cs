@@ -48,7 +48,8 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args"> The list of command-line arguments.</param>
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
-public sealed class CommandLineArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
+/// <param name="resource"> The resource associated with this callback context.</param>
+public sealed class CommandLineArgsCallbackContext(IList<object> args, IResource resource, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets the list of command-line arguments.
@@ -69,4 +70,9 @@ public sealed class CommandLineArgsCallbackContext(IList<object> args, Cancellat
     /// Gets or sets the logger for the distributed application.
     /// </summary>
     public ILogger Logger { get; init; } = NullLogger.Instance;
+
+    /// <summary>
+    /// Gets the resource associated with this callback context.
+    /// </summary>
+    public IResource Resource { get; } = resource ?? throw new ArgumentNullException(nameof(resource));
 }
