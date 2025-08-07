@@ -4,7 +4,7 @@ import { appHostDebugSession, clearAppHostDebugSession } from './appHost';
 import { mergeEnvs } from '../utils/environment';
 import { getSupportedDebugAdapters } from '../capabilities';
 import { dcpServer } from '../extension';
-import { ServiceLogsNotification } from '../dcp/types';
+import { ProcessRestartedNotification, ServiceLogsNotification, SessionTerminatedNotification } from '../dcp/types';
 
 export type EnvVar = {
     name: string;
@@ -151,6 +151,51 @@ export function createDebugAdapterTracker() {
 
                             console.log(`[${category}] ${output}`);
                         }
+                        // Listen for process event with isRestart (if supported by adapter)
+                        if (message.type === 'event' && message.event === 'process') {
+                            if (typeof message.body?.systemProcessId !== 'number') {
+                                extensionLogOutputChannel.warn(`Debug session ${session.id} does not have a valid system process ID.`);
+                                return;
+                            }
+
+                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                                extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
+                                return;
+                            }
+
+                            if (!dcpServer) {
+                                extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
+                                return;
+                            }
+                            const processNotification: ProcessRestartedNotification = {
+                                notification_type: 'processRestarted',
+                                session_id: session.configuration.runId,
+                                dcp_id: session.configuration.dcpId,
+                                pid: message.body.systemProcessId
+                            };
+
+                            dcpServer.sendNotification(processNotification);
+                        }
+                    },
+                    onExit(code: number | undefined) {
+                        if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                            extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
+                            return;
+                        }
+
+                        if (!dcpServer) {
+                            extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
+                            return;
+                        }
+
+                        const notification: SessionTerminatedNotification = {
+                            notification_type: 'sessionTerminated',
+                            session_id: session.configuration.runId,
+                            dcp_id: session.configuration.dcpId,
+                            exit_code: code ?? 0
+                        };
+
+                        dcpServer.sendNotification(notification);
                     }
                 };
             }
