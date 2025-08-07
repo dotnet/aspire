@@ -356,6 +356,84 @@ function Get-CLIArchitectureFromArchitecture {
     }
 }
 
+function Get-RuntimeIdentifier {
+    [CmdletBinding()]
+    [OutputType([object])]
+    param(
+        [string]$_OS,
+        [string]$_Architecture
+    )
+
+    $computedTargetOS = if ([string]::IsNullOrWhiteSpace($_OS)) { Get-OperatingSystem } else { $_OS }
+    if ($computedTargetOS -eq "unsupported") {
+        throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
+    }
+    $computedTargetArch = if ([string]::IsNullOrWhiteSpace($_Architecture)) { Get-CLIArchitectureFromArchitecture "<auto>" } else { Get-CLIArchitectureFromArchitecture $_Architecture }
+    return "${computedTargetOS}-${computedTargetArch}"
+}
+
+# Function to create a temporary directory with conflict resolution
+function New-TempDirectory {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Prefix
+    )
+
+    if ($PSCmdlet.ShouldProcess("temporary directory", "Create temporary directory with prefix '$Prefix'")) {
+        $tempBaseName = "$Prefix-$([System.Guid]::NewGuid().ToString("N").Substring(0, 8))"
+        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) $tempBaseName
+        $attempt = 1
+        while (Test-Path $tempDir) {
+            $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "$tempBaseName-$attempt"
+            $attempt++
+            if ($attempt -gt 10) {
+                throw "Unable to create temporary directory after 10 attempts"
+            }
+        }
+
+        Write-Message "Creating temporary directory: $tempDir" -Level Verbose
+        try {
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            return $tempDir
+        }
+        catch {
+            throw "Failed to create temporary directory: $tempDir - $($_.Exception.Message)"
+        }
+    }
+    else {
+        return Join-Path ([System.IO.Path]::GetTempPath()) "$Prefix-whatif"
+    }
+}
+
+# Cleanup function for temporary directory
+function Remove-TempDirectory {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter()]
+        [string]$TempDir
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($TempDir) -and (Test-Path $TempDir)) {
+        if (-not $KeepArchive) {
+            Write-Message "Cleaning up temporary files..." -Level Verbose
+            try {
+                if ($PSCmdlet.ShouldProcess($TempDir, "Remove temporary directory")) {
+                    Remove-Item $TempDir -Recurse -Force
+                }
+            }
+            catch {
+                Write-Message "Failed to clean up temporary directory: $TempDir - $($_.Exception.Message)" -Level Warning
+            }
+        }
+        else {
+            Write-Message "Archive files kept in: $TempDir" -Level Info
+        }
+    }
+}
+
 function Get-ContentTypeFromUri {
     [CmdletBinding()]
     [OutputType([string])]
@@ -769,43 +847,12 @@ function Install-AspireCli {
         [string]$Architecture
     )
 
-    # Create a temporary directory for downloads with conflict resolution
-    $tempBaseName = "aspire-cli-download-$([System.Guid]::NewGuid().ToString("N").Substring(0, 8))"
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) $tempBaseName
-
-    # Handle potential conflicts
-    $attempt = 1
-    while (Test-Path $tempDir) {
-        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "$tempBaseName-$attempt"
-        $attempt++
-        if ($attempt -gt 10) {
-            throw "Unable to create temporary directory after 10 attempts"
-        }
-    }
-
-    if ($PSCmdlet.ShouldProcess($InstallPath, "Create temporary directory")) {
-        Write-Message "Creating temporary directory: $tempDir" -Level Verbose
-        try {
-            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-        }
-        catch {
-            throw "Failed to create temporary directory: $tempDir - $($_.Exception.Message)"
-        }
-    }
+    $tempDir = New-TempDirectory -Prefix "aspire-cli-download"
 
     try {
-        # Determine OS and architecture (either detected or user-specified)
-        $targetOS = if ([string]::IsNullOrWhiteSpace($OS)) { Get-OperatingSystem } else { $OS }
-
-        # Check for unsupported OS
-        if ($targetOS -eq "unsupported") {
-            throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
-        }
-
-        $targetArch = if ([string]::IsNullOrWhiteSpace($Architecture)) { Get-CLIArchitectureFromArchitecture "<auto>" } else { Get-CLIArchitectureFromArchitecture $Architecture }
-
-        # Construct the runtime identifier and URLs
-        $runtimeIdentifier = "$targetOS-$targetArch"
+    # Determine runtime identifier and URLs
+    $runtimeIdentifier = Get-RuntimeIdentifier -_OS $OS -_Architecture $Architecture
+    $targetOS = $runtimeIdentifier.Split('-')[0]
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
         $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
 
