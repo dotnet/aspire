@@ -1,0 +1,43 @@
+@using Aspire.Dashboard.Resources
+@implements IDialogContentComponent<ConnectionErrorDialog.ConnectionErrorDialogResult>
+@inject IStringLocalizer<Dialogs> Loc
+
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <p>@Loc[nameof(Dialogs.ConnectionErrorDialogMessage)]</p>
+    </FluentStack>
+</FluentDialogBody>
+
+<FluentDialogFooter>
+    <FluentButton Appearance="Appearance.Accent" OnClick="RetryAsync">
+        @Loc[nameof(Dialogs.ConnectionErrorDialogRetryButton)]
+    </FluentButton>
+    <FluentButton Appearance="Appearance.Neutral" OnClick="CancelAsync">
+        @Loc[nameof(Dialogs.ConnectionErrorDialogCancelButton)]
+    </FluentButton>
+</FluentDialogFooter>
+
+@code {
+    public enum ConnectionErrorDialogResult
+    {
+        Retry,
+        Cancel
+    }
+
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+
+    public ConnectionErrorDialogResult Content { get; set; }
+
+    private async Task RetryAsync()
+    {
+        Content = ConnectionErrorDialogResult.Retry;
+        await Dialog.CloseAsync(Content);
+    }
+
+    private async Task CancelAsync()
+    {
+        Content = ConnectionErrorDialogResult.Cancel;
+        await Dialog.CloseAsync(Content);
+    }
+}

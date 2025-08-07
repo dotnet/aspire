@@ -304,4 +304,16 @@
   <data name="InteractionButtonClose" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="ConnectionErrorDialogTitle" xml:space="preserve">
+    <value>Connection Error</value>
+  </data>
+  <data name="ConnectionErrorDialogMessage" xml:space="preserve">
+    <value>Unable to connect to the app host. Please ensure the app host is running and try again.</value>
+  </data>
+  <data name="ConnectionErrorDialogRetryButton" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ConnectionErrorDialogCancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

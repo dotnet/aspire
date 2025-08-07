@@ -2,6 +2,26 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../Dialogs.resx">
     <body>
+      <trans-unit id="ConnectionErrorDialogCancelButton">
+        <source>Cancel</source>
+        <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectionErrorDialogMessage">
+        <source>Unable to connect to the app host. Please ensure the app host is running and try again.</source>
+        <target state="new">Unable to connect to the app host. Please ensure the app host is running and try again.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectionErrorDialogRetryButton">
+        <source>Retry</source>
+        <target state="new">Retry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectionErrorDialogTitle">
+        <source>Connection Error</source>
+        <target state="new">Connection Error</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DialogCloseButtonText">
         <source>Close</source>
         <target state="translated">閉じる</target>
