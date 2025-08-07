@@ -14,13 +14,25 @@ public interface INuGetConfigLocator
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <returns>A <see cref="FileInfo"/> representing the NuGet.config file if found; otherwise, null.</returns>
     FileInfo? FindNuGetConfig(DirectoryInfo startDirectory);
+
+    /// <summary>
+    /// Searches for a NuGet.config file starting from the current working directory and moving up through parent directories.
+    /// </summary>
+    /// <returns>A <see cref="FileInfo"/> representing the NuGet.config file if found; otherwise, null.</returns>
+    FileInfo? FindNuGetConfig();
 }
 
 /// <summary>
 /// Locates NuGet.config files by searching up through directory hierarchies.
 /// </summary>
-public sealed class NuGetConfigLocator : INuGetConfigLocator
+internal sealed class NuGetConfigLocator(Aspire.Cli.CliExecutionContext executionContext) : INuGetConfigLocator
 {
+    /// <inheritdoc />
+    public FileInfo? FindNuGetConfig()
+    {
+        return FindNuGetConfig(executionContext.WorkingDirectory);
+    }
+
     /// <inheritdoc />
     public FileInfo? FindNuGetConfig(DirectoryInfo startDirectory)
     {
