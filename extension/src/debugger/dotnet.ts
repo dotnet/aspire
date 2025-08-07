@@ -6,7 +6,6 @@ import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../utils/environment';
 import * as path from 'path';
-import { getAspireTerminal } from '../utils/terminal';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
 
@@ -38,10 +37,6 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             console: 'internalConsole'
         };
 
-        // The build task brings the build terminal to the foreground. If build has succeeded,
-        // we should then bring the Aspire terminal to the terminal foreground as it's actively running. 
-        getAspireTerminal().show(true);
-
         return await startAndGetDebugSession(config);
     }
     catch (error) {
@@ -70,10 +65,6 @@ export async function startPythonProgram(file: string, workingDirectory: string,
             dcpId: launchOptions.dcpId,
             console: 'internalConsole'
         };
-
-        // The build task brings the build terminal to the foreground. If build has succeeded,
-        // we should then bring the Aspire terminal to the terminal foreground as it's actively running.
-        getAspireTerminal().show(true);
 
         return await startAndGetDebugSession(config);
     }

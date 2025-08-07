@@ -18,6 +18,7 @@ export function clearAppHostDebugSession() {
 export async function startAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void> {
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} in directory: ${workingDirectory} with args: ${args.join(' ')}`);
     const session = await startDotNetProgram(projectFile, workingDirectory, args, environment, { debug, forceBuild: debug, runId: generateRunId(), dcpId: null });
+    
     if (isDebugSession(session)) {
         appHostDebugSession = session;
 
