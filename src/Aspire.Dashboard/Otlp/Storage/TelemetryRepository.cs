@@ -868,10 +868,10 @@ public sealed class TelemetryRepository : IDisposable
 
         foreach (var rm in resourceMetrics)
         {
-            OtlpApplicationView applicationView;
+            OtlpResourceView resourceView;
             try
             {
-                applicationView = GetOrAddApplicationView(rm.Resource);
+                resourceView = GetOrAddResourceView(rm.Resource);
             }
             catch (Exception ex)
             {
@@ -880,7 +880,7 @@ public sealed class TelemetryRepository : IDisposable
                 continue;
             }
 
-            applicationView.Application.AddMetrics(context, rm.ScopeMetrics);
+            resourceView.Resource.AddMetrics(context, rm.ScopeMetrics);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -896,10 +896,10 @@ public sealed class TelemetryRepository : IDisposable
 
         foreach (var rs in resourceSpans)
         {
-            OtlpApplicationView applicationView;
+            OtlpResourceView resourceView;
             try
             {
-                applicationView = GetOrAddApplicationView(rs.Resource);
+                resourceView = GetOrAddResourceView(rs.Resource);
             }
             catch (Exception ex)
             {
@@ -908,7 +908,7 @@ public sealed class TelemetryRepository : IDisposable
                 continue;
             }
 
-            AddTracesCore(context, applicationView, rs.ScopeSpans);
+            AddTracesCore(context, resourceView, rs.ScopeSpans);
         }
 
         RaiseSubscriptionChanged(_tracesSubscriptions);
@@ -941,7 +941,7 @@ public sealed class TelemetryRepository : IDisposable
         };
     }
 
-    internal void AddTracesCore(AddContext context, OtlpApplicationView applicationView, RepeatedField<ScopeSpans> scopeSpans)
+    internal void AddTracesCore(AddContext context, OtlpResourceView resourceView, RepeatedField<ScopeSpans> scopeSpans)
     {
         _tracesLock.EnterWriteLock();
 
@@ -974,7 +974,7 @@ public sealed class TelemetryRepository : IDisposable
                             }
                         }
 
-                        var newSpan = CreateSpan(applicationView, span, trace, scope, _otlpContext);
+                        var newSpan = CreateSpan(resourceView, span, trace, scope, _otlpContext);
                         trace.AddSpan(newSpan);
 
                         // The new span might be linked to by an existing span.
@@ -1053,7 +1053,7 @@ public sealed class TelemetryRepository : IDisposable
 
                         foreach (var kvp in newSpan.Attributes)
                         {
-                            _tracePropertyKeys.Add((applicationView.Application, kvp.Key));
+                            _tracePropertyKeys.Add((resourceView.Resource, kvp.Key));
                         }
 
                         // Newly added or updated trace should always been in the collection.
@@ -1113,15 +1113,15 @@ public sealed class TelemetryRepository : IDisposable
 
             if (uninstrumentedPeer != null)
             {
-                if (span.UninstrumentedPeer?.ApplicationKey.EqualsCompositeName(uninstrumentedPeer.Name) ?? false)
+                if (span.UninstrumentedPeer?.ResourceKey.EqualsCompositeName(uninstrumentedPeer.Name) ?? false)
                 {
                     // Already the correct value. No changes needed.
                     continue;
                 }
 
-                var appKey = ApplicationKey.Create(name: uninstrumentedPeer.DisplayName, instanceId: uninstrumentedPeer.Name);
-                var (app, _) = GetOrAddApplication(appKey, uninstrumentedPeer: true);
-                trace.SetSpanUninstrumentedPeer(span, app);
+                var resourceKey = ResourceKey.Create(name: uninstrumentedPeer.DisplayName, instanceId: uninstrumentedPeer.Name);
+                var (resource, _) = GetOrAddResource(resourceKey, uninstrumentedPeer: true);
+                trace.SetSpanUninstrumentedPeer(span, resource);
             }
             else
             {
@@ -1196,7 +1196,7 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplicationView applicationView, Span span, OtlpTrace trace, OtlpScope scope, OtlpContext context)
+    private static OtlpSpan CreateSpan(OtlpResourceView resourceView, Span span, OtlpTrace trace, OtlpScope scope, OtlpContext context)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -1220,7 +1220,7 @@ public sealed class TelemetryRepository : IDisposable
             });
         }
 
-        var newSpan = new OtlpSpan(applicationView, trace, scope)
+        var newSpan = new OtlpSpan(resourceView, trace, scope)
         {
             SpanId = id,
             ParentSpanId = span.ParentSpanId?.ToHexString(),
@@ -1255,33 +1255,33 @@ public sealed class TelemetryRepository : IDisposable
         return newSpan;
     }
 
-    public List<OtlpInstrumentSummary> GetInstrumentsSummaries(ApplicationKey key)
+    public List<OtlpInstrumentSummary> GetInstrumentsSummaries(ResourceKey key)
     {
-        var applications = GetApplications(key);
-        if (applications.Count == 0)
+        var resources = GetResources(key);
+        if (resources.Count == 0)
         {
             return new List<OtlpInstrumentSummary>();
         }
-        else if (applications.Count == 1)
+        else if (resources.Count == 1)
         {
-            return applications[0].GetInstrumentsSummary();
+            return resources[0].GetInstrumentsSummary();
         }
         else
         {
-            var allApplicationSummaries = applications
+            var allResourceSummaries = resources
                 .SelectMany(a => a.GetInstrumentsSummary())
                 .DistinctBy(s => s.GetKey())
                 .ToList();
 
-            return allApplicationSummaries;
+            return allResourceSummaries;
         }
 
     }
 
     public OtlpInstrumentData? GetInstrument(GetInstrumentRequest request)
     {
-        var applications = GetApplications(request.ApplicationKey);
-        var instruments = applications
+        var resources = GetResources(request.ResourceKey);
+        var instruments = resources
             .Select(a => a.GetInstrument(request.MeterName, request.InstrumentName, request.StartTime, request.EndTime))
             .OfType<OtlpInstrument>()
             .ToList();
