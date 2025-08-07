@@ -33,9 +33,9 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         // intermediate directory structure which may not exist in some
         // contexts (e.g. in our Codespace where we have the CLI on the 
         // path but not in the $HOME/.aspire/bin folder).
-        if (executionContext.HiveDirectory.Exists)
+        if (executionContext.HivesDirectory.Exists)
         {
-            var prHives = executionContext.HiveDirectory.GetDirectories();
+            var prHives = executionContext.HivesDirectory.GetDirectories();
             foreach (var prHive in prHives)
             {
                 var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, new[]

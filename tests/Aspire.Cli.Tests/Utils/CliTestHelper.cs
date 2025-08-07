@@ -114,7 +114,8 @@ internal sealed class CliServiceCollectionTestOptions
 
     private CliExecutionContext CreateDefaultCliExecutionContextFactory(IServiceProvider provider)
     {
-        return new CliExecutionContext(WorkingDirectory);
+        var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -277,8 +278,9 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, IPackagingService> PackagingServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        return new PackagingService(nuGetPackageCache);
+        return new PackagingService(executionContext, nuGetPackageCache);
     };
 }
 
