@@ -155,6 +155,9 @@
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
+  <data name="ExtensionLogs" xml:space="preserve">
+    <value>Running through the Aspire Extension. Use the Debug Console to view logs.</value>
+  </data>
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to app host...</value>
   </data>

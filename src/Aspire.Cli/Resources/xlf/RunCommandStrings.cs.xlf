@@ -27,6 +27,11 @@
         <target state="translated">Koncové body</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionLogs">
+        <source>Running through the Aspire Extension. Use the Debug Console to view logs.</source>
+        <target state="new">Running through the Aspire Extension. Use the Debug Console to view logs.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">Stav prostředku, např. V pořádku</target>

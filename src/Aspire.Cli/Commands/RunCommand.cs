@@ -112,24 +112,21 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var startDebugSession = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
+            var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+            var startDebugSession = isExtensionHost && string.Equals(await _interactionService.PromptForSelectionAsync(
                 RunCommandStrings.PromptForDebugging,
                 [TemplatingStrings.Yes, TemplatingStrings.No],
                 c => c,
                 cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
 
-            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _) && !startDebugSession);
+            var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 
             if (!watch)
             {
-                var buildOptions = new DotNetCliRunnerInvocationOptions
-                {
-                    StandardOutputCallback = buildOutputCollector.AppendOutput,
-                    StandardErrorCallback = buildOutputCollector.AppendError,
-                };
+                var buildOptions = new DotNetCliRunnerInvocationOptions { StandardOutputCallback = buildOutputCollector.AppendOutput, StandardErrorCallback = buildOutputCollector.AppendError, };
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
+                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
                     var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
@@ -150,12 +147,7 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            var runOptions = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = runOutputCollector.AppendOutput,
-                StandardErrorCallback = runOutputCollector.AppendError,
-                StartDebugSession = startDebugSession
-            };
+            var runOptions = new DotNetCliRunnerInvocationOptions { StandardOutputCallback = runOutputCollector.AppendOutput, StandardErrorCallback = runOutputCollector.AppendError, StartDebugSession = startDebugSession };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
@@ -172,19 +164,13 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () =>
-            {
-                return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
-            });
+            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () =>
-            {
-                return await backchannel.GetDashboardUrlsAsync(cancellationToken);
-            });
+            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
             if (dashboardUrls.DashboardHealthy is false)
             {
@@ -215,8 +201,9 @@ internal sealed class RunCommand : BaseCommand
             {
                 topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
+
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
+            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(isExtensionHost ? RunCommandStrings.ExtensionLogs : logFile.FullName));
 
             _ansiConsole.Write(topPadder);
 

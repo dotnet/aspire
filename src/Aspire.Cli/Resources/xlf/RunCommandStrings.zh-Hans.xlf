@@ -27,6 +27,11 @@
         <target state="translated">终结点</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionLogs">
+        <source>Running through the Aspire Extension. Use the Debug Console to view logs.</source>
+        <target state="new">Running through the Aspire Extension. Use the Debug Console to view logs.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">资源的运行状况，例如“正常”</target>
