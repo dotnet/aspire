@@ -30,6 +30,7 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         var distinctSources = mappings
             .Select(m => m.Source)
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select((source, index) => new { Source = source, Key = $"source{index + 1}" })
             .ToArray();
 
         await using var fileStream = configFile.Create();
@@ -48,33 +49,28 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         
         // Write packageSources section
         await xmlWriter.WriteStartElementAsync(null, "packageSources", null);
-        foreach (var source in distinctSources)
+        foreach (var sourceInfo in distinctSources)
         {
-            var sourceName = GetSourceNameFromUrl(source);
             await xmlWriter.WriteStartElementAsync(null, "add", null);
-            await xmlWriter.WriteAttributeStringAsync(null, "key", null, sourceName);
-            await xmlWriter.WriteAttributeStringAsync(null, "value", null, source);
+            await xmlWriter.WriteAttributeStringAsync(null, "key", null, sourceInfo.Key);
+            await xmlWriter.WriteAttributeStringAsync(null, "value", null, sourceInfo.Source);
             await xmlWriter.WriteEndElementAsync(); // add
         }
         await xmlWriter.WriteEndElementAsync(); // packageSources
 
-        // Add package source mappings for non-AllPackages filters
-        var mappingsWithSpecificFilters = mappings
-            .Where(m => m.PackageFilter != PackageMapping.AllPackages)
-            .ToArray();
-
-        if (mappingsWithSpecificFilters.Length > 0)
+        // Add package source mappings for all filters
+        if (mappings.Length > 0)
         {
             await xmlWriter.WriteStartElementAsync(null, "packageSourceMapping", null);
 
-            var groupedBySource = mappingsWithSpecificFilters
+            var groupedBySource = mappings
                 .GroupBy(m => m.Source, StringComparer.OrdinalIgnoreCase);
 
             foreach (var sourceGroup in groupedBySource)
             {
-                var sourceName = GetSourceNameFromUrl(sourceGroup.Key);
+                var sourceInfo = distinctSources.First(s => string.Equals(s.Source, sourceGroup.Key, StringComparison.OrdinalIgnoreCase));
                 await xmlWriter.WriteStartElementAsync(null, "packageSource", null);
-                await xmlWriter.WriteAttributeStringAsync(null, "key", null, sourceName);
+                await xmlWriter.WriteAttributeStringAsync(null, "key", null, sourceInfo.Key);
 
                 foreach (var mapping in sourceGroup)
                 {
@@ -91,24 +87,6 @@ internal sealed class TemporaryNuGetConfig : IDisposable
 
         await xmlWriter.WriteEndElementAsync(); // configuration
         await xmlWriter.WriteEndDocumentAsync();
-    }
-
-    private static string GetSourceNameFromUrl(string url)
-    {
-        try
-        {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                return uri.Host;
-            }
-        }
-        catch
-        {
-            // Fall back to using the URL as-is if parsing fails
-        }
-
-        // Remove special characters and use a simplified name
-        return url.Replace("://", "_").Replace("/", "_").Replace(":", "_");
     }
 
     public void Dispose()
