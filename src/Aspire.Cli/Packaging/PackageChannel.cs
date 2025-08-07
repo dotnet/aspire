@@ -12,9 +12,10 @@ internal class PackageChannel(string name, PackageMapping[]? mappings, INuGetPac
     public PackageMapping[]? Mappings { get; } = mappings;
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
 
-    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
     {
-        return nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken);
+        using var tempNuGetConfig = await TemporaryNuGetConfig.CreateAsync(Mappings ?? []);
+        return await nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken);
     }
 
     public static PackageChannel CreateExplicitChannel(string name, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
