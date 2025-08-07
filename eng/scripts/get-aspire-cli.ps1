@@ -17,7 +17,7 @@
     Pass a specific version to get CLI for that version.
 
 .PARAMETER InstallPath
-    Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
+    Directory to install the CLI (default: %USERPROFILE%\.aspire on Windows, `$HOME/.aspire on Unix)
 
 .PARAMETER Version
     Version of the Aspire CLI to download (default: unset)
@@ -135,6 +135,10 @@ if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion)
         return 1
     }
 }
+
+# =====================
+# Shared helpers block
+# =====================
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
 function Write-Message {
@@ -557,6 +561,10 @@ function Invoke-SecureWebRequest {
         throw $_.Exception
     }
 }
+
+# ==========================
+# End shared helpers block
+# ==========================
 
 # Enhanced file download wrapper with validation
 function Invoke-FileDownload {
