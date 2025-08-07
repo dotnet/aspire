@@ -380,7 +380,7 @@ public sealed class TelemetryRepository : IDisposable
 
                         foreach (var kvp in logEntry.Attributes)
                         {
-                            _logPropertyKeys.Add((applicationView.Application, kvp.Key));
+                            _logPropertyKeys.Add((resourceView.Resource, kvp.Key));
                         }
                         context.SuccessCount++;
                     }
@@ -400,12 +400,12 @@ public sealed class TelemetryRepository : IDisposable
 
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
     {
-        List<OtlpApplication>? applications = null;
-        if (context.ApplicationKey is { } key)
+        List<OtlpResource>? resources = null;
+        if (context.ResourceKey is { } key)
         {
-            applications = GetApplications(key);
+            resources = GetResources(key);
 
-            if (applications.Count == 0)
+            if (resources.Count == 0)
             {
                 return PagedResult<OtlpLogEntry>.Empty;
             }
@@ -416,9 +416,9 @@ public sealed class TelemetryRepository : IDisposable
         try
         {
             var results = _logs.AsEnumerable();
-            if (applications?.Count > 0)
+            if (resources?.Count > 0)
             {
-                results = results.Where(l => MatchApplications(l.ApplicationView.ApplicationKey, applications));
+                results = results.Where(l => MatchResources(l.ResourceView.ResourceKey, resources));
             }
 
             foreach (var filter in context.Filters.GetEnabledFilters())
@@ -434,25 +434,25 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public List<string> GetLogPropertyKeys(ApplicationKey? applicationKey)
+    public List<string> GetLogPropertyKeys(ResourceKey? resourceKey)
     {
-        List<OtlpApplication>? applications = null;
-        if (applicationKey != null)
+        List<OtlpResource>? resources = null;
+        if (resourceKey != null)
         {
-            applications = GetApplications(applicationKey.Value);
+            resources = GetResources(resourceKey.Value);
         }
 
         _logsLock.EnterReadLock();
 
         try
         {
-            var applicationKeys = _logPropertyKeys.AsEnumerable();
-            if (applications?.Count > 0)
+            var resourceKeys = _logPropertyKeys.AsEnumerable();
+            if (resources?.Count > 0)
             {
-                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application.ApplicationKey, applications));
+                resourceKeys = resourceKeys.Where(keys => MatchResources(keys.Resource.ResourceKey, resources));
             }
 
-            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            var keys = resourceKeys.Select(keys => keys.PropertyKey).Distinct();
             return keys.OrderBy(k => k).ToList();
         }
         finally
@@ -461,25 +461,25 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    public List<string> GetTracePropertyKeys(ApplicationKey? applicationKey)
+    public List<string> GetTracePropertyKeys(ResourceKey? resourceKey)
     {
-        List<OtlpApplication>? applications = null;
-        if (applicationKey != null)
+        List<OtlpResource>? resources = null;
+        if (resourceKey != null)
         {
-            applications = GetApplications(applicationKey.Value, includeUninstrumentedPeers: true);
+            resources = GetResources(resourceKey.Value, includeUninstrumentedPeers: true);
         }
 
         _tracesLock.EnterReadLock();
 
         try
         {
-            var applicationKeys = _tracePropertyKeys.AsEnumerable();
-            if (applications?.Count > 0)
+            var resourceKeys = _tracePropertyKeys.AsEnumerable();
+            if (resources?.Count > 0)
             {
-                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application.ApplicationKey, applications));
+                resourceKeys = resourceKeys.Where(keys => MatchResources(keys.Resource.ResourceKey, resources));
             }
 
-            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            var keys = resourceKeys.Select(keys => keys.PropertyKey).Distinct();
             return keys.OrderBy(k => k).ToList();
         }
         finally
@@ -490,12 +490,12 @@ public sealed class TelemetryRepository : IDisposable
 
     public GetTracesResponse GetTraces(GetTracesRequest context)
     {
-        List<OtlpApplication>? applications = null;
-        if (context.ApplicationKey is { } key)
+        List<OtlpResource>? resources = null;
+        if (context.ResourceKey is { } key)
         {
-            applications = GetApplications(key, includeUninstrumentedPeers: true);
+            resources = GetResources(key, includeUninstrumentedPeers: true);
 
-            if (applications.Count == 0)
+            if (resources.Count == 0)
             {
                 return new GetTracesResponse
                 {
@@ -510,11 +510,11 @@ public sealed class TelemetryRepository : IDisposable
         try
         {
             var results = _traces.AsEnumerable();
-            if (applications?.Count > 0)
+            if (resources?.Count > 0)
             {
                 results = results.Where(t =>
                 {
-                    return MatchApplications(t, applications);
+                    return MatchResources(t, resources);
                 });
             }
             if (!string.IsNullOrWhiteSpace(context.FilterText))
@@ -569,11 +569,11 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
-    private static bool MatchApplications(ApplicationKey applicationKey, List<OtlpApplication> applications)
+    private static bool MatchResources(ResourceKey resourceKey, List<OtlpResource> resources)
     {
-        foreach (var application in applications)
+        foreach (var resource in resources)
         {
-            if (applicationKey == application.ApplicationKey)
+            if (resourceKey == resource.ResourceKey)
             {
                 return true;
             }
@@ -582,16 +582,16 @@ public sealed class TelemetryRepository : IDisposable
         return false;
     }
 
-    private static bool MatchApplications(OtlpTrace t, List<OtlpApplication> applications)
+    private static bool MatchResources(OtlpTrace t, List<OtlpResource> resources)
     {
-        for (var i = 0; i < applications.Count; i++)
+        for (var i = 0; i < resources.Count; i++)
         {
-            var applicationKey = applications[i].ApplicationKey;
+            var resourceKey = resources[i].ResourceKey;
 
             // Spans collection type returns a struct enumerator so it's ok to foreach inside another loop.
             foreach (var span in t.Spans)
             {
-                if (span.Source.ApplicationKey == applicationKey || span.UninstrumentedPeer?.ApplicationKey == applicationKey)
+                if (span.Source.ResourceKey == resourceKey || span.UninstrumentedPeer?.ResourceKey == resourceKey)
                 {
                     return true;
                 }
@@ -608,18 +608,18 @@ public sealed class TelemetryRepository : IDisposable
         ClearMetrics(null);
     }
 
-    public void ClearTraces(ApplicationKey? applicationKey = null)
+    public void ClearTraces(ResourceKey? resourceKey = null)
     {
-        List<OtlpApplication>? applications = null;
-        if (applicationKey.HasValue)
+        List<OtlpResource>? resources = null;
+        if (resourceKey.HasValue)
         {
-            applications = GetApplications(applicationKey.Value, includeUninstrumentedPeers: true);
+            resources = GetResources(resourceKey.Value, includeUninstrumentedPeers: true);
         }
 
         _tracesLock.EnterWriteLock();
         try
         {
-            if (applications is null || applications.Count == 0)
+            if (resources is null || resources.Count == 0)
             {
                 // Nothing selected, clear everything.
                 _traces.Clear();
@@ -628,8 +628,8 @@ public sealed class TelemetryRepository : IDisposable
             {
                 for (var i = _traces.Count - 1; i >= 0; i--)
                 {
-                    // Remove trace if any span matches one of the applications. This matches filter behavior.
-                    if (MatchApplications(_traces[i], applications))
+                    // Remove trace if any span matches one of the resources. This matches filter behavior.
+                    if (MatchResources(_traces[i], resources))
                     {
                         _traces.RemoveAt(i);
                         continue;
@@ -645,19 +645,19 @@ public sealed class TelemetryRepository : IDisposable
         RaiseSubscriptionChanged(_tracesSubscriptions);
     }
 
-    public void ClearStructuredLogs(ApplicationKey? applicationKey = null)
+    public void ClearStructuredLogs(ResourceKey? resourceKey = null)
     {
-        List<OtlpApplication>? applications = null;
-        if (applicationKey.HasValue)
+        List<OtlpResource>? resources = null;
+        if (resourceKey.HasValue)
         {
-            applications = GetApplications(applicationKey.Value);
+            resources = GetResources(resourceKey.Value);
         }
 
         _logsLock.EnterWriteLock();
 
         try
         {
-            if (applications is null || applications.Count == 0)
+            if (resources is null || resources.Count == 0)
             {
                 // Nothing selected, clear everything.
                 _logs.Clear();
@@ -666,7 +666,7 @@ public sealed class TelemetryRepository : IDisposable
             {
                 for (var i = _logs.Count - 1; i >= 0; i--)
                 {
-                    if (MatchApplications(_logs[i].ApplicationView.ApplicationKey, applications))
+                    if (MatchResources(_logs[i].ResourceView.ResourceKey, resources))
                     {
                         _logs.RemoveAt(i);
                         continue;
@@ -682,21 +682,21 @@ public sealed class TelemetryRepository : IDisposable
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
-    public void ClearMetrics(ApplicationKey? applicationKey = null)
+    public void ClearMetrics(ResourceKey? resourceKey = null)
     {
-        List<OtlpApplication> applications;
-        if (applicationKey.HasValue)
+        List<OtlpResource> resources;
+        if (resourceKey.HasValue)
         {
-            applications = GetApplications(applicationKey.Value);
+            resources = GetResources(resourceKey.Value);
         }
         else
         {
-            applications = _applications.Values.ToList();
+            resources = _resources.Values.ToList();
         }
 
-        foreach (var app in applications)
+        foreach (var resource in resources)
         {
-            app.ClearMetrics();
+            resource.ClearMetrics();
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
