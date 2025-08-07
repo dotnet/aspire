@@ -16,7 +16,7 @@ public partial class UnreadLogErrorsBadge
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
     [Parameter, EditorRequired]
-    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
+    public required Dictionary<ResourceKey, int>? UnviewedErrorCounts { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -33,13 +33,13 @@ public partial class UnreadLogErrorsBadge
             return (null, 0);
         }
 
-        var application = TelemetryRepository.GetApplicationByCompositeName(resource.Name);
-        if (application is null)
+        var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
+        if (otlpResource is null)
         {
             return (null, 0);
         }
 
-        if (!UnviewedErrorCounts.TryGetValue(application.ApplicationKey, out var count) || count == 0)
+        if (!UnviewedErrorCounts.TryGetValue(otlpResource.ResourceKey, out var count) || count == 0)
         {
             return (null, 0);
         }
