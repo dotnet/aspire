@@ -30,11 +30,12 @@
 	"aspire-vscode.strings.fieldRequired": "This field is required",
 	"aspire-vscode.strings.debugProject": "Debug {0}",
 	"aspire-vscode.strings.watchProject": "Watch {0} ({1})",
-	"csharpDevKitNotInstalled": "C# Dev Kit is not installed. Please install it from the marketplace.",
-	"noCsharpBuildTask": "No C# Dev Kit build task found.",
-	"noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
-	"buildFailedWithExitCode": "Build failed with exit code {0}",
-	"buildSucceeded": "Build succeeded for project {0}. Attempting to locate output dll...",
-	"noOutputFromMsbuild": "No output from msbuild",
-	"failedToGetTargetPath": "Failed to get TargetPath: {0}"
+	"aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed. Please install it from the marketplace.",
+	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found.",
+	"aspire-vscode.strings.noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
+	"aspire-vscode.strings.buildFailedWithExitCode": "Build failed with exit code {0}",
+	"aspire-vscode.strings.buildSucceeded": "Build succeeded for project {0}. Attempting to locate output dll...",
+	"aspire-vscode.strings.noOutputFromMsbuild": "No output from msbuild",
+	"aspire-vscode.strings.failedToGetTargetPath": "Failed to get TargetPath: {0}",
+	"aspire-vscode.strings.unsupportedResourceType": "Attempted to start unsupported resource type: {0}"
 }

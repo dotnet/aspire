@@ -8,10 +8,11 @@ import { DcpServerInformation, ErrorDetails, ErrorResponse, ProcessRestartedNoti
 import { sendStoppedToAspireDebugSession } from './debugAdapterFactory';
 import { startDotNetProgram, startPythonProgram } from '../debugger/dotnet';
 import path from 'path';
-import { BaseDebugSession, generateRunId, startCliProgram } from '../debugger/common';
+import { AspireResourceDebugSession, generateRunId } from '../debugger/common';
 import { cwd } from 'process';
+import { unsupportedResourceType } from '../loc/strings';
 
-const runsBySession = new Map<string, BaseDebugSession[]>();
+const runsBySession = new Map<string, AspireResourceDebugSession[]>();
 const wsBySession = new Map<string, WebSocket>();
 const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
 
@@ -78,10 +79,10 @@ export class DcpServer {
                 const runId = generateRunId();
                 const dcpId = req.header('microsoft-developer-dcp-instance-id') as string;
 
-                const processes: BaseDebugSession[] = [];
+                const processes: AspireResourceDebugSession[] = [];
 
                 for (const launchConfig of payload.launch_configurations) {
-                    let debugSession: BaseDebugSession | undefined;
+                    let debugSession: AspireResourceDebugSession | undefined;
                     if (launchConfig.type === "project") {
                         debugSession = await startDotNetProgram(
                             launchConfig.project_path,
@@ -101,14 +102,9 @@ export class DcpServer {
                         );
                     }
                     else {
-                        extensionLogOutputChannel.trace(`Unsupported type: ${launchConfig.type} - spawning process as fallback.`);
-                        debugSession = startCliProgram(
-                            `${launchConfig.type} - ${launchConfig.project_path} (Aspire)`,
-                            launchConfig.project_path,
-                            payload.args ?? [],
-                            payload.env ?? [],
-                            cwd()
-                        );
+                        extensionLogOutputChannel.error(`Unsupported type: ${launchConfig.type} - spawning process as fallback.`);
+                        vscode.window.showErrorMessage(unsupportedResourceType(launchConfig.type));
+                        throw new Error(unsupportedResourceType(launchConfig.type));
                     }
 
                     extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);

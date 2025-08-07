@@ -6,5 +6,5 @@ export async function runCommand() {
         return;
     }
 
-    sendToAspireTerminal("aspire run");
+    sendToAspireTerminal("aspire run --wait-for-debugger");
 };

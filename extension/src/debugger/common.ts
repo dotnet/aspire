@@ -18,23 +18,10 @@ export type LaunchOptions = {
     dcpId: string | null;
 };
 
-export type TerminalProgramRun = {
-    terminal: vscode.Terminal;
-};
-
-export interface BaseDebugSession extends BaseGenericDebugSession<vscode.DebugSession | TerminalProgramRun> {
-}
-
-interface BaseGenericDebugSession<T extends vscode.DebugSession | TerminalProgramRun> {
+export interface AspireResourceDebugSession {
     id: string;
-    session: T;
+    session: vscode.DebugSession;
     stopSession(): void;
-}
-
-interface VsCodeDebugSession extends BaseGenericDebugSession<vscode.DebugSession> {
-}
-
-interface TerminalDebugSession extends BaseGenericDebugSession<TerminalProgramRun> {
 }
 
 export interface DcpDebugConfiguration extends vscode.DebugConfiguration {
@@ -42,40 +29,16 @@ export interface DcpDebugConfiguration extends vscode.DebugConfiguration {
     dcpId: string | null;
 }
 
-const debugSessions: BaseDebugSession[] = [];
+const debugSessions: AspireResourceDebugSession[] = [];
 
-export function startCliProgram(terminalName: string, command: string, args?: string[], env?: EnvVar[], workingDirectory?: string): TerminalDebugSession {
-    const envVars = mergeEnvs(process.env, env);
-    const terminal = vscode.window.createTerminal({
-        name: terminalName,
-        cwd: workingDirectory ?? process.cwd(),
-        env: envVars
-    });
-
-    terminal.sendText(`${command} ${(args ?? []).map(a => JSON.stringify(a)).join(' ')}`);
-    terminal.show();
-
-    const runId = generateRunId();
-    extensionLogOutputChannel.info(`Spawned terminal for run session ${runId}`);
-
-    return ({
-        id: runId,
-        session: { terminal: terminal },
-        stopSession: () => {
-            terminal.dispose();
-            extensionLogOutputChannel.info(`Stopped terminal for run session ${runId}`);
-        }
-    });
-}
-
-export async function startAndGetDebugSession(debugConfig: DcpDebugConfiguration): Promise<VsCodeDebugSession | undefined> {
+export async function startAndGetDebugSession(debugConfig: DcpDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
         const disposable = vscode.debug.onDidStartDebugSession(session => {
             if (session.configuration.runId === debugConfig.runId) {
                 extensionLogOutputChannel.info(`Debug session started: ${session.name} (run id: ${session.configuration.runId})`);
                 disposable.dispose();
 
-                const vsCodeDebugSession: VsCodeDebugSession = {
+                const vsCodeDebugSession: AspireResourceDebugSession = {
                     id: session.id,
                     session: session,
                     stopSession: () => {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram, BaseDebugSession, generateRunId, DcpDebugConfiguration } from './common';
+import { LaunchOptions, EnvVar, startAndGetDebugSession, DcpDebugConfiguration, AspireResourceDebugSession } from './common';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
+import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../utils/environment';
@@ -9,7 +9,7 @@ import * as path from 'path';
 import { doesFileExist } from '../utils/io';
 import { getSupportedCapabilities } from '../capabilities';
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<BaseDebugSession | undefined> {
+export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
     try {
         const outputPath = await getDotnetTargetPath(projectFile);
 
@@ -48,7 +48,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
     }
 }
 
-export async function startPythonProgram(file: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<BaseDebugSession | undefined> {
+export async function startPythonProgram(file: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
     try {
         const config: DcpDebugConfiguration = {
             type: 'python',
