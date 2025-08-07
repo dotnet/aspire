@@ -27,6 +27,10 @@ KEEP_ARCHIVE=false
 DRY_RUN=false
 DEFAULT_QUALITY="release"
 
+# =====================
+# Shared helpers block
+# =====================
+
 # Function to show help
 show_help() {
     cat << 'EOF'
@@ -148,6 +152,10 @@ parse_args() {
     done
 }
 
+# =============================================================================
+# START: Shared code
+# =============================================================================
+
 # Function for verbose logging
 say_verbose() {
     if [[ "$VERBOSE" == true ]]; then
@@ -156,11 +164,11 @@ say_verbose() {
 }
 
 say_error() {
-    echo -e "${RED}Error: $1${RESET}\n" >&2
+    echo -e "${RED}Error: $1${RESET}" >&2
 }
 
 say_warn() {
-    echo -e "${YELLOW}Warning: $1${RESET}\n" >&2
+    echo -e "${YELLOW}Warning: $1${RESET}" >&2
 }
 
 say_info() {
@@ -239,32 +247,27 @@ detect_architecture() {
     esac
 }
 
-# Compute runtime identifier "<os>-<arch>" from optional inputs
+# Function to compute the Runtime Identifier (RID)
 get_runtime_identifier() {
-    local _os="$1"
-    local _arch="$2"
-    local os_val arch_val
+    # set target_os to $1 and default to HOST_OS
+    local target_os="$1"
+    local target_arch="$2"
 
-    if [[ -z "$_os" ]]; then
-        if ! os_val=$(detect_os); then
-            say_error "Unsupported operating system. Current platform: $(uname -s)"
-            return 1
-        fi
-    else
-        os_val="$_os"
+    if [[ -z "$target_os" ]]; then
+        target_os=$HOST_OS
     fi
 
-    if [[ -z "$_arch" ]]; then
-        if ! arch_val=$(get_cli_architecture_from_architecture "<auto>"); then
+    if [[ -z "$target_arch" ]]; then
+        if ! target_arch=$(get_cli_architecture_from_architecture "<auto>"); then
             return 1
         fi
     else
-        if ! arch_val=$(get_cli_architecture_from_architecture "$_arch"); then
+        if ! target_arch=$(get_cli_architecture_from_architecture "$target_arch"); then
             return 1
         fi
     fi
 
-    printf "%s-%s" "$os_val" "$arch_val"
+    printf "%s" "${target_os}-${target_arch}"
 }
 
 # Create a temporary directory with a prefix. Honors DRY_RUN
@@ -299,6 +302,175 @@ remove_temp_dir() {
         printf "Archive files kept in: %s\n" "$dir"
     fi
 }
+
+# Function to install/unpack archive files
+install_archive() {
+    local archive_file="$1"
+    local destination_path="$2"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would install archive $archive_file to $destination_path"
+        return 0
+    fi
+
+    say_verbose "Installing archive to: $destination_path"
+
+    # Create install directory if it doesn't exist
+    if [[ ! -d "$destination_path" ]]; then
+        say_verbose "Creating install directory: $destination_path"
+        mkdir -p "$destination_path"
+    fi
+
+    # Check archive format and extract accordingly
+    if [[ "$archive_file" =~ \.zip$ ]]; then
+        if ! command -v unzip >/dev/null 2>&1; then
+            say_error "unzip command not found. Please install unzip to extract ZIP files."
+            return 1
+        fi
+        if ! unzip -o "$archive_file" -d "$destination_path"; then
+            say_error "Failed to extract ZIP archive: $archive_file"
+            return 1
+        fi
+    elif [[ "$archive_file" =~ \.tar\.gz$ ]]; then
+        if ! command -v tar >/dev/null 2>&1; then
+            say_error "tar command not found. Please install tar to extract tar.gz files."
+            return 1
+        fi
+        if ! tar -xzf "$archive_file" -C "$destination_path"; then
+            say_error "Failed to extract tar.gz archive: $archive_file"
+            return 1
+        fi
+    else
+        say_error "Unsupported archive format: $archive_file. Only .zip and .tar.gz files are supported."
+        return 1
+    fi
+
+    say_verbose "Successfully installed archive"
+}
+
+# Function to add PATH to shell configuration file
+# Parameters:
+#   $1 - config_file: Path to the shell configuration file
+#   $2 - bin_path: The binary path to add to PATH
+#   $3 - command: The command to add to the configuration file
+add_to_path()
+{
+    local config_file="$1"
+    local bin_path="$2"
+    local command="$3"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would check if $bin_path is already in \$PATH"
+        say_info "[DRY RUN] Would add '$command' to $config_file if not already present"
+        return 0
+    fi
+
+    if [[ ":$PATH:" == *":$bin_path:"* ]]; then
+        say_info "Path $bin_path already exists in \$PATH, skipping addition"
+    elif [[ -f "$config_file" ]] && grep -Fxq "$command" "$config_file"; then
+        say_info "Command already exists in $config_file, skipping addition"
+    elif [[ -w $config_file ]]; then
+        echo -e "\n# Added by get-aspire-cli*.sh script" >> "$config_file"
+        echo "$command" >> "$config_file"
+        say_info "Successfully added aspire to \$PATH in $config_file"
+    else
+        say_info "Manually add the following to $config_file (or similar):"
+        say_info "  $command"
+    fi
+}
+
+# Function to add PATH to shell profile
+add_to_shell_profile() {
+    local bin_path="$1"
+    local bin_path_unexpanded="$2"
+    local xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+    # Detect the current shell
+    local shell_name
+
+    # Try to get shell from SHELL environment variable
+    if [[ -n "${SHELL:-}" ]]; then
+        shell_name=$(basename "$SHELL")
+    else
+        # Fallback to detecting from process
+        shell_name=$(ps -p $$ -o comm= 2>/dev/null || echo "sh")
+    fi
+
+    # Normalize shell name
+    case "$shell_name" in
+        bash|zsh|fish)
+            ;;
+        sh|dash|ash)
+            shell_name="sh"
+            ;;
+        *)
+            # Default to bash for unknown shells
+            shell_name="bash"
+            ;;
+    esac
+
+    say_verbose "Detected shell: $shell_name"
+
+    local config_files
+    case "$shell_name" in
+        bash)
+            config_files="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile $xdg_config_home/bash/.bashrc $xdg_config_home/bash/.bash_profile"
+            ;;
+        zsh)
+            config_files="$HOME/.zshrc $HOME/.zshenv $xdg_config_home/zsh/.zshrc $xdg_config_home/zsh/.zshenv"
+            ;;
+        fish)
+            config_files="$HOME/.config/fish/config.fish"
+            ;;
+        sh)
+            config_files="$HOME/.profile /etc/profile"
+            ;;
+        *)
+            # Default to bash files for unknown shells
+            config_files="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile"
+            ;;
+    esac
+
+    # Get the appropriate shell config file
+    local config_file
+
+    # Find the first existing config file
+    for file in $config_files; do
+        if [[ -f "$file" ]]; then
+            config_file="$file"
+            break
+        fi
+    done
+
+    if [[ -z $config_file ]]; then
+        say_error "No config file found for $shell_name. Checked files: $config_files"
+        exit 1
+    fi
+
+    case "$shell_name" in
+        bash|zsh|sh)
+            add_to_path "$config_file" "$bin_path" "export PATH=\"$bin_path_unexpanded:\$PATH\""
+            ;;
+        fish)
+            add_to_path "$config_file" "$bin_path" "fish_add_path $bin_path_unexpanded"
+            ;;
+        *)
+            say_error "Unsupported shell type $shell_name. Please add the path $bin_path_unexpanded manually to \$PATH in your profile."
+            return 1
+            ;;
+    esac
+
+    if [[ "$DRY_RUN" != true ]]; then
+        printf "\nTo use the Aspire CLI in new terminal sessions, restart your terminal or run:\n"
+        say_info "  source $config_file"
+    fi
+
+    return 0
+}
+
+# =============================================================================
+# END: Shared code
+# =============================================================================
 
 # Common function for HTTP requests with centralized configuration
 secure_curl() {
@@ -452,168 +624,6 @@ validate_checksum() {
         say_info "Actual:   $actual_checksum"
         return 1
     fi
-}
-
-# Function to install/unpack archive files
-install_archive() {
-    local archive_file="$1"
-    local destination_path="$2"
-
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would install archive $archive_file to $destination_path"
-        return 0
-    fi
-
-    say_verbose "Installing archive to: $destination_path"
-
-    # Create install directory if it doesn't exist
-    if [[ ! -d "$destination_path" ]]; then
-        say_verbose "Creating install directory: $destination_path"
-        mkdir -p "$destination_path"
-    fi
-
-    if [[ "$archive_file" =~ \.zip$ ]]; then
-        if ! command -v unzip >/dev/null 2>&1; then
-            say_error "unzip command not found. Please install unzip to extract ZIP files."
-            return 1
-        fi
-        if ! unzip -o "$archive_file" -d "$destination_path"; then
-            say_error "Failed to extract ZIP archive: $archive_file"
-            return 1
-        fi
-    elif [[ "$archive_file" =~ \.tar\.gz$ ]]; then
-        if ! command -v tar >/dev/null 2>&1; then
-            say_error "tar command not found. Please install tar to extract tar.gz files."
-            return 1
-        fi
-        if ! tar -xzf "$archive_file" -C "$destination_path"; then
-            say_error "Failed to extract tar.gz archive: $archive_file"
-            return 1
-        fi
-    else
-        say_error "Unsupported archive format: $archive_file. Only .zip and .tar.gz files are supported."
-        return 1
-    fi
-
-    say_verbose "Successfully installed archive"
-}
-
-# Function to add PATH to shell configuration file
-# Parameters:
-#   $1 - config_file: Path to the shell configuration file
-#   $2 - bin_path: The binary path to add to PATH
-#   $3 - command: The command to add to the configuration file
-add_to_path()
-{
-    local config_file="$1"
-    local bin_path="$2"
-    local command="$3"
-
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would check if $bin_path is already in \$PATH"
-        say_info "[DRY RUN] Would add '$command' to $config_file if not already present"
-        return 0
-    fi
-
-    if [[ ":$PATH:" == *":$bin_path:"* ]]; then
-        say_info "Path $bin_path already exists in \$PATH, skipping addition"
-    elif [[ -f "$config_file" ]] && grep -Fxq "$command" "$config_file"; then
-        say_info "Command already exists in $config_file, skipping addition"
-    elif [[ -w $config_file ]]; then
-        echo -e "\n# Added by get-aspire-cli.sh" >> "$config_file"
-        echo "$command" >> "$config_file"
-        say_info "Successfully added aspire to \$PATH in $config_file"
-    else
-        say_info "Manually add the following to $config_file (or similar):"
-        say_info "  $command"
-    fi
-}
-
-# Function to add PATH to shell profile
-add_to_shell_profile() {
-    local bin_path="$1"
-    local bin_path_unexpanded="$2"
-    local xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-
-    # Detect the current shell
-    local shell_name
-
-    # Try to get shell from SHELL environment variable
-    if [[ -n "${SHELL:-}" ]]; then
-        shell_name=$(basename "$SHELL")
-    else
-        # Fallback to detecting from process
-        shell_name=$(ps -p $$ -o comm= 2>/dev/null || echo "sh")
-    fi
-
-    # Normalize shell name
-    case "$shell_name" in
-        bash|zsh|fish)
-            ;;
-        sh|dash|ash)
-            shell_name="sh"
-            ;;
-        *)
-            # Default to bash for unknown shells
-            shell_name="bash"
-            ;;
-    esac
-
-    say_verbose "Detected shell: $shell_name"
-
-    local config_files
-    case "$shell_name" in
-        bash)
-            config_files="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile $xdg_config_home/bash/.bashrc $xdg_config_home/bash/.bash_profile"
-            ;;
-        zsh)
-            config_files="$HOME/.zshrc $HOME/.zshenv $xdg_config_home/zsh/.zshrc $xdg_config_home/zsh/.zshenv"
-            ;;
-        fish)
-            config_files="$HOME/.config/fish/config.fish"
-            ;;
-        sh)
-            config_files="$HOME/.profile /etc/profile"
-            ;;
-        *)
-            # Default to bash files for unknown shells
-            config_files="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile"
-            ;;
-    esac
-
-    # Get the appropriate shell config file
-    local config_file
-
-    # Find the first existing config file
-    for file in $config_files; do
-        if [[ -f "$file" ]]; then
-            config_file="$file"
-            break
-        fi
-    done
-
-    if [[ -z $config_file ]]; then
-        say_error "No config file found for $shell_name. Checked files: $config_files"
-        exit 1
-    fi
-
-    case "$shell_name" in
-        bash|zsh|sh)
-            add_to_path "$config_file" "$bin_path" "export PATH=\"$bin_path_unexpanded:\$PATH\""
-            ;;
-        fish)
-            add_to_path "$config_file" "$bin_path" "fish_add_path $bin_path_unexpanded"
-            ;;
-        *)
-            say_error "Unsupported shell type $shell_name. Please add the path $bin_path_unexpanded manually to \$PATH in your profile."
-            return 1
-            ;;
-    esac
-
-    printf "\nTo use the Aspire CLI in new terminal sessions, restart your terminal or run:\n"
-    say_info "  source $config_file"
-
-    return 0
 }
 
 # Function to construct the base URL for the Aspire CLI download
