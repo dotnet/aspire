@@ -58,7 +58,7 @@ public sealed class CommandLineArgsCallbackContext(IList<object> args, Cancellat
     /// <param name="args"> The list of command-line arguments.</param>
     /// <param name="resource"> The resource associated with this callback context.</param>
     /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
-    public CommandLineArgsCallbackContext(IList<object> args, IResource? resource = null, CancellationToken cancellationToken = default)
+    public CommandLineArgsCallbackContext(IList<object> args, IResource resource, CancellationToken cancellationToken = default)
         : this(args, cancellationToken) => _resource = resource;
 
     /// <summary>
