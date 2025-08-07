@@ -1,5 +1,80 @@
 #!/usr/bin/env pwsh
 
+<#
+.SYNOPSIS
+    Download and install the Aspire CLI
+
+.DESCRIPTION
+    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
+    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
+
+    Running with `-Quality release` downloads the latest release version of the Aspire CLI for your platform and architecture.
+    Running with `-Quality staging` downloads the latest staging version, or the release version if no staging is available.
+    Running with `-Quality dev` downloads the latest dev build from `main`.
+
+    The default quality is 'release'.
+
+    Pass a specific version to get CLI for that version.
+
+.PARAMETER InstallPath
+    Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
+
+.PARAMETER Version
+    Version of the Aspire CLI to download (default: unset)
+
+.PARAMETER Quality
+    Quality to download (default: release)
+
+.PARAMETER OS
+    Operating system (default: auto-detect)
+
+.PARAMETER Architecture
+    Architecture (default: auto-detect)
+
+.PARAMETER KeepArchive
+    Keep downloaded archive files and temporary directory after installation
+
+.EXAMPLE
+    .\get-aspire-cli.ps1
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -InstallPath "C:\\tools\\aspire"
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -Quality "staging"
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -KeepArchive
+
+.EXAMPLE
+    .\get-aspire-cli.ps1 -WhatIf
+
+.EXAMPLE
+    # Piped execution
+    iex "& { $(irm https://aka.ms/aspire/get/install.ps1) }"
+
+.EXAMPLE
+    # Piped execution
+    iex "& { $(irm https://aka.ms/aspire/get/install.ps1) } -Quality staging"
+
+.NOTES
+    The script automatically updates the PATH environment variable for the current session.
+
+    Windows: The script will also add the installation path to the user's persistent PATH
+    environment variable and to the session PATH, making the aspire CLI available in the existing and new terminal sessions.
+
+    GitHub Actions Support:
+    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
+    append the installation path to the GITHUB_PATH file to make the CLI available in
+    subsequent workflow steps.
+#>
+
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(HelpMessage = "Directory to install the CLI")]
@@ -21,10 +96,7 @@ param(
     [string]$Architecture = "",
 
     [Parameter(HelpMessage = "Keep downloaded archive files and temporary directory after installation")]
-    [switch]$KeepArchive,
-
-    [Parameter(HelpMessage = "Show help message")]
-    [switch]$Help
+    [switch]$KeepArchive
 )
 
 # Global constants
@@ -108,58 +180,7 @@ function Write-Message {
     }
 }
 
-if ($Help) {
-    Write-Message @"
-Aspire CLI Download Script
-
-DESCRIPTION:
-    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
-    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
-
-    Running with `-Quality release` download the latest release version of the Aspire CLI for your platform and architecture.
-    Running with `-Quality staging` will download the latest staging version, or the release version if no staging is available.
-    Running with `-Quality dev` will download the latest dev build from `main`.
-
-    The default quality is '$($Script:Config.DefaultQuality)'.
-
-    Pass a specific version to get CLI for that version.
-
-PARAMETERS:
-    -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
-    -Quality <string>           Quality to download (default: $($Script:Config.DefaultQuality))
-    -Version <string>           Version of the Aspire CLI to download (default: unset)
-    -OS <string>                Operating system (default: auto-detect)
-    -Architecture <string>      Architecture (default: auto-detect)
-    -KeepArchive                Keep downloaded archive files and temporary directory after installation
-    -Help                       Show this help message
-
-ENVIRONMENT:
-    The script automatically updates the PATH environment variable for the current session.
-
-    Windows: The script will also add the installation path to the user's persistent PATH
-    environment variable and to the session PATH, making the aspire CLI available in the existing and new terminal sessions.
-
-    GitHub Actions Support:
-    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
-    append the installation path to the GITHUB_PATH file to make the CLI available in
-    subsequent workflow steps.
-
-EXAMPLES:
-    .\get-aspire-cli.ps1
-    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
-    .\get-aspire-cli.ps1 -Quality "staging"
-    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
-    .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
-    .\get-aspire-cli.ps1 -KeepArchive
-    .\get-aspire-cli.ps1 -WhatIf
-    .\get-aspire-cli.ps1 -Help
-
-    # Piped execution
-    iex "& { `$(irm https://aka.ms/aspire/get/install.ps1) }"
-    iex "& { `$(irm https://aka.ms/aspire/get/install.ps1) } -Quality staging"
-"@
-    if ($InvokedFromFile) { exit 0 } else { return }
-}
+## Help is provided via the comment-based help block above; use Get-Help to view.
 
 # Helper function for PowerShell version-specific operations
 function Invoke-WithPowerShellVersion {
