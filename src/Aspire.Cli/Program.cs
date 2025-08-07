@@ -97,6 +97,7 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton(BuildCliExecutionContext);
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton(BuildProjectLocator);
@@ -135,6 +136,13 @@ public class Program
         return app;
     }
 
+    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    {
+        _ = serviceProvider;
+        var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        return new CliExecutionContext(workingDirectory);
+    }
+
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
     {
         if (localeOverride is not null)
@@ -163,17 +171,18 @@ public class Program
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory, features);
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
@@ -192,10 +201,11 @@ public class Program
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)

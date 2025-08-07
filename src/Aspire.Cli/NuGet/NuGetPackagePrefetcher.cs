@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, DirectoryInfo currentDirectory, IFeatures features) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, CliExecutionContext executionContext, IFeatures features) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -18,7 +18,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
             {
                 // Prefetch template packages
                 await nuGetPackageCache.GetTemplatePackagesAsync(
-                    workingDirectory: currentDirectory,
+                    workingDirectory: executionContext.WorkingDirectory,
                     prerelease: true,
                     source: null,
                     cancellationToken: stoppingToken
@@ -41,7 +41,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
                 try
                 {
                     await nuGetPackageCache.GetCliPackagesAsync(
-                        workingDirectory: currentDirectory,
+                        workingDirectory: executionContext.WorkingDirectory,
                         prerelease: true,
                         source: null,
                         cancellationToken: stoppingToken
