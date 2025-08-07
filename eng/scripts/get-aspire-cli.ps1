@@ -17,7 +17,7 @@
     Pass a specific version to get CLI for that version.
 
 .PARAMETER InstallPath
-    Directory to install the CLI (default: %USERPROFILE%\.aspire on Windows, `$HOME/.aspire on Unix)
+    Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
 
 .PARAMETER Version
     Version of the Aspire CLI to download (default: unset)
@@ -726,7 +726,7 @@ function Get-InstallPath {
         throw "Unable to determine user home directory. Please specify -InstallPath parameter."
     }
 
-    $defaultPath = Join-Path $homeDirectory ".aspire"
+    $defaultPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
     return [System.IO.Path]::GetFullPath($defaultPath)
 }
 
