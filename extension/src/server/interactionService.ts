@@ -53,6 +53,10 @@ export class InteractionService implements IInteractionService {
         if (statusText) {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
+
+            if (extensionContext.hasAspireDebugSession()) {
+                extensionContext.aspireDebugSession.sendMessage(formatText(statusText));
+            }
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
         }

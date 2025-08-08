@@ -49,6 +49,10 @@ export class AspireExtensionContext {
 		this._extensionContext = value;
 	}
 
+	hasAspireDebugSession(): boolean {
+		return !!this._aspireDebugSession;
+	}
+
 	get aspireDebugSession(): AspireDebugSession {
 		if (!this._aspireDebugSession) {
 			throw new Error('Aspire debug session is not initialized');

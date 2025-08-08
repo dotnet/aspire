@@ -180,7 +180,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._onDidSendMessage.fire(event);
   }
 
-  private sendMessage(message: string) {
+  sendMessage(message: string) {
     this.sendEvent({
         type: 'event',
         seq: this._messageSeq++,

@@ -210,6 +210,12 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(topPadder);
 
+            if (isExtensionHost)
+            {
+                _interactionService.ShowStatus(dashboardsLocalizedString + ": " + dashboardUrls.BaseUrlWithLoginToken, () => { });
+                _interactionService.ShowStatus(RunCommandStrings.ExtensionDebugConsoleInfo, () => { });
+            }
+
             // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
             // than environment variables since it comes from the same backend detection logic
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;

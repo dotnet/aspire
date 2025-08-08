@@ -161,6 +161,9 @@
   <data name="ExtensionLogs" xml:space="preserve">
     <value>Running through the Aspire Extension. Use the Debug Console to view logs.</value>
   </data>
+  <data name="ExtensionDebugConsoleInfo" xml:space="preserve">
+    <value>Running through the Aspire Extension. Use the Debug Console to view debug information for the AppHost and all running resources.</value>
+  </data>
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to app host...</value>
   </data>
