@@ -757,6 +757,85 @@ function Test-VeryLongPathHandling {
     }
 }
 
+function Test-HiveOnlyFunctionality {
+    Write-ColoredOutput "=== Hive-Only Functionality Tests ===" -Color 'Yellow'
+
+    $testBaseDir = New-TestEnvironment -TestSuiteName "pr-hive-only"
+    $testInstallDir = Join-Path $testBaseDir "install"
+
+    # Test: HiveOnly flag skips CLI download
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "Skipping CLI download" -or $result.Output -match "hive.*only" -or $result.Output -match "Only.*NuGet")) {
+        Write-TestResult "HiveOnly flag skips CLI download" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag skips CLI download" "FAIL" "Expected hive-only behavior not found in output"
+    }
+
+    # Test: HiveOnly flag with run-id
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-WorkflowRunId", $Script:TestRunId, "-InstallPath", $testInstallDir, "-HiveOnly", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match $Script:TestRunId) -and ($result.Output -match "Skipping CLI download" -or $result.Output -match "hive.*only" -or $result.Output -match "Only.*NuGet")) {
+        Write-TestResult "HiveOnly flag with run ID skips CLI download" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag with run ID skips CLI download" "FAIL" "Expected hive-only behavior with run ID not found"
+    }
+
+    # Test: HiveOnly flag skips CLI installation
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "Skipping CLI installation" -or $result.Output -match "hive.*only" -or $result.Output -match "Only.*NuGet")) {
+        Write-TestResult "HiveOnly flag skips CLI installation" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag skips CLI installation" "FAIL" "Expected CLI installation skip not found in output"
+    }
+
+    # Test: HiveOnly flag still downloads NuGet packages
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "built-nugets" -or $result.Output -match "NuGet.*package")) {
+        Write-TestResult "HiveOnly flag still downloads NuGet packages" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag still downloads NuGet packages" "FAIL" "Expected NuGet package download not found in output"
+    }
+
+    # Test: HiveOnly flag with other options
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-Verbose", "-KeepArchive", "-WhatIf")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "Skipping CLI download" -or $result.Output -match "hive.*only" -or $result.Output -match "Only.*NuGet")) {
+        Write-TestResult "HiveOnly flag works with other options" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag works with other options" "FAIL" "HiveOnly with other options failed"
+    }
+
+    # Test: HiveOnly parameter appears in help
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-?")
+
+    if ($result.Success -and ($result.Output -match "HiveOnly" -or $result.Output -match "hive.*only" -or $result.Output -match "Only.*install.*NuGet.*packages")) {
+        Write-TestResult "HiveOnly parameter appears in help" "PASS"
+    } else {
+        Write-TestResult "HiveOnly parameter appears in help" "FAIL" "HiveOnly parameter not documented in help"
+    }
+
+    # Test: HiveOnly flag creates proper hive directory structure
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "hives.*pr-$Script:TestPRNumber" -or $result.Output -match "pr-$Script:TestPRNumber.*packages")) {
+        Write-TestResult "HiveOnly flag creates proper hive directory structure" "PASS"
+    } else {
+        Write-TestResult "HiveOnly flag creates proper hive directory structure" "FAIL" "Expected hive directory structure not found in output"
+    }
+
+    # Test: HiveOnly with OS and Architecture override (should not affect CLI download since it's skipped)
+    $result = Invoke-TestCommand -Command $Script:ScriptPath -Arguments @("-PRNumber", $Script:TestPRNumber, "-InstallPath", $testInstallDir, "-HiveOnly", "-OS", "linux", "-Architecture", "arm64", "-WhatIf", "-Verbose")
+
+    if ($result.Success -and (Test-ScriptSuccess $result.Output) -and ($result.Output -match "Skipping CLI download" -or $result.Output -match "hive.*only")) {
+        Write-TestResult "HiveOnly with OS/Architecture override works correctly" "PASS"
+    } else {
+        Write-TestResult "HiveOnly with OS/Architecture override works correctly" "FAIL" "HiveOnly with OS/Architecture override failed"
+    }
+}
+
 function Main {
     Write-ColoredOutput "=== get-aspire-cli-pr.ps1 Test Suite ===" -Color 'Yellow'
     Write-ColoredOutput "Testing script: get-aspire-cli-pr.ps1" -Color 'Yellow'
@@ -791,6 +870,7 @@ function Main {
         Test-InstallationPathSpecialCharacters
         Test-PlatformSpecificArchiveHandling
         Test-VeryLongPathHandling
+        Test-HiveOnlyFunctionality
 
         # Show results
         Show-TestSummary
