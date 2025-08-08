@@ -25,6 +25,9 @@ internal static partial class MarkdownToSpectreConverter
 
         var result = markdown;
 
+        // Normalize line endings to LF to ensure consistent output
+        result = result.Replace("\r\n", "\n").Replace("\r", "\n");
+
         // Process headers (# ## ###)
         result = ConvertHeaders(result);
 
