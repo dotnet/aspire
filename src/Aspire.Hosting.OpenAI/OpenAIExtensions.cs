@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -55,11 +56,62 @@ public static class OpenAIExtensions
             {
                 ResourceType = "OpenAI",
                 CreationTimeStamp = DateTime.UtcNow,
-                State = KnownResourceStates.Running,
+                State = KnownResourceStates.Waiting,
                 Properties =
                 [
                     new(CustomResourceKnownProperties.Source, "OpenAI")
                 ]
+            })
+            .OnInitializeResource(async (r, evt, ct) =>
+            {
+                var logger = evt.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
+
+                var apiKey = await resource.Key.GetValueAsync(ct).ConfigureAwait(false);
+
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    logger.LogInformation("Missing or invalid API Key");
+
+                    await evt.Notifications.PublishUpdateAsync(resource, state => state with
+                    {
+                        State = KnownResourceStates.FailedToStart,
+                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "OpenAI")]
+                    }).ConfigureAwait(false);
+
+                    return;
+                }
+
+                var healthCheck = new StatusPageHealthCheck(
+                    evt.Services.GetRequiredService<IHttpClientFactory>(),
+                    new Uri("https://status.openai.com/api/v2/status.json"),
+                    "OpenAIHealthCheck"
+                    );
+
+                var healthCheckResult = await healthCheck.CheckHealthAsync(new HealthCheckContext(), ct).ConfigureAwait(false);
+
+                if (healthCheckResult.Status != HealthStatus.Healthy)
+                {
+                    logger.LogWarning("OpenAI API health check failed");
+                    await evt.Notifications.PublishUpdateAsync(resource, state => state with
+                    {
+                        State = KnownResourceStates.FailedToStart,
+                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "OpenAI")]
+                    }).ConfigureAwait(false);
+
+                    return;
+                }
+
+                var cs = await r.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+                await evt.Notifications.PublishUpdateAsync(r, s => s with
+                {
+                    State = KnownResourceStates.Running,
+                    Properties = [.. s.Properties, new(CustomResourceKnownProperties.ConnectionString, cs) { IsSensitive = true }]
+                }).ConfigureAwait(false);
+
+                // Publish the connection string available event for other resources that may depend on this resource.
+                await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                  .ConfigureAwait(false);
             })
             .WithHealthCheck(healthCheckKey);
     }
@@ -82,12 +134,12 @@ public static class OpenAIExtensions
         return builder.ApplicationBuilder.AddResource(resource)
             .WithInitialState(new()
             {
-                ResourceType = "OpenAIModel",
+                ResourceType = "OpenAI Model",
                 CreationTimeStamp = DateTime.UtcNow,
                 State = KnownResourceStates.Waiting,
                 Properties =
                 [
-                    new(CustomResourceKnownProperties.Source, "OpenAI")
+                    new(CustomResourceKnownProperties.Source, "OpenAI Models")
                 ]
             })
             .WithParentRelationship(builder)
