@@ -83,3 +83,7 @@ Example: `[QuarantinedTest("..issue url..")]`
 ## Editing resources
 
 The `*.Designer.cs` files are in the repo, but are intended to match same named `*.resx` files. If you add/remove/change resources in a resx, make the matching changes in the `*.Designer.cs` file that matches that resx.
+
+## Missing nuget packages
+
+If a nuget package cannot be found in the configured sources but it can be found at nuget.org then suggest mirroring the package following instructions at https://github.com/dotnet/arcade/blob/main/Documentation/MirroringPackages.md .

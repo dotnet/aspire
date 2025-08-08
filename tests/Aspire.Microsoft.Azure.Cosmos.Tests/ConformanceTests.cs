@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.ConformanceTests;
+using Aspire.TestUtilities;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,9 +11,21 @@ using Xunit;
 
 namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
-public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosSettings>
+public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosSettings>, IClassFixture<CosmosContainerFixture>
 {
+    private readonly CosmosContainerFixture? _containerFixture;
+    private string ConnectionString { get; }
+
+    public ConformanceTests(CosmosContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = RequiresDockerAttribute.IsSupported && _containerFixture?.Container is not null
+            ? _containerFixture.GetConnectionString()
+            : "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;";
+    }
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
+
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string ActivitySourceName => "Azure.Cosmos.Operation";
 
@@ -78,9 +91,9 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb1", "AccountEndpoint=https://example1.documents.azure.com:443/;AccountKey=fake;"),
-            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb2", "AccountEndpoint=https://example2.documents.azure.com:443/;AccountKey=fake;"),
-            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb3", "AccountEndpoint=https://example3.documents.azure.com:443/;AccountKey=fake;"),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb1", "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;"),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb2", "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;"),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb3", "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;"),
         ]);
 
         builder.AddAzureCosmosClient("cosmosdb1");
@@ -97,8 +110,9 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
         Assert.NotSame(client1, client3);
         Assert.NotSame(client2, client3);
 
-        Assert.Equal("https://example1.documents.azure.com/", client1.Endpoint.ToString());
-        Assert.Equal("https://example2.documents.azure.com/", client2.Endpoint.ToString());
-        Assert.Equal("https://example3.documents.azure.com/", client3.Endpoint.ToString());
+        // When using fake connection strings
+        Assert.Equal("https://example.documents.azure.com/", client1.Endpoint.ToString());
+        Assert.Equal("https://example.documents.azure.com/", client2.Endpoint.ToString());
+        Assert.Equal("https://example.documents.azure.com/", client3.Endpoint.ToString());
     }
 }
