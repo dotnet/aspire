@@ -11,6 +11,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using System.Xml.Linq;
 
 namespace Aspire.Cli.Templating;
 
@@ -226,6 +227,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             var source = parseResult.GetValue<string?>("--source");
             var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+            using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
@@ -243,7 +245,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                     // from the right feed. If we are using an implicit channel then we just use the
                     // ambient configuration (although we should still specify the source) because
                     // the user would have selected it.
-                    using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
                     var result = await runner.InstallTemplateAsync(
                         packageName: "Aspire.ProjectTemplates",
@@ -303,6 +304,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             }
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
+
+            // For explicit channels, optionally create or update a NuGet.config in the working directory
+            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
@@ -375,6 +379,123 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(packagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
+    }
+
+    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, CancellationToken cancellationToken)
+    {
+        if (channel.Type is not PackageChannelType.Explicit)
+        {
+            return;
+        }
+
+        var mappings = channel.Mappings;
+        if (mappings is null || mappings.Length == 0)
+        {
+            return;
+        }
+
+        var workingDir = executionContext.WorkingDirectory;
+        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
+        var nugetConfigFile = new FileInfo(nugetConfigPath);
+
+        // We only act if we need to create or update
+        if (!nugetConfigFile.Exists)
+        {
+            // Ask for confirmation before creating the file
+            var choice = await interactionService.PromptForSelectionAsync(
+                "No NuGet.config was found in the current directory. Create one with the required package sources for the selected channel?",
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken);
+
+            if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
+            {
+                // Use the temporary config we already generated; if it's missing, generate a fresh one
+                if (temporaryConfig is null)
+                {
+                    using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+                    Directory.CreateDirectory(workingDir.FullName);
+                    File.Copy(tmpConfig.ConfigFile.FullName, nugetConfigFile.FullName, overwrite: true);
+                }
+                else
+                {
+                    // Ensure target directory exists
+                    Directory.CreateDirectory(workingDir.FullName);
+                    File.Copy(temporaryConfig.ConfigFile.FullName, nugetConfigFile.FullName, overwrite: true);
+                }
+                interactionService.DisplayMessage("package", "Created NuGet.config for the selected package channel.");
+            }
+
+            return;
+        }
+
+        // Update existing NuGet.config if any of the required sources are missing
+        var requiredSources = mappings
+            .Select(m => m.Source)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        XDocument doc;
+        await using (var stream = nugetConfigFile.OpenRead())
+        {
+            doc = XDocument.Load(stream);
+        }
+
+        var configuration = doc.Root ?? new XElement("configuration");
+        if (doc.Root is null)
+        {
+            doc.Add(configuration);
+        }
+
+        var packageSources = configuration.Element("packageSources");
+        if (packageSources is null)
+        {
+            packageSources = new XElement("packageSources");
+            configuration.Add(packageSources);
+        }
+
+        var existingAdds = packageSources.Elements("add").ToArray();
+        var existingValues = new HashSet<string>(existingAdds
+            .Select(e => (string?)e.Attribute("value") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+        var existingKeys = new HashSet<string>(existingAdds
+            .Select(e => (string?)e.Attribute("key") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+
+        var missingSources = requiredSources
+            .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
+            .ToArray();
+
+        if (missingSources.Length == 0)
+        {
+            return;
+        }
+
+        var updateChoice = await interactionService.PromptForSelectionAsync(
+            "Update NuGet.config to add missing package sources for the selected channel?",
+            [TemplatingStrings.Yes, TemplatingStrings.No],
+            c => c,
+            cancellationToken);
+
+        if (!string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
+        {
+            return;
+        }
+
+        foreach (var source in missingSources)
+        {
+            // Use the source URL as both key and value for consistency with our temporary config
+            var add = new XElement("add");
+            add.SetAttributeValue("key", source);
+            add.SetAttributeValue("value", source);
+            packageSources.Add(add);
+        }
+
+        // Save back the updated document
+        await using (var writeStream = nugetConfigFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            doc.Save(writeStream);
+        }
+
+        interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
     }
 }
 
