@@ -3,10 +3,11 @@
 
 namespace Aspire.Dashboard.Model;
 
-public record GridColumn(string Name, Width? DesktopWidth, Width? MobileWidth = null, Func<bool>? IsVisible = null)
+public record GridColumn(string Name, Width? DesktopWidth, Width? MobileWidth = null, Func<bool>? IsVisible = null);
+
+public record GridColumnView(string Name, Width Width, Func<bool>? IsVisible = null)
 {
-    public string? ResolvedDesktopWidth { get; set; }
-    public string? ResolvedMobileWidth { get; set; }
+    public string? ResolvedBrowserWidth { get; set; }
 }
 
 public enum WidthUnit

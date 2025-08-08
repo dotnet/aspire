@@ -8,7 +8,8 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public partial class GridColumnManager : ComponentBase, IDisposable
 {
-    private Dictionary<string, GridColumn> _columnById = null!;
+    private Dictionary<string, GridColumnView> _columnDesktopById = null!;
+    private Dictionary<string, GridColumnView> _columnMobileById = null!;
     private float _availableFraction = 1;
     private ViewportInformation? _gridViewportInformation;
 
@@ -30,29 +31,55 @@ public partial class GridColumnManager : ComponentBase, IDisposable
 
     protected override void OnParametersSet()
     {
-        var desktopTotal = Columns.Where(c => c.DesktopWidth is { Unit: WidthUnit.Fraction }).Sum(c => c.DesktopWidth!.Value.Value);
-        var mobileTotal = Columns.Where(c => c.MobileWidth is { Unit: WidthUnit.Fraction }).Sum(c => c.MobileWidth!.Value.Value);
-        foreach (var item in Columns)
+        _columnDesktopById = Columns.Where(c => c.DesktopWidth is not null)
+            .Select(c => new GridColumnView(c.Name, c.DesktopWidth!.Value, c.IsVisible))
+            .ToDictionary(c => c.Name, StringComparers.GridColumn);
+        _columnMobileById = Columns.Where(c => c.MobileWidth is not null)
+            .Select(c => new GridColumnView(c.Name, c.MobileWidth!.Value, c.IsVisible))
+            .ToDictionary(c => c.Name, StringComparers.GridColumn);
+
+        if (ViewportInformation.IsDesktop)
         {
-            item.ResolvedDesktopWidth = ResolveWidth(item.DesktopWidth, desktopTotal);
-            item.ResolvedMobileWidth = ResolveWidth(item.MobileWidth, mobileTotal);
+            SetWidths(_columnDesktopById);
         }
-
-        _columnById = Columns.ToDictionary(c => c.Name, StringComparers.GridColumn);
-
-        static string? ResolveWidth(Width? width, decimal fractionTotal)
+        else
         {
-            if (width is not { } w)
-            {
-                return null;
-            }
+            SetWidths(_columnMobileById);
+        }
+    }
 
-            return w.Unit switch
+    private static void SetWidths(Dictionary<string, GridColumnView> columnById)
+    {
+        var visibleColumns = columnById.Values.Where(c => c.IsVisible?.Invoke() is null or true).ToList();
+        var lastPercentageColumn = columnById.Values.Where(c => c.IsVisible?.Invoke() is null or true).LastOrDefault();
+        var fractionTotal = visibleColumns.Where(c => c.Width is { Unit: WidthUnit.Fraction }).Sum(c => c.Width.Value);
+
+        // We want percentages to add up to exactly 100% on the browser. This can be a problem with rounding.
+        // The fix is to use the remaining percentage value for the value percentage column.
+        var remainingPercentage = 100m;
+        for (var i = 0; i < visibleColumns.Count; i++)
+        {
+            var column = visibleColumns[i];
+
+            if (column.Width.Unit == WidthUnit.Pixels)
             {
-                WidthUnit.Fraction => $"{Math.Round(w.Value / fractionTotal * 100, 1)}%",
-                WidthUnit.Pixels => $"{w.Value}px",
-                _ => throw new NotSupportedException($"Unsupported width unit: {w.Unit}")
-            };
+                column.ResolvedBrowserWidth = $"{column.Width.Value}px";
+            }
+            else
+            {
+                var isLast = column == lastPercentageColumn;
+                if (isLast)
+                {
+                    column.ResolvedBrowserWidth = $"{remainingPercentage}%";
+                }
+                else
+                {
+                    var percentage = Math.Round(column.Width.Value / fractionTotal * 100, 1);
+                    column.ResolvedBrowserWidth = $"{percentage}%";
+
+                    remainingPercentage -= percentage;
+                }
+            }
         }
     }
 
@@ -93,32 +120,36 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     /// </summary>
     public bool IsColumnVisible(string columnName)
     {
-        return _columnById.TryGetValue(columnName, out var column) // Is a known column.
-            && GetColumnWidth(column) is not null                  // Has width for current viewport.
-            && column.IsVisible?.Invoke() is null or true;         // Is visible.
+        if (GetColumnView(columnName) is not { } column)
+        {
+            return false;
+        }
+
+        return column.IsVisible?.Invoke() is null or true;
     }
 
     public string? GetColumnWidth(string columnName)
     {
-        if (!_columnById.TryGetValue(columnName, out var column)) // Is a known column.
+        if (GetColumnView(columnName) is not { } column)
         {
             return null;
         }
 
-        var viewportInformation = _gridViewportInformation ?? DimensionManager.ViewportInformation;
-
-        return viewportInformation.IsDesktop
-            ? column.ResolvedDesktopWidth
-            : column.ResolvedMobileWidth;
+        return column.ResolvedBrowserWidth;
     }
 
-    private Width? GetColumnWidth(GridColumn column)
+    private GridColumnView? GetColumnView(string columnName)
     {
-        var viewportInformation = _gridViewportInformation ?? DimensionManager.ViewportInformation;
+        var columnsById = ViewportInformation.IsDesktop
+            ? _columnDesktopById
+            : _columnMobileById;
 
-        return viewportInformation.IsDesktop
-            ? column.DesktopWidth
-            : column.MobileWidth;
+        if (!columnsById.TryGetValue(columnName, out var column)) // Is a known column.
+        {
+            return null;
+        }
+
+        return column;
     }
 
     public void Dispose()
