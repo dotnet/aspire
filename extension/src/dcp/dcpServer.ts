@@ -7,11 +7,10 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import { startDotNetProgram } from '../debugger/languages/dotnet';
 import path from 'path';
-import { generateRunId } from '../debugger/common';
 import { unsupportedResourceType } from '../loc/strings';
 import { startPythonProgram } from '../debugger/languages/python';
 
-export class DcpServer {
+export default class DcpServer {
     public readonly info: DcpServerConnectionInfo;
     public readonly app: express.Express;
     private server: http.Server;
@@ -283,6 +282,10 @@ async function startAndGetDebugSession(debugConfig: vscode.DebugConfiguration): 
             resolve(undefined);
         }, 10000);
     });
+}
+
+export function generateRunId(): string {
+    return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 }
 
 export function createDcpServer(): Promise<DcpServer> {

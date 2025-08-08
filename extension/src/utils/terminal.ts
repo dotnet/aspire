@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 import { extensionContext } from '../extension';
-import { DcpServer } from '../dcp/dcpServer';
+import DcpServer from '../dcp/DcpServer';
 
 let hasRunGetAspireTerminal = false;
 export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {

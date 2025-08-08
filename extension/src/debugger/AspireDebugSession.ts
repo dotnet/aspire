@@ -1,13 +1,11 @@
 import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import { sendToAspireTerminal, getAspireTerminal } from "../utils/terminal";
-import { DcpServer } from "../dcp/dcpServer";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
-import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
-import { generateRunId } from "./common";
 import { startDotNetProgram } from "./languages/dotnet";
+import DcpServer from "../dcp/DcpServer";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -98,7 +96,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   async startAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} in directory: ${workingDirectory} with args: ${args.join(' ')}`);
-    const appHostDebugSession = await startDotNetProgram(projectFile, workingDirectory, args, environment, { debug, forceBuild: debug, runId: generateRunId(), dcpId: null });
+    const appHostDebugSession = await startDotNetProgram(projectFile, workingDirectory, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null });
 
     if (!appHostDebugSession) {
       return;

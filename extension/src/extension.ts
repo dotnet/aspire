@@ -11,9 +11,10 @@ import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
-import { AspireDebugAdapterDescriptorFactory } from './debugger/debugAdapterFactory';
+import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapterDescriptorFactory';
 import { runCommand } from './commands/run';
-import { AspireDebugSession } from './debugger/debugSession';
+import { AspireDebugSession } from './debugger/AspireDebugSession';
+import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
 
 export class AspireExtensionContext {
 	private _rpcServerInfo: RpcServerConnectionInfo | undefined;
@@ -95,30 +96,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	return {
 		rpcServerInfo: rpcServerInfo,
 	};
-}
-
-class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-	provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
-		return [
-			{
-				type: 'aspire',
-				request: 'launch',
-				name: 'Aspire: Launch',
-				program: '${workspaceFolder}'
-			}
-		];
-	}
-
-	resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
-		if (!config.type && !config.request && !config.name) {
-			config.type = 'aspire';
-			config.request = 'launch';
-			config.name = 'Aspire: Launch';
-			config.program = '${workspaceFolder}';
-		}
-
-		return config;
-	}
 }
 
 export function deactivate() {

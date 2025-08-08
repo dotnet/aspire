@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { AspireDebugSession } from './debugSession';
-import { createDcpServer } from '../dcp/dcpServer';
+import { AspireDebugSession } from './AspireDebugSession';
 import { extensionContext } from '../extension';
+import { createDcpServer } from '../dcp/DcpServer';
 
 export class AspireDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
   async createDebugAdapterDescriptor(session: vscode.DebugSession,  executable: vscode.DebugAdapterExecutable | undefined): Promise<vscode.DebugAdapterDescriptor> {
