@@ -38,13 +38,6 @@ export default class DcpServer {
             const app = express();
             app.use(express.json());
 
-            // Log all incoming requests
-            app.use((req: Request, res: Response, next: NextFunction) => {
-                console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-                console.log('Headers:', req.headers);
-                next();
-            });
-
             function requireHeaders(req: Request, res: Response, next: NextFunction): void {
                 const auth = req.header('Authorization');
                 const dcpId = req.header('microsoft-developer-dcp-instance-id');
@@ -67,7 +60,7 @@ export default class DcpServer {
             }
 
             app.get("/telemetry/enabled", (req: Request, res: Response) => {
-                res.json(false);
+                res.json({ is_enabled: true });
             });
 
             app.get('/info', (req: Request, res: Response) => {
@@ -261,27 +254,6 @@ export default class DcpServer {
             this.server.close();
         }
     }
-}
-
-async function startAndGetDebugSession(debugConfig: vscode.DebugConfiguration): Promise<vscode.DebugSession | undefined> {
-    return new Promise(async (resolve) => {
-        const disposable = vscode.debug.onDidStartDebugSession(session => {
-            if (session.name === debugConfig.name) {
-                disposable.dispose();
-                resolve(session);
-            }
-        });
-        const started = await vscode.debug.startDebugging(undefined, debugConfig);
-        if (!started) {
-            disposable.dispose();
-            resolve(undefined);
-        }
-        // Optionally add a timeout to avoid waiting forever
-        setTimeout(() => {
-            disposable.dispose();
-            resolve(undefined);
-        }, 10000);
-    });
 }
 
 export function generateRunId(): string {

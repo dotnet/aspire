@@ -10,6 +10,7 @@ import DcpServer from "../dcp/DcpServer";
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
   public readonly onDidSendMessage = this._onDidSendMessage.event;
+  private _messageSeq = 1;
 
   public readonly session: vscode.DebugSession;
   public readonly dcpServer: DcpServer;
@@ -25,20 +26,15 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   handleMessage(message: any): void {
     if (message.command === 'initialize') {
-      this._onDidSendMessage.fire({
+      this.sendEvent({
         type: 'event',
+        seq: this._messageSeq++,
         event: 'initialized',
         body: {}
       });
 
-      this._onDidSendMessage.fire({
-        type: 'response',
-        request_seq: message.seq,
-        success: true,
-        command: 'initialize',
-        body: {
-          supportsConfigurationDoneRequest: true
-        }
+      this.sendResponse(message, {
+        supportsConfigurationDoneRequest: true
       });
     }
     else if (message.command === 'launch') {
@@ -51,9 +47,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
 
-      this._onDidSendMessage.fire({
+      this.sendEvent({
         type: 'response',
         request_seq: message.seq,
+        seq: this._messageSeq++,
         success: true,
         command: 'launch',
         body: {}
@@ -63,9 +60,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       const terminal = getAspireTerminal();
       terminal.dispose();
 
-      this._onDidSendMessage.fire({
+      this.sendEvent({
         type: 'response',
         request_seq: message.seq,
+        seq: this._messageSeq++,
         success: true,
         command: message.command,
         body: {}
@@ -73,9 +71,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
     else if (message.command) {
       // Respond to all other requests with a generic success
-      this._onDidSendMessage.fire({
+      this.sendEvent({
         type: 'response',
         request_seq: message.seq,
+        seq: this._messageSeq++,
         success: true,
         command: message.command,
         body: {}
@@ -84,7 +83,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   sendStoppedEvent(reason: string = 'stopped'): void {
-    this._onDidSendMessage.fire({
+    this.sendEvent({
       type: 'event',
       event: 'stopped',
       body: {
@@ -158,10 +157,38 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   dispose(): void {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
+    vscode.debug.stopDebugging(this.session);
 
     const terminal = getAspireTerminal().dispose();
     this.dcpServer.dispose();
 
     this._disposables.forEach(disposable => disposable.dispose());
+  }
+
+  private sendResponse(request: any, body: any = {}) {
+    this._onDidSendMessage.fire({
+      type: 'response',
+      seq: this._messageSeq++,
+      request_seq: request.seq,
+      success: true,
+      command: request.command,
+      body
+    });
+  }
+
+  private sendEvent(event: any) {
+    this._onDidSendMessage.fire(event);
+  }
+
+  private sendMessage(message: string) {
+    this.sendEvent({
+        type: 'event',
+        seq: this._messageSeq++,
+        event: 'output',
+        body: {
+          category: 'stdout',
+          output: `${message}\n`
+        }
+      });
   }
 }
