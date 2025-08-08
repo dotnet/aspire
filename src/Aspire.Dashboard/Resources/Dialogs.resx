@@ -305,7 +305,7 @@
     <value>Close</value>
   </data>
   <data name="ConnectionErrorDialogTitle" xml:space="preserve">
-    <value>Connection Error</value>
+    <value>Connection error</value>
   </data>
   <data name="ConnectionErrorDialogMessage" xml:space="preserve">
     <value>Unable to connect to the app host. Please ensure the app host is running and try again.</value>

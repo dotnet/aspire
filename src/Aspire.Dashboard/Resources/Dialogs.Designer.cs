@@ -61,6 +61,42 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string ConnectionErrorDialogCancelButton {
+            get {
+                return ResourceManager.GetString("ConnectionErrorDialogCancelButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to connect to the app host. Please ensure the app host is running and try again..
+        /// </summary>
+        public static string ConnectionErrorDialogMessage {
+            get {
+                return ResourceManager.GetString("ConnectionErrorDialogMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retry.
+        /// </summary>
+        public static string ConnectionErrorDialogRetryButton {
+            get {
+                return ResourceManager.GetString("ConnectionErrorDialogRetryButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connection error.
+        /// </summary>
+        public static string ConnectionErrorDialogTitle {
+            get {
+                return ResourceManager.GetString("ConnectionErrorDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
         public static string DialogCloseButtonText {
@@ -606,42 +642,6 @@ namespace Aspire.Dashboard.Resources {
         public static string TextVisualizerSelectFormatType {
             get {
                 return ResourceManager.GetString("TextVisualizerSelectFormatType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cancel.
-        /// </summary>
-        public static string ConnectionErrorDialogCancelButton {
-            get {
-                return ResourceManager.GetString("ConnectionErrorDialogCancelButton", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to connect to the app host. Please ensure the app host is running and try again.
-        /// </summary>
-        public static string ConnectionErrorDialogMessage {
-            get {
-                return ResourceManager.GetString("ConnectionErrorDialogMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Retry.
-        /// </summary>
-        public static string ConnectionErrorDialogRetryButton {
-            get {
-                return ResourceManager.GetString("ConnectionErrorDialogRetryButton", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Connection Error.
-        /// </summary>
-        public static string ConnectionErrorDialogTitle {
-            get {
-                return ResourceManager.GetString("ConnectionErrorDialogTitle", resourceCulture);
             }
         }
     }

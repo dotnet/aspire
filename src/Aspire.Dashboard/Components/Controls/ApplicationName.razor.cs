@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Components.Dialogs;
-using Grpc.Core;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -47,49 +45,24 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
             {
                 await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
             }
-            catch (RpcException)
+            catch
             {
-                // Connection to app host failed, show connection error dialog
-                await ShowConnectionErrorDialogAsync();
+                // Ignore exceptions that occur during connection. Other code handles this error.
+                _pageTitle = GetApplicationName();
             }
-            catch (OperationCanceledException)
-            {
-                // Component was disposed while waiting for connection
-                return;
-            }
-            catch (Exception)
-            {
-                // Other connection-related errors, show connection error dialog
-                await ShowConnectionErrorDialogAsync();
-            }
-        }
-    }
-
-    private async Task ShowConnectionErrorDialogAsync()
-    {
-        var parameters = new DialogParameters
-        {
-            Title = DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogTitle)],
-            PrimaryAction = null,
-            SecondaryAction = null,
-            TrapFocus = true,
-            Modal = true,
-            Alignment = HorizontalAlignment.Center,
-            Width = "400px",
-            Height = "auto"
-        };
-
-        var dialogReference = await DialogService.ShowDialogAsync<ConnectionErrorDialog>(parameters);
-        var result = await dialogReference.Result;
-
-        if (result?.Data is ConnectionErrorDialog.ConnectionErrorDialogResult.Retry)
-        {
-            // Refresh the dashboard by navigating to root
-            NavigationManager.NavigateTo("/", forceLoad: true);
         }
     }
 
     protected override void OnParametersSet()
+    {
+        var applicationName = GetApplicationName();
+
+        _pageTitle = string.IsNullOrEmpty(AdditionalText)
+            ? applicationName
+            : $"{applicationName} ({AdditionalText})";
+    }
+
+    private string GetApplicationName()
     {
         string applicationName;
 
@@ -102,9 +75,7 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
             applicationName = DashboardClient.ApplicationName;
         }
 
-        _pageTitle = string.IsNullOrEmpty(AdditionalText)
-            ? applicationName
-            : $"{applicationName} ({AdditionalText})";
+        return applicationName;
     }
 
     public void Dispose()
