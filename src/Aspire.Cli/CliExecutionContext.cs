@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli;
 
-internal class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory)
+internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory)
 {
     public DirectoryInfo WorkingDirectory { get; } = workingDirectory;
     public DirectoryInfo HivesDirectory { get; } = hivesDirectory;

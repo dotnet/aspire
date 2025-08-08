@@ -110,6 +110,7 @@ internal sealed class TemporaryNuGetConfig : IDisposable
                 if (_configFile.Exists)
                 {
                     _configFile.Delete();
+                    _configFile.Directory?.Delete(true);
                 }
             }
             catch
