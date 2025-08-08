@@ -197,7 +197,8 @@ public class Program
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features);
+        var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features, packagingService);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)

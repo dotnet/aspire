@@ -10,7 +10,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
-using Semver;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Templating;
@@ -351,21 +350,31 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     {
         _ = parseResult;
         var channels = await packagingService.GetChannelsAsync(cancellationToken);
-        var channel = channels.Single(c => c.Name == "daily"); // Hardcoded for testing.
 
-        var candidatePackages = await interactionService.ShowStatusAsync(
-            TemplatingStrings.SearchingForAvailableTemplateVersions,
-            () => channel.GetTemplatePackagesAsync(executionContext.WorkingDirectory, cancellationToken)
-            );
+        var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
+        {
+            var results = new List<(NuGetPackage Package, PackageChannel Channel)>();
+            var packagesFromChannelsLock = new object();
 
-        if (!candidatePackages.Any())
+            await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
+            {
+                var templatePackages = await channel.GetTemplatePackagesAsync(executionContext.WorkingDirectory, ct);
+                lock (packagesFromChannelsLock)
+                {
+                    results.AddRange(templatePackages.Select(p => (p, channel)));
+                }
+            });
+
+            return results;
+        });
+
+        if (!packagesFromChannels.Any())
         {
             throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
         }
 
-        var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
-        var selectedPackage = await prompter.PromptForTemplatesVersionAsync(orderedCandidatePackages, cancellationToken);
-        return (selectedPackage, channel);
+        var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(packagesFromChannels, cancellationToken);
+        return selectedPackageFromChannel;
     }
 }
 

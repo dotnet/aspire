@@ -8,11 +8,11 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
-using Semver;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -127,7 +127,7 @@ internal sealed class NewCommand : BaseCommand
 
 internal interface INewCommandPrompter
 {
-    Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken);
+    Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken);
     Task<ITemplate> PromptForTemplateAsync(ITemplate[] validTemplates, CancellationToken cancellationToken);
     Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken);
     Task<string> PromptForOutputPath(string v, CancellationToken cancellationToken);
@@ -135,58 +135,9 @@ internal interface INewCommandPrompter
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
-    public virtual async Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    public virtual Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
-        var packagesGroupedByReleaseStatus = candidatePackages.GroupBy(p => SemVersion.Parse(p.Version).IsPrerelease ? "Prerelease" : "Released");
-        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
-        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
-
-        var selections = new List<(string SelectionText, Func<Task<NuGetPackage>> PackageSelector)>();
-
-        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<NuGetPackage>())
-        {
-            selections.Add(($"{releasedPackage.Version} ({releasedPackage.Source})", () => Task.FromResult(releasedPackage!)));
-        }
-
-        if (releasedGroup is not null && prereleaseGroup is not null)
-        {
-            // If we have prerelease packages (and there are released packages) we
-            // want to show a sub-menu option which we will use to prompt the user.
-            // To make this work the first prompt returns a function which is invoke
-            // which will either return the package or trigger another prompt for
-            // sub-packages. This is the sub-prompt logic.
-            selections.Add((NewCommandStrings.UsePrereleaseTemplates, async () =>
-            {
-                return await interactionService.PromptForSelectionAsync(
-                     NewCommandStrings.SelectATemplateVersion,
-                     prereleaseGroup,
-                     (p) => $"{p.Version} ({p.Source})",
-                     cancellationToken
-                     );
-            }
-            ));
-        }
-        else if (prereleaseGroup is not null)
-        {
-            // Fallback behavior if we happen to have NuGet feeds configured such
-            // that we only have access to prerelease template packages - in this
-            // case we just want to display them rather than having a special
-            // expander menu.
-            foreach (var prereleasePackage in prereleaseGroup)
-            {
-                selections.Add(($"{prereleasePackage.Version} ({prereleasePackage.Source})", () => Task.FromResult(prereleasePackage)));
-            }
-        }
-
-        var selection = await interactionService.PromptForSelectionAsync(
-                    NewCommandStrings.SelectATemplateVersion,
-                    selections,
-                    s => s.SelectionText,
-                    cancellationToken
-                    );
-
-        var package = await selection.PackageSelector();
-        return package;
+        return Task.FromResult(candidatePackages.First());
     }
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
