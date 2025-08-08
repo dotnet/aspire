@@ -54,30 +54,30 @@ public class LogTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetResources();
-        Assert.Collection(applications,
-            app =>
+        var resources = repository.GetResources();
+        Assert.Collection(resources,
+            resource =>
             {
-                Assert.Equal("TestService", app.ResourceName);
-                Assert.Equal("TestId", app.InstanceId);
+                Assert.Equal("TestService", resource.ResourceName);
+                Assert.Equal("TestId", resource.InstanceId);
             });
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = applications[0].ResourceKey,
+            ResourceKey = resources[0].ResourceKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
         });
         Assert.Collection(logs.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("546573745370616e4964", app.SpanId);
-                Assert.Equal("5465737454726163654964", app.TraceId);
-                Assert.Equal("Test {Log}", app.OriginalFormat);
-                Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.Name);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("546573745370616e4964", resource.SpanId);
+                Assert.Equal("5465737454726163654964", resource.TraceId);
+                Assert.Equal("Test {Log}", resource.OriginalFormat);
+                Assert.Equal("Test Value!", resource.Message);
+                Assert.Equal("TestLogger", resource.Scope.Name);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -85,7 +85,7 @@ public class LogTests
                     });
             });
 
-        var propertyKeys = repository.GetLogPropertyKeys(applications[0].ResourceKey)!;
+        var propertyKeys = repository.GetLogPropertyKeys(resources[0].ResourceKey)!;
         Assert.Collection(propertyKeys,
             s => Assert.Equal("Log", s));
     }
@@ -125,9 +125,9 @@ public class LogTests
             Filters = []
         });
         Assert.Collection(logs.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("", app.Message);
+                Assert.Equal("", resource.Message);
             });
     }
 
@@ -477,17 +477,17 @@ public class LogTests
         Assert.Equal(0, addContext1.FailureCount);
         await newResourcesTcs.Task.DefaultTimeout();
 
-        var applications = repository.GetResources();
-        Assert.Collection(applications,
-            app =>
+        var resources = repository.GetResources();
+        Assert.Collection(resources,
+            resource =>
             {
-                Assert.Equal("TestService", app.ResourceName);
-                Assert.Equal("TestId", app.InstanceId);
+                Assert.Equal("TestService", resource.ResourceName);
+                Assert.Equal("TestId", resource.InstanceId);
             });
 
         // Act 2
         var newLogsTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        repository.OnNewLogs(applications[0].ResourceKey, SubscriptionType.Read, () =>
+        repository.OnNewLogs(resources[0].ResourceKey, SubscriptionType.Read, () =>
         {
             newLogsTcs.TrySetResult();
             return Task.CompletedTask;
@@ -517,7 +517,7 @@ public class LogTests
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = applications[0].ResourceKey,
+            ResourceKey = resources[0].ResourceKey,
             StartIndex = 0,
             Count = 1,
             Filters = []
@@ -649,27 +649,27 @@ public class LogTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetResources();
-        Assert.Collection(applications,
-            app =>
+        var resources = repository.GetResources();
+        Assert.Collection(resources,
+            resource =>
             {
-                Assert.Equal("TestService", app.ResourceName);
-                Assert.Equal("TestId", app.InstanceId);
+                Assert.Equal("TestService", resource.ResourceName);
+                Assert.Equal("TestId", resource.InstanceId);
             });
 
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = applications[0].ResourceKey,
+            ResourceKey = resources[0].ResourceKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
         });
         Assert.Collection(logs.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("Test {Log}", app.OriginalFormat);
-                Assert.Equal("0123456789012345", app.Message);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("Test {Log}", resource.OriginalFormat);
+                Assert.Equal("0123456789012345", resource.Message);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("Key0", p.Key);
@@ -861,35 +861,35 @@ public class LogTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetResources();
-        Assert.Collection(applications,
-            app =>
+        var resources = repository.GetResources();
+        Assert.Collection(resources,
+            resource =>
             {
-                Assert.Equal("App1", app.ResourceName);
-                Assert.Equal("computer-name", app.InstanceId);
+                Assert.Equal("App1", resource.ResourceName);
+                Assert.Equal("computer-name", resource.InstanceId);
             },
-            app =>
+            resource =>
             {
-                Assert.Equal("App2", app.ResourceName);
-                Assert.Equal("computer-name", app.InstanceId);
+                Assert.Equal("App2", resource.ResourceName);
+                Assert.Equal("computer-name", resource.InstanceId);
             });
 
         var logs1 = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = applications[0].ResourceKey,
+            ResourceKey = resources[0].ResourceKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
         });
         Assert.Collection(logs1.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("546573745370616e4964", app.SpanId);
-                Assert.Equal("5465737454726163654964", app.TraceId);
-                Assert.Equal("Test {Log}", app.OriginalFormat);
-                Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.Name);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("546573745370616e4964", resource.SpanId);
+                Assert.Equal("5465737454726163654964", resource.TraceId);
+                Assert.Equal("Test {Log}", resource.OriginalFormat);
+                Assert.Equal("Test Value!", resource.Message);
+                Assert.Equal("TestLogger", resource.Scope.Name);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -899,20 +899,20 @@ public class LogTests
 
         var logs2 = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = applications[1].ResourceKey,
+            ResourceKey = resources[1].ResourceKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
         });
         Assert.Collection(logs2.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("546573745370616e4964", app.SpanId);
-                Assert.Equal("5465737454726163654964", app.TraceId);
-                Assert.Equal("Test {Log}", app.OriginalFormat);
-                Assert.Equal("Test Value!", app.Message);
-                Assert.Equal("TestLogger", app.Scope.Name);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("546573745370616e4964", resource.SpanId);
+                Assert.Equal("5465737454726163654964", resource.TraceId);
+                Assert.Equal("Test {Log}", resource.OriginalFormat);
+                Assert.Equal("Test Value!", resource.Message);
+                Assert.Equal("TestLogger", resource.Scope.Name);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -933,7 +933,7 @@ public class LogTests
         {
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "123"),
+                Resource = CreateResource(name: "resource1", instanceId: "123"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -945,7 +945,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "456"),
+                Resource = CreateResource(name: "resource1", instanceId: "456"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -957,7 +957,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app2"),
+                Resource = CreateResource(name: "resource2"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -972,31 +972,31 @@ public class LogTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var appKey = new ResourceKey("app1", InstanceId: null);
+        var resourceKey = new ResourceKey("resource1", InstanceId: null);
         var logs = repository.GetLogs(new GetLogsContext
         {
-            ResourceKey = appKey,
+            ResourceKey = resourceKey,
             StartIndex = 0,
             Count = 10,
             Filters = []
         });
         Assert.Collection(logs.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal("message-1", app.Message);
-                Assert.Equal("TestLogger", app.Scope.Name);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("message-1", resource.Message);
+                Assert.Equal("TestLogger", resource.Scope.Name);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("key-1", p.Key);
                         Assert.Equal("value-1", p.Value);
                     });
             },
-            app =>
+            resource =>
             {
-                Assert.Equal("message-2", app.Message);
-                Assert.Equal("TestLogger", app.Scope.Name);
-                Assert.Collection(app.Attributes,
+                Assert.Equal("message-2", resource.Message);
+                Assert.Equal("TestLogger", resource.Scope.Name);
+                Assert.Collection(resource.Attributes,
                     p =>
                     {
                         Assert.Equal("key-2", p.Key);
@@ -1004,7 +1004,7 @@ public class LogTests
                     });
             });
 
-        var propertyKeys = repository.GetLogPropertyKeys(appKey)!;
+        var propertyKeys = repository.GetLogPropertyKeys(resourceKey)!;
         Assert.Collection(propertyKeys,
             s => Assert.Equal("key-1", s),
             s => Assert.Equal("key-2", s));
@@ -1021,7 +1021,7 @@ public class LogTests
         {
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "123"),
+                Resource = CreateResource(name: "resource1", instanceId: "123"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1033,7 +1033,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "456"),
+                Resource = CreateResource(name: "resource1", instanceId: "456"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1045,7 +1045,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app2"),
+                Resource = CreateResource(name: "resource2"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1086,7 +1086,7 @@ public class LogTests
         {
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "123"),
+                Resource = CreateResource(name: "resource1", instanceId: "123"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1098,7 +1098,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "456"),
+                Resource = CreateResource(name: "resource1", instanceId: "456"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1110,7 +1110,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app2"),
+                Resource = CreateResource(name: "resource2"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1123,7 +1123,7 @@ public class LogTests
         });
 
         // Act
-        repository.ClearStructuredLogs(new ResourceKey("app1", "123"));
+        repository.ClearStructuredLogs(new ResourceKey("resource1", "123"));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
@@ -1137,15 +1137,15 @@ public class LogTests
         });
         Assert.Equal(2, logs.TotalItemCount);
         Assert.Collection(logs.Items,
-                    app =>
+                    resource =>
                     {
-                        Assert.Equal("message-2", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.Name);
+                        Assert.Equal("message-2", resource.Message);
+                        Assert.Equal("TestLogger", resource.Scope.Name);
                     },
-                    app =>
+                    resource =>
                     {
-                        Assert.Equal("message-3", app.Message);
-                        Assert.Equal("TestLogger", app.Scope.Name);
+                        Assert.Equal("message-3", resource.Message);
+                        Assert.Equal("TestLogger", resource.Scope.Name);
                     });
     }
 
@@ -1160,7 +1160,7 @@ public class LogTests
         {
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "123"),
+                Resource = CreateResource(name: "resource1", instanceId: "123"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1172,7 +1172,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app1", instanceId: "456"),
+                Resource = CreateResource(name: "resource1", instanceId: "456"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1184,7 +1184,7 @@ public class LogTests
             },
             new ResourceLogs
             {
-                Resource = CreateResource(name: "app2"),
+                Resource = CreateResource(name: "resource2"),
                 ScopeLogs =
                 {
                     new ScopeLogs
@@ -1197,7 +1197,7 @@ public class LogTests
         });
 
         // Act
-        repository.ClearStructuredLogs(new ResourceKey("app1", null));
+        repository.ClearStructuredLogs(new ResourceKey("resource1", null));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
@@ -1250,9 +1250,9 @@ public class LogTests
             Filters = []
         });
         Assert.Collection(logs.Items,
-            app =>
+            resource =>
             {
-                Assert.Equal(s_testTime.AddMinutes(1), app.TimeStamp);
+                Assert.Equal(s_testTime.AddMinutes(1), resource.TimeStamp);
             });
     }
 }

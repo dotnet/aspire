@@ -45,9 +45,9 @@ public class TelemetryRepositoryTests
         AddMetric();
         AddTrace();
         Assert.Single(repository.GetLogs(new GetLogsContext { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0 }).Items);
-        var application = repository.GetResource(resourceKey);
-        Assert.NotNull(application);
-        Assert.NotEmpty(application.GetInstrumentsSummary());
+        var resource = repository.GetResource(resourceKey);
+        Assert.NotNull(resource);
+        Assert.NotEmpty(resource.GetInstrumentsSummary());
         Assert.Single(repository.GetTraces(new GetTracesRequest { ResourceKey = resourceKey, Count = 100, Filters = [], StartIndex = 0, FilterText = string.Empty }).PagedResult.Items);
 
         void AddLog()

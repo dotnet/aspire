@@ -106,7 +106,7 @@ public sealed class SpanWaterfallViewModelTests
 
     [Theory]
     [InlineData("1234", true)]  // Matches span ID
-    [InlineData("app1", true)]  // Matches application name
+    [InlineData("app1", true)]  // Matches resource name
     [InlineData("Test", true)]  // Matches display summary
     [InlineData("peer-service", true)]  // Matches uninstrumented peer
     [InlineData("nonexistent", false)]  // Doesn't match anything
