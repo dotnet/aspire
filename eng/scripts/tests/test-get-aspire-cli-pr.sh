@@ -175,6 +175,46 @@ test_large_run_id() {
     run_test "Large run ID format is accepted" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --run-id $large_run_id --install-path $test_install_path --dry-run" 0 "workflow run ID: $large_run_id" ""
 }
 
+# Test: --hive-only flag functionality
+test_hive_only_flag() {
+    local test_install_path="$TEST_BASE_DIR/test-install-hive-only"
+    run_test "Hive-only flag skips CLI download" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --install-path $test_install_path --hive-only --dry-run --verbose" 0 "Skipping CLI download due to --hive-only flag" ""
+}
+
+# Test: --hive-only flag with run-id
+test_hive_only_with_run_id() {
+    local test_install_path="$TEST_BASE_DIR/test-install-hive-only-run-id"
+    run_test "Hive-only flag with run ID skips CLI download" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --run-id $TEST_RUN_ID --install-path $test_install_path --hive-only --dry-run --verbose" 0 "Skipping CLI download due to --hive-only flag" ""
+}
+
+# Test: --hive-only flag skips CLI installation
+test_hive_only_skips_cli_installation() {
+    local test_install_path="$TEST_BASE_DIR/test-install-hive-only-install"
+    run_test "Hive-only flag skips CLI installation" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --install-path $test_install_path --hive-only --dry-run --verbose" 0 "Skipping CLI installation due to --hive-only flag" ""
+}
+
+# Test: --hive-only flag still downloads NuGet packages
+test_hive_only_downloads_nugets() {
+    local test_install_path="$TEST_BASE_DIR/test-install-hive-only-nugets"
+    run_test "Hive-only flag still downloads NuGet packages" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --install-path $test_install_path --hive-only --dry-run --verbose" 0 "built-nugets" ""
+}
+
+# Test: --hive-only flag with other options
+test_hive_only_with_options() {
+    local test_install_path="$TEST_BASE_DIR/test-install-hive-only-options"
+    run_test "Hive-only flag works with other options" "$SCRIPT_UNDER_TEST $TEST_PR_NUMBER --install-path $test_install_path --hive-only --verbose --keep-archive --dry-run" 0 "Skipping CLI download due to --hive-only flag" ""
+}
+
+# Test: --hive-only flag appears in help
+test_hive_only_in_help() {
+    run_test "Hive-only option appears in help" "$SCRIPT_UNDER_TEST --help" 0 "Only install NuGet packages to the hive, skip CLI download" ""
+}
+
+# Test: --hive-only example appears in help
+test_hive_only_example_in_help() {
+    run_test "Hive-only example appears in help" "$SCRIPT_UNDER_TEST --help" 0 "./get-aspire-cli-pr.sh 1234 --hive-only" ""
+}
+
 # Main test execution function
 run_all_tests() {
     echo "Starting tests for get-aspire-cli-pr.sh"
@@ -220,6 +260,15 @@ run_all_tests() {
     test_zero_pr_number
     test_negative_run_id
     test_large_run_id
+
+    # Hive-only functionality tests
+    test_hive_only_flag
+    test_hive_only_with_run_id
+    test_hive_only_skips_cli_installation
+    test_hive_only_downloads_nugets
+    test_hive_only_with_options
+    test_hive_only_in_help
+    test_hive_only_example_in_help
 
     show_test_summary
 }

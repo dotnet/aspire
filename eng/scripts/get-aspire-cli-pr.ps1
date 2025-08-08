@@ -30,6 +30,9 @@
 .PARAMETER Architecture
     Override architecture detection (x64, x86, arm64)
 
+.PARAMETER HiveOnly
+    Only install NuGet packages to the hive, skip CLI download
+
 .PARAMETER KeepArchive
     Keep downloaded archive files after installation
 
@@ -47,6 +50,9 @@
 
 .EXAMPLE
     .\get-aspire-cli-pr.ps1 1234 -OS linux -Architecture arm64 -Verbose
+
+.EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -HiveOnly
 
 .EXAMPLE
     .\get-aspire-cli-pr.ps1 1234 -WhatIf
@@ -76,6 +82,9 @@ param(
     [Parameter(HelpMessage = "Override architecture detection")]
     [ValidateSet("", "x64", "x86", "arm64")]
     [string]$Architecture = "",
+
+    [Parameter(HelpMessage = "Only install NuGet packages to the hive, skip CLI download")]
+    [switch]$HiveOnly,
 
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
@@ -874,18 +883,28 @@ function Start-DownloadAndInstall {
     $cliBinDir = Join-Path $resolvedInstallPrefix "bin"
     $nugetHiveDir = Join-Path $resolvedInstallPrefix "hives" "pr-$PRNumber" "packages"
 
-    # First, download both artifacts
+    # First, download artifacts
     Write-Message "Downloading artifacts..." -Level Info
-    $cliDownloadDir = Get-AspireCliFromArtifact -RunId $runId -TempDir $TempDir
+    if ($HiveOnly) {
+        Write-Message "Skipping CLI download due to -HiveOnly flag" -Level Info
+    } else {
+        $cliDownloadDir = Get-AspireCliFromArtifact -RunId $runId -TempDir $TempDir
+    }
     $nugetDownloadDir = Get-BuiltNugets -RunId $runId -TempDir $TempDir
 
-    # Then, install both artifacts
+    # Then, install artifacts
     Write-Message "Installing artifacts..." -Level Info
-    Install-AspireCliFromDownload -DownloadDir $cliDownloadDir -CliBinDir $cliBinDir
+    if ($HiveOnly) {
+        Write-Message "Skipping CLI installation due to -HiveOnly flag" -Level Info
+    } else {
+        Install-AspireCliFromDownload -DownloadDir $cliDownloadDir -CliBinDir $cliBinDir
+    }
     Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
 
     # Update PATH environment variables
-    Update-PathEnvironment -CliBinDir $cliBinDir
+    if (-not $HiveOnly) {
+        Update-PathEnvironment -CliBinDir $cliBinDir
+    }
 }
 
 # =============================================================================

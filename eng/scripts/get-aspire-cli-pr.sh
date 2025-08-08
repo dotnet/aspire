@@ -25,6 +25,7 @@ SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
+HIVE_ONLY=false
 HOST_OS="unset"
 
 # Function to show help
@@ -52,6 +53,7 @@ USAGE:
                                 NuGet packages will be installed to \$PATH/hive/pr-PR_NUMBER
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
     --arch ARCH                 Override architecture detection (x64, x86, arm64)
+    --hive-only                 Only install NuGet packages to the hive, skip CLI download
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -62,6 +64,7 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --run-id 12345678
     ./get-aspire-cli-pr.sh 1234 --install-path ~/my-aspire
     ./get-aspire-cli-pr.sh 1234 --os linux --arch arm64 --verbose
+    ./get-aspire-cli-pr.sh 1234 --hive-only
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
 REQUIREMENTS:
@@ -151,6 +154,10 @@ parse_args() {
                 ;;
             -k|--keep-archive)
                 KEEP_ARCHIVE=true
+                shift
+                ;;
+            --hive-only)
+                HIVE_ONLY=true
                 shift
                 ;;
             --dry-run)
@@ -754,8 +761,12 @@ download_and_install_from_pr() {
     # First, download both artifacts
     say_info "Downloading artifacts..."
     local cli_archive_path nuget_download_dir
-    if ! cli_archive_path=$(download_aspire_cli "$run_id" "$temp_dir"); then
-        return 1
+    if [[ "$HIVE_ONLY" == true ]]; then
+        say_info "Skipping CLI download due to --hive-only flag"
+    else
+        if ! cli_archive_path=$(download_aspire_cli "$run_id" "$temp_dir"); then
+            return 1
+        fi
     fi
 
     if ! nuget_download_dir=$(download_built_nugets "$run_id" "$temp_dir"); then
@@ -765,8 +776,12 @@ download_and_install_from_pr() {
 
     # Then, install both artifacts
     say_info "Installing artifacts..."
-    if ! install_aspire_cli "$cli_archive_path" "$cli_install_dir"; then
-        return 1
+    if [[ "$HIVE_ONLY" == true ]]; then
+        say_info "Skipping CLI installation due to --hive-only flag"
+    else
+        if ! install_aspire_cli "$cli_archive_path" "$cli_install_dir"; then
+            return 1
+        fi
     fi
 
     if ! install_built_nugets "$nuget_download_dir" "$nuget_hive_dir"; then
@@ -813,6 +828,9 @@ else
 fi
 
 # Set trap for cleanup on exit
+cleanup() {
+    remove_temp_dir "$temp_dir"
+}
 trap cleanup EXIT
 
 # Download and install from PR or workflow run ID
@@ -821,13 +839,15 @@ if ! download_and_install_from_pr "$temp_dir"; then
 fi
 
 # Add to shell profile for persistent PATH
-add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
+if [[ "$HIVE_ONLY" != true ]]; then
+    add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
 
-# Add to current session PATH, if the path is not already in PATH
-if [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would add $cli_install_dir to PATH"
-    else
-        export PATH="$cli_install_dir:$PATH"
+    # Add to current session PATH, if the path is not already in PATH
+    if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would add $cli_install_dir to PATH"
+        else
+            export PATH="$cli_install_dir:$PATH"
+        fi
     fi
 fi
