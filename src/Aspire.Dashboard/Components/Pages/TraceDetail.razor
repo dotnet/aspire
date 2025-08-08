@@ -108,7 +108,7 @@
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
                                             RowSize="DataGridRowSize.Small"
-                                            OverscanCount="100"
+                                            OverscanCount="@DashboardUIHelpers.DefaultDataGridOverscanCount"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"

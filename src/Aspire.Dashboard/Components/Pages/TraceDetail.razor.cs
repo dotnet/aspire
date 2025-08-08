@@ -85,7 +85,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: Width.Fraction(6), MobileWidth: Width.Fraction(6)),
             new GridColumn(Name: TicksColumn, DesktopWidth: Width.Fraction(12), MobileWidth: Width.Fraction(12)),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Pixels(120), MobileWidth: null)
+            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Pixels(100), MobileWidth: null)
         ];
 
         foreach (var resolver in OutgoingPeerResolvers)

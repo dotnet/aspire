@@ -382,23 +382,23 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         await Task.Yield();
         if (_applicationChanged)
         {
-            //await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
             _applicationChanged = false;
         }
         if (firstRender)
         {
-            //await JS.InvokeVoidAsync("initializeContinuousScroll");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
             DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
     private void OnBrowserResize(object? o, EventArgs args)
     {
-        //InvokeAsync(async () =>
-        //{
-        //    await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-        //    await JS.InvokeVoidAsync("initializeContinuousScroll");
-        //});
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     private string? PauseText => PauseManager.AreStructuredLogsPaused(out var startTime)

@@ -14,6 +14,8 @@ internal static class DashboardUIHelpers
 {
     public const string MessageBarSection = "MessagesTop";
 
+    public const int DefaultDataGridOverscanCount = 20;
+
     // The initial data fetch for a FluentDataGrid doesn't include a count of items to return.
     // The data grid doesn't specify a count because it doesn't know how many items fit in the UI.
     // Once it knows the height of items and the height of the grid then it specifies the desired item count
