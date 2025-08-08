@@ -72,6 +72,13 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
+        if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
+        {
+            var startDebugOption = new Option<bool>("--start-debug-session");
+            startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
+            Options.Add(startDebugOption);
+        }
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -113,11 +120,7 @@ internal sealed class RunCommand : BaseCommand
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
             var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
-            var startDebugSession = isExtensionHost && string.Equals(await _interactionService.PromptForSelectionAsync(
-                RunCommandStrings.PromptForDebugging,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
+            var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
 
             var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 

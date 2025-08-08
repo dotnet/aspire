@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 
-import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
 import { RpcServerConnectionInfo, createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
@@ -15,6 +14,7 @@ import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
 import { createDcpServer, DcpServer } from './dcp/dcpServer';
 import { AspireDebugAdapterDescriptorFactory } from './dcp/debugAdapterFactory';
 import { createDebugAdapterTracker as createDebugAdapterLogForwarder } from './debugger/common';
+import { runCommand } from './commands/run';
 
 export class AspireExtensionContext {
 	private _rpcServerInfo: RpcServerConnectionInfo | undefined;
@@ -71,13 +71,45 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+	context.subscriptions.push(
+		vscode.debug.registerDebugConfigurationProvider(
+			'aspire',
+			new AspireDebugConfigurationProvider(),
+			vscode.DebugConfigurationProviderTriggerKind.Dynamic
+		)
+	);
+
 	createDebugAdapterLogForwarder();
-	
+
 
 	// Return exported API for tests or other extensions
 	return {
 		rpcServerInfo: rpcServerInfo,
 	};
+}
+
+class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+	provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration[]> {
+		return [
+			{
+				type: 'aspire',
+				request: 'launch',
+				name: 'Aspire: Launch',
+				program: '${workspaceFolder}'
+			}
+		];
+	}
+
+	resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
+		if (!config.type && !config.request && !config.name) {
+			config.type = 'aspire';
+			config.request = 'launch';
+			config.name = 'Aspire: Launch';
+			config.program = '${workspaceFolder}';
+		}
+
+		return config;
+	}
 }
 
 export function deactivate() {

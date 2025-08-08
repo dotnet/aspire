@@ -168,20 +168,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Do you want to start a debugging session?.
-        /// </summary>
-        public static string PromptForDebugging {
-            get {
-                return ResourceManager.GetString("PromptForDebugging", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Resource.
         /// </summary>
         public static string Resource {
             get {
                 return ResourceManager.GetString("Resource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Whether to start a debug session during the run..
+        /// </summary>
+        public static string StartDebugSessionArgumentDescription {
+            get {
+                return ResourceManager.GetString("StartDebugSessionArgumentDescription", resourceCulture);
             }
         }
         

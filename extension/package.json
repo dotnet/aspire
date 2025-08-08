@@ -24,7 +24,7 @@
     "apphost"
   ],
   "activationEvents": [
-    "workspaceContains:**/*AppHost*"
+    "onDebugResolve"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -34,20 +34,26 @@
         "label": "Aspire",
         "configurationAttributes": {
           "launch": {
+            "required": ["program"],
             "properties": {
-              "project": {
+              "program": {
                 "type": "string",
-                "description": "%extension.debug.project%"
+                "description": "%extension.debug.program%",
+                "default": "${workspaceFolder}"
               }
             }
           }
         },
-        "initialConfigurations": [
+        "configurationSnippets": [
           {
-            "type": "aspire",
-            "request": "launch",
-            "name": "Aspire: Launch",
-            "project": "${workspaceFolder}"
+            "label": "Aspire: Launch",
+            "description": "Launch an Aspire application",
+            "body": {
+              "type": "aspire",
+              "request": "launch",
+              "name": "Aspire: Launch",
+              "program": "${workspaceFolder}"
+            }
           }
         ]
       }

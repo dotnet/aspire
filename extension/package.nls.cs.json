@@ -1,7 +1,7 @@
 {
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
-	"extension.debug.project": "Path to the Aspire project",
+	"extension.debug.program": "Path to the Aspire solution",
 	"command.run": "Run app host",
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",

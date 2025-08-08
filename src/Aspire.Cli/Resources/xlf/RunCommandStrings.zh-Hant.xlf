@@ -62,15 +62,15 @@
         <target state="translated">無法執行專案。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptForDebugging">
-        <source>Do you want to start a debugging session?</source>
-        <target state="translated">您想要啟動偵錯工作階段嗎?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">資源</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="new">Whether to start a debug session during the run.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>

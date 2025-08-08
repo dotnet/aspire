@@ -115,6 +115,9 @@
   <data name="WatchArgumentDescription" xml:space="preserve">
     <value>Start project resources in watch mode.</value>
   </data>
+  <data name="StartDebugSessionArgumentDescription" xml:space="preserve">
+    <value>Whether to start a debug session during the run.</value>
+  </data>
   <data name="IsCompatibleAppHostIsNull" xml:space="preserve">
     <value>IsCompatibleAppHost is null</value>
   </data>
@@ -163,8 +166,5 @@
   </data>
   <data name="DashboardFailedToStart" xml:space="preserve">
     <value>Aspire Dashboard failed to start.</value>
-  </data>
-  <data name="PromptForDebugging" xml:space="preserve">
-    <value>Do you want to start a debugging session?</value>
   </data>
 </root>

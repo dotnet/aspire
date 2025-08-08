@@ -28,12 +28,12 @@ class AspireDebugSession implements vscode.DebugAdapter {
 
   handleMessage(message: any): void {
     if (message.command === 'initialize') {
-      sendToAspireTerminal('aspire run', true);
       this._onDidSendMessage.fire({
         type: 'event',
         event: 'initialized',
         body: {}
       });
+
       this._onDidSendMessage.fire({
         type: 'response',
         request_seq: message.seq,
@@ -43,8 +43,24 @@ class AspireDebugSession implements vscode.DebugAdapter {
           supportsConfigurationDoneRequest: true
         }
       });
-    } else if (message.command === 'disconnect' || message.command === 'terminate') {
-      // Dispose the Aspire terminal to stop the run
+    }
+    else if (message.command === 'launch') {
+      if (message.arguments?.noDebug) {
+        sendToAspireTerminal('aspire run');
+      }
+      else {
+        sendToAspireTerminal('aspire run --start-debug-session');
+      }
+
+      this._onDidSendMessage.fire({
+        type: 'response',
+        request_seq: message.seq,
+        success: true,
+        command: 'launch',
+        body: {}
+      });
+    }
+    else if (message.command === 'disconnect' || message.command === 'terminate') {
       const terminal = getAspireTerminal();
       terminal.dispose();
 
@@ -55,17 +71,16 @@ class AspireDebugSession implements vscode.DebugAdapter {
         command: message.command,
         body: {}
       });
-    } else {
+    }
+    else if (message.command) {
       // Respond to all other requests with a generic success
-      if (message.command) {
-        this._onDidSendMessage.fire({
-          type: 'response',
-          request_seq: message.seq,
-          success: true,
-          command: message.command,
-          body: {}
-        });
-      }
+      this._onDidSendMessage.fire({
+        type: 'response',
+        request_seq: message.seq,
+        success: true,
+        command: message.command,
+        body: {}
+      });
     }
   }
 
@@ -75,7 +90,7 @@ class AspireDebugSession implements vscode.DebugAdapter {
       event: 'stopped',
       body: {
         reason,
-        threadId: 1 // VS Code requires a threadId
+        threadId: 1
       }
     });
   }

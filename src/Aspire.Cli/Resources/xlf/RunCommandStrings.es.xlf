@@ -62,15 +62,15 @@
         <target state="translated">No se pudo ejecutar el proyecto. Para obtener más información, ejecute con el conmutador --debug.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptForDebugging">
-        <source>Do you want to start a debugging session?</source>
-        <target state="translated">¿Desea iniciar una sesión de depuración?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="new">Whether to start a debug session during the run.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
