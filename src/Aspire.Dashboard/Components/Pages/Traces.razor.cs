@@ -27,7 +27,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private const string SpansColumn = nameof(SpansColumn);
     private const string DurationColumn = nameof(DurationColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
-    private IList<GridColumn> _gridColumns = null!;
+    private List<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -154,11 +154,11 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
-            new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
-            new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
-            new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
-            new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: TimestampColumn, DesktopWidth: Width.Fraction(0.8m), MobileWidth: Width.Fraction(0.8m)),
+            new GridColumn(Name: NameColumn, DesktopWidth: Width.Fraction(2), MobileWidth: Width.Fraction(2)),
+            new GridColumn(Name: SpansColumn, DesktopWidth: Width.Fraction(3)),
+            new GridColumn(Name: DurationColumn, DesktopWidth: Width.Fraction(0.8m)),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Fraction(0.5m), MobileWidth: Width.Fraction(1))
         ];
 
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };

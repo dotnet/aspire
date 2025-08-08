@@ -97,11 +97,11 @@
                                     ResizeColumnOnAllRows="false"
                                     ItemsProvider="@GetData"
                                     TGridItem="OtlpTrace"
-                                    GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                     ShowHover="true"
                                     ItemKey="@(r => r.TraceId)"
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
-                                    Class="main-grid enable-row-click">
+                                    Class="main-grid enable-row-click"
+                                    DisplayMode="DataGridDisplayMode.Table">
                         <ChildContent>
                             <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)

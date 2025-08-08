@@ -107,12 +107,12 @@
                                             ItemsProvider="@GetData"
                                             TGridItem="SpanWaterfallViewModel"
                                             RowClass="@GetRowClass"
-                                            GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                             RowSize="DataGridRowSize.Small"
                                             OverscanCount="100"
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
-                                            OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
+                                            OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
+                                            DisplayMode="DataGridDisplayMode.Table">
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
                                     @{
                                         var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;

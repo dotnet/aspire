@@ -44,7 +44,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private string _filter = string.Empty;
     private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
-    private IList<GridColumn> _gridColumns = null!;
+    private List<GridColumn> _gridColumns = null!;
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
@@ -152,12 +152,12 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
-            new GridColumn(Name: ResourceColumn, DesktopWidth: "20%", MobileWidth: "1fr"),
-            new GridColumn(Name: LogLevelColumn, DesktopWidth: "10%"),
-            new GridColumn(Name: TimestampColumn, DesktopWidth: "15%"),
-            new GridColumn(Name: MessageColumn, DesktopWidth: "50%", MobileWidth: "2.5fr"),
-            new GridColumn(Name: TraceColumn, DesktopWidth: "10%"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "10%", MobileWidth: "0.8fr")
+            new GridColumn(Name: ResourceColumn, DesktopWidth: Width.Fraction(2), MobileWidth: Width.Fraction(1)),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: Width.Fraction(1)),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: Width.Fraction(1.5m)),
+            new GridColumn(Name: MessageColumn, DesktopWidth: Width.Fraction(5), MobileWidth: Width.Fraction(2.5m)),
+            new GridColumn(Name: TraceColumn, DesktopWidth: Width.Fraction(1)),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Fraction(1), MobileWidth: Width.Fraction(0.8m))
         ];
 
         if (!string.IsNullOrEmpty(TraceId))

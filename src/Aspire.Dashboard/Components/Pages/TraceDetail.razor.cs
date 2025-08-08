@@ -35,7 +35,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string? _elementIdBeforeDetailsViewOpened;
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
-    private IList<GridColumn> _gridColumns = null!;
+    private List<GridColumn> _gridColumns = null!;
     private string _filter = string.Empty;
 
     [Parameter]
@@ -83,9 +83,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         TelemetryContextProvider.Initialize(TelemetryContext);
 
         _gridColumns = [
-            new GridColumn(Name: NameColumn, DesktopWidth: "6fr", MobileWidth: "6fr"),
-            new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
+            new GridColumn(Name: NameColumn, DesktopWidth: Width.Fraction(6), MobileWidth: Width.Fraction(6)),
+            new GridColumn(Name: TicksColumn, DesktopWidth: Width.Fraction(12), MobileWidth: Width.Fraction(12)),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Pixels(120), MobileWidth: null)
         ];
 
         foreach (var resolver in OutgoingPeerResolvers)

@@ -131,14 +131,14 @@
                                                     ItemsProvider="@GetData"
                                                     ResizableColumns="true"
                                                     ResizeColumnOnAllRows="false"
-                                                    GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                     RowClass="@(r => GetRowClass(r.Resource))"
                                                     Loading="!_loadingTcs.Task.IsCompleted"
                                                     ShowHover="true"
                                                     TGridItem="ResourceGridViewModel"
                                                     ItemKey="@(r => r.Resource.Name)"
                                                     OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d.Resource, buttonId: null)))"
-                                                    Class="main-grid enable-row-click">
+                                                    Class="main-grid enable-row-click"
+                                                    DisplayMode="DataGridDisplayMode.Table">
                                         <ChildContent>
                                             <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => $"{c.Resource.ResourceType}: {GetResourceName(c.Resource)}")" Class="expand-col">
                                                 @{

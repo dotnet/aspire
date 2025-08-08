@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 
@@ -17,7 +16,7 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     public required DimensionManager DimensionManager { get; init; }
 
     [Parameter]
-    public required IList<GridColumn> Columns { get; set; }
+    public required List<GridColumn> Columns { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -27,7 +26,34 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        var desktopTotal = Columns.Where(c => c.DesktopWidth is { Unit: WidthUnit.Fraction }).Sum(c => c.DesktopWidth!.Value.Value);
+        var mobileTotal = Columns.Where(c => c.MobileWidth is { Unit: WidthUnit.Fraction }).Sum(c => c.MobileWidth!.Value.Value);
+        foreach (var item in Columns)
+        {
+            item.ResolvedDesktopWidth = ResolveWidth(item.DesktopWidth, desktopTotal);
+            item.ResolvedMobileWidth = ResolveWidth(item.MobileWidth, mobileTotal);
+        }
+
         _columnById = Columns.ToDictionary(c => c.Name, StringComparers.GridColumn);
+
+        static string? ResolveWidth(Width? width, decimal fractionTotal)
+        {
+            if (width is not { } w)
+            {
+                return null;
+            }
+
+            return w.Unit switch
+            {
+                WidthUnit.Fraction => $"{Math.Round(w.Value / fractionTotal * 100, 1)}%",
+                WidthUnit.Pixels => $"{w.Value}px",
+                _ => throw new NotSupportedException($"Unsupported width unit: {w.Unit}")
+            };
+        }
     }
 
     private void OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
@@ -72,33 +98,21 @@ public partial class GridColumnManager : ComponentBase, IDisposable
             && column.IsVisible?.Invoke() is null or true;         // Is visible.
     }
 
-    /// <summary>
-    /// Gets a string that can be used as the value for the grid-template-columns CSS property.
-    /// For example, <c>1fr 2fr 1fr</c>.
-    /// </summary>
-    /// <returns></returns>
-    public string GetGridTemplateColumns()
+    public string? GetColumnWidth(string columnName)
     {
-        var sb = new StringBuilder();
-
-        foreach (var (_, column) in _columnById)
+        if (!_columnById.TryGetValue(columnName, out var column)) // Is a known column.
         {
-            if (column.IsVisible?.Invoke() is null or true &&
-                GetColumnWidth(column) is string width)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Append(' ');
-                }
-
-                sb.Append(width);
-            }
+            return null;
         }
 
-        return sb.ToString();
+        var viewportInformation = _gridViewportInformation ?? DimensionManager.ViewportInformation;
+
+        return viewportInformation.IsDesktop
+            ? column.ResolvedDesktopWidth
+            : column.ResolvedMobileWidth;
     }
 
-    private string? GetColumnWidth(GridColumn column)
+    private Width? GetColumnWidth(GridColumn column)
     {
         var viewportInformation = _gridViewportInformation ?? DimensionManager.ViewportInformation;
 

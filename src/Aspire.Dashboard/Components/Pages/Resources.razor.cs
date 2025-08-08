@@ -34,7 +34,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
-    private IList<GridColumn>? _gridColumns;
+    private List<GridColumn>? _gridColumns;
     private EventCallback _onToggleCollapseAllCallback;
     private EventCallback _onToggleResourceTypeCallback;
     private bool _hideResourceGraph;
@@ -175,13 +175,13 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
-            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
-            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
-            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", IsVisible: () => _showResourceTypeColumn),
-            new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
-            new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
+            new GridColumn(Name: NameColumn, DesktopWidth: Width.Fraction(1.5m), MobileWidth: Width.Fraction(1.5m)),
+            new GridColumn(Name: StateColumn, DesktopWidth: Width.Fraction(1.25m), MobileWidth: Width.Fraction(1.25m)),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: Width.Fraction(1)),
+            new GridColumn(Name: TypeColumn, DesktopWidth: Width.Fraction(1), IsVisible: () => _showResourceTypeColumn),
+            new GridColumn(Name: SourceColumn, DesktopWidth: Width.Fraction(2.25m)),
+            new GridColumn(Name: UrlsColumn, DesktopWidth: Width.Fraction(2.25m), MobileWidth: Width.Fraction(2)),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: Width.Fraction(1.5m), MobileWidth: Width.Fraction(1))
         ];
 
         _onToggleCollapseAllCallback = EventCallback.Factory.Create(this, OnToggleCollapseAll);
