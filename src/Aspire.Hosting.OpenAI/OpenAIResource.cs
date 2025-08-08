@@ -8,7 +8,7 @@ namespace Aspire.Hosting.OpenAI;
 /// <summary>
 /// Represents a logical OpenAI account/configuration that can host one or more <see cref="OpenAIModelResource"/> children.
 /// </summary>
-public sealed class OpenAIResource : Resource, IResourceWithoutLifetime, IResourceWithConnectionString
+public sealed class OpenAIResource : Resource, IResourceWithConnectionString
 {
     internal ParameterResource DefaultKeyParameter { get; }
     private const string DefaultEndpoint = "https://api.openai.com/v1";

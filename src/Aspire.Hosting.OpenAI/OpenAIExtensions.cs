@@ -39,6 +39,17 @@ public static class OpenAIExtensions
 
         defaultApiKeyParameter.WithParentRelationship(resource);
 
+        // Register the health check
+        var healthCheckKey = $"{name}_check";
+
+        builder.AddStatusPageCheck(
+            healthCheckKey,
+            statusJsonUrl: "https://status.openai.com/api/v2/status.json",
+            httpClientName: "OpenAIHealthCheck",
+            timeout: TimeSpan.FromSeconds(5),
+            failureStatus: HealthStatus.Unhealthy,
+            tags: ["openai", "healthcheck"]);
+
         return builder.AddResource(resource)
             .WithInitialState(new()
             {
@@ -49,7 +60,8 @@ public static class OpenAIExtensions
                 [
                     new(CustomResourceKnownProperties.Source, "OpenAI")
                 ]
-            });
+            })
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -158,7 +170,7 @@ public static class OpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
-        OpenAIHealthCheck? healthCheck = null;
+        OpenAIModelHealthCheck? healthCheck = null;
 
         // Ensure IHttpClientFactory is available by registering HTTP client services
         builder.ApplicationBuilder.Services.AddHttpClient();
@@ -181,7 +193,7 @@ public static class OpenAIExtensions
 
                     var resource = builder.Resource;
 
-                    return healthCheck = new OpenAIHealthCheck(httpClient, async () => await resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false));
+                    return healthCheck = new OpenAIModelHealthCheck(httpClient, async () => await resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false));
                 },
                 failureStatus: default,
                 tags: default,

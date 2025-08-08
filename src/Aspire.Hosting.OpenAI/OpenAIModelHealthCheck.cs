@@ -14,7 +14,7 @@ namespace Aspire.Hosting.OpenAI;
 /// </summary>
 /// <param name="httpClient">The HttpClient to use.</param>
 /// <param name="connectionString">The connection string.</param>
-internal sealed class OpenAIHealthCheck(HttpClient httpClient, Func<ValueTask<string?>> connectionString) : IHealthCheck
+internal sealed class OpenAIModelHealthCheck(HttpClient httpClient, Func<ValueTask<string?>> connectionString) : IHealthCheck
 {
     private HealthCheckResult? _result;
 
@@ -34,8 +34,10 @@ internal sealed class OpenAIHealthCheck(HttpClient httpClient, Func<ValueTask<st
         try
         {
             var builder = new DbConnectionStringBuilder() { ConnectionString = await connectionString().ConfigureAwait(false) };
+            var endpoint = builder["Endpoint"];
+            var model = builder["Model"];
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"{builder["Endpoint"]}/models/{builder["Model"]}"));
+            using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"{endpoint}/models/{model}"));
 
             // Add required headers
             request.Headers.Add("Authorization", $"Bearer {builder["Key"]}");
