@@ -38,7 +38,7 @@
     .\get-aspire-cli.ps1
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -InstallPath "C:\\tools\\aspire"
+    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
 
 .EXAMPLE
     .\get-aspire-cli.ps1 -Quality "staging"
@@ -104,6 +104,7 @@ $Script:UserAgent = "get-aspire-cli.ps1/1.0"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
+$Script:HostOS = "unset"
 
 # Configuration constants
 $Script:Config = @{
@@ -125,20 +126,9 @@ $Script:Config = @{
 # False if the body is piped / dot‑sourced / iex’d into the current session.
 $InvokedFromFile = -not [string]::IsNullOrEmpty($PSCommandPath)
 
-# Ensure minimum PowerShell version
-if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion) {
-    Write-Message "Error: This script requires PowerShell $($Script:Config.MinimumPowerShellVersion).0 or later. Current version: $($PSVersionTable.PSVersion)" -Level Error
-    if ($InvokedFromFile) {
-        exit 1
-    }
-    else {
-        return 1
-    }
-}
-
-# =====================
-# Shared helpers block
-# =====================
+# =============================================================================
+# START: Shared code
+# =============================================================================
 
 # Consolidated output function with fallback for platforms that don't support Write-Host
 function Write-Message {
@@ -184,8 +174,6 @@ function Write-Message {
     }
 }
 
-## Help is provided via the comment-based help block above; use Get-Help to view.
-
 # Helper function for PowerShell version-specific operations
 function Invoke-WithPowerShellVersion {
     [CmdletBinding()]
@@ -210,6 +198,7 @@ function Get-OperatingSystem {
     [OutputType([string])]
     param()
 
+    Write-Message "Detecting OS" -Level Verbose
     try {
         return Invoke-WithPowerShellVersion -ModernAction {
             if ($IsWindows) {
@@ -336,8 +325,6 @@ function Get-CLIArchitectureFromArchitecture {
         [ValidateNotNullOrEmpty()]
         [string]$Architecture
     )
-
-    Write-Message "Converting architecture: $Architecture" -Level Verbose
 
     if ($Architecture -eq "<auto>") {
         $Architecture = Get-MachineArchitecture
@@ -537,8 +524,11 @@ function New-TempDirectory {
     )
 
     if ($PSCmdlet.ShouldProcess("temporary directory", "Create temporary directory with prefix '$Prefix'")) {
+        # Create a temporary directory for downloads with conflict resolution
         $tempBaseName = "$Prefix-$([System.Guid]::NewGuid().ToString("N").Substring(0, 8))"
         $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) $tempBaseName
+
+        # Handle potential conflicts
         $attempt = 1
         while (Test-Path $tempDir) {
             $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "$tempBaseName-$attempt"
@@ -558,6 +548,7 @@ function New-TempDirectory {
         }
     }
     else {
+        # Return a WhatIf path when -WhatIf is used
         return Join-Path ([System.IO.Path]::GetTempPath()) "$Prefix-whatif"
     }
 }
@@ -740,10 +731,6 @@ function Invoke-SecureWebRequest {
     }
 }
 
-# ==========================
-# End shared helpers block
-# ==========================
-
 # Enhanced file download wrapper with validation
 function Invoke-FileDownload {
     [CmdletBinding()]
@@ -869,21 +856,18 @@ function Install-AspireCli {
     [OutputType([string])]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$InstallPath,
+        [string]$CliBinDir,
         [string]$Version,
         [string]$Quality,
-        [string]$OS,
-        [string]$Architecture
+        [string]$TargetRID
     )
 
+    $tempDir = $null
     $tempDir = New-TempDirectory -Prefix "aspire-cli-download"
 
     try {
-    # Determine runtime identifier and URLs
-    $runtimeIdentifier = Get-RuntimeIdentifier -_OS $OS -_Architecture $Architecture
-    $targetOS = $runtimeIdentifier.Split('-')[0]
-        $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
-        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
+        $extension = if ($TargetRID.StartsWith("win-")) { "zip" } else { "tar.gz" }
+        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $TargetRID -Extension $extension
 
         $archivePath = Join-Path $tempDir $urls.ArchiveFilename
         $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
@@ -902,35 +886,18 @@ function Install-AspireCli {
             Write-Message "Successfully downloaded and validated: $($urls.ArchiveFilename)" -Level Verbose
         }
 
-        if ($PSCmdlet.ShouldProcess($InstallPath, "Install CLI")) {
+        if ($PSCmdlet.ShouldProcess($CliBinDir, "Install CLI")) {
             # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $InstallPath
+            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $CliBinDir
 
-            $cliExe = if ($targetOS -eq "win") { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $InstallPath $cliExe
+            $cliExe = if ($TargetRID.StartsWith("win-")) { "aspire.exe" } else { "aspire" }
+            $cliPath = Join-Path $CliBinDir $cliExe
 
             Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
         }
-
-        # Return the target OS for the caller to use
-        return $targetOS
     }
     finally {
-        # Clean up temporary directory and downloaded files
-        if (Test-Path $tempDir -ErrorAction SilentlyContinue) {
-            if (-not $KeepArchive) {
-                try {
-                    Write-Message "Cleaning up temporary files..." -Level Verbose
-                    Remove-Item $tempDir -Recurse -Force -ErrorAction Stop
-                }
-                catch {
-                    Write-Message "Failed to clean up temporary directory: $tempDir - $($_.Exception.Message)" -Level Warning
-                }
-            }
-            else {
-                Write-Message "Archive files kept in: $tempDir" -Level Info
-            }
-        }
+        Remove-TempDirectory -TempDir $tempDir
     }
 }
 
@@ -976,20 +943,43 @@ function Start-AspireCliInstallation {
             }
         }
 
+        $rid = Get-RuntimeIdentifier -_OS $OS -_Architecture $Architecture
+
         # Download and install the Aspire CLI
-        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
+        Install-AspireCli -CliBinDir $resolvedInstallPath -Version $Version -Quality $Quality -TargetRID $rid
 
         # Update PATH environment variables
-        Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        Update-PathEnvironment -CliBinDir $resolvedInstallPath
     }
     catch {
-        # Display clean error message without stack trace
-        Write-Message "Error: $($_.Exception.Message)" -Level Error
+        # Log the full exception details if verbose
+        Write-Verbose "Full exception details: $($_.Exception | Out-String)"
+
+        # Show clean message to user
+        $cleanMessage = switch ($_.Exception.GetType().Name) {
+            'ArgumentException' { "Invalid argument: $($_.Exception.Message)" }
+            'UnauthorizedAccessException' { "Access denied: $($_.Exception.Message)" }
+            'ParameterBindingValidationException' { "Parameter validation failed: $($_.Exception.Message)" }
+            default { $_.Exception.Message }
+        }
+
+        Write-Message "Error: $cleanMessage" -Level Error
         if ($InvokedFromFile) {
             exit 1
         } else {
             return 1
         }
+    }
+}
+
+# Ensure minimum PowerShell version
+if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion) {
+    Write-Message "Error: This script requires PowerShell $($Script:Config.MinimumPowerShellVersion).0 or later. Current version: $($PSVersionTable.PSVersion)" -Level Error
+    if ($InvokedFromFile) {
+        exit 1
+    }
+    else {
+        return 1
     }
 }
 
@@ -1000,6 +990,7 @@ try {
         Set-StrictMode -Off
     }
 
+    $script:HostOS = Get-OperatingSystem
     Start-AspireCliInstallation
     $exitCode = 0
 }
