@@ -368,12 +368,162 @@ function Get-RuntimeIdentifier {
         [string]$_Architecture
     )
 
-    $computedTargetOS = if ([string]::IsNullOrWhiteSpace($_OS)) { Get-OperatingSystem } else { $_OS }
+    # Determine OS and architecture (either detected or user-specified)
+    $computedTargetOS = if ([string]::IsNullOrWhiteSpace($_OS)) { $Script:HostOS } else { $_OS }
+
+    # Check for unsupported OS
     if ($computedTargetOS -eq "unsupported") {
         throw "Unsupported operating system. Current platform: $([System.Environment]::OSVersion.Platform)"
     }
+
     $computedTargetArch = if ([string]::IsNullOrWhiteSpace($_Architecture)) { Get-CLIArchitectureFromArchitecture "<auto>" } else { Get-CLIArchitectureFromArchitecture $_Architecture }
+
     return "${computedTargetOS}-${computedTargetArch}"
+}
+
+function Expand-AspireCliArchive {
+    param(
+        [string]$ArchiveFile,
+        [string]$DestinationPath
+    )
+
+    Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
+
+    # Create destination directory if it doesn't exist
+    if (-not (Test-Path $DestinationPath)) {
+        Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
+        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+    }
+
+    # Check archive format based on file extension and extract accordingly
+    if ($ArchiveFile -match "\.zip$") {
+        # Use Expand-Archive for ZIP files
+        if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
+            throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
+        }
+
+        try {
+            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
+        }
+        catch {
+            throw "Failed to unpack archive: $($_.Exception.Message)"
+        }
+    }
+    elseif ($ArchiveFile -match "\.tar\.gz$") {
+        # Use tar for tar.gz files
+        if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
+            throw "tar command not found. Please install tar to extract tar.gz files."
+        }
+
+        $currentLocation = Get-Location
+        try {
+            Set-Location $DestinationPath
+            & tar -xzf $ArchiveFile
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to extract tar.gz archive: $ArchiveFile. tar command returned exit code $LASTEXITCODE"
+            }
+        }
+        finally {
+            Set-Location $currentLocation
+        }
+    }
+    else {
+        throw "Unsupported archive format: $ArchiveFile. Only .zip and .tar.gz files are supported."
+    }
+
+    Write-Message "Successfully unpacked archive" -Level Verbose
+}
+
+# Simplified installation path determination
+function Get-DefaultInstallPrefix {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    # Get home directory cross-platform
+    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
+        if ($env:HOME) {
+            $env:HOME
+        } elseif ($IsWindows -and $env:USERPROFILE) {
+            $env:USERPROFILE
+        } elseif ($env:USERPROFILE) {
+            $env:USERPROFILE
+        } else {
+            $null
+        }
+    } -LegacyAction {
+        if ($env:USERPROFILE) {
+            $env:USERPROFILE
+        } elseif ($env:HOME) {
+            $env:HOME
+        } else {
+            $null
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+        throw "Unable to determine user home directory. Please specify -InstallPath parameter."
+    }
+
+    $defaultPath = Join-Path $homeDirectory ".aspire"
+    return [System.IO.Path]::GetFullPath($defaultPath)
+}
+
+# Simplified PATH environment update
+function Update-PathEnvironment {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$CliBinDir
+    )
+
+    $pathSeparator = [System.IO.Path]::PathSeparator
+
+    # Update current session PATH
+    $currentPathArray = $env:PATH.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+    if ($currentPathArray -notcontains $CliBinDir) {
+        if ($PSCmdlet.ShouldProcess("PATH environment variable", "Add $CliBinDir to current session")) {
+            $env:PATH = (@($CliBinDir) + $currentPathArray) -join $pathSeparator
+            Write-Message "Added $CliBinDir to PATH for current session" -Level Info
+        }
+    }
+
+    # Update persistent PATH for Windows
+    if ($Script:HostOS -eq "win") {
+        try {
+            $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
+            if (-not $userPath) { $userPath = "" }
+            $userPathArray = if ($userPath) { $userPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries) } else { @() }
+            if ($userPathArray -notcontains $CliBinDir) {
+                if ($PSCmdlet.ShouldProcess("User PATH environment variable", "Add $CliBinDir")) {
+                    $newUserPath = (@($CliBinDir) + $userPathArray) -join $pathSeparator
+                    [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
+                    Write-Message "Added $CliBinDir to user PATH environment variable" -Level Info
+                }
+            }
+
+            Write-Message "" -Level Info
+            Write-Message "The aspire cli is now available for use in this and new sessions." -Level Success
+        }
+        catch {
+            Write-Message "Failed to update persistent PATH environment variable: $($_.Exception.Message)" -Level Warning
+            Write-Message "You may need to manually add $CliBinDir to your PATH environment variable" -Level Info
+        }
+    }
+
+    # GitHub Actions support
+    if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
+        try {
+            if ($PSCmdlet.ShouldProcess("GITHUB_PATH environment variable", "Add $CliBinDir to GITHUB_PATH")) {
+                Add-Content -Path $env:GITHUB_PATH -Value $CliBinDir
+                Write-Message "Added $CliBinDir to GITHUB_PATH for GitHub Actions" -Level Success
+            }
+        }
+        catch {
+            Write-Message "Failed to update GITHUB_PATH: $($_.Exception.Message)" -Level Warning
+        }
+    }
 }
 
 # Function to create a temporary directory with conflict resolution
@@ -436,6 +586,34 @@ function Remove-TempDirectory {
             Write-Message "Archive files kept in: $TempDir" -Level Info
         }
     }
+}
+
+# =============================================================================
+# END: Shared code
+# =============================================================================
+
+# Simplified installation path determination
+function Get-InstallPath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$InstallPath
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($InstallPath)) {
+        # Validate that the path is not just whitespace and can be created
+        try {
+            $resolvedPath = [System.IO.Path]::GetFullPath($InstallPath)
+            return $resolvedPath
+        }
+        catch {
+            throw "Invalid installation path: $InstallPath - $($_.Exception.Message)"
+        }
+    }
+
+    $defaultPath = Join-Path (Get-DefaultInstallPrefix) "bin"
+    return [System.IO.Path]::GetFullPath($defaultPath)
 }
 
 function Get-ContentTypeFromUri {
@@ -628,166 +806,6 @@ function Test-FileChecksum {
     if ($expectedChecksum -ne $actualChecksum) {
         $displayChecksum = if ($expectedChecksum.Length -gt 128) { $expectedChecksum.Substring(0, 128) + "..." } else { $expectedChecksum }
         throw "Checksum validation failed for $ArchiveFile with checksum from $ChecksumFile !`nExpected: $displayChecksum`nActual:   $actualChecksum"
-    }
-}
-
-function Expand-AspireCliArchive {
-    param(
-        [string]$ArchiveFile,
-        [string]$DestinationPath
-    )
-
-    Write-Message "Unpacking archive to: $DestinationPath" -Level Verbose
-
-    try {
-        # Create destination directory if it doesn't exist
-        if (-not (Test-Path $DestinationPath)) {
-            Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
-            New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-        }
-
-        if ($ArchiveFile -match "\.zip$") {
-            if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
-                throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
-            }
-
-            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
-        }
-        elseif ($ArchiveFile -match "\.tar\.gz$") {
-            if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
-                throw "tar command not found. Please install tar to extract tar.gz files."
-            }
-
-            $currentLocation = Get-Location
-            try {
-                Set-Location $DestinationPath
-                & tar -xzf $ArchiveFile
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to extract tar.gz archive: $ArchiveFile. tar command returned exit code $LASTEXITCODE"
-                }
-            }
-            finally {
-                Set-Location $currentLocation
-            }
-        }
-        else {
-            throw "Unsupported archive format: $ArchiveFile. Only .zip and .tar.gz files are supported."
-        }
-
-        Write-Message "Successfully unpacked archive" -Level Verbose
-    }
-    catch {
-        throw "Failed to unpack archive: $($_.Exception.Message)"
-    }
-}
-
-# Simplified installation path determination
-function Get-InstallPath {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param(
-        [Parameter()]
-        [string]$InstallPath
-    )
-
-    if (-not [string]::IsNullOrWhiteSpace($InstallPath)) {
-        # Validate that the path is not just whitespace and can be created
-        try {
-            $resolvedPath = [System.IO.Path]::GetFullPath($InstallPath)
-            return $resolvedPath
-        }
-        catch {
-            throw "Invalid installation path: $InstallPath - $($_.Exception.Message)"
-        }
-    }
-
-    # Get home directory cross-platform
-    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
-        if ($env:HOME) {
-            $env:HOME
-        } elseif ($IsWindows -and $env:USERPROFILE) {
-            $env:USERPROFILE
-        } elseif ($env:USERPROFILE) {
-            $env:USERPROFILE
-        } else {
-            $null
-        }
-    } -LegacyAction {
-        if ($env:USERPROFILE) {
-            $env:USERPROFILE
-        } elseif ($env:HOME) {
-            $env:HOME
-        } else {
-            $null
-        }
-    }
-
-    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
-        throw "Unable to determine user home directory. Please specify -InstallPath parameter."
-    }
-
-    $defaultPath = Join-Path (Join-Path $homeDirectory ".aspire") "bin"
-    return [System.IO.Path]::GetFullPath($defaultPath)
-}
-
-# Simplified PATH environment update
-function Update-PathEnvironment {
-    [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$InstallPath,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateSet("win", "linux", "linux-musl", "osx")]
-        [string]$TargetOS
-    )
-
-    $pathSeparator = [System.IO.Path]::PathSeparator
-
-    # Update current session PATH
-    $currentPathArray = $env:PATH.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries)
-    if ($currentPathArray -notcontains $InstallPath) {
-        if ($PSCmdlet.ShouldProcess("PATH environment variable", "Add $InstallPath to current session")) {
-            $env:PATH = (@($InstallPath) + $currentPathArray) -join $pathSeparator
-            Write-Message "Added $InstallPath to PATH for current session" -Level Info
-        }
-    }
-
-    # Update persistent PATH for Windows
-    if ($TargetOS -eq "win") {
-        try {
-            $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
-            if (-not $userPath) { $userPath = "" }
-            $userPathArray = if ($userPath) { $userPath.Split($pathSeparator, [StringSplitOptions]::RemoveEmptyEntries) } else { @() }
-            if ($userPathArray -notcontains $InstallPath) {
-                if ($PSCmdlet.ShouldProcess("User PATH environment variable", "Add $InstallPath")) {
-                    $newUserPath = (@($InstallPath) + $userPathArray) -join $pathSeparator
-                    [Environment]::SetEnvironmentVariable("PATH", $newUserPath, [EnvironmentVariableTarget]::User)
-                    Write-Message "Added $InstallPath to user PATH environment variable" -Level Info
-                }
-            }
-
-            Write-Message "" -Level Info
-            Write-Message "The aspire cli is now available for use in this and new sessions." -Level Success
-        }
-        catch {
-            Write-Message "Failed to update persistent PATH environment variable: $($_.Exception.Message)" -Level Warning
-            Write-Message "You may need to manually add $InstallPath to your PATH environment variable" -Level Info
-        }
-    }
-
-    # GitHub Actions support
-    if ($env:GITHUB_ACTIONS -eq "true" -and $env:GITHUB_PATH) {
-        try {
-            if ($PSCmdlet.ShouldProcess("GITHUB_PATH environment variable", "Add $InstallPath to GITHUB_PATH")) {
-                Add-Content -Path $env:GITHUB_PATH -Value $InstallPath
-                Write-Message "Added $InstallPath to GITHUB_PATH for GitHub Actions" -Level Success
-            }
-        }
-        catch {
-            Write-Message "Failed to update GITHUB_PATH: $($_.Exception.Message)" -Level Warning
-        }
     }
 }
 
