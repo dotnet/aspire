@@ -130,6 +130,8 @@ This is [bold]bold[/] and [italic]italic[/] text with [grey][bold]inline code[/]
 Visit [blue underline]GitHub[/] for more information.
 [bold yellow]Small Header[/]
 Some more text.";
+        // Normalize line endings in expected string to match converter output
+        expected = expected.Replace("\r\n", "\n").Replace("\r", "\n");
         Assert.Equal(expected, result);
     }
 
