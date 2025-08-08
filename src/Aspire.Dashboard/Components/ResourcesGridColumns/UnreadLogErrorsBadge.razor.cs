@@ -44,10 +44,10 @@ public partial class UnreadLogErrorsBadge
             return (null, 0);
         }
 
-        var applications = TelemetryRepository.GetApplications();
-        var applicationName = applications.Count(a => a.ApplicationName == application.ApplicationName) > 1
-            ? application.InstanceId
-            : application.ApplicationName;
+        var applications = TelemetryRepository.GetResources();
+        var applicationName = applications.Count(a => a.ResourceName == otlpResource.ResourceName) > 1
+            ? otlpResource.InstanceId
+            : otlpResource.ResourceName;
 
         return (applicationName, count);
     }

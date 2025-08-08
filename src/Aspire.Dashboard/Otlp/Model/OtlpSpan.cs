@@ -127,7 +127,7 @@ public class OtlpSpan
 
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Application = {Source.ApplicationKey}, UninstrumentedPeerApplication = {UninstrumentedPeer?.ApplicationKey}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Resource = {Source.ResourceKey}, UninstrumentedPeerResource = {UninstrumentedPeer?.ResourceKey}, TraceId = {Trace.TraceId}";
     }
 
     public string GetDisplaySummary()
@@ -195,7 +195,7 @@ public class OtlpSpan
         // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Application.ApplicationName, span.UninstrumentedPeer?.ApplicationName),
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Resource.ResourceName, span.UninstrumentedPeer?.ResourceName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),

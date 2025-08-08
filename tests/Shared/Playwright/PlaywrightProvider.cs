@@ -27,7 +27,7 @@ public class PlaywrightProvider
 
         if (OperatingSystem.IsMacOS() && string.IsNullOrEmpty(browserPath))
         {
-            var probePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+            var probePath = "/Resources/Google Chrome.app/Contents/MacOS/Google Chrome";
             if (File.Exists(probePath))
             {
                 options.ExecutablePath = probePath;

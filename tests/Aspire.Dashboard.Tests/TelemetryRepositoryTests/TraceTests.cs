@@ -67,18 +67,18 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
                 Assert.False(app.UninstrumentedPeer);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -127,17 +127,17 @@ public class TraceTests
         // Assert
         Assert.Equal(1, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -182,17 +182,17 @@ public class TraceTests
         // Assert
         Assert.Equal(1, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -237,17 +237,17 @@ public class TraceTests
         // Assert
         Assert.Equal(1, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -308,17 +308,17 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -385,17 +385,17 @@ public class TraceTests
         });
         Assert.Equal(0, addContext2.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -437,7 +437,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -492,7 +492,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -561,7 +561,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -638,7 +638,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -728,7 +728,7 @@ public class TraceTests
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -744,7 +744,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -802,17 +802,17 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -864,7 +864,7 @@ public class TraceTests
         AddTrace(repository, "1", s_testTime);
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -926,17 +926,17 @@ public class TraceTests
         }
 
         // Assert
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1043,7 +1043,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1110,10 +1110,10 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var appKey = new ResourceKey("app1", InstanceId: null);
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1172,12 +1172,12 @@ public class TraceTests
 
         Assert.Equal(0, addContext.FailureCount);
 
-        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var appKey = new ResourceKey("app1", InstanceId: null);
 
         // Act 1
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1196,7 +1196,7 @@ public class TraceTests
         // Act 2
         traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1215,7 +1215,7 @@ public class TraceTests
         // Act 3
         traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1262,12 +1262,12 @@ public class TraceTests
 
         Assert.Equal(0, addContext.FailureCount);
 
-        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var appKey = new ResourceKey("app1", InstanceId: null);
 
         // Act 1
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1283,7 +1283,7 @@ public class TraceTests
         // Act 2
         traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1308,7 +1308,7 @@ public class TraceTests
         var repository = CreateRepository();
         var request = new GetTracesRequest
         {
-            ApplicationKey = new ApplicationKey("TestService", "TestId"),
+            ResourceKey = new ResourceKey("TestService", "TestId"),
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1478,8 +1478,8 @@ public class TraceTests
         Assert.Equal(0, addContext.FailureCount);
 
         // Spans belong to the same application
-        var application = Assert.Single(repository.GetApplications());
-        Assert.Equal("TestService", application.ApplicationName);
+        var application = Assert.Single(repository.GetResources());
+        Assert.Equal("TestService", application.ResourceName);
         Assert.Equal("TestId", application.InstanceId);
 
         // Spans have different views
@@ -1511,7 +1511,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = application.ApplicationKey,
+            ResourceKey = application.ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1629,7 +1629,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1701,14 +1701,14 @@ public class TraceTests
         });
 
         // Act
-        repository.ClearTraces(new ApplicationKey("app1", "123"));
+        repository.ClearTraces(new ResourceKey("app1", "123"));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1807,14 +1807,14 @@ public class TraceTests
         });
 
         // Act
-        repository.ClearTraces(new ApplicationKey("app1", null));
+        repository.ClearTraces(new ResourceKey("app1", null));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1899,14 +1899,14 @@ public class TraceTests
         });
 
         // Act
-        repository.ClearTraces(new ApplicationKey("app1", null));
+        repository.ClearTraces(new ResourceKey("app1", null));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1960,17 +1960,17 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        var applications = repository.GetResources(includeUninstrumentedPeers: true);
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Equal("TestPeer", app.ResourceName);
                 Assert.Null(app.InstanceId);
                 Assert.True(app.UninstrumentedPeer);
             },
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
                 Assert.False(app.UninstrumentedPeer);
             });
@@ -1979,7 +1979,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            ResourceKey = uninstrumentedPeerApp.ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -1997,7 +1997,7 @@ public class TraceTests
             {
                 AssertId("1-2", s.SpanId);
                 Assert.NotNull(s.UninstrumentedPeer);
-                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ResourceName);
             });
     }
 
@@ -2047,18 +2047,18 @@ public class TraceTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        var applications = repository.GetResources(includeUninstrumentedPeers: true);
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
                 Assert.False(app.UninstrumentedPeer);
             });
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -2081,17 +2081,17 @@ public class TraceTests
         matchPeer = true;
         await outgoingPeerResolver.InvokePeerChanges();
 
-        applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        applications = repository.GetResources(includeUninstrumentedPeers: true);
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestPeer", app.ApplicationName);
+                Assert.Equal("TestPeer", app.ResourceName);
                 Assert.Null(app.InstanceId);
                 Assert.True(app.UninstrumentedPeer);
             },
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
                 Assert.False(app.UninstrumentedPeer);
             });
@@ -2100,7 +2100,7 @@ public class TraceTests
 
         traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationKey = uninstrumentedPeerApp.ApplicationKey,
+            ResourceKey = uninstrumentedPeerApp.ResourceKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10,
@@ -2118,7 +2118,7 @@ public class TraceTests
             {
                 AssertId("1-2", s.SpanId);
                 Assert.NotNull(s.UninstrumentedPeer);
-                Assert.Equal("TestPeer", s.UninstrumentedPeer.ApplicationName);
+                Assert.Equal("TestPeer", s.UninstrumentedPeer.ResourceName);
             });
     }
 
@@ -2150,17 +2150,17 @@ public class TraceTests
             }
         });
 
-        var applications = repository.GetApplications(includeUninstrumentedPeers: true);
+        var applications = repository.GetResources(includeUninstrumentedPeers: true);
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("source", app.ApplicationName);
+                Assert.Equal("source", app.ResourceName);
                 Assert.Equal("abc", app.InstanceId);
                 Assert.False(app.UninstrumentedPeer);
             },
             app =>
             {
-                Assert.Equal("test", app.ApplicationName);
+                Assert.Equal("test", app.ResourceName);
                 Assert.Equal("abc-def", app.InstanceId);
                 Assert.True(app.UninstrumentedPeer);
             });

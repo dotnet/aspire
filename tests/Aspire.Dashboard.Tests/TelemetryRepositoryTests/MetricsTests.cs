@@ -60,15 +60,15 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var instruments = repository.GetInstrumentsSummaries(applications[0].ApplicationKey);
+        var instruments = repository.GetInstrumentsSummaries(applications[0].ResourceKey);
         Assert.Collection(instruments,
             instrument =>
             {
@@ -140,17 +140,17 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -256,17 +256,17 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -354,17 +354,17 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var instrumentData = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = s_testTime.AddMinutes(1),
@@ -461,17 +461,17 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = applications[0].ApplicationKey,
+            ResourceKey = applications[0].ResourceKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -569,7 +569,7 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var appKey = new ResourceKey("app1", InstanceId: null);
         var instruments = repository.GetInstrumentsSummaries(appKey);
         Assert.Collection(instruments,
             instrument =>
@@ -589,7 +589,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = appKey,
+            ResourceKey = appKey,
             InstrumentName = "test1",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -690,11 +690,11 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Key = new ResourceKey("app1", InstanceId: null);
         var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
         Assert.Empty(app1Instruments);
 
-        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Key = new ResourceKey("app2", InstanceId: null);
         var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
 
         Assert.Empty(app2Instruments);
@@ -760,12 +760,12 @@ public class MetricsTests
         });
 
         // Act
-        repository.ClearMetrics(new ApplicationKey("app1", "456"));
+        repository.ClearMetrics(new ResourceKey("app1", "456"));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Key = new ResourceKey("app1", InstanceId: null);
         var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
 
         var app1Instrument = Assert.Single(app1Instruments);
@@ -776,7 +776,7 @@ public class MetricsTests
 
         var app1Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app1Key,
+            ResourceKey = app1Key,
             InstrumentName = "test1",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -799,7 +799,7 @@ public class MetricsTests
 
         var app1Test2Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app1Key,
+            ResourceKey = app1Key,
             InstrumentName = "test2",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -808,7 +808,7 @@ public class MetricsTests
 
         Assert.Null(app1Test2Instrument);
 
-        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Key = new ResourceKey("app2", InstanceId: null);
         var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
 
         Assert.Collection(app2Instruments,
@@ -829,7 +829,7 @@ public class MetricsTests
 
         var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app2Key,
+            ResourceKey = app2Key,
             InstrumentName = "test1",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -844,7 +844,7 @@ public class MetricsTests
 
         var app2Test3Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app2Key,
+            ResourceKey = app2Key,
             InstrumentName = "test3",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -918,18 +918,18 @@ public class MetricsTests
         });
 
         // Act
-        repository.ClearMetrics(new ApplicationKey("app1", null));
+        repository.ClearMetrics(new ResourceKey("app1", null));
 
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Key = new ResourceKey("app1", InstanceId: null);
         var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
         Assert.Empty(app1Instruments);
 
         var app1Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app1Key,
+            ResourceKey = app1Key,
             InstrumentName = "test1",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -940,7 +940,7 @@ public class MetricsTests
 
         var app1Test2Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app1Key,
+            ResourceKey = app1Key,
             InstrumentName = "test2",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -949,7 +949,7 @@ public class MetricsTests
 
         Assert.Null(app1Test2Instrument);
 
-        var app2Key = new ApplicationKey("app2", InstanceId: null);
+        var app2Key = new ResourceKey("app2", InstanceId: null);
         var app2Instruments = repository.GetInstrumentsSummaries(app2Key);
         Assert.Collection(app2Instruments,
             instrument =>
@@ -969,7 +969,7 @@ public class MetricsTests
 
         var app2Test1Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app2Key,
+            ResourceKey = app2Key,
             InstrumentName = "test1",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -984,7 +984,7 @@ public class MetricsTests
 
         var app2Test3Instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = app2Key,
+            ResourceKey = app2Key,
             InstrumentName = "test3",
             MeterName = "test-meter",
             StartTime = s_testTime,
@@ -1030,7 +1030,7 @@ public class MetricsTests
         // Assert
         Assert.Equal(1, addContext.FailureCount);
 
-        var app1Key = new ApplicationKey("app1", InstanceId: null);
+        var app1Key = new ResourceKey("app1", InstanceId: null);
         var app1Instruments = repository.GetInstrumentsSummaries(app1Key);
         Assert.Collection(app1Instruments,
             instrument =>
@@ -1108,11 +1108,11 @@ public class MetricsTests
         // Assert
         Assert.Equal(2, addContext.FailureCount);
 
-        var applications = Assert.Single(repository.GetApplications());
+        var applications = Assert.Single(repository.GetResources());
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = applications.ApplicationKey,
+            ResourceKey = applications.ResourceKey,
             MeterName = "test-meter",
             InstrumentName = "test",
             StartTime = DateTime.MinValue,
@@ -1169,7 +1169,7 @@ public class MetricsTests
 
         var instrument1 = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = new ApplicationKey("TestService", "TestId"),
+            ResourceKey = new ResourceKey("TestService", "TestId"),
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -1181,7 +1181,7 @@ public class MetricsTests
 
         var instrument2 = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = new ApplicationKey("TestService", "TestId"),
+            ResourceKey = new ResourceKey("TestService", "TestId"),
             InstrumentName = "test",
             MeterName = "test-meter2",
             StartTime = DateTime.MinValue,
@@ -1222,15 +1222,15 @@ public class MetricsTests
         // Assert
         Assert.Equal(0, addContext.FailureCount);
 
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestService", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var instruments = repository.GetInstrumentsSummaries(applications[0].ApplicationKey);
+        var instruments = repository.GetInstrumentsSummaries(applications[0].ResourceKey);
         Assert.Collection(instruments,
             instrument =>
             {

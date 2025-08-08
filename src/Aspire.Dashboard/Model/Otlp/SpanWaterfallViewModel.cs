@@ -205,7 +205,7 @@ public sealed class SpanWaterfallViewModel
 
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
-        if (span.UninstrumentedPeer?.ApplicationName is { } peerName)
+        if (span.UninstrumentedPeer?.ResourceName is { } peerName)
         {
             // If the span has a peer name, use it.
             return peerName;

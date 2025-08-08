@@ -10,10 +10,10 @@ using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
-public class ApplicationTests
+public class ResourceTests
 {
     [Fact]
-    public void GetApplicationByCompositeName()
+    public void GetResourceByCompositeName()
     {
         // Arrange
         var repository = CreateRepository();
@@ -22,40 +22,40 @@ public class ApplicationTests
         AddResource(repository, "app1");
 
         // Act 1
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
 
         // Assert 1
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("app1", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             },
             app =>
             {
-                Assert.Equal("app2", app.ApplicationName);
+                Assert.Equal("app2", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
 
         // Act 2
-        var app1 = repository.GetApplicationByCompositeName("app1-TestId");
-        var app2 = repository.GetApplicationByCompositeName("APP2-TESTID");
-        var notFound = repository.GetApplicationByCompositeName("APP2_TESTID");
+        var app1 = repository.GetResourceByCompositeName("app1-TestId");
+        var app2 = repository.GetResourceByCompositeName("APP2-TESTID");
+        var notFound = repository.GetResourceByCompositeName("APP2_TESTID");
 
         // Assert 2
         Assert.NotNull(app1);
-        Assert.Equal("app1", app1.ApplicationName);
+        Assert.Equal("app1", app1.ResourceName);
         Assert.Equal(applications[0], app1);
 
         Assert.NotNull(app2);
-        Assert.Equal("app2", app2.ApplicationName);
+        Assert.Equal("app2", app2.ResourceName);
         Assert.Equal(applications[1], app2);
 
         Assert.Null(notFound);
     }
 
     [Fact]
-    public void GetApplications_WithNameAndNoKey()
+    public void GetResources_WithNameAndNoKey()
     {
         // Arrange
         var repository = CreateRepository();
@@ -65,35 +65,35 @@ public class ApplicationTests
         AddResource(repository, "app1", instanceId: "456");
 
         // Act 1
-        var applications1 = repository.GetApplications(new ApplicationKey("app1", InstanceId: null));
+        var applications1 = repository.GetResources(new ResourceKey("app1", InstanceId: null));
 
         // Assert 1
         Assert.Collection(applications1,
             app =>
             {
-                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("app1", app.ResourceName);
                 Assert.Equal("123", app.InstanceId);
             },
             app =>
             {
-                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("app1", app.ResourceName);
                 Assert.Equal("456", app.InstanceId);
             });
 
         // Act 2
-        var applications2 = repository.GetApplications(new ApplicationKey("app2", InstanceId: null));
+        var applications2 = repository.GetResources(new ResourceKey("app2", InstanceId: null));
 
         // Assert 2
         Assert.Collection(applications2,
             app =>
             {
-                Assert.Equal("app2", app.ApplicationName);
+                Assert.Equal("app2", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
     }
 
     [Fact]
-    public void GetApplications_Order()
+    public void GetResources_Order()
     {
         // Arrange
         var repository = CreateRepository();
@@ -103,23 +103,23 @@ public class ApplicationTests
         AddResource(repository, "app1", instanceId: "abc");
 
         // Act
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
 
         // Assert
         Assert.Collection(applications,
             app =>
             {
-                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("app1", app.ResourceName);
                 Assert.Equal("abc", app.InstanceId);
             },
             app =>
             {
-                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("app1", app.ResourceName);
                 Assert.Equal("def", app.InstanceId);
             },
             app =>
             {
-                Assert.Equal("app2", app.ApplicationName);
+                Assert.Equal("app2", app.ResourceName);
                 Assert.Equal("TestId", app.InstanceId);
             });
     }
@@ -136,10 +136,10 @@ public class ApplicationTests
         AddResource(repository, "app1", guid2);
 
         // Act
-        var applications = repository.GetApplications();
+        var applications = repository.GetResources();
 
-        var instance1Name = OtlpApplication.GetResourceName(applications[0], applications);
-        var instance2Name = OtlpApplication.GetResourceName(applications[1], applications);
+        var instance1Name = OtlpResource.GetResourceName(applications[0], applications);
+        var instance2Name = OtlpResource.GetResourceName(applications[1], applications);
 
         // Assert
         Assert.Equal("app1-19572b19", instance1Name);

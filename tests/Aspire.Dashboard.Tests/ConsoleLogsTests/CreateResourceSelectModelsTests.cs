@@ -37,7 +37,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Singleton, entry.Id.Type);
                 Assert.Equal("App1", entry.Id.InstanceId);
 
                 Assert.Equal("App1", entry.Name);
@@ -85,7 +85,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.ResourceGrouping, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.ResourceGrouping, entry.Id.Type);
                 Assert.Null(entry.Id.InstanceId);
                 Assert.Equal("App1", entry.Id.ReplicaSetName);
 
@@ -94,7 +94,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Instance, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Instance, entry.Id.Type);
                 Assert.Equal("App1-r1", entry.Id.InstanceId);
                 Assert.Equal("App1", entry.Id.ReplicaSetName);
 
@@ -103,7 +103,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Instance, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Instance, entry.Id.Type);
                 Assert.Equal("App1-r2", entry.Id.InstanceId);
                 Assert.Equal("App1", entry.Id.ReplicaSetName);
 
@@ -112,7 +112,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Singleton, entry.Id.Type);
                 Assert.Equal("App2", entry.Id.InstanceId);
 
                 Assert.Equal("App2 (Starting)", entry.Name);
@@ -120,7 +120,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Singleton, entry.Id.Type);
                 Assert.Equal("App3", entry.Id.InstanceId);
 
                 Assert.Equal("App3 (Finished)", entry.Name);
@@ -128,7 +128,7 @@ public class CreateResourceSelectModelsTests
             entry =>
             {
                 Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal(OtlpResourceType.Singleton, entry.Id.Type);
                 Assert.Equal("App4", entry.Id.InstanceId);
 
                 Assert.Equal("App4", entry.Name);
