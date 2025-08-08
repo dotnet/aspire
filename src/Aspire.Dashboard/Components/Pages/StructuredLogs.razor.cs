@@ -379,7 +379,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await Task.Yield();
         if (_applicationChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
