@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
-import { startAndGetDebugSession } from './common';
-import { extensionLogOutputChannel } from '../utils/logging';
-import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../loc/strings';
+import { extensionLogOutputChannel } from '../../utils/logging';
+import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
-import { mergeEnvs } from '../utils/environment';
+import { mergeEnvs } from '../../utils/environment';
 import * as path from 'path';
-import { doesFileExist } from '../utils/io';
-import { getSupportedCapabilities } from '../capabilities';
-import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from '../dcp/types';
+import { doesFileExist } from '../../utils/io';
+import { getSupportedCapabilities } from '../../capabilities';
+import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from '../../dcp/types';
+import { extensionContext } from '../../extension';
 
 const execFileAsync = util.promisify(execFile);
 
@@ -40,7 +40,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             console: 'internalConsole'
         };
 
-        return await startAndGetDebugSession(config);
+        return await extensionContext.aspireDebugSession.startAndGetDebugSession(config);
     }
     catch (error) {
         if (error instanceof Error) {

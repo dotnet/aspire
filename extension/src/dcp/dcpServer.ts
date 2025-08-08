@@ -5,30 +5,34 @@ import * as vscode from 'vscode';
 import { generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
-import { startDotNetProgram } from '../debugger/dotnet';
+import { startDotNetProgram } from '../debugger/languages/dotnet';
 import path from 'path';
 import { generateRunId } from '../debugger/common';
 import { unsupportedResourceType } from '../loc/strings';
-import { startPythonProgram } from '../debugger/python';
-
-const runsBySession = new Map<string, AspireResourceDebugSession[]>();
-const wsBySession = new Map<string, WebSocket>();
-const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
+import { startPythonProgram } from '../debugger/languages/python';
 
 export class DcpServer {
     public readonly info: DcpServerConnectionInfo;
     public readonly app: express.Express;
     private server: http.Server;
     private wss: WebSocketServer;
+    private wsBySession: Map<string, WebSocket> = new Map();
+    private pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]> = new Map();
 
-    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: http.Server, wss: WebSocketServer) {
+    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: http.Server, wss: WebSocketServer, wsBySession: Map<string, WebSocket>, pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
         this.info = info;
         this.app = app;
         this.server = server;
         this.wss = wss;
+        this.wsBySession = wsBySession;
+        this.pendingNotificationQueueByDcpId = pendingNotificationQueueByDcpId;
     }
 
     static async start(): Promise<DcpServer> {
+        const runsBySession = new Map<string, AspireResourceDebugSession[]>();
+        const wsBySession = new Map<string, WebSocket>();
+        const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
+
         return new Promise((resolve, reject) => {
             const token = generateToken();
 
@@ -186,7 +190,7 @@ export class DcpServer {
                         token: token,
                         certificate: ''
                     };
-                    resolve(new DcpServer(info, app, server, wss));
+                    resolve(new DcpServer(info, app, server, wss, wsBySession, pendingNotificationQueueByDcpId));
                 } else {
                     reject(new Error('Failed to get server address'));
                 }
@@ -198,10 +202,10 @@ export class DcpServer {
 
     sendNotification(notification: RunSessionNotification) {
         // If no WebSocket is available for the session, log a warning
-        const ws = wsBySession.get(notification.dcp_id);
+        const ws = this.wsBySession.get(notification.dcp_id);
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             extensionLogOutputChannel.warn(`No WebSocket found for DCP ID: ${notification.dcp_id} or WebSocket is not open (state: ${ws?.readyState})`);
-            pendingNotificationQueueByDcpId.set(notification.dcp_id, [...(pendingNotificationQueueByDcpId.get(notification.dcp_id) || []), notification]);
+            this.pendingNotificationQueueByDcpId.set(notification.dcp_id, [...(this.pendingNotificationQueueByDcpId.get(notification.dcp_id) || []), notification]);
             return;
         }
 

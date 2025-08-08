@@ -24,6 +24,7 @@
     "apphost"
   ],
   "activationEvents": [
+    "onDebug",
     "onDebugResolve"
   ],
   "main": "./dist/extension.js",
@@ -56,6 +57,15 @@
             }
           }
         ]
+         ,
+         "initialConfigurations": [
+           {
+             "type": "aspire",
+             "request": "launch",
+             "name": "Aspire: Launch",
+             "program": "${workspaceFolder}"
+           }
+         ]
       }
     ],
     "commands": [

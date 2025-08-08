@@ -2,9 +2,10 @@ import * as vscode from 'vscode';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 import { extensionContext } from '../extension';
+import { DcpServer } from '../dcp/dcpServer';
 
 let hasRunGetAspireTerminal = false;
-export function getAspireTerminal(): vscode.Terminal {
+export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
     const terminalName = aspireTerminalName;
 
     const existingTerminal = vscode.window.terminals.find(terminal => terminal.name === terminalName);
@@ -20,7 +21,7 @@ export function getAspireTerminal(): vscode.Terminal {
 
     extensionLogOutputChannel.info(`Creating new Aspire terminal`);
 
-    const env = {
+    const env: any = {
         ...process.env,
 
         // Extension connection information
@@ -30,13 +31,15 @@ export function getAspireTerminal(): vscode.Terminal {
         ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
 
         // Use the current locale in the CLI
-        ASPIRE_LOCALE_OVERRIDE: vscode.env.language,
-
-        // Include DCP server info
-        DEBUG_SESSION_PORT: extensionContext.dcpServer.info.address,
-        DEBUG_SESSION_TOKEN: extensionContext.dcpServer.info.token,
-        DEBUG_SESSION_SERVER_CERTIFICATE: Buffer.from(extensionContext.dcpServer.info.certificate, 'utf-8').toString('base64')
+        ASPIRE_LOCALE_OVERRIDE: vscode.env.language
     };
+
+    if (dcpServer) {
+         // Include DCP server info
+        env.DEBUG_SESSION_PORT = dcpServer.info.address;
+        env.DEBUG_SESSION_TOKEN = dcpServer.info.token;
+        env.DEBUG_SESSION_SERVER_CERTIFICATE = Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64');
+    }
 
     hasRunGetAspireTerminal = true;
 
@@ -46,9 +49,9 @@ export function getAspireTerminal(): vscode.Terminal {
     });
 }
 
-export function sendToAspireTerminal(command: string, preserveFocus?: boolean) {
-    const terminal = getAspireTerminal();
+export function sendToAspireTerminal(command: string, dcpServer?: DcpServer) {
+    const terminal = getAspireTerminal(dcpServer);
     extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
-    terminal.show(preserveFocus);
+    terminal.show();
 }

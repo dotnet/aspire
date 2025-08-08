@@ -11,20 +11,19 @@ import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
-import { createDcpServer, DcpServer } from './dcp/dcpServer';
-import { AspireDebugAdapterDescriptorFactory } from './dcp/debugAdapterFactory';
-import { createDebugAdapterTracker as createDebugAdapterLogForwarder } from './debugger/common';
+import { AspireDebugAdapterDescriptorFactory } from './debugger/debugAdapterFactory';
 import { runCommand } from './commands/run';
+import { AspireDebugSession } from './debugger/debugSession';
 
 export class AspireExtensionContext {
 	private _rpcServerInfo: RpcServerConnectionInfo | undefined;
-	private _dcpServer: DcpServer | undefined;
 	private _extensionContext: vscode.ExtensionContext | undefined;
+	private _aspireDebugSession: AspireDebugSession | undefined;
 
-	constructor(rpcServerInfo?: RpcServerConnectionInfo, dcpServer?: DcpServer, context?: vscode.ExtensionContext) {
-		this._rpcServerInfo = rpcServerInfo;
-		this._dcpServer = dcpServer;
-		this._extensionContext = context;
+	constructor() {
+		this._rpcServerInfo = undefined;
+		this._extensionContext = undefined;
+		this._aspireDebugSession = undefined;
 	}
 
 	get rpcServerInfo(): RpcServerConnectionInfo {
@@ -34,11 +33,8 @@ export class AspireExtensionContext {
 		return this._rpcServerInfo;
 	}
 
-	get dcpServer(): DcpServer {
-		if (!this._dcpServer) {
-			throw new Error('DCP Server is not initialized');
-		}
-		return this._dcpServer;
+	set rpcServerInfo(value: RpcServerConnectionInfo) {
+		this._rpcServerInfo = value;
 	}
 
 	get extensionContext(): vscode.ExtensionContext {
@@ -47,20 +43,36 @@ export class AspireExtensionContext {
 		}
 		return this._extensionContext;
 	}
+
+	set extensionContext(value: vscode.ExtensionContext) {
+		this._extensionContext = value;
+	}
+
+	get aspireDebugSession(): AspireDebugSession {
+		if (!this._aspireDebugSession) {
+			throw new Error('Aspire debug session is not initialized');
+		}
+		return this._aspireDebugSession;
+	}
+
+	set aspireDebugSession(value: AspireDebugSession) {
+		this._aspireDebugSession = value;
+	}
 }
 
 export let extensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
-	initializeTelemetry(context);
 	extensionLogOutputChannel.info("Activating Aspire extension");
+	initializeTelemetry(context);
 
 	const rpcServerInfo = await createRpcServer(
 		connection => new InteractionService(),
 		(connection, token: string) => new RpcClient(connection, token)
 	);
-	const dcpServer = await createDcpServer();
-	extensionContext = new AspireExtensionContext(rpcServerInfo, dcpServer, context);
+
+	extensionContext.rpcServerInfo = rpcServerInfo;
+	extensionContext.extensionContext = context;
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -78,9 +90,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			vscode.DebugConfigurationProviderTriggerKind.Dynamic
 		)
 	);
-
-	createDebugAdapterLogForwarder();
-
 
 	// Return exported API for tests or other extensions
 	return {
@@ -114,7 +123,6 @@ class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvi
 
 export function deactivate() {
 	extensionContext.rpcServerInfo.dispose();
-	extensionContext.dcpServer.dispose();
 }
 
 async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {
