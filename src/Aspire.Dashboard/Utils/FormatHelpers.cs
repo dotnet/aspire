@@ -139,7 +139,7 @@ internal static partial class FormatHelpers
         return value.ToString(formatString, provider ?? CultureInfo.CurrentCulture);
     }
 
-    public static string TruncateText(string text, int maxLength)
+    public static string TruncateText(string? text, int maxLength)
     {
         if (string.IsNullOrEmpty(text))
         {

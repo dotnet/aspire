@@ -83,10 +83,11 @@ public class FormatHelpersTests
     }
 
     [Theory]
+    [InlineData(null, 5, "")]
     [InlineData("", 5, "")]
     [InlineData("abcdef", 5, "abcd" + FormatHelpers.Ellipsis)]
     [InlineData("abcdef", 10, "abcdef")]
-    public void TruncateText(string initialText, int maxLength, string expected)
+    public void TruncateText(string? initialText, int maxLength, string expected)
     {
         Assert.Equal(expected, FormatHelpers.TruncateText(initialText, maxLength: maxLength));
     }
