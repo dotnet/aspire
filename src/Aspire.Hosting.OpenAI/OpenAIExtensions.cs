@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -64,45 +63,12 @@ public static class OpenAIExtensions
             })
             .OnInitializeResource(async (r, evt, ct) =>
             {
-                var logger = evt.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
-
-                var apiKey = await resource.Key.GetValueAsync(ct).ConfigureAwait(false);
-
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    logger.LogInformation("Missing or invalid API Key");
-
-                    await evt.Notifications.PublishUpdateAsync(resource, state => state with
-                    {
-                        State = KnownResourceStates.FailedToStart,
-                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "OpenAI")]
-                    }).ConfigureAwait(false);
-
-                    return;
-                }
-
-                var healthCheck = new StatusPageHealthCheck(
-                    evt.Services.GetRequiredService<IHttpClientFactory>(),
-                    new Uri("https://status.openai.com/api/v2/status.json"),
-                    "OpenAIHealthCheck"
-                    );
-
-                var healthCheckResult = await healthCheck.CheckHealthAsync(new HealthCheckContext(), ct).ConfigureAwait(false);
-
-                if (healthCheckResult.Status != HealthStatus.Healthy)
-                {
-                    logger.LogWarning("OpenAI API health check failed");
-                    await evt.Notifications.PublishUpdateAsync(resource, state => state with
-                    {
-                        State = KnownResourceStates.FailedToStart,
-                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "OpenAI")]
-                    }).ConfigureAwait(false);
-
-                    return;
-                }
-
+                // Connection string resolution is dependent on parameters being resolved
+                // We use this to wait for the parameters to be resolved before we can compute the connection string.
                 var cs = await r.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
+                // Publish the update with the connection string value and the state as running.
+                // This will allow health checks to start running.
                 await evt.Notifications.PublishUpdateAsync(r, s => s with
                 {
                     State = KnownResourceStates.Running,
