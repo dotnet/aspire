@@ -135,9 +135,95 @@ internal interface INewCommandPrompter
 
 internal class NewCommandPrompter(IInteractionService interactionService) : INewCommandPrompter
 {
-    public virtual Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
+    public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
-        return Task.FromResult(candidatePackages.First());
+        // Create a hierarchical selection experience:
+        // - Top-level: all packages from the implicit channel (if any)
+        // - Then: one entry per remaining channel that opens a sub-menu with that channel's packages
+
+        // Local helpers
+        static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
+        {
+            // Keep it concise: "Id Version"
+            var pkg = item.Package;
+            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
+            return $"{pkg.Version} ({source})";
+        }
+
+        async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
+            PackageChannel channel,
+            IEnumerable<(NuGetPackage Package, PackageChannel Channel)> items,
+            CancellationToken ct)
+        {
+            // Show a sub-menu for this channel's packages
+            var packageChoices = items
+                .Select(i => (
+                    Label: FormatPackageLabel(i),
+                    Result: i
+                ))
+                .ToArray();
+
+            var selection = await interactionService.PromptForSelectionAsync(
+                NewCommandStrings.SelectATemplateVersion,
+                packageChoices,
+                c => c.Label,
+                ct);
+
+            return selection.Result;
+        }
+
+        // Group incoming items by channel instance
+        var byChannel = candidatePackages
+            .GroupBy(cp => cp.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // Build the root menu as tuples of (label, action)
+        var rootChoices = new List<(string Label, Func<CancellationToken, Task<(NuGetPackage, PackageChannel)>> Action)>();
+
+        if (implicitGroup is not null)
+        {
+            // Add each implicit package directly to the root
+            foreach (var item in implicitGroup)
+            {
+                var captured = item; // avoid modified-closure issues
+                rootChoices.Add((
+                    Label: FormatPackageLabel((captured.Package, captured.Channel)),
+                    Action: ct => Task.FromResult((captured.Package, captured.Channel))
+                ));
+            }
+        }
+
+        // Add a submenu entry for each explicit channel
+        foreach (var channelGroup in explicitGroups)
+        {
+            var channel = channelGroup.Key;
+            var items = channelGroup.ToArray();
+
+            rootChoices.Add((
+                Label: channel.Name,
+                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
+            ));
+        }
+
+        // If for some reason we have no choices, fall back to the first candidate
+        if (rootChoices.Count == 0)
+        {
+            return candidatePackages.First();
+        }
+
+        // Prompt user for the top-level selection
+        var topSelection = await interactionService.PromptForSelectionAsync(
+            NewCommandStrings.SelectATemplateVersion,
+            rootChoices,
+            c => c.Label,
+            cancellationToken);
+
+        return await topSelection.Action(cancellationToken);
     }
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)

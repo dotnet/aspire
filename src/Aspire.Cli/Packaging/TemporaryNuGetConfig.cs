@@ -32,7 +32,7 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         var distinctSources = mappings
             .Select(m => m.Source)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select((source, index) => new { Source = source, Key = $"source{index + 1}" })
+            .Select((source, index) => new { Source = source, Key = source })
             .ToArray();
 
         await using var fileStream = configFile.Create();
