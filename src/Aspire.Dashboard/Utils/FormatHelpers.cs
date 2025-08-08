@@ -21,6 +21,7 @@ internal static partial class FormatHelpers
     // Limit size of very long data that is written in large grids.
     public const int ColumnMaximumTextLength = 250;
     public const int TooltipMaximumTextLength = 1500;
+    public const string Ellipsis = "…";
 
     // There are an unbound number of CultureInfo instances so we don't want to use it as the key.
     // Someone could have also customized their culture so we don't want to use the name as the key.
@@ -140,7 +141,7 @@ internal static partial class FormatHelpers
 
     public static string TruncateText(string text, int maxLength)
     {
-        if (string.IsNullOrEmpty(text) || maxLength <= 0)
+        if (string.IsNullOrEmpty(text))
         {
             return string.Empty;
         }
@@ -150,8 +151,6 @@ internal static partial class FormatHelpers
             return text;
         }
 
-        const string ellipsis = "…";
-
-        return string.Concat(text.AsSpan(0, maxLength - ellipsis.Length), ellipsis);
+        return string.Concat(text.AsSpan(0, maxLength - Ellipsis.Length), Ellipsis);
     }
 }
