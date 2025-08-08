@@ -29,16 +29,16 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private const string TraceColumn = nameof(TraceColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
 
-    private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
+    private SelectViewModel<ResourceTypeDetails> _allResource = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private int _totalItemsCount;
     private List<OtlpResource> _resources = default!;
-    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
     private Subscription? _resourcesSubscription;
     private Subscription? _logsSubscription;
-    private bool _applicationChanged;
+    private bool _resourceChanged;
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
@@ -177,7 +177,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             });
         }
 
-        _allApplication = new()
+        _allResource = new()
         {
             Id = null,
             Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.LabelAll)]
@@ -197,7 +197,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         PageViewModel = new StructuredLogsPageViewModel
         {
             SelectedLogLevel = _logLevels[0],
-            SelectedResource = _allApplication
+            SelectedResource = _allResource
         };
 
         UpdateResources();
@@ -222,20 +222,20 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private void UpdateResources()
     {
         _resources = TelemetryRepository.GetResources();
-        _applicationViewModels = ResourcesSelectHelpers.CreateResources(_resources);
-        _applicationViewModels.Insert(0, _allApplication);
+        _resourceViewModels = ResourcesSelectHelpers.CreateResources(_resources);
+        _resourceViewModels.Insert(0, _allResource);
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedResourceChangedAsync()
     {
-        _applicationChanged = true;
+        _resourceChanged = true;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
     {
-        _applicationChanged = true;
+        _resourceChanged = true;
 
         await ClearSelectedLogEntryAsync();
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
@@ -381,10 +381,10 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_applicationChanged)
+        if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _applicationChanged = false;
+            _resourceChanged = false;
         }
         if (firstRender)
         {
@@ -441,7 +441,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     public async Task UpdateViewModelFromQueryAsync(StructuredLogsPageViewModel viewModel)
     {
-        viewModel.SelectedResource = _applicationViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allApplication);
+        viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
         ViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

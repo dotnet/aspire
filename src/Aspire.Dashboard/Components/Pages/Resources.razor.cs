@@ -556,9 +556,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return true;
         }
 
-        foreach (var (application, count) in newResourceUnviewedErrorCounts)
+        foreach (var (resource, count) in newResourceUnviewedErrorCounts)
         {
-            if (!_resourceUnviewedErrorCounts.TryGetValue(application, out var oldCount) || oldCount != count)
+            if (!_resourceUnviewedErrorCounts.TryGetValue(resource, out var oldCount) || oldCount != count)
             {
                 return true;
             }

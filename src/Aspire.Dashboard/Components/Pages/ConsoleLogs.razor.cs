@@ -459,7 +459,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateApplicationGrouping(resourceName, true),
+                    Id = ResourceTypeDetails.CreateResourceGrouping(resourceName, true),
                     Name = resourceName
                 });
             }

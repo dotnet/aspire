@@ -876,7 +876,7 @@ public sealed class TelemetryRepository : IDisposable
             catch (Exception ex)
             {
                 context.FailureCount += rm.ScopeMetrics.Sum(s => s.Metrics.Count);
-                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding resource.");
                 continue;
             }
 
@@ -904,7 +904,7 @@ public sealed class TelemetryRepository : IDisposable
             catch (Exception ex)
             {
                 context.FailureCount += rs.ScopeSpans.Sum(s => s.Spans.Count);
-                _otlpContext.Logger.LogInformation(ex, "Error adding application.");
+                _otlpContext.Logger.LogInformation(ex, "Error adding resource.");
                 continue;
             }
 

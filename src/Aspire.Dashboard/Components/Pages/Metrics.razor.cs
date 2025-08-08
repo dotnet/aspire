@@ -27,7 +27,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     private List<OtlpResource> _resources = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
-    private Subscription? _applicationsSubscription;
+    private Subscription? _resourcesSubscription;
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
@@ -106,10 +106,10 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             SelectedViewKind = null
         };
 
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewResources(() => InvokeAsync(() =>
+        UpdateResources();
+        _resourcesSubscription = TelemetryRepository.OnNewResources(() => InvokeAsync(() =>
         {
-            UpdateApplications();
+            UpdateResources();
             StateHasChanged();
         }));
     }
@@ -141,7 +141,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     {
         if (ResourceName is null && TryGetSingleResource() is { } r)
         {
-            // If there is no app selected and there is only one application available, select it.
+            // If there is no resource selected and there is only one resource available, select it.
             PageViewModel.SelectedResource = r;
             ResourceName = r.Name;
             return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
@@ -179,7 +179,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
     }
 
-    private void UpdateApplications()
+    private void UpdateResources()
     {
         _resources = TelemetryRepository.GetResources();
         _resourceViewModels = ResourcesSelectHelpers.CreateResources(_resources);
@@ -214,9 +214,9 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
 
-        // The mobile view doesn't update the URL when the application changes.
+        // The mobile view doesn't update the URL when the resource changes.
         // Because of this, the page doesn't autoamtically use updated instruments.
-        // Force the metrics tree to update so it re-renders with the new app's instruments.
+        // Force the metrics tree to update so it re-renders with the new resource's instruments.
         _treeMetricSelector?.OnResourceChanged();
     }
 
@@ -344,7 +344,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public void Dispose()
     {
-        _applicationsSubscription?.Dispose();
+        _resourcesSubscription?.Dispose();
         _metricsSubscription?.Dispose();
         TelemetryContext.Dispose();
     }
@@ -355,7 +355,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsApplicationIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedResource.Id?.ReplicaSetName is not null)),
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsResourceIsReplica, new AspireTelemetryProperty(PageViewModel.SelectedResource.Id?.ReplicaSetName is not null)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsInstrumentsCount, new AspireTelemetryProperty((PageViewModel.Instruments?.Count ?? -1).ToString(CultureInfo.InvariantCulture), AspireTelemetryPropertyType.Metric)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedDuration, new AspireTelemetryProperty(PageViewModel.SelectedDuration.Id.ToString(), AspireTelemetryPropertyType.UserSetting)),
             new ComponentTelemetryProperty(TelemetryPropertyKeys.MetricsSelectedView, new AspireTelemetryProperty(PageViewModel.SelectedViewKind?.ToString() ?? string.Empty, AspireTelemetryPropertyType.UserSetting))

@@ -35,7 +35,7 @@ public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
         return ResourceKey.Create(name: ReplicaSetName, instanceId: InstanceId);
     }
 
-    public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
+    public static ResourceTypeDetails CreateResourceGrouping(string groupingName, bool isReplicaSet)
     {
         return new ResourceTypeDetails(OtlpResourceType.ResourceGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
     }

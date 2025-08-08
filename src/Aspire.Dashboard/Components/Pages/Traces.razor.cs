@@ -33,10 +33,10 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private TotalItemsFooter _totalItemsFooter = default!;
     private int _totalItemsCount;
     private List<OtlpResource> _resources = default!;
-    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
-    private Subscription? _applicationsSubscription;
+    private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
+    private Subscription? _resourcesSubscription;
     private Subscription? _tracesSubscription;
-    private bool _applicationChanged;
+    private bool _resourceChanged;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
@@ -164,10 +164,10 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _allResource = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new TracesPageViewModel { SelectedResource = _allResource };
 
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewResources(callback: () => InvokeAsync(workItem: () =>
+        UpdateResources();
+        _resourcesSubscription = TelemetryRepository.OnNewResources(callback: () => InvokeAsync(workItem: () =>
         {
-            UpdateApplications();
+            UpdateResources();
             StateHasChanged();
         }));
     }
@@ -183,31 +183,31 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         UpdateSubscription();
     }
 
-    private void UpdateApplications()
+    private void UpdateResources()
     {
         _resources = TelemetryRepository.GetResources(includeUninstrumentedPeers: true);
-        _applicationViewModels = ResourcesSelectHelpers.CreateResources(_resources);
-        _applicationViewModels.Insert(0, _allResource);
+        _resourceViewModels = ResourcesSelectHelpers.CreateResources(_resources);
+        _resourceViewModels.Insert(0, _allResource);
 
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChanged()
+    private Task HandleSelectedResourceChanged()
     {
-        _applicationChanged = true;
+        _resourceChanged = true;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
+        var selectedResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ResourceKey != selectedApplicationKey)
+        if (_tracesSubscription is null || _tracesSubscription.ResourceKey != selectedResourceKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedResourceKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
@@ -236,10 +236,10 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_applicationChanged)
+        if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _applicationChanged = false;
+            _resourceChanged = false;
         }
         if (firstRender)
         {
@@ -266,14 +266,14 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     public void Dispose()
     {
-        _applicationsSubscription?.Dispose();
+        _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)
     {
-        viewModel.SelectedResource = _applicationViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
+        viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
         TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
         if (SerializedFilters is not null)
@@ -298,7 +298,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         return DashboardUrls.TracesUrl(
-            resource: serializable.SelectedApplication,
+            resource: serializable.SelectedResource,
             filters: filters);
     }
 
@@ -306,7 +306,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     {
         return new TracesPageState
         {
-            SelectedApplication = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
+            SelectedResource = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
             Filters = TracesViewModel.Filters
         };
     }
@@ -388,7 +388,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     public class TracesPageState
     {
-        public string? SelectedApplication { get; set; }
+        public string? SelectedResource { get; set; }
         public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
 

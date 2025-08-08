@@ -41,7 +41,7 @@ public static class TraceHelpers
     private readonly record struct OrderedResourcesState(DateTime? CurrentMinDate);
 
     /// <summary>
-    /// Get applications for a trace, with grouped information, and ordered using min date.
+    /// Get resources for a trace, with grouped information, and ordered using min date.
     /// It is possible for spans to arrive with dates that are out of order (i.e. child span has earlier
     /// start date than the parent) so ensure it isn't possible for a child to appear before parent.
     /// </summary>
