@@ -62,7 +62,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext(Args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(Args, resource, cancellationToken)
             {
                 ExecutionContext = environmentContext.ExecutionContext
             };

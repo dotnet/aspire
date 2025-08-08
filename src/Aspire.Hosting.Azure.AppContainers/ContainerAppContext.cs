@@ -422,7 +422,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext(Args, cancellationToken: cancellationToken)
+            var context = new CommandLineArgsCallbackContext(Args, resource, cancellationToken: cancellationToken)
             {
                 ExecutionContext = _containerAppEnvironmentContext.ExecutionContext,
             };

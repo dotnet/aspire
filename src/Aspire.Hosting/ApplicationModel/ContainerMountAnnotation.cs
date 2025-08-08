@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Hosting.Properties;
+using Aspire.Hosting.Resources;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -25,18 +25,18 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
         {
             if (string.IsNullOrEmpty(source))
             {
-                throw new ArgumentNullException(nameof(source), Resources.ContainerMountBindMountsRequireSourceExceptionMessage);
+                throw new ArgumentNullException(nameof(source), MessageStrings.ContainerMountBindMountsRequireSourceExceptionMessage);
             }
 
             if (!Path.IsPathRooted(source))
             {
-                throw new ArgumentException(Resources.ContainerMountBindMountsRequireRootedPaths, nameof(source));
+                throw new ArgumentException(MessageStrings.ContainerMountBindMountsRequireRootedPaths, nameof(source));
             }
         }
 
         if (type == ContainerMountType.Volume && string.IsNullOrEmpty(source) && isReadOnly)
         {
-            throw new ArgumentException(Resources.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));
+            throw new ArgumentException(MessageStrings.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));
         }
 
         Source = source;
