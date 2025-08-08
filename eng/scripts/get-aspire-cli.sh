@@ -19,21 +19,18 @@ readonly RESET='\033[0m'
 INSTALL_PATH=""
 VERSION=""
 QUALITY=""
-OS=""
-ARCH=""
+OS_ARG=""
+ARCH_ARG=""
 SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
+HOST_OS="unset"
 DEFAULT_QUALITY="release"
-
-# =====================
-# Shared helpers block
-# =====================
 
 # Function to show help
 show_help() {
-    cat << 'EOF'
+    cat << EOF
 Aspire CLI Download Script
 
 DESCRIPTION:
@@ -51,7 +48,7 @@ DESCRIPTION:
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
 
-    -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire)
+    -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
     -q, --quality QUALITY       Quality to download (default: ${DEFAULT_QUALITY}). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
@@ -115,7 +112,7 @@ parse_args() {
                     say_info "Use --help for usage information."
                     exit 1
                 fi
-                OS="$2"
+                OS_ARG="$2"
                 shift 2
                 ;;
             --arch)
@@ -124,7 +121,7 @@ parse_args() {
                     say_info "Use --help for usage information."
                     exit 1
                 fi
-                ARCH="$2"
+                ARCH_ARG="$2"
                 shift 2
                 ;;
             -k|--keep-archive)
@@ -677,17 +674,17 @@ construct_aspire_cli_url() {
 # Function to download and install archive
 download_and_install_archive() {
     local temp_dir="$1"
-    local os arch runtimeIdentifier url filename checksum_url checksum_filename extension
+    local target_os="$2"
+    local target_arch="$3"
+
+    local runtimeIdentifier url filename checksum_url checksum_filename extension
     local cli_exe cli_path
 
-    # Construct the runtime identifier from inputs (or detect)
-    if ! runtimeIdentifier=$(get_runtime_identifier "${OS}" "${ARCH}"); then
-        return 1
-    fi
-    os="${runtimeIdentifier%%-*}"
+    # Construct the runtime identifier using the function
+    runtimeIdentifier=$(get_runtime_identifier "$target_os" "$target_arch")
 
     # Determine file extension based on OS
-    if [[ "$os" == "win" ]]; then
+    if [[ "$target_os" == "win" ]]; then
         extension="zip"
     else
         extension="tar.gz"
@@ -727,7 +724,7 @@ download_and_install_archive() {
         return 1
     fi
 
-    if [[ "$os" == "win" ]]; then
+    if [[ "$target_os" == "win" ]]; then
         cli_exe="aspire.exe"
     else
         cli_exe="aspire"
@@ -745,6 +742,8 @@ if [[ "$SHOW_HELP" == true ]]; then
     exit 0
 fi
 
+HOST_OS=$(detect_os)
+
 # Validate that both --version and --quality are not provided together
 if [[ -n "$VERSION" && -n "$QUALITY" ]]; then
     say_error "Cannot specify both --version and --quality. Use --version for a specific version or --quality for a quality level."
@@ -760,8 +759,8 @@ fi
 
 # Set default install path if not provided
 if [[ -z "$INSTALL_PATH" ]]; then
-    INSTALL_PATH="$HOME/.aspire"
-    INSTALL_PATH_UNEXPANDED="\$HOME/.aspire"
+    INSTALL_PATH="$HOME/.aspire/bin"
+    INSTALL_PATH_UNEXPANDED="\$HOME/.aspire/bin"
 else
     INSTALL_PATH_UNEXPANDED="$INSTALL_PATH"
 fi
@@ -771,7 +770,7 @@ temp_dir=$(new_temp_dir "aspire-cli-download")
 trap 'remove_temp_dir "$temp_dir"' EXIT
 
 # Download and install the archive
-if ! download_and_install_archive "$temp_dir"; then
+if ! download_and_install_archive "$temp_dir" "$OS_ARG" "$ARCH_ARG"; then
     exit 1
 fi
 
