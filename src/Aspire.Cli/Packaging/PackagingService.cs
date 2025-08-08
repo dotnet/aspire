@@ -15,12 +15,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
     public Task<IEnumerable<PackageChannel>> GetChannelsAsync(CancellationToken cancellationToken = default)
     {
         var defaultChannel = PackageChannel.CreateImplicitChannel(nuGetPackageCache);
-        var stableChannel = PackageChannel.CreateExplicitChannel("stable", new[] 
+        
+        var stableChannel = PackageChannel.CreateExplicitChannel("stable", PackageChannelQuality.Stable, new[]
         {
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
         }, nuGetPackageCache);
 
-        var dailyChannel = PackageChannel.CreateExplicitChannel("daily", new[]
+        var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Prerelease, new[]
         {
             new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
             new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
@@ -38,7 +39,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             var prHives = executionContext.HivesDirectory.GetDirectories();
             foreach (var prHive in prHives)
             {
-                var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, new[]
+                var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, PackageChannelQuality.Prerelease, new[]
                 {
                     new PackageMapping("Aspire*", prHive.FullName),
                     new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", prHive.FullName),

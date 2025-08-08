@@ -70,12 +70,17 @@ internal sealed class TemporaryNuGetConfig : IDisposable
         {
             await xmlWriter.WriteStartElementAsync(null, "packageSourceMapping", null);
 
-            var groupedBySource = mappings
+            var mappingsWithSpecificFilters = mappings
+                .Where(m => m.PackageFilter != PackageMapping.AllPackages)
+                .ToArray();
+
+            var groupedBySource = mappingsWithSpecificFilters
                 .GroupBy(m => m.Source, StringComparer.OrdinalIgnoreCase);
 
             foreach (var sourceGroup in groupedBySource)
             {
                 var sourceInfo = distinctSources.First(s => string.Equals(s.Source, sourceGroup.Key, StringComparison.OrdinalIgnoreCase));
+
                 await xmlWriter.WriteStartElementAsync(null, "packageSource", null);
                 await xmlWriter.WriteAttributeStringAsync(null, "key", null, sourceInfo.Key);
 
