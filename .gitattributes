@@ -59,3 +59,8 @@
 # https://github.com/github/linguist/issues/1626#issuecomment-401442069
 # this only affects the repo's language statistics
 *.h linguist-language=C
+
+# Verify
+*.verified.json text eol=lf working-tree-encoding=UTF-8
+*.verified.txt text eol=lf working-tree-encoding=UTF-8
+*.verified.yaml text eol=lf working-tree-encoding=UTF-8
