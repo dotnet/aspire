@@ -32,7 +32,9 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
 
         var packageResults = await Task.WhenAll(tasks);
 
-        var packages = packageResults.SelectMany(p => p).DistinctBy(p => $"{p.Id}-{p.Version}");
+        var packages = packageResults
+            .SelectMany(p => p)
+            .DistinctBy(p => $"{p.Id}-{p.Version}");
 
         // When doing a `dotnet package search` the the results may include stable packages even when searching for
         // prerelease packages. This filters out this noise.

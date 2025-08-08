@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using System.Xml.Linq;
+using Semver;
 
 namespace Aspire.Cli.Templating;
 
@@ -377,7 +378,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
         }
 
-        var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(packagesFromChannels, cancellationToken);
+        var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+
+        if (parseResult.GetValue<string>("--version") is { } version)
+        {
+            var explicitPacakgeFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
+            return explicitPacakgeFromChannel;
+        }
+
+        var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
     }
 
