@@ -220,8 +220,9 @@ internal sealed class CliServiceCollectionTestOptions
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
 
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService);
+        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -272,7 +273,8 @@ internal sealed class CliServiceCollectionTestOptions
         var certificateService = serviceProvider.GetRequiredService<ICertificateService>();
         var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext);
         return new TemplateProvider([factory]);
     };
 

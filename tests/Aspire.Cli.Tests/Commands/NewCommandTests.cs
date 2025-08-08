@@ -5,6 +5,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -131,7 +132,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommandOrdersTemplatePackageVersionsCorrectly()
     {
-        IEnumerable<NuGetPackage>? promptedPackages = null;
+        IEnumerable<(NuGetPackage Package, PackageChannel Channel)>? promptedPackages = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
@@ -189,15 +190,15 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
-            package => Assert.Equal("9.3.0", package.Version),
-            package => Assert.Equal("9.2.0", package.Version)
+            packageWithChannel => Assert.Equal("9.3.0", packageWithChannel.Package.Version),
+            packageWithChannel => Assert.Equal("9.2.0", packageWithChannel.Package.Version)
         );
     }
 
     [Fact]
     public async Task NewCommandOrdersTemplatePackageVersionsCorrectlyWithPrerelease()
     {
-        IEnumerable<NuGetPackage>? promptedPackages = null;
+        IEnumerable<(NuGetPackage Package, PackageChannel Channel)>? promptedPackages = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
@@ -262,9 +263,9 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(promptedPackages);
         Assert.Collection(
             promptedPackages,
-            package => Assert.Equal("9.4.0-preview.1234", package.Version),
-            package => Assert.Equal("9.3.0", package.Version),
-            package => Assert.Equal("9.2.0", package.Version)
+            packageWithChannel => Assert.Equal("9.4.0-preview.1234", packageWithChannel.Package.Version),
+            packageWithChannel => Assert.Equal("9.3.0", packageWithChannel.Package.Version),
+            packageWithChannel => Assert.Equal("9.2.0", packageWithChannel.Package.Version)
         );
     }
 
@@ -456,7 +457,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetConfigFile, options, cancellationToken) =>
                 {
                     var package = new NuGetPackage()
                     {
@@ -636,7 +637,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
 {
-    public Func<IEnumerable<NuGetPackage>, NuGetPackage>? PromptForTemplatesVersionCallback { get; set; }
+    public Func<IEnumerable<(NuGetPackage Package, PackageChannel Channel)>, (NuGetPackage Package, PackageChannel Channel)>? PromptForTemplatesVersionCallback { get; set; }
     public Func<ITemplate[], ITemplate>? PromptForTemplateCallback { get; set; }
     public Func<string, string>? PromptForProjectNameCallback { get; set; }
     public Func<string, string>? PromptForOutputPathCallback { get; set; }
@@ -668,7 +669,7 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
         };
     }
 
-    public override Task<NuGetPackage> PromptForTemplatesVersionAsync(IEnumerable<NuGetPackage> candidatePackages, CancellationToken cancellationToken)
+    public override Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
         return PromptForTemplatesVersionCallback switch
         {

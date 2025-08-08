@@ -494,7 +494,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     public async Task AddCommandPreservesSourceArgumentInBothCommands()
     {
         // Arrange
-        string? searchUsedSource = null;
         string? addUsedSource = null;
         const string expectedSource = "https://custom-nuget-source.test/v3/index.json";
 
@@ -519,9 +518,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
                 runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
-                    // Capture the source used for search
-                    searchUsedSource = nugetSource;
-
                     var redisPackage = new NuGetPackage()
                     {
                         Id = "Aspire.Hosting.Redis",
@@ -557,7 +553,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(0, exitCode);
-        Assert.Equal(expectedSource, searchUsedSource);
         Assert.Equal(expectedSource, addUsedSource);
     }
 
