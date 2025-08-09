@@ -216,7 +216,6 @@ public static class ParameterResourceBuilderExtensions
         {
             ResourceType = KnownResourceTypes.Parameter,
             Properties = [
-                new("parameter.secret", resource.Secret.ToString()),
                 new(CustomResourceKnownProperties.Source, resource.ConfigurationKey)
             ],
             State = KnownResourceStates.Waiting
