@@ -413,7 +413,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             // Ask for confirmation before creating the file
             var choice = await interactionService.PromptForSelectionAsync(
-                "No NuGet.config was found in the current directory. Create one with the required package sources for the selected channel?",
+                TemplatingStrings.CreateNugetConfigConfirmation,
                 [TemplatingStrings.Yes, TemplatingStrings.No],
                 c => c,
                 cancellationToken);
