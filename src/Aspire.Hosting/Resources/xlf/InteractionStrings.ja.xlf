@@ -4,62 +4,62 @@
     <body>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
-        <target state="new">There are unresolved parameters that need to be set. Please provide values for them.</target>
+        <target state="translated">設定する必要のある未解決のパラメーターがあります。それらの値を指定してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarPrimaryButtonText">
         <source>Enter values</source>
-        <target state="new">Enter values</target>
+        <target state="translated">値の入力</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarTitle">
         <source>Unresolved parameters</source>
-        <target state="new">Unresolved parameters</target>
+        <target state="translated">未解決のパラメーター</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
-        <target state="new">Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</target>
+        <target state="translated">未解決のパラメーターの値を指定してください。パラメーターは、将来使用のために [ユーザー シークレット](https://learn.microsoft.com/aspnet/core/security/app-secrets) に保存できます。</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
-        <target state="new">Enter value for {0}</target>
+        <target state="translated">{0} の値を入力してください</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsPrimaryButtonText">
         <source>Save</source>
-        <target state="new">Save</target>
+        <target state="translated">保存</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
         <source>Save to user secrets</source>
-        <target state="new">Save to user secrets</target>
+        <target state="translated">ユーザー シークレットに保存</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsTitle">
         <source>Set unresolved parameters</source>
-        <target state="new">Set unresolved parameters</target>
+        <target state="translated">未解決のパラメーターを設定する</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionCheckLinkText">
         <source>Upgrade instructions</source>
-        <target state="new">Upgrade instructions</target>
+        <target state="translated">手順のアップグレード</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionCheckMessage">
         <source>Aspire {0} is available.</source>
-        <target state="new">Aspire {0} is available.</target>
+        <target state="translated">Aspire {0} を利用できます。</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionCheckPrimaryButtonText">
         <source>Ignore</source>
-        <target state="new">Ignore</target>
+        <target state="translated">無視</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionCheckTitle">
         <source>Update now</source>
-        <target state="new">Update now</target>
+        <target state="translated">今すぐ更新</target>
         <note />
       </trans-unit>
     </body>
