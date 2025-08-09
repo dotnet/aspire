@@ -113,7 +113,7 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         // so we need to do the same here.
         var value = await ResolveInternalAsync(cs.Resource.ConnectionStringExpression).ConfigureAwait(false);
 
-        // Throw if the connection string is not optional but is not present
+        // Throw if the connection string is required but not present
         if (string.IsNullOrEmpty(value.Value) && !cs.Optional)
         {
             cs.ThrowConnectionStringUnavailableException();
