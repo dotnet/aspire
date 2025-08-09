@@ -75,24 +75,37 @@ public class ResourceCommandService
             tasks.Add(ExecuteCommandCoreAsync(name, resource, commandName, cancellationToken));
         }
 
-        // Check for failures.
+        // Check for failures and cancellations.
         var results = await Task.WhenAll(tasks).ConfigureAwait(false);
         var failures = new List<(string resourceId, ExecuteCommandResult result)>();
+        var cancellations = new List<(string resourceId, ExecuteCommandResult result)>();
         for (var i = 0; i < results.Length; i++)
         {
             if (!results[i].Success)
             {
-                failures.Add((names[i], results[i]));
+                if (results[i].Canceled)
+                {
+                    cancellations.Add((names[i], results[i]));
+                }
+                else
+                {
+                    failures.Add((names[i], results[i]));
+                }
             }
         }
 
-        if (failures.Count == 0)
+        if (failures.Count == 0 && cancellations.Count == 0)
         {
             return new ExecuteCommandResult { Success = true };
         }
+        else if (failures.Count == 0 && cancellations.Count > 0)
+        {
+            // All non-successful commands were cancelled
+            return new ExecuteCommandResult { Success = false, Canceled = true };
+        }
         else
         {
-            // Aggregate error results together.
+            // There were actual failures (possibly with some cancellations)
             var errorMessage = $"{failures.Count} command executions failed.";
             errorMessage += Environment.NewLine + string.Join(Environment.NewLine, failures.Select(f => $"Resource '{f.resourceId}' failed with error message: {f.result.ErrorMessage}"));
 
@@ -126,6 +139,11 @@ public class ResourceCommandService
                 if (result.Success)
                 {
                     logger.LogInformation("Successfully executed command '{CommandName}'.", commandName);
+                    return result;
+                }
+                else if (result.Canceled)
+                {
+                    logger.LogDebug("Command '{CommandName}' was canceled.", commandName);
                     return result;
                 }
                 else
