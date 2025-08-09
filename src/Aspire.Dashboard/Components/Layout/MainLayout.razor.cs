@@ -110,6 +110,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
             {
+                // Check if the dashboard client can connect.
+                // Run in a new task to not block other behavior if a connection error occurs and a dialog is shown.
                 _ = Task.Run(EnsureClientConnectionAsync);
             }
         }
