@@ -405,11 +405,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         }
 
         var workingDir = executionContext.WorkingDirectory;
-        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        var nugetConfigFile = new FileInfo(nugetConfigPath);
+        // Locate an existing NuGet.config in the current directory using a case-insensitive search
+        var nugetConfigFile = TryFindNuGetConfigInDirectory(workingDir);
 
         // We only act if we need to create or update
-        if (!nugetConfigFile.Exists)
+        if (nugetConfigFile is null)
         {
             // Ask for confirmation before creating the file
             var choice = await interactionService.PromptForSelectionAsync(
@@ -425,13 +425,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 {
                     using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
                     Directory.CreateDirectory(workingDir.FullName);
-                    File.Copy(tmpConfig.ConfigFile.FullName, nugetConfigFile.FullName, overwrite: true);
+                    var targetPath = Path.Combine(workingDir.FullName, "NuGet.config");
+                    File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
                 }
                 else
                 {
                     // Ensure target directory exists
                     Directory.CreateDirectory(workingDir.FullName);
-                    File.Copy(temporaryConfig.ConfigFile.FullName, nugetConfigFile.FullName, overwrite: true);
+                    var targetPath = Path.Combine(workingDir.FullName, "NuGet.config");
+                    File.Copy(temporaryConfig.ConfigFile.FullName, targetPath, overwrite: true);
                 }
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
@@ -446,7 +448,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             .ToArray();
 
         XDocument doc;
-        await using (var stream = nugetConfigFile.OpenRead())
+    await using (var stream = nugetConfigFile.OpenRead())
         {
             doc = XDocument.Load(stream);
         }
@@ -506,6 +508,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         }
 
         interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
+    }
+
+    private static FileInfo? TryFindNuGetConfigInDirectory(DirectoryInfo directory)
+    {
+        ArgumentNullException.ThrowIfNull(directory);
+
+        // Search only the specified directory for a file named "nuget.config", ignoring case
+        return directory
+            .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
     }
 }
 
