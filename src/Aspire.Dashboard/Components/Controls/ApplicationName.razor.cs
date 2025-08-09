@@ -4,7 +4,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
 
@@ -23,15 +22,6 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
-
-    [Inject]
-    public required IDialogService DialogService { get; init; }
-
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
-
-    [Inject]
-    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
 
     private string? _pageTitle;
 
