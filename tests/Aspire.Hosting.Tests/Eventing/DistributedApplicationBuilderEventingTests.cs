@@ -245,6 +245,7 @@ public class DistributedApplicationBuilderEventingTests
             return Task.CompletedTask;
         });
 #pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
@@ -252,6 +253,7 @@ public class DistributedApplicationBuilderEventingTests
             afterResourcesCreatedEventFired.Set();
             return Task.CompletedTask;
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
         using var app = builder.Build();
         await app.StartAsync();
