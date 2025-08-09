@@ -9,23 +9,23 @@ using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("Application = {Application}, Properties = {Properties.Count}")]
-public class OtlpApplicationView
+[DebuggerDisplay("Resource = {Resource}, Properties = {Properties.Count}")]
+public class OtlpResourceView
 {
-    public ApplicationKey ApplicationKey => Application.ApplicationKey;
-    public OtlpApplication Application { get; }
+    public ResourceKey ResourceKey => Resource.ResourceKey;
+    public OtlpResource Resource { get; }
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplicationView(OtlpApplication application, RepeatedField<KeyValue> attributes)
+    public OtlpResourceView(OtlpResource resource, RepeatedField<KeyValue> attributes)
     {
-        Application = application;
+        Resource = resource;
 
-        var properties = attributes.ToKeyValuePairs(application.Context, filter: attribute =>
+        var properties = attributes.ToKeyValuePairs(resource.Context, filter: attribute =>
         {
             switch (attribute.Key)
             {
-                case OtlpApplication.SERVICE_NAME:
-                case OtlpApplication.SERVICE_INSTANCE_ID:
+                case OtlpResource.SERVICE_NAME:
+                case OtlpResource.SERVICE_INSTANCE_ID:
                     // Explicitly ignore these
                     return false;
                 default:
@@ -43,8 +43,8 @@ public class OtlpApplicationView
     {
         var props = new List<OtlpDisplayField>
         {
-            new OtlpDisplayField { DisplayName = "service.name", Key = KnownResourceFields.ServiceNameField, Value = Application.ApplicationName },
-            new OtlpDisplayField { DisplayName = "service.instance.id", Key = KnownResourceFields.ServiceInstanceIdField, Value = Application.InstanceId }
+            new OtlpDisplayField { DisplayName = "service.name", Key = KnownResourceFields.ServiceNameField, Value = Resource.ResourceName },
+            new OtlpDisplayField { DisplayName = "service.instance.id", Key = KnownResourceFields.ServiceInstanceIdField, Value = Resource.InstanceId }
         };
 
         foreach (var kv in Properties)

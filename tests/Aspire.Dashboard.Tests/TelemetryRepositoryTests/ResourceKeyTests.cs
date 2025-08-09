@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
-public class ApplicationKeyTests
+public class ResourceKeyTests
 {
     [Theory]
     [InlineData("name", "instanceid", "instanceid", null)]
@@ -15,7 +15,7 @@ public class ApplicationKeyTests
     public void Create_Success(string name, string instanceId, string expectedName, string? expectedInstanceId)
     {
         // Arrange & Act
-        var key = ApplicationKey.Create(name, instanceId);
+        var key = ResourceKey.Create(name, instanceId);
 
         // Assert
         Assert.Equal(expectedName, key.Name);
@@ -29,7 +29,7 @@ public class ApplicationKeyTests
     public void EqualsCompositeName_Success(string name, string instanceId, string compositeName)
     {
         // Arrange
-        var key = new ApplicationKey(name, instanceId);
+        var key = new ResourceKey(name, instanceId);
 
         // Act
         var result = key.EqualsCompositeName(compositeName);
@@ -48,7 +48,7 @@ public class ApplicationKeyTests
     public void EqualsCompositeName_Failure(string name, string instanceId, string? compositeName)
     {
         // Arrange
-        var key = new ApplicationKey(name, instanceId);
+        var key = new ResourceKey(name, instanceId);
 
         // Act
         var result = key.EqualsCompositeName(compositeName!);

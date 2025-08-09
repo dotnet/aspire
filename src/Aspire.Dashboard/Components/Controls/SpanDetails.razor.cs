@@ -133,7 +133,7 @@ public partial class SpanDetails : IDisposable
                 [KnownResourceFields.ServiceNameField] = new ComponentMetadata
                 {
                     Type = typeof(ResourceNameButtonValue),
-                    Parameters = { ["Resource"] = _viewModel.Span.Source.Application }
+                    Parameters = { ["Resource"] = _viewModel.Span.Source.Resource }
                 },
                 [KnownTraceFields.StatusField] = new ComponentMetadata
                 {

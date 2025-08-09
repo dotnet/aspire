@@ -15,10 +15,10 @@ public sealed class ResourceViewModelNameComparerTests
         // Arrange
         var resources = new[]
         {
-            ModelTestHelpers.CreateResource(appName: "database-dashboard-abc", displayName: "database-dashboard"),
-            ModelTestHelpers.CreateResource(appName: "database-dashboard-xyz", displayName: "database-dashboard"),
-            ModelTestHelpers.CreateResource(appName: "database-xyz", displayName: "database"),
-            ModelTestHelpers.CreateResource(appName: "database-abc", displayName: "database"),
+            ModelTestHelpers.CreateResource(resourceName: "database-dashboard-abc", displayName: "database-dashboard"),
+            ModelTestHelpers.CreateResource(resourceName: "database-dashboard-xyz", displayName: "database-dashboard"),
+            ModelTestHelpers.CreateResource(resourceName: "database-xyz", displayName: "database"),
+            ModelTestHelpers.CreateResource(resourceName: "database-abc", displayName: "database"),
         };
 
         // Act

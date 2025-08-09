@@ -23,7 +23,7 @@ public partial class SignalsActionsDisplay
     public required Action<bool> OnPausedChanged { get; set; }
 
     [Parameter, EditorRequired]
-    public required Func<ApplicationKey?, Task> HandleClearSignal { get; set; }
+    public required Func<ResourceKey?, Task> HandleClearSignal { get; set; }
 
     [Parameter, EditorRequired]
     public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }

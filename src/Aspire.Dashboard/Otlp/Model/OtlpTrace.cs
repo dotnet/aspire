@@ -109,7 +109,7 @@ public class OtlpTrace
 
         static string BuildFullName(OtlpSpan existingSpan)
         {
-            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
+            return $"{existingSpan.Source.Resource.ResourceName}: {existingSpan.Name}";
         }
     }
 
@@ -178,14 +178,14 @@ public class OtlpTrace
         return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan?.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan?.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
     }
 
-    public void SetSpanUninstrumentedPeer(OtlpSpan span, OtlpApplication? app)
+    public void SetSpanUninstrumentedPeer(OtlpSpan span, OtlpResource? resource)
     {
         if (span.Trace != this)
         {
             throw new ArgumentException("Span does not belong to this trace.", nameof(span));
         }
 
-        span.SetUninstrumentedPeer(app);
+        span.SetUninstrumentedPeer(resource);
         LastUpdatedDate = DateTime.UtcNow;
     }
 

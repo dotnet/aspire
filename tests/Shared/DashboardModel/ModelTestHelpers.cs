@@ -11,7 +11,7 @@ namespace Aspire.Tests.Shared.DashboardModel;
 public static class ModelTestHelpers
 {
     public static ResourceViewModel CreateResource(
-        string? appName = null,
+        string? resourceName = null,
         KnownResourceState? state = null,
         string? displayName = null,
         ImmutableArray<UrlViewModel>? urls = null,
@@ -29,9 +29,9 @@ public static class ModelTestHelpers
     {
         return new ResourceViewModel
         {
-            Name = appName ?? "Name!",
+            Name = resourceName ?? "Name!",
             ResourceType = resourceType ?? KnownResourceTypes.Container,
-            DisplayName = displayName ?? appName ?? "Display name!",
+            DisplayName = displayName ?? resourceName ?? "Display name!",
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             StartTimeStamp = DateTime.UtcNow,

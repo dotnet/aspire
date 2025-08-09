@@ -18,10 +18,10 @@ public static class TelemetryPropertyKeys
 
     // ConsoleLogs properties
     public const string ConsoleLogsShowTimestamp = AspireDashboardPropertyPrefix + "ConsoleLogs.ShowTimestamp";
-    public const string ConsoleLogsApplicationName = AspireDashboardPropertyPrefix + "ConsoleLogs.ApplicationName";
+    public const string ConsoleLogsResourceName = AspireDashboardPropertyPrefix + "ConsoleLogs.ResourceName";
 
     // Metrics properties
-    public const string MetricsApplicationIsReplica = AspireDashboardPropertyPrefix + "Metrics.ApplicationIsReplica";
+    public const string MetricsResourceIsReplica = AspireDashboardPropertyPrefix + "Metrics.ResourceIsReplica";
     public const string MetricsInstrumentsCount = AspireDashboardPropertyPrefix + "Metrics.InstrumentsCount";
     public const string MetricsSelectedDuration = AspireDashboardPropertyPrefix + "Metrics.SelectedDuration";
     public const string MetricsSelectedView = AspireDashboardPropertyPrefix + "Metrics.SelectedView";

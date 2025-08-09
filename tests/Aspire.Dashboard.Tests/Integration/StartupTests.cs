@@ -165,7 +165,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             WebApplicationBuilder? localBuilder = null;
 
             // Act
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -198,7 +198,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);

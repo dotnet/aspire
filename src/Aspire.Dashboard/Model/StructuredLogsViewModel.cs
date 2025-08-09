@@ -13,7 +13,7 @@ public class StructuredLogsViewModel
     private readonly List<TelemetryFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
-    private ApplicationKey? _applicationKey;
+    private ResourceKey? _resourceKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
     private int _logsCount;
@@ -24,7 +24,7 @@ public class StructuredLogsViewModel
         _telemetryRepository = telemetryRepository;
     }
 
-    public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
+    public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public IReadOnlyList<TelemetryFilter> Filters => _filters;
 
@@ -92,7 +92,7 @@ public class StructuredLogsViewModel
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
             {
-                ApplicationKey = ApplicationKey,
+                ResourceKey = ResourceKey,
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters

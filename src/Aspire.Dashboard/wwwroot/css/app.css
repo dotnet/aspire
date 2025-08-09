@@ -670,7 +670,7 @@ fluent-switch.table-switch::part(label) {
     overflow-wrap: anywhere;
 }
 
-.resource-select-application-label {
+.resource-select-resource-label {
     color: var(--accent-foreground-rest);
 }
 

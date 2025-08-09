@@ -43,7 +43,7 @@ public sealed partial class LogViewer
     public bool NoWrapLogs { get; set; }
 
     [Parameter]
-    public string? ApplicationName { get; set; }
+    public string? ResourceName { get; set; }
 
     protected override void OnParametersSet()
     {

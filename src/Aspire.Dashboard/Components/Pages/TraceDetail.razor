@@ -113,7 +113,7 @@
                                             ShowHover="true"
                                             ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
-                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_applications))" Class="expand-col">
+                                <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_resources))" Class="expand-col">
                                     @{
                                         var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                         // Indent the span name based on the depth of the span.
@@ -270,7 +270,7 @@
                                                 </div>
                                                 <div class="span-bar" style="grid-column: 2; background: @spanColor;"></div>
                                                 <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
-                                                    <span class="span-bar-label-detail">@SpanWaterfallViewModel.GetTitle(context.Span, _applications)</span>
+                                                    <span class="span-bar-label-detail">@SpanWaterfallViewModel.GetTitle(context.Span, _resources)</span>
                                                     <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
                                                 </div>
                                             </div>

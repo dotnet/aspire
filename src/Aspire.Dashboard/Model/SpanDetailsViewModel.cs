@@ -12,5 +12,5 @@ public sealed class SpanDetailsViewModel
     public required List<SpanLinkViewModel> Links { get; init; }
     public required List<SpanLinkViewModel> Backlinks { get; init; }
     public required string Title { get; init; }
-    public required List<OtlpApplication> Applications { get; init; }
+    public required List<OtlpResource> Resources { get; init; }
 }

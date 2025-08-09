@@ -12,14 +12,14 @@ using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("ApplicationName = {ApplicationName}, InstanceId = {InstanceId}")]
-public class OtlpApplication
+[DebuggerDisplay("ResourceName = {ResourceName}, InstanceId = {InstanceId}")]
+public class OtlpResource
 {
     public const string SERVICE_NAME = "service.name";
     public const string SERVICE_INSTANCE_ID = "service.instance.id";
     public const string PROCESS_EXECUTABLE_NAME = "process.executable.name";
 
-    public string ApplicationName { get; }
+    public string ResourceName { get; }
     public string InstanceId { get; }
     public OtlpContext Context { get; }
     // This flag indicates whether the app was created for an uninstrumented peer.
@@ -27,16 +27,16 @@ public class OtlpApplication
     // Traces uses uninstrumented peers, structured logs and metrics don't.
     public bool UninstrumentedPeer { get; private set; }
 
-    public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
+    public ResourceKey ResourceKey => new ResourceKey(ResourceName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpScope> _meters = new();
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
-    private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
+    private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpResourceView> _resourceViews = new(ResourceViewKeyComparer.Instance);
 
-    public OtlpApplication(string name, string instanceId, bool uninstrumentedPeer, OtlpContext context)
+    public OtlpResource(string name, string instanceId, bool uninstrumentedPeer, OtlpContext context)
     {
-        ApplicationName = name;
+        ResourceName = name;
         InstanceId = instanceId;
         UninstrumentedPeer = uninstrumentedPeer;
         Context = context;
@@ -247,27 +247,27 @@ public class OtlpApplication
         }
     }
 
-    public static Dictionary<string, List<OtlpApplication>> GetReplicasByApplicationName(IEnumerable<OtlpApplication> allApplications)
+    public static Dictionary<string, List<OtlpResource>> GetReplicasByResourceName(IEnumerable<OtlpResource> allResources)
     {
-        return allApplications
-            .GroupBy(application => application.ApplicationName, StringComparers.ResourceName)
+        return allResources
+            .GroupBy(resource => resource.ResourceName, StringComparers.ResourceName)
             .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
     }
 
-    public static string GetResourceName(OtlpApplicationView app, List<OtlpApplication> allApplications) =>
-        GetResourceName(app.Application, allApplications);
+    public static string GetResourceName(OtlpResourceView resource, List<OtlpResource> allResources) =>
+        GetResourceName(resource.Resource, allResources);
 
-    public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
+    public static string GetResourceName(OtlpResource resource, List<OtlpResource> allResources)
     {
         var count = 0;
-        foreach (var item in allApplications)
+        foreach (var item in allResources)
         {
-            if (string.Equals(item.ApplicationName, app.ApplicationName, StringComparisons.ResourceName))
+            if (string.Equals(item.ResourceName, resource.ResourceName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
                 {
-                    var instanceId = app.InstanceId;
+                    var instanceId = resource.InstanceId;
 
                     // Convert long GUID into a shorter, more human friendly format.
                     // Before: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
@@ -281,27 +281,27 @@ public class OtlpApplication
                         instanceId = chars.Slice(0, 8).ToString();
                     }
 
-                    return $"{item.ApplicationName}-{instanceId}";
+                    return $"{item.ResourceName}-{instanceId}";
                 }
             }
         }
 
-        return app.ApplicationName;
+        return resource.ResourceName;
     }
 
-    internal List<OtlpApplicationView> GetViews() => _applicationViews.Values.ToList();
+    internal List<OtlpResourceView> GetViews() => _resourceViews.Values.ToList();
 
-    internal OtlpApplicationView GetView(RepeatedField<KeyValue> attributes)
+    internal OtlpResourceView GetView(RepeatedField<KeyValue> attributes)
     {
         // Inefficient to create this to possibly throw it away.
-        var view = new OtlpApplicationView(this, attributes);
+        var view = new OtlpResourceView(this, attributes);
 
-        if (_applicationViews.TryGetValue(view.Properties, out var applicationView))
+        if (_resourceViews.TryGetValue(view.Properties, out var resourceView))
         {
-            return applicationView;
+            return resourceView;
         }
 
-        return _applicationViews.GetOrAdd(view.Properties, view);
+        return _resourceViews.GetOrAdd(view.Properties, view);
     }
 
     internal void SetUninstrumentedPeer(bool uninstrumentedPeer)
@@ -315,11 +315,11 @@ public class OtlpApplication
     }
 
     /// <summary>
-    /// Application views are equal when all properties are equal.
+    /// Resource views are equal when all properties are equal.
     /// </summary>
-    private sealed class ApplicationViewKeyComparer : IEqualityComparer<KeyValuePair<string, string>[]>
+    private sealed class ResourceViewKeyComparer : IEqualityComparer<KeyValuePair<string, string>[]>
     {
-        public static readonly ApplicationViewKeyComparer Instance = new();
+        public static readonly ResourceViewKeyComparer Instance = new();
 
         public bool Equals(KeyValuePair<string, string>[]? x, KeyValuePair<string, string>[]? y)
         {

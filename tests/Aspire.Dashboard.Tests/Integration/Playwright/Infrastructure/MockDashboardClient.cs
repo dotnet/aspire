@@ -11,7 +11,7 @@ namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 public sealed class MockDashboardClient : IDashboardClient
 {
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
-        appName: "TestResource",
+        resourceName: "TestResource",
         resourceType: KnownResourceTypes.Project,
         properties: new[]
         {

@@ -44,7 +44,7 @@ public sealed class TestOutgoingPeerResolver : IOutgoingPeerResolver, IDisposabl
         }
 
         name = "TestPeer";
-        matchedResourced = ModelTestHelpers.CreateResource(appName: "TestPeer");
+        matchedResourced = ModelTestHelpers.CreateResource(resourceName: "TestPeer");
         return true;
     }
 }
