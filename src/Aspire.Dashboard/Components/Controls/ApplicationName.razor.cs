@@ -4,6 +4,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
 
@@ -23,6 +24,15 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
     private string? _pageTitle;
 
     protected override async Task OnInitializedAsync()
@@ -31,11 +41,28 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
         if (DashboardClient.IsEnabled && !DashboardClient.WhenConnected.IsCompletedSuccessfully)
         {
             _disposalCts = new CancellationTokenSource();
-            await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+            try
+            {
+                await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+            }
+            catch
+            {
+                // Ignore exceptions that occur during connection. Other code handles this error.
+                _pageTitle = GetApplicationName();
+            }
         }
     }
 
     protected override void OnParametersSet()
+    {
+        var applicationName = GetApplicationName();
+
+        _pageTitle = string.IsNullOrEmpty(AdditionalText)
+            ? applicationName
+            : $"{applicationName} ({AdditionalText})";
+    }
+
+    private string GetApplicationName()
     {
         string applicationName;
 
@@ -48,9 +75,7 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
             applicationName = DashboardClient.ApplicationName;
         }
 
-        _pageTitle = string.IsNullOrEmpty(AdditionalText)
-            ? applicationName
-            : $"{applicationName} ({AdditionalText})";
+        return applicationName;
     }
 
     public void Dispose()
