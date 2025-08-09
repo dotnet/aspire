@@ -160,7 +160,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
         }
-        catch (RpcException ex)
+        catch (Exception ex)
         {
             Logger.LogError(ex, "Connection error.");
 
@@ -186,10 +186,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 // Force dashboard to reload.
                 NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), forceLoad: true);
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Connection error.");
         }
     }
 
