@@ -3,6 +3,7 @@
 
 using System.Text;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Cache;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
@@ -12,7 +13,6 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -63,6 +63,7 @@ internal static class CliTestHelper
         services.AddLogging();
 
         services.AddMemoryCache();
+        services.AddSingleton<IDiskCache, DiskCache>();
 
         services.AddSingleton(options.AnsiConsoleFactory);
         services.AddSingleton(options.TelemetryFactory);
@@ -220,7 +221,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        var cache = serviceProvider.GetRequiredService<IDiskCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         return new NuGetPackageCache(logger, runner, cache, telemetry);
     };
