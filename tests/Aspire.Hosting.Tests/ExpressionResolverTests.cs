@@ -63,15 +63,15 @@ public class ExpressionResolverTests
     [InlineData("Url2", true, false, "Url=http://ContainerHostName:12345;")]
     [InlineData("Url2", true, true, "Url=http://testresource:10000;")]
     [InlineData("OnlyHost", true, false, "Host=ContainerHostName;")]
-    [InlineData("OnlyHost", true, true, "Host=localhost;")] // host not replaced since no port
+    [InlineData("OnlyHost", true, true, "Host=testresource;")] // host now replaced to container name
     [InlineData("OnlyPort", true, false, "Port=12345;")]
-    [InlineData("OnlyPort", true, true, "Port=12345;")] // port not replaced since no host
+    [InlineData("OnlyPort", true, true, "Port=10000;")] // port now replaced with target port
     [InlineData("HostAndPort", true, false, "HostPort=ContainerHostName:12345")]
     [InlineData("HostAndPort", true, true, "HostPort=testresource:10000")] // host not replaced since no port
     [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:12346/;")] // Second port not replaced since host is hard coded
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();

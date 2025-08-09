@@ -2,28 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Telemetry;
+using Aspire.Cli.Templating;
+using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Aspire.Shared;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
-using Aspire.Cli.NuGet;
-using Aspire.Cli.Templating;
-using Aspire.Cli.Configuration;
+using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Resources;
-using Aspire.Hosting;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Aspire.Cli.Utils;
-using Aspire.Cli.Telemetry;
-using Microsoft.Extensions.Configuration;
 
 #if DEBUG
 using OpenTelemetry;
@@ -31,13 +32,10 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 #endif
 
-using RootCommand = Aspire.Cli.Commands.RootCommand;
-
 namespace Aspire.Cli;
 
 public class Program
 {
-
     private static string GetGlobalSettingsPath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -61,10 +59,11 @@ public class Program
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile);
 
-        await TrySetLocaleOverrideAsync(builder.Configuration);
+        await TrySetLocaleOverrideAsync(LocaleHelpers.GetLocaleOverride(builder.Configuration));
 
         // Always configure OpenTelemetry.
-        builder.Logging.AddOpenTelemetry(logging => {
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
         });
@@ -72,7 +71,8 @@ public class Program
 #if DEBUG
         var otelBuilder = builder.Services
             .AddOpenTelemetry()
-            .WithTracing(tracing => {
+            .WithTracing(tracing =>
+            {
                 tracing.AddSource(AspireCliTelemetry.ActivitySourceName);
 
                 tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aspire-cli"));
@@ -130,6 +130,31 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
+    {
+        if (localeOverride is not null)
+        {
+            var result = LocaleHelpers.TrySetLocaleOverride(localeOverride);
+
+            string errorMessage;
+            switch (result)
+            {
+                case SetLocaleResult.Success:
+                    return;
+                case SetLocaleResult.InvalidLocale:
+                    errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", LocaleHelpers.SupportedLocales));
+                    break;
+                case SetLocaleResult.UnsupportedLocale:
+                    errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidLocaleProvided, localeOverride);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unexpected result: {result}");
+            }
+
+            await Console.Error.WriteLineAsync(errorMessage);
+        }
     }
 
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
@@ -218,50 +243,6 @@ public class Program
         else
         {
             builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
-        }
-    }
-
-    private static readonly string[] s_supportedLocales = ["en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-CN", "zh-TW"];
-
-    private static async Task TrySetLocaleOverrideAsync(ConfigurationManager configuration)
-    {
-        var localeOverride = configuration[KnownConfigNames.CliLocaleOverride]
-                             // also support DOTNET_CLI_UI_LANGUAGE as it's a common dotnet environment variable
-                             ?? configuration[KnownConfigNames.DotnetCliUiLanguage];
-        if (localeOverride is not null)
-        {
-            if (!TrySetLocaleOverride(localeOverride, out var errorMessage))
-            {
-                await Console.Error.WriteLineAsync(errorMessage);
-            }
-        }
-
-        return;
-
-        static bool TrySetLocaleOverride(string localeOverride, [NotNullWhen(false)] out string? errorMessage)
-        {
-            try
-            {
-                var cultureInfo = new CultureInfo(localeOverride);
-                if (s_supportedLocales.Contains(cultureInfo.Name) ||
-                    s_supportedLocales.Contains(cultureInfo.TwoLetterISOLanguageName))
-                {
-                    CultureInfo.CurrentUICulture = cultureInfo;
-                    CultureInfo.CurrentCulture = cultureInfo;
-                    CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
-                    CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-                    errorMessage = null;
-                    return true;
-                }
-
-                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLocaleProvided, localeOverride, string.Join(", ", s_supportedLocales));
-                return false;
-            }
-            catch (CultureNotFoundException)
-            {
-                errorMessage = string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidLocaleProvided, localeOverride);
-                return false;
-            }
         }
     }
 }

@@ -29,7 +29,7 @@
 * Follow the instructions in the repo to build.
 * If temporarily introducing warnings during a refactoring, you can add the flag `/p:TreatWarningsAsErrors=false` to your build command to prevent the build from failing. However before you finish your work, you must strive to fix any warnings as well.
 
-In building and testing, never use `dotnet` without extension. Use `dotnet.sh` on Unix, `dotnet.cmd` on Windows.
+In building and testing, never use `dotnet` without extension. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
 
 ### Testing
 
@@ -43,11 +43,17 @@ In building and testing, never use `dotnet` without extension. Use `dotnet.sh` o
 
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj --no-build` (using the path to whatever projects are applicable to the change).
 
 Note that tests for a project can be executed without first building from the root.
 
-(4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
+(4) To run just certain tests, it's important to include the filter, for example:
+
+```
+dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --filter "TestingBuilderHasAllPropertiesFromRealBuilder"
+```
+
+Important: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
 ### Important: Excluding Quarantined Tests
 
@@ -83,3 +89,9 @@ Example: `[QuarantinedTest("..issue url..")]`
 ## Editing resources
 
 The `*.Designer.cs` files are in the repo, but are intended to match same named `*.resx` files. If you add/remove/change resources in a resx, make the matching changes in the `*.Designer.cs` file that matches that resx.
+
+## Markdown files
+
+* Markdown files should not have multiple consecutive blank lines.
+* Code blocks should be formatted with triple backticks (```) and include the language identifier for syntax highlighting.
+* JSON code blocks should be indented properly.
