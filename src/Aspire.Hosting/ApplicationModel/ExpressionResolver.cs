@@ -54,24 +54,18 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         // Otherwise, we get the wrong values for IsContainer and Name
         var target = endpointReference.Resource.GetRootResource();
 
-        bool HasBothHostAndPort() =>
-            _endpointUsage[endpointUniqueName].HasHost &&
-            _endpointUsage[endpointUniqueName].HasPort;
-
-        return (property, target.IsContainer(), HasBothHostAndPort()) switch
+        return (property, target.IsContainer()) switch
         {
             // If Container -> Container, we go directly to the container name and target port, bypassing the host
-            // But only do this if we have processed both the host and port properties for that same endpoint.
-            // This allows the host and port to be handled in a unified way.
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, true, true) => target.Name,
-            (EndpointProperty.Port, true, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+            (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
             // If Container -> Exe, we need to go through the container host
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, false, _) => containerHostName,
-            (EndpointProperty.Url, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => containerHostName,
+            (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
-            (EndpointProperty.HostAndPort, _, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
+            (EndpointProperty.HostAndPort, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
             _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
