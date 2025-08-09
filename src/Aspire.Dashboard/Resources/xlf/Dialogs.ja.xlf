@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConnectionErrorDialogTitle">
-        <source>Connection Error</source>
-        <target state="new">Connection Error</target>
+        <source>Connection error</source>
+        <target state="new">Connection error</target>
         <note />
       </trans-unit>
       <trans-unit id="DialogCloseButtonText">

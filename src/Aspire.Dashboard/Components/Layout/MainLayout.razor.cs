@@ -110,7 +110,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
             {
-                _ = Task.Run(EnsureClientConnection);
+                _ = Task.Run(EnsureClientConnectionAsync);
             }
         }
 
@@ -149,7 +149,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
-    private async Task EnsureClientConnection()
+    private async Task EnsureClientConnectionAsync()
     {
         Debug.Assert(DashboardClient.IsEnabled, "Dashboard client must be enabled to ensure connection.");
 
@@ -160,6 +160,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
         catch (RpcException ex)
         {
+            Logger.LogError(ex, "Connection error.");
+
             var dialogParameters = new DialogParameters<MessageBoxContent>
             {
                 PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogRetryButton)],
@@ -181,10 +183,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 // Force dashboard to reload.
                 NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), forceLoad: true);
-            }
-            else
-            {
-                Logger.LogError(ex, "Connection error.");
             }
         }
         catch (Exception ex)

@@ -164,7 +164,7 @@ internal sealed class DashboardClient : IDashboardClient
             // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
 
             return GrpcChannel.ForAddress(
-                "http://localhost",
+                address,
                 channelOptions: new()
                 {
                     HttpHandler = httpHandler,
