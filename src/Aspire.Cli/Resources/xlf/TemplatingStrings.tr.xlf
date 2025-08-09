@@ -92,6 +92,11 @@
         <target state="translated">Hiçbiri</target>
         <note />
       </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="new">Created NuGet.config for the selected package channel.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
         <source>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</source>
         <target state="translated">Yeni proje, çıktı klasöründeki mevcut dosyaları üzerine yazacağı için oluşturulamıyor. Çakışan dosyaları silin veya taşıyın ya da farklı bir konum seçin.</target>

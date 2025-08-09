@@ -433,7 +433,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                     Directory.CreateDirectory(workingDir.FullName);
                     File.Copy(temporaryConfig.ConfigFile.FullName, nugetConfigFile.FullName, overwrite: true);
                 }
-                interactionService.DisplayMessage("package", "Created NuGet.config for the selected package channel.");
+                interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
 
             return;

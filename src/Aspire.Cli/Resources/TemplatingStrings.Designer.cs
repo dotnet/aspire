@@ -252,5 +252,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CreateNugetConfigConfirmation", resourceCulture);
             }
         }
+
+        public static string NuGetConfigCreatedConfirmationMessage {
+            get {
+                return ResourceManager.GetString("NuGetConfigCreatedConfirmationMessage", resourceCulture);
+            }
+        }
     }
 }
