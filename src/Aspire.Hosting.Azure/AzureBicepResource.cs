@@ -120,7 +120,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             }
         }
 
-        return new(path, isTempFile && deleteTemporaryFileOnDispose);
+        var targetPath = directory is not null ? Path.Combine(directory, path) : path;
+        return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
     }
 
     /// <summary>

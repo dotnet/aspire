@@ -106,6 +106,11 @@ internal interface ISubscriptionResource
     /// Gets resource groups collection.
     /// </summary>
     IResourceGroupCollection GetResourceGroups();
+
+    /// <summary>
+    /// Gets ARM deployments collection.
+    /// </summary>
+    IArmDeploymentCollection GetArmDeployments();
 }
 
 /// <summary>

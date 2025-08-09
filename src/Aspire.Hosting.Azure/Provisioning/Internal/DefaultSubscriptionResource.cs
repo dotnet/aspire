@@ -17,6 +17,11 @@ internal sealed class DefaultSubscriptionResource(SubscriptionResource subscript
     public string? DisplayName => subscriptionResource.Data.DisplayName;
     public Guid? TenantId => subscriptionResource.Data.TenantId;
 
+    public IArmDeploymentCollection GetArmDeployments()
+    {
+        return new DefaultArmDeploymentCollection(subscriptionResource.GetArmDeployments());
+    }
+
     public IResourceGroupCollection GetResourceGroups()
     {
         return new DefaultResourceGroupCollection(subscriptionResource.GetResourceGroups());

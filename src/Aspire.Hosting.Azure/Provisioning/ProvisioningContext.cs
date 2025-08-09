@@ -17,7 +17,9 @@ internal sealed class ProvisioningContext(
     ITenantResource tenant,
     AzureLocation location,
     UserPrincipal principal,
-    JsonObject userSecrets)
+    JsonObject userSecrets,
+    DistributedApplicationExecutionContext executionContext,
+    string? outputPath)
 {
     public TokenCredential Credential => credential;
     public IArmClient ArmClient => armClient;
@@ -27,4 +29,11 @@ internal sealed class ProvisioningContext(
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;
+    public DistributedApplicationExecutionContext ExecutionContext => executionContext;
+    /// <summary>
+    /// The directory containing the Bicep template files to
+    /// deploy. If not specified, a temporary directory will be used
+    /// for run-mode provisioning. Typically set for deploy-time provisioning.
+    /// </summary>
+    public string? OutputPath => outputPath;
 }
