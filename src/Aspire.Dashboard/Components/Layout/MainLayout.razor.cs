@@ -7,7 +7,6 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Grpc.Core;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
