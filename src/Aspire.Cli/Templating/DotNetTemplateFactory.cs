@@ -306,8 +306,9 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
-            // For explicit channels, optionally create or update a NuGet.config in the working directory
-            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, cancellationToken);
+            // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
+            // working directory, create one in the newly created project's output directory.
+            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, outputPath, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
@@ -391,7 +392,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return selectedPackageFromChannel;
     }
 
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, CancellationToken cancellationToken)
+    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, string outputPath, CancellationToken cancellationToken)
     {
         if (channel.Type is not PackageChannelType.Explicit)
         {
@@ -424,15 +425,17 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 if (temporaryConfig is null)
                 {
                     using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
-                    Directory.CreateDirectory(workingDir.FullName);
-                    var targetPath = Path.Combine(workingDir.FullName, "NuGet.config");
+                    var outputDir = new DirectoryInfo(outputPath);
+                    Directory.CreateDirectory(outputDir.FullName);
+                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
                     File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
                 }
                 else
                 {
                     // Ensure target directory exists
-                    Directory.CreateDirectory(workingDir.FullName);
-                    var targetPath = Path.Combine(workingDir.FullName, "NuGet.config");
+                    var outputDir = new DirectoryInfo(outputPath);
+                    Directory.CreateDirectory(outputDir.FullName);
+                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
                     File.Copy(temporaryConfig.ConfigFile.FullName, targetPath, overwrite: true);
                 }
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);

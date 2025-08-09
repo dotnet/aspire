@@ -119,8 +119,7 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-        builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
-        builder.Services.AddSingleton<INuGetConfigLocator, NuGetConfigLocator>();
+    builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
