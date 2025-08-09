@@ -16,6 +16,15 @@ namespace Aspire.Cli.Tests.DotNet;
 
 public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 {
+    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    {
+        // NOTE: This would normally be in the users home directory, but for tests we create
+        //       it in the temporary workspace directory.
+        var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
+        var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
+        return new CliExecutionContext(workingDirectory, hivesDirectory);
+    }
+
     [Fact]
     public async Task DotNetCliCorrectlyAppliesNoLaunchProfileArgumentWhenSpecifiedInOptions()
     {
@@ -33,6 +42,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             NoLaunchProfile = true
         };
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -40,6 +50,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -76,6 +87,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -83,6 +95,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -121,6 +134,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -128,6 +142,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -156,6 +171,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -163,6 +179,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -200,6 +217,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -207,6 +225,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
@@ -247,6 +266,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -254,6 +274,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -296,6 +317,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new AssertingDotNetCliRunner(
             logger,
             provider,
@@ -303,6 +325,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
+            executionContext,
             (args, env, _, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
@@ -352,13 +375,15 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var interactionService = provider.GetRequiredService<IInteractionService>();
 
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var runner = new DotNetCliRunner(
             logger,
             provider,
             new AspireCliTelemetry(),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
-            interactionService
+            interactionService,
+            executionContext
         );
 
         var exitCode = await runner.ExecuteAsync(
@@ -383,9 +408,10 @@ internal sealed class AssertingDotNetCliRunner(
     IConfiguration configuration,
     IFeatures features,
     IInteractionService interactionService,
+    CliExecutionContext executionContext,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {

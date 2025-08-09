@@ -29,11 +29,11 @@ internal interface IDotNetCliRunner
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -45,7 +45,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool StartDebugSession { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
 {
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
@@ -267,11 +267,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cancellationToken: cancellationToken);
     }
 
-    public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity(nameof(InstallTemplateAsync), ActivityKind.Client);
 
-        List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
+        // NOTE: The change to @ over :: for template version separator (now enforced in .NET 10.0 SDK).
+        List<string> cliArgs = ["new", "install", $"{packageName}@{version}"];
 
         if (force)
         {
@@ -298,6 +299,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             existingStandardErrorCallback?.Invoke(line);
         };
 
+        // The dotnet new install command does not support the --configfile option so if we
+        // are installing packages based on a channel config we'll be passing in a nuget config
+        // file which is dynamically generated in a temporary folder. We'll use that temporary
+        // folder as the working directory for the command. If we are using an implicit channel
+        // then we just use the current execution context for the CLI and inherit whatever
+        // NuGet.configs that may or may not be laying around.
+        var workingDirectory = nugetConfigFile?.Directory ?? executionContext.WorkingDirectory;
+
         var exitCode = await ExecuteAsync(
             args: [.. cliArgs],
             env: new Dictionary<string, string>
@@ -307,7 +316,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
             },
             projectFile: null,
-            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            workingDirectory: workingDirectory,
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
@@ -705,7 +714,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         List<string> cliArgs = [
@@ -720,10 +729,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             "json"
         ];
 
-        if (nugetSource is not null)
+        if (nugetConfigFile is not null)
         {
-            cliArgs.Add("--source");
-            cliArgs.Add(nugetSource);
+            cliArgs.Add("--configfile");
+            cliArgs.Add(nugetConfigFile.FullName);
         }
 
         if (prerelease)

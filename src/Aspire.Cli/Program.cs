@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Packaging;
 
 #if DEBUG
 using OpenTelemetry;
@@ -36,10 +37,17 @@ namespace Aspire.Cli;
 
 public class Program
 {
-    private static string GetGlobalSettingsPath()
+    private static string GetUsersAspirePath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var globalSettingsPath = Path.Combine(homeDirectory, ".aspire", "globalsettings.json");
+        var aspirePath = Path.Combine(homeDirectory, ".aspire");
+        return aspirePath;
+    }
+
+    private static string GetGlobalSettingsPath()
+    {
+        var usersAspirePath = GetUsersAspirePath();
+        var globalSettingsPath = Path.Combine(usersAspirePath, "globalsettings.json");
         return globalSettingsPath;
     }
 
@@ -96,6 +104,7 @@ public class Program
         }
 
         // Shared services.
+        builder.Services.AddSingleton(BuildCliExecutionContext);
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton(BuildProjectLocator);
@@ -110,8 +119,9 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-        builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+    builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
+        builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -130,6 +140,21 @@ public class Program
 
         var app = builder.Build();
         return app;
+    }
+
+    private static DirectoryInfo GetHivesDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var hivesDirectory = Path.Combine(homeDirectory, "hives");
+        return new DirectoryInfo(hivesDirectory);
+    }
+
+    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    {
+        _ = serviceProvider;
+        var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        var hivesDirectory = GetHivesDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
@@ -160,17 +185,19 @@ public class Program
     private static IConfigurationService BuildConfigurationService(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(configuration, new DirectoryInfo(Environment.CurrentDirectory), globalSettingsFile);
+        return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
     private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, currentDirectory, features);
+        var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
+        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features, packagingService);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
@@ -189,10 +216,11 @@ public class Program
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, new DirectoryInfo(Environment.CurrentDirectory), interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)
