@@ -260,14 +260,14 @@ public sealed class CommandViewModel
         };
     }
 
-    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
             KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
             KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
             KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription
+            _ => DisplayDescription is { Length : > 0 } ? DisplayDescription : null
         };
     }
 }
