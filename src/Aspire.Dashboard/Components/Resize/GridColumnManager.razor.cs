@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 
@@ -9,7 +8,8 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public partial class GridColumnManager : ComponentBase, IDisposable
 {
-    private Dictionary<string, GridColumn> _columnById = null!;
+    private Dictionary<string, GridColumnView> _columnDesktopById = null!;
+    private Dictionary<string, GridColumnView> _columnMobileById = null!;
     private float _availableFraction = 1;
     private ViewportInformation? _gridViewportInformation;
 
@@ -17,7 +17,7 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     public required DimensionManager DimensionManager { get; init; }
 
     [Parameter]
-    public required IList<GridColumn> Columns { get; set; }
+    public required List<GridColumn> Columns { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -27,7 +27,60 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;
-        _columnById = Columns.ToDictionary(c => c.Name, StringComparers.GridColumn);
+    }
+
+    protected override void OnParametersSet()
+    {
+        _columnDesktopById = Columns.Where(c => c.DesktopWidth is not null)
+            .Select(c => new GridColumnView(c.Name, c.DesktopWidth!.Value, c.IsVisible))
+            .ToDictionary(c => c.Name, StringComparers.GridColumn);
+        _columnMobileById = Columns.Where(c => c.MobileWidth is not null)
+            .Select(c => new GridColumnView(c.Name, c.MobileWidth!.Value, c.IsVisible))
+            .ToDictionary(c => c.Name, StringComparers.GridColumn);
+
+        if (ViewportInformation.IsDesktop)
+        {
+            SetWidths(_columnDesktopById);
+        }
+        else
+        {
+            SetWidths(_columnMobileById);
+        }
+    }
+
+    private static void SetWidths(Dictionary<string, GridColumnView> columnById)
+    {
+        var visibleColumns = columnById.Values.Where(c => c.IsVisible?.Invoke() is null or true).ToList();
+        var lastPercentageColumn = columnById.Values.Where(c => c.IsVisible?.Invoke() is null or true).LastOrDefault();
+        var fractionTotal = visibleColumns.Where(c => c.Width is { Unit: WidthUnit.Fraction }).Sum(c => c.Width.Value);
+
+        // We want percentages to add up to exactly 100% on the browser. This can be a problem with rounding.
+        // The fix is to use the remaining percentage value for the value percentage column.
+        var remainingPercentage = 100m;
+        for (var i = 0; i < visibleColumns.Count; i++)
+        {
+            var column = visibleColumns[i];
+
+            if (column.Width.Unit == WidthUnit.Pixels)
+            {
+                column.ResolvedBrowserWidth = $"{column.Width.Value}px";
+            }
+            else
+            {
+                var isLast = column == lastPercentageColumn;
+                if (isLast)
+                {
+                    column.ResolvedBrowserWidth = $"{remainingPercentage}%";
+                }
+                else
+                {
+                    var percentage = Math.Round(column.Width.Value / fractionTotal * 100, 1);
+                    column.ResolvedBrowserWidth = $"{percentage}%";
+
+                    remainingPercentage -= percentage;
+                }
+            }
+        }
     }
 
     private void OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
@@ -67,44 +120,36 @@ public partial class GridColumnManager : ComponentBase, IDisposable
     /// </summary>
     public bool IsColumnVisible(string columnName)
     {
-        return _columnById.TryGetValue(columnName, out var column) // Is a known column.
-            && GetColumnWidth(column) is not null                  // Has width for current viewport.
-            && column.IsVisible?.Invoke() is null or true;         // Is visible.
-    }
-
-    /// <summary>
-    /// Gets a string that can be used as the value for the grid-template-columns CSS property.
-    /// For example, <c>1fr 2fr 1fr</c>.
-    /// </summary>
-    /// <returns></returns>
-    public string GetGridTemplateColumns()
-    {
-        var sb = new StringBuilder();
-
-        foreach (var (_, column) in _columnById)
+        if (GetColumnView(columnName) is not { } column)
         {
-            if (column.IsVisible?.Invoke() is null or true &&
-                GetColumnWidth(column) is string width)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Append(' ');
-                }
-
-                sb.Append(width);
-            }
+            return false;
         }
 
-        return sb.ToString();
+        return column.IsVisible?.Invoke() is null or true;
     }
 
-    private string? GetColumnWidth(GridColumn column)
+    public string? GetColumnWidth(string columnName)
     {
-        var viewportInformation = _gridViewportInformation ?? DimensionManager.ViewportInformation;
+        if (GetColumnView(columnName) is not { } column)
+        {
+            return null;
+        }
 
-        return viewportInformation.IsDesktop
-            ? column.DesktopWidth
-            : column.MobileWidth;
+        return column.ResolvedBrowserWidth;
+    }
+
+    private GridColumnView? GetColumnView(string columnName)
+    {
+        var columnsById = ViewportInformation.IsDesktop
+            ? _columnDesktopById
+            : _columnMobileById;
+
+        if (!columnsById.TryGetValue(columnName, out var column)) // Is a known column.
+        {
+            return null;
+        }
+
+        return column;
     }
 
     public void Dispose()
