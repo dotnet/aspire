@@ -222,12 +222,21 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
 internal static partial class ProjectNameValidator
 {
-    [GeneratedRegex(@"^[a-zA-Z0-9_][a-zA-Z0-9_.]{0,253}[a-zA-Z0-9_]$", RegexOptions.Compiled)]
-    internal static partial Regex GetAssemblyNameRegex();
+    // Regex for project name validation:
+    // - Can be any characters except path separators (/ and \)
+    // - Length: 1-254 characters
+    // - Must not be empty or whitespace only
+    [GeneratedRegex(@"^[^/\\]{1,254}$", RegexOptions.Compiled)]
+    internal static partial Regex GetProjectNameRegex();
 
     public static bool IsProjectNameValid(string projectName)
     {
-        var regex = GetAssemblyNameRegex();
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            return false;
+        }
+
+        var regex = GetProjectNameRegex();
         return regex.IsMatch(projectName);
     }
 }
