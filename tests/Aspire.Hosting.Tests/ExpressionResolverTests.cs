@@ -71,7 +71,7 @@ public class ExpressionResolverTests
     [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:12346/;")] // Second port not replaced since host is hard coded
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();
