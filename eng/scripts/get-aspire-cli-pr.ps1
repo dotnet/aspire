@@ -2,128 +2,103 @@
 
 <#
 .SYNOPSIS
-    Download and install the Aspire CLI
+    Download and unpack the Aspire CLI from a specific PR's build artifacts
 
 .DESCRIPTION
-    Downloads and installs the Aspire CLI for the current platform from the specified version and quality.
-    Automatically updates the current session's PATH environment variable and supports GitHub Actions.
+    Downloads and installs the Aspire CLI from a specific pull request's latest successful build.
+    Automatically detects the current platform (OS and architecture) and downloads the appropriate artifact.
 
-    Running with `-Quality release` downloads the latest release version of the Aspire CLI for your platform and architecture.
-    Running with `-Quality staging` downloads the latest staging version, or the release version if no staging is available.
-    Running with `-Quality dev` downloads the latest dev build from `main`.
+    The script queries the GitHub API to find the latest successful run of the 'tests.yml' workflow
+    for the specified PR, then downloads and extracts the CLI archive for your platform using 'gh run download'.
 
-    The default quality is 'release'.
+    Alternatively, you can specify a workflow run ID directly to download from a specific build.
 
-    Pass a specific version to get CLI for that version.
+.PARAMETER PRNumber
+    Pull request number (required)
+
+.PARAMETER WorkflowRunId
+    Workflow run ID to download from (optional)
 
 .PARAMETER InstallPath
-    Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
-
-.PARAMETER Version
-    Version of the Aspire CLI to download (default: unset)
-
-.PARAMETER Quality
-    Quality to download (default: release)
+    Directory prefix to install (default: $HOME/.aspire on Unix, %USERPROFILE%\.aspire on Windows)
+    CLI will be installed to InstallPath\bin (or InstallPath/bin on Unix)
+    NuGet packages will be installed to InstallPath\hive\pr-PRNUMBER
 
 .PARAMETER OS
-    Operating system (default: auto-detect)
+    Override OS detection (win, linux, linux-musl, osx)
 
 .PARAMETER Architecture
-    Architecture (default: auto-detect)
+    Override architecture detection (x64, x86, arm64)
+
+.PARAMETER HiveOnly
+    Only install NuGet packages to the hive, skip CLI download
 
 .PARAMETER KeepArchive
-    Keep downloaded archive files and temporary directory after installation
+    Keep downloaded archive files after installation
+
+.PARAMETER Help
+    Show this help message
 
 .EXAMPLE
-    .\get-aspire-cli.ps1
+    .\get-aspire-cli-pr.ps1 1234
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -InstallPath "C:\tools\aspire"
+    .\get-aspire-cli-pr.ps1 1234 -WorkflowRunId 12345678
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -Quality "staging"
+    .\get-aspire-cli-pr.ps1 1234 -InstallPath "C:\my-aspire"
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
+    .\get-aspire-cli-pr.ps1 1234 -OS linux -Architecture arm64 -Verbose
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
+    .\get-aspire-cli-pr.ps1 1234 -HiveOnly
 
 .EXAMPLE
-    .\get-aspire-cli.ps1 -KeepArchive
-
-.EXAMPLE
-    .\get-aspire-cli.ps1 -WhatIf
-
-.EXAMPLE
-    # Piped execution
-    iex "& { $(irm https://aka.ms/aspire/get/install.ps1) }"
-
-.EXAMPLE
-    # Piped execution
-    iex "& { $(irm https://aka.ms/aspire/get/install.ps1) } -Quality staging"
+    .\get-aspire-cli-pr.ps1 1234 -WhatIf
 
 .NOTES
-    The script automatically updates the PATH environment variable for the current session.
-
-    Windows: The script will also add the installation path to the user's persistent PATH
-    environment variable and to the session PATH, making the aspire CLI available in the existing and new terminal sessions.
-
-    GitHub Actions Support:
-    When running in GitHub Actions (GITHUB_ACTIONS=true), the script will automatically
-    append the installation path to the GITHUB_PATH file to make the CLI available in
-    subsequent workflow steps.
+    Requires GitHub CLI (gh) to be installed and authenticated
+    Requires appropriate permissions to download artifacts from dotnet/aspire repository
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(HelpMessage = "Directory to install the CLI")]
+    [Parameter(Position = 0, HelpMessage = "Pull request number")]
+    [ValidateRange(1, [int]::MaxValue)]
+    [int]$PRNumber,
+
+    [Parameter(HelpMessage = "Workflow run ID to download from")]
+    [ValidateRange(1, [long]::MaxValue)]
+    [long]$WorkflowRunId,
+
+    [Parameter(HelpMessage = "Directory prefix to install")]
     [string]$InstallPath = "",
 
-    [Parameter(HelpMessage = "Version of the Aspire CLI to download")]
-    [string]$Version = "",
-
-    [Parameter(HelpMessage = "Quality to download")]
-    [ValidateSet("", "release", "staging", "dev")]
-    [string]$Quality = "",
-
-    [Parameter(HelpMessage = "Operating system")]
+    [Parameter(HelpMessage = "Override OS detection")]
     [ValidateSet("", "win", "linux", "linux-musl", "osx")]
     [string]$OS = "",
 
-    [Parameter(HelpMessage = "Architecture")]
+    [Parameter(HelpMessage = "Override architecture detection")]
     [ValidateSet("", "x64", "x86", "arm64")]
     [string]$Architecture = "",
 
-    [Parameter(HelpMessage = "Keep downloaded archive files and temporary directory after installation")]
+    [Parameter(HelpMessage = "Only install NuGet packages to the hive, skip CLI download")]
+    [switch]$HiveOnly,
+
+    [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
 )
 
 # Global constants
-$Script:UserAgent = "get-aspire-cli.ps1/1.0"
+$Script:BuiltNugetsArtifactName = "built-nugets"
+$Script:CliArchiveArtifactNamePrefix = "cli-native-archives"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
-$Script:ArchiveDownloadTimeoutSec = 600
-$Script:ChecksumDownloadTimeoutSec = 120
 $Script:HostOS = "unset"
+$Script:GHReposBase = "repos/dotnet/aspire"
 
-# Configuration constants
-$Script:Config = @{
-    DefaultQuality = "release"
-    MinimumPowerShellVersion = 4
-    SupportedQualities = @("release", "staging", "dev")
-    SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
-    SupportedArchitectures = @("x64", "x86", "arm64")
-    BaseUrls = @{
-        "dev" = "https://aka.ms/dotnet/9/aspire/daily"
-        "staging" = "https://aka.ms/dotnet/9/aspire/rc/daily"
-        "release" = "https://aka.ms/dotnet/9/aspire/ga/daily"
-        "versioned" = "https://ci.dot.net/public/aspire"
-        "versioned-checksums" = "https://ci.dot.net/public-checksums/aspire"
-    }
-}
-
-# True if the script is executed from a file (pwsh -File … or .\get-aspire-cli.ps1)
-# False if the body is piped / dot‑sourced / iex’d into the current session.
+# True if the script is executed from a file (pwsh -File … or .\get-aspire-cli-pr.ps1)
+# False if the body is piped / dot‑sourced / iex'd into the current session.
 $InvokedFromFile = -not [string]::IsNullOrEmpty($PSCommandPath)
 
 # =============================================================================
@@ -583,421 +558,394 @@ function Remove-TempDirectory {
 # END: Shared code
 # =============================================================================
 
+# Function to check if gh command is available
+function Test-GitHubCLIDependency {
+    [CmdletBinding()]
+    param()
+
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-Message "GitHub CLI (gh) is required but not installed. Please install it first." -Level Error
+        Write-Message "Installation instructions: https://cli.github.com/" -Level Info
+        throw "GitHub CLI (gh) dependency not met"
+    }
+
+    $ghVersion = & gh --version 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "GitHub CLI (gh) command failed with exit code $LASTEXITCODE`: $ghVersion"
+    } else {
+        $firstLine = ($ghVersion | Select-Object -First 1)
+        Write-Message "GitHub CLI (gh) found: $firstLine" -Level Verbose
+    }
+}
+
 # Simplified installation path determination
-function Get-InstallPath {
+function Get-InstallPrefix {
     [CmdletBinding()]
     [OutputType([string])]
     param(
         [Parameter()]
-        [string]$InstallPath
+        [string]$InstallPrefix
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($InstallPath)) {
+    if (-not [string]::IsNullOrWhiteSpace($InstallPrefix)) {
         # Validate that the path is not just whitespace and can be created
         try {
-            $resolvedPath = [System.IO.Path]::GetFullPath($InstallPath)
+            $resolvedPath = [System.IO.Path]::GetFullPath($InstallPrefix)
             return $resolvedPath
         }
         catch {
-            throw "Invalid installation path: $InstallPath - $($_.Exception.Message)"
+            throw "Invalid installation path: $InstallPrefix - $($_.Exception.Message)"
         }
     }
 
-    $defaultPath = Join-Path (Get-DefaultInstallPrefix) "bin"
-    return [System.IO.Path]::GetFullPath($defaultPath)
+    return Get-DefaultInstallPrefix
 }
 
-function Get-ContentTypeFromUri {
+# Function to make GitHub API calls with proper error handling
+function Invoke-GitHubAPICall {
     [CmdletBinding()]
-    [OutputType([string])]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Uri,
+        [string]$Endpoint,
 
         [Parameter()]
-        [int]$TimeoutSec = 60,
+        [string]$JqFilter = "",
 
         [Parameter()]
-        [int]$OperationTimeoutSec = 30,
-
-        [Parameter()]
-        [int]$MaxRetries = 5
+        [string]$ErrorMessage = "Failed to call GitHub API"
     )
 
-    try {
-        Write-Message "Making HEAD request to get content type for: $Uri" -Level Verbose
-        $headResponse = Invoke-SecureWebRequest -Uri $Uri -Method "Head" -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
+    $ghCommand = @("gh", "api", $Endpoint)
 
-        # Extract Content-Type from response headers
-        $headers = $headResponse.Headers
-        if ($headers) {
-            # Try common case variations and use case-insensitive lookup
-            $contentTypeKey = $headers.Keys | Where-Object { $_ -ieq "Content-Type" } | Select-Object -First 1
-            if ($contentTypeKey) {
-                $value = $headers[$contentTypeKey]
-                if ($value -is [array]) {
-                    return $value -join ", "
-                }
-                else {
-                    return $value
-                }
+    if (-not [string]::IsNullOrWhiteSpace($JqFilter)) {
+        $ghCommand += @("--jq", $JqFilter)
+    }
+
+    Write-Message "Calling GitHub API: $($ghCommand -join ' ')" -Level Verbose
+
+    $output = & $ghCommand[0] $ghCommand[1..($ghCommand.Length-1)] 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage (API endpoint: $Endpoint): $output"
+    }
+
+    return $output
+}
+
+# Function to get PR head SHA
+function Get-PRHeadSHA {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$PRNumber
+    )
+
+    Write-Message "Getting HEAD SHA for PR #$PRNumber" -Level Verbose
+
+    $headSha = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/pulls/$PRNumber" -JqFilter ".head.sha" -ErrorMessage "Failed to get HEAD SHA for PR #$PRNumber"
+    if ([string]::IsNullOrWhiteSpace($headSha) -or $headSha -eq "null") {
+        Write-Message "This could mean:" -Level Info
+        Write-Message "  - The PR number does not exist" -Level Info
+        Write-Message "  - You don't have access to the repository" -Level Info
+        throw "Could not retrieve HEAD SHA for PR #$PRNumber"
+    }
+
+    Write-Message "PR #$PRNumber HEAD SHA: $headSha" -Level Verbose
+    return $headSha.Trim()
+}
+
+# Function to find workflow run for SHA
+function Find-WorkflowRun {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$HeadSHA
+    )
+
+    Write-Message "Finding ci.yml workflow run for SHA: $HeadSHA" -Level Verbose
+
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
+
+    if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
+        throw "No ci.yml workflow run found for PR SHA: $HeadSHA. This could mean no workflow has been triggered for this SHA $HeadSHA . Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+    }
+
+    Write-Message "Found workflow run ID: $runId" -Level Verbose
+    return $runId.Trim()
+}
+
+# Function to download artifact using gh run download
+function Invoke-ArtifactDownload {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RunId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ArtifactName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadDirectory
+    )
+
+    $downloadCommand = @("gh", "run", "download", $RunId, "-R", "dotnet/aspire", "--name", $ArtifactName, "-D", $DownloadDirectory)
+
+    if ($PSCmdlet.ShouldProcess($ArtifactName, "Download $ArtifactName with $($downloadCommand -join ' ')")) {
+        Write-Message "Downloading with: $($downloadCommand -join ' ')" -Level Verbose
+
+        & $downloadCommand[0] $downloadCommand[1..($downloadCommand.Length-1)]
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "gh run download command failed with exit code $LASTEXITCODE . Command: $($downloadCommand -join ' ')" -Level Verbose
+            throw "Failed to download artifact '$ArtifactName' from run: $RunId . If the workflow is still running then the artifact named '$ArtifactName' may not be available yet. Check at https://github.com/dotnet/aspire/actions/runs/$RunId#artifacts"
+        }
+    }
+}
+
+# Function to download built-nugets artifact
+function Get-BuiltNugets {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RunId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TempDir
+    )
+
+    $downloadDir = Join-Path $TempDir $Script:BuiltNugetsArtifactName
+
+    Write-Message "Downloading $($Script:BuiltNugetsArtifactName) artifact. This can take a few moments ..." -Level Info
+
+    Invoke-ArtifactDownload -RunId $RunId -ArtifactName $Script:BuiltNugetsArtifactName -DownloadDirectory $downloadDir
+
+    return $downloadDir
+}
+
+# Function to install built-nugets artifact
+function Install-BuiltNugets {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$NugetHiveDir
+    )
+
+    if (!$PSCmdlet.ShouldProcess($NugetHiveDir, "Copying built nugets")) {
+        return
+    }
+
+    # Remove and recreate the target directory to ensure clean state
+    if (Test-Path $NugetHiveDir) {
+        Write-Message "Removing existing nuget directory: $NugetHiveDir" -Level Verbose
+        if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Remove existing directory")) {
+            Remove-Item $NugetHiveDir -Recurse -Force
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Create directory")) {
+        New-Item -ItemType Directory -Path $NugetHiveDir -Force | Out-Null
+    }
+
+    Write-Message "Copying nugets from $DownloadDir to $NugetHiveDir" -Level Verbose
+
+    # Copy all .nupkg files from the artifact directory to the target directory
+    try {
+        $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse
+
+        if ($nupkgFiles.Count -eq 0) {
+            Write-Message "No .nupkg files found in downloaded artifact" -Level Warning
+            return
+        }
+
+        foreach ($file in $nupkgFiles) {
+            if ($PSCmdlet.ShouldProcess($file.FullName, "Copy to $NugetHiveDir")) {
+                Copy-Item $file.FullName -Destination $NugetHiveDir
             }
         }
-        return ""
+
+        Write-Message "Successfully installed nuget packages to: $NugetHiveDir" -Level Verbose
+        Write-Message "NuGet packages successfully installed to: $NugetHiveDir" -Level Success
     }
     catch {
-        Write-Message "Failed to get content type from URI: $($_.Exception.Message)" -Level Verbose
-        return "Unable to determine ($($_.Exception.Message))"
+        Write-Message "Failed to copy nuget artifact files: $($_.Exception.Message)" -Level Error
+        throw
     }
 }
 
-# Enhanced web request function with security and reliability improvements
-function Invoke-SecureWebRequest {
-    [CmdletBinding()]
+# Function to download Aspire CLI artifact
+function Get-AspireCliFromArtifact {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Uri,
+        [string]$RunId,
 
-        [Parameter()]
-        [string]$OutFile,
-
-        [Parameter()]
-        [string]$Method = "Get",
-
-        [Parameter()]
-        [int]$TimeoutSec = 60,
-
-        [Parameter()]
-        [int]$OperationTimeoutSec = 30,
-
-        [Parameter()]
-        [int]$MaxRetries = 5
+        [Parameter(Mandatory = $true)]
+        [string]$TempDir
     )
 
-    # Configure TLS for PowerShell 5
-    if (-not $Script:IsModernPowerShell) {
-        try {
-            # Set TLS 1.2 and attempt TLS 1.3 if available
-            $protocols = [Net.SecurityProtocolType]::Tls12
-            try {
-                $protocols = $protocols -bor [Net.SecurityProtocolType]::Tls13
-            }
-            catch {
-                Write-Message "TLS 1.3 not available, using TLS 1.2 only" -Level Verbose
-            }
-            [Net.ServicePointManager]::SecurityProtocol = $protocols
-        }
-        catch {
-            Write-Message "Failed to configure TLS settings: $($_.Exception.Message)" -Level Warning
-        }
-    }
+    # Detect OS and architecture if not provided
+    $rid = Get-RuntimeIdentifier $OS $Architecture
 
-    # Build base request parameters
-    $requestParams = @{
-        Uri = $Uri
-        Method = $Method
-        MaximumRedirection = 10
-        TimeoutSec = $TimeoutSec
-        UserAgent = $Script:UserAgent
-    }
+    $cliArchiveName = "$($Script:CliArchiveArtifactNamePrefix)-$rid"
+    $downloadDir = Join-Path $TempDir "cli"
 
-    if ($Method -eq "Get" -and $OutFile) {
-        $requestParams.OutFile = $OutFile
-    }
+    Write-Message "Downloading CLI from GitHub ..." -Level Info
 
-    # Add modern PowerShell parameters with graceful fallback
-    if ($Script:IsModernPowerShell) {
-        $modernParams = @{
-            "SslProtocol" = @("Tls12", "Tls13")
-            "OperationTimeoutSeconds" = $OperationTimeoutSec
-            "MaximumRetryCount" = $MaxRetries
-        }
+    Invoke-ArtifactDownload -RunId $RunId -ArtifactName $cliArchiveName -DownloadDirectory $downloadDir
 
-        foreach ($paramName in $modernParams.Keys) {
-            try {
-                $requestParams[$paramName] = $modernParams[$paramName]
-            }
-            catch {
-                Write-Message "$paramName parameter not available: $($_.Exception.Message)" -Level Verbose
-            }
-        }
-    }
-
-    try {
-        return Invoke-WebRequest @requestParams
-    }
-    catch {
-        throw $_.Exception
-    }
+    return $downloadDir
 }
 
-# Enhanced file download wrapper with validation
-function Invoke-FileDownload {
-    [CmdletBinding()]
+# Function to install downloaded Aspire CLI
+function Install-AspireCliFromDownload {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Uri,
+        [string]$DownloadDir,
 
         [Parameter(Mandatory = $true)]
-        [string]$OutputPath,
-
-        [Parameter()]
-        [int]$TimeoutSec = 60,
-
-        [Parameter()]
-        [int]$OperationTimeoutSec = 30,
-
-        [Parameter()]
-        [int]$MaxRetries = 5
+        [string]$CliBinDir
     )
 
-    # Validate content type via HEAD request
-    Write-Message "Validating content type for $Uri" -Level Verbose
-    $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
-    Write-Message "Detected content type: $contentType" -Level Verbose
-
-    if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-        throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
+    if (!$PSCmdlet.ShouldProcess($CliBinDir, "Installing Aspire CLI to $CliBinDir")) {
+        return
     }
 
-    try {
-        Write-Message "Downloading $Uri to $OutputPath" -Level Verbose
-        Invoke-SecureWebRequest -Uri $Uri -OutFile $OutputPath -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
-        Write-Message "Successfully downloaded file to: $OutputPath" -Level Verbose
-    }
-    catch {
-        throw "Failed to download $Uri - $($_.Exception.Message)"
-    }
-}
+    # Find the aspire-cli-* file
+    $cliFiles = Get-ChildItem -Path $DownloadDir -Filter "aspire-cli-*" -File -Recurse
 
-# Enhanced checksum validation with proper error handling
-function Test-FileChecksum {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ArchiveFile,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ChecksumFile
-    )
-
-    # Check if Get-FileHash cmdlet is available
-    if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
-        throw "Get-FileHash cmdlet not found. Please use PowerShell 4.0 or later to validate checksums."
-    }
-
-    $expectedChecksum = (Get-Content $ChecksumFile -Raw -ErrorAction Stop).Trim().ToLowerInvariant()
-    $actualChecksum = (Get-FileHash -Path $ArchiveFile -Algorithm SHA512 -ErrorAction Stop).Hash.ToLowerInvariant()
-
-    # Compare checksums
-    if ($expectedChecksum -ne $actualChecksum) {
-        $displayChecksum = if ($expectedChecksum.Length -gt 128) { $expectedChecksum.Substring(0, 128) + "..." } else { $expectedChecksum }
-        throw "Checksum validation failed for $ArchiveFile with checksum from $ChecksumFile !`nExpected: $displayChecksum`nActual:   $actualChecksum"
-    }
-}
-
-# Enhanced URL construction function with configuration-based URLs
-function Get-AspireCliUrl {
-    [CmdletBinding()]
-    [OutputType([PSCustomObject])]
-    param(
-        [Parameter()]
-        [string]$Version,
-
-        [Parameter()]
-        [string]$Quality,
-
-        [Parameter(Mandatory = $true)]
-        [string]$RuntimeIdentifier,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Extension
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Version)) {
-        # Validate quality against supported values
-        if ($Quality -notin $Script:Config.SupportedQualities) {
-            throw "Unsupported quality '$Quality'. Supported values are: $($Script:Config.SupportedQualities -join ", ")."
+    if ($cliFiles.Count -eq 0) {
+        Write-Message "No aspire-cli-* files found in downloaded artifact" -Level Error
+        Write-Message "Found files in download directory:" -Level Info
+        Get-ChildItem -Path $DownloadDir -File | Select-Object -First 10 | ForEach-Object {
+            Write-Message "  $($_.Name)" -Level Info
         }
+        throw "CLI archive not found"
+    }
+    elseif ($cliFiles.Count -gt 1) {
+        Write-Message "Multiple aspire-cli-* files found in downloaded artifact:" -Level Error
+        $cliFiles | ForEach-Object { Write-Message "  $($_.FullName)" -Level Error }
+        throw "Multiple CLI archives found"
+    }
 
-        # When version is not set use aka.ms URLs based on quality
-        $baseUrl = $Script:Config.BaseUrls[$Quality]
-        if (-not $baseUrl) {
-            throw "No base URL configured for quality: $Quality"
-        }
+    $cliArchivePath = $cliFiles[0].FullName
 
-        $archiveFilename = "aspire-cli-$RuntimeIdentifier.$Extension"
-        $checksumFilename = "aspire-cli-$RuntimeIdentifier.$Extension.sha512"
+    # Install the archive
+    Expand-AspireCliArchive -ArchiveFile $cliArchivePath -DestinationPath $CliBinDir
 
-        return [PSCustomObject]@{
-            ArchiveUrl = "$baseUrl/$archiveFilename"
-            ArchiveFilename = $archiveFilename
-            ChecksumUrl = "$baseUrl/$checksumFilename"
-            ChecksumFilename = $checksumFilename
-        }
+    # Check which aspire executable exists and set the path accordingly
+    $aspireExePath = Join-Path $CliBinDir "aspire.exe"
+    $aspirePath = Join-Path $CliBinDir "aspire"
+
+    if (Test-Path $aspireExePath) {
+        $cliPath = $aspireExePath
+    }
+    elseif (Test-Path $aspirePath) {
+        $cliPath = $aspirePath
     }
     else {
-        # When version is set, use ci.dot.net URL
-        $archiveFilename = "aspire-cli-$RuntimeIdentifier-$Version.$Extension"
-        $checksumFilename = "$archiveFilename.sha512"
+        throw "Neither aspire.exe nor aspire executable found in $CliBinDir"
+    }
 
-        return [PSCustomObject]@{
-            ArchiveUrl = "$($Script:Config.BaseUrls["versioned"])/$Version/$archiveFilename"
-            ArchiveFilename = $archiveFilename
-            ChecksumUrl = "$($Script:Config.BaseUrls["versioned-checksums"])/$Version/$checksumFilename"
-            ChecksumFilename = $checksumFilename
-        }
+    Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+}
+
+# Main function to download and install from PR or workflow run ID
+function Start-DownloadAndInstall {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TempDir
+    )
+
+    if ($WorkflowRunId) {
+        # When workflow ID is provided, use it directly
+        Write-Message "Starting download and installation for PR #$PRNumber with workflow run ID: $WorkflowRunId" -Level Info
+        $runId = $WorkflowRunId.ToString()
+    }
+    else {
+        # When only PR number is provided, find the workflow run
+        Write-Message "Starting download and installation for PR #$PRNumber" -Level Info
+
+        # Get the PR head SHA
+        $headSha = Get-PRHeadSHA -PRNumber $PRNumber
+
+        # Find the workflow run
+        $runId = Find-WorkflowRun -HeadSHA $headSha
+    }
+
+    Write-Message "Using workflow run https://github.com/dotnet/aspire/actions/runs/$runId" -Level Info
+
+    # Set installation paths
+    $cliBinDir = Join-Path $resolvedInstallPrefix "bin"
+    $nugetHiveDir = Join-Path $resolvedInstallPrefix "hives" "pr-$PRNumber" "packages"
+
+    # First, download artifacts
+    Write-Message "Downloading artifacts..." -Level Info
+    if ($HiveOnly) {
+        Write-Message "Skipping CLI download due to -HiveOnly flag" -Level Info
+    } else {
+        $cliDownloadDir = Get-AspireCliFromArtifact -RunId $runId -TempDir $TempDir
+    }
+    $nugetDownloadDir = Get-BuiltNugets -RunId $runId -TempDir $TempDir
+
+    # Then, install artifacts
+    Write-Message "Installing artifacts..." -Level Info
+    if ($HiveOnly) {
+        Write-Message "Skipping CLI installation due to -HiveOnly flag" -Level Info
+    } else {
+        Install-AspireCliFromDownload -DownloadDir $cliDownloadDir -CliBinDir $cliBinDir
+    }
+    Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
+
+    # Update PATH environment variables
+    if (-not $HiveOnly) {
+        Update-PathEnvironment -CliBinDir $cliBinDir
     }
 }
 
-# Function to download and install the Aspire CLI
-function Install-AspireCli {
-    [CmdletBinding(SupportsShouldProcess)]
-    [OutputType([string])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$CliBinDir,
-        [string]$Version,
-        [string]$Quality,
-        [string]$TargetRID
-    )
+# =============================================================================
+# Main Execution
+# =============================================================================
 
-    $tempDir = $null
-    $tempDir = New-TempDirectory -Prefix "aspire-cli-download"
+try {
+    # Validate PRNumber is provided when not showing help
+    if ($PRNumber -le 0) {
+        Write-Message "Error: PRNumber parameter is required" -Level Error
+        Write-Message "Use -Help for usage information" -Level Info
+        if ($InvokedFromFile) { exit 1 } else { return 1 }
+    }
+
+    # Set host OS for PATH environment updates
+    $script:HostOS = Get-OperatingSystem
+
+    # Check gh dependency
+    Test-GitHubCLIDependency
+
+    # Set default install prefix if not provided
+    $resolvedInstallPrefix = Get-InstallPrefix -InstallPrefix $InstallPath
+
+    # Create a temporary directory for downloads
+    $tempDir = New-TempDirectory -Prefix "aspire-cli-pr-download"
 
     try {
-        $extension = if ($TargetRID.StartsWith("win-")) { "zip" } else { "tar.gz" }
-        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $TargetRID -Extension $extension
+        # Download and install from PR or workflow run ID
+        Start-DownloadAndInstall -TempDir $tempDir
 
-        $archivePath = Join-Path $tempDir $urls.ArchiveFilename
-        $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
-
-        if ($PSCmdlet.ShouldProcess($urls.ArchiveUrl, "Download CLI archive")) {
-            # Download the Aspire CLI archive
-            Write-Message "Downloading from: $($urls.ArchiveUrl)" -Level Info
-            Invoke-FileDownload -Uri $urls.ArchiveUrl -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $archivePath
-        }
-
-        if ($PSCmdlet.ShouldProcess($urls.ChecksumUrl, "Download CLI archive checksum")) {
-            # Download and test the checksum
-            Invoke-FileDownload -Uri $urls.ChecksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumPath
-            Test-FileChecksum -ArchiveFile $archivePath -ChecksumFile $checksumPath
-
-            Write-Message "Successfully downloaded and validated: $($urls.ArchiveFilename)" -Level Verbose
-        }
-
-        if ($PSCmdlet.ShouldProcess($CliBinDir, "Install CLI")) {
-            # Unpack the archive
-            Expand-AspireCliArchive -ArchiveFile $archivePath -DestinationPath $CliBinDir
-
-            $cliExe = if ($TargetRID.StartsWith("win-")) { "aspire.exe" } else { "aspire" }
-            $cliPath = Join-Path $CliBinDir $cliExe
-
-            Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
-        }
+        $exitCode = 0
     }
     finally {
+        # Clean up temporary directory
         Remove-TempDirectory -TempDir $tempDir
     }
 }
-
-# Main function with enhanced error handling and validation
-function Start-AspireCliInstallation {
-    [CmdletBinding(SupportsShouldProcess)]
-    [OutputType([int])]
-    param()
-
-    try {
-        # Validate that both Version and Quality are not provided
-        if (-not [string]::IsNullOrWhiteSpace($Version) -and -not [string]::IsNullOrWhiteSpace($Quality)) {
-            throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
-        }
-
-        # Set default quality if not specified and no version is provided
-        if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
-            $Quality = $Script:Config.DefaultQuality
-        }
-
-        # Additional parameter validation
-        if (-not [string]::IsNullOrWhiteSpace($OS) -and $OS -notin $Script:Config.SupportedOperatingSystems) {
-            throw "Unsupported OS '$OS'. Supported values are: $($Script:Config.SupportedOperatingSystems -join ', ')"
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($Architecture) -and $Architecture -notin $Script:Config.SupportedArchitectures) {
-            throw "Unsupported Architecture $Architecture. Supported values are: $($Script:Config.SupportedArchitectures -join ", ")"
-        }
-
-        # Determine the installation path
-        $resolvedInstallPath = Get-InstallPath -InstallPath $InstallPath
-
-        # Ensure the installation directory exists
-        if (-not (Test-Path $resolvedInstallPath)) {
-            Write-Message "Creating installation directory: $resolvedInstallPath" -Level Info
-            if ($PSCmdlet.ShouldProcess($resolvedInstallPath, "Create installation directory")) {
-                try {
-                    New-Item -ItemType Directory -Path $resolvedInstallPath -Force | Out-Null
-                }
-                catch {
-                    throw "Failed to create installation directory: $resolvedInstallPath - $($_.Exception.Message)"
-                }
-            }
-        }
-
-        $rid = Get-RuntimeIdentifier -_OS $OS -_Architecture $Architecture
-
-        # Download and install the Aspire CLI
-        Install-AspireCli -CliBinDir $resolvedInstallPath -Version $Version -Quality $Quality -TargetRID $rid
-
-        # Update PATH environment variables
-        Update-PathEnvironment -CliBinDir $resolvedInstallPath
-    }
-    catch {
-        # Log the full exception details if verbose
-        Write-Verbose "Full exception details: $($_.Exception | Out-String)"
-
-        # Show clean message to user
-        $cleanMessage = switch ($_.Exception.GetType().Name) {
-            'ArgumentException' { "Invalid argument: $($_.Exception.Message)" }
-            'UnauthorizedAccessException' { "Access denied: $($_.Exception.Message)" }
-            'ParameterBindingValidationException' { "Parameter validation failed: $($_.Exception.Message)" }
-            default { $_.Exception.Message }
-        }
-
-        Write-Message "Error: $cleanMessage" -Level Error
-        if ($InvokedFromFile) {
-            exit 1
-        } else {
-            return 1
-        }
-    }
-}
-
-# Ensure minimum PowerShell version
-if ($PSVersionTable.PSVersion.Major -lt $Script:Config.MinimumPowerShellVersion) {
-    Write-Message "Error: This script requires PowerShell $($Script:Config.MinimumPowerShellVersion).0 or later. Current version: $($PSVersionTable.PSVersion)" -Level Error
-    if ($InvokedFromFile) {
-        exit 1
-    }
-    else {
-        return 1
-    }
-}
-
-# Run main function and handle exit code
-try {
-    # Ensure we're not in strict mode which can cause issues in PowerShell 5.1
-    if (-not $Script:IsModernPowerShell) {
-        Set-StrictMode -Off
-    }
-
-    $script:HostOS = Get-OperatingSystem
-    Start-AspireCliInstallation
-    $exitCode = 0
-}
 catch {
-    # Display clean error message without stack trace
-    Write-Message "Error: $($_.Exception.Message)" -Level Error
+    Write-Message "Error: $($_.Exception.StackTrace)" -Level Verbose
     $exitCode = 1
+    throw
 }
 
 if ($InvokedFromFile) {

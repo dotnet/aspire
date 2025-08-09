@@ -41,6 +41,9 @@ on:
         type: string
         default: "ubuntu-latest"
 
+env:
+  VERSION_SUFFIX_OVERRIDE: ${{ github.event_name == 'pull_request' && format('/p:VersionSuffix=pr.{0}', github.event.number) || '' }}
+
 jobs:
 
   test:
@@ -159,7 +162,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} ${{ env.VERSION_SUFFIX_OVERRIDE }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
@@ -169,6 +172,7 @@ jobs:
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          ${{ env.VERSION_SUFFIX_OVERRIDE }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project
