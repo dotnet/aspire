@@ -1,40 +1,30 @@
 import * as vscode from 'vscode';
-import { LaunchOptions, EnvVar, startAndGetDebugSession, TerminalProgramRun, startCliProgram } from './common';
-import { extensionLogOutputChannel } from '../utils/logging';
-import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, watchProject } from '../loc/strings';
+import { extensionLogOutputChannel } from '../../utils/logging';
+import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
-import { mergeEnvs } from '../utils/environment';
+import { mergeEnvs } from '../../utils/environment';
 import * as path from 'path';
-import { getAspireTerminal } from '../utils/terminal';
-import { doesFileExist } from '../utils/io';
-import { getSupportedCapabilities } from '../capabilities';
+import { doesFileExist } from '../../utils/io';
+import { getSupportedCapabilities } from '../../capabilities';
+import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from '../../dcp/types';
+import { extensionContext } from '../../extension';
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<vscode.DebugSession | TerminalProgramRun | undefined> {
+const execFileAsync = util.promisify(execFile);
+
+export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
     try {
-        const outputPath = await getDotnetTargetPath(projectFile);
+        const outputPath = await getDotNetTargetPath(projectFile);
 
         if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
             await buildDotNetProject(projectFile);
-        }
-
-        if (!launchOptions.debug) {
-            // For now, launch all .NET programs using dotnet watch
-            // Consider a switch to use `dotnet run` in the future
-            return startCliProgram(
-                watchProject(path.basename(projectFile), 'dotnet'),
-                'dotnet',
-                args,
-                env,
-                workingDirectory
-            );
         }
 
         if (!getSupportedCapabilities().includes('csharp')) {
             throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
         }
 
-        const config: vscode.DebugConfiguration = {
+        const config: AspireExtendedDebugConfiguration = {
             type: 'coreclr',
             request: 'launch',
             name: debugProject(path.basename(projectFile)),
@@ -44,13 +34,13 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             env: mergeEnvs(process.env, env),
             justMyCode: false,
             stopAtEntry: false,
+            noDebug: !launchOptions.debug,
+            runId: launchOptions.runId,
+            dcpId: launchOptions.dcpId,
+            console: 'internalConsole'
         };
 
-        // The build task brings the build terminal to the foreground. If build has succeeded,
-        // we should then bring the Aspire terminal to the terminal foreground as it's actively running. 
-        getAspireTerminal().show(true);
-
-        return await startAndGetDebugSession(config);
+        return await extensionContext.aspireDebugSession.startAndGetDebugSession(config);
     }
     catch (error) {
         if (error instanceof Error) {
@@ -106,9 +96,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
     });
 }
 
-const execFileAsync = util.promisify(execFile);
-
-async function getDotnetTargetPath(projectFile: string): Promise<string> {
+async function getDotNetTargetPath(projectFile: string): Promise<string> {
     const args = [
         'msbuild',
         projectFile,

@@ -36,6 +36,7 @@ internal interface IExtensionBackchannel
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
+    Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
     Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
 }
@@ -505,7 +506,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return capabilities.Contains(capability);
     }
 
-    private async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 

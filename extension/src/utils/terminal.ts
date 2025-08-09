@@ -1,14 +1,11 @@
 import * as vscode from 'vscode';
-import { rpcServerInfo } from '../extension';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
+import { extensionContext } from '../extension';
+import DcpServer from '../dcp/DcpServer';
 
 let hasRunGetAspireTerminal = false;
-export function getAspireTerminal(): vscode.Terminal {
-    if (!rpcServerInfo) {
-        throw new Error('RPC server is not initialized. Ensure activation before using this function.');
-    }
-
+export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
     const terminalName = aspireTerminalName;
 
     const existingTerminal = vscode.window.terminals.find(terminal => terminal.name === terminalName);
@@ -24,18 +21,25 @@ export function getAspireTerminal(): vscode.Terminal {
 
     extensionLogOutputChannel.info(`Creating new Aspire terminal`);
 
-    const env = {
+    const env: any = {
         ...process.env,
 
         // Extension connection information
-        ASPIRE_EXTENSION_ENDPOINT: rpcServerInfo.address,
-        ASPIRE_EXTENSION_TOKEN: rpcServerInfo.token,
-        ASPIRE_EXTENSION_CERT: Buffer.from(rpcServerInfo.cert, 'utf-8').toString('base64'),
+        ASPIRE_EXTENSION_ENDPOINT: extensionContext.rpcServerInfo.address,
+        ASPIRE_EXTENSION_TOKEN: extensionContext.rpcServerInfo.token,
+        ASPIRE_EXTENSION_CERT: Buffer.from(extensionContext.rpcServerInfo.cert, 'utf-8').toString('base64'),
         ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
 
         // Use the current locale in the CLI
-        ASPIRE_LOCALE_OVERRIDE: vscode.env.language,
+        ASPIRE_LOCALE_OVERRIDE: vscode.env.language
     };
+
+    if (dcpServer) {
+         // Include DCP server info
+        env.DEBUG_SESSION_PORT = dcpServer.info.address;
+        env.DEBUG_SESSION_TOKEN = dcpServer.info.token;
+        env.DEBUG_SESSION_SERVER_CERTIFICATE = Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64');
+    }
 
     hasRunGetAspireTerminal = true;
 
@@ -45,8 +49,8 @@ export function getAspireTerminal(): vscode.Terminal {
     });
 }
 
-export function sendToAspireTerminal(command: string) {
-    const terminal = getAspireTerminal();
+export function sendToAspireTerminal(command: string, dcpServer?: DcpServer) {
+    const terminal = getAspireTerminal(dcpServer);
     extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
     terminal.show();

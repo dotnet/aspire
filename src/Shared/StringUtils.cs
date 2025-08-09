@@ -32,4 +32,14 @@ internal static class StringUtils
     {
         return HttpUtility.UrlDecode(value);
     }
+
+    public static string RemoveSuffix(this string value, string suffix)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(suffix);
+
+        return value.EndsWith(suffix, StringComparison.Ordinal)
+            ? value[..^suffix.Length]
+            : value;
+    }
 }

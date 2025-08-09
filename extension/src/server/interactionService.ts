@@ -5,11 +5,8 @@ import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, fai
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { startAppHost } from '../debugger/appHost';
-import { getAspireTerminal } from '../utils/terminal';
-import { EnvVar, stopAllDebuggingSessions } from '../debugger/common';
-
-type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
+import { EnvVar } from '../dcp/types';
+import { extensionContext } from '../extension';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -27,9 +24,11 @@ export interface IInteractionService {
     displayCancellationMessage: () => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void>;
+    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
 }
+
+type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
 type DashboardUrls = {
     baseUrlWithLoginToken: string;
@@ -54,6 +53,10 @@ export class InteractionService implements IInteractionService {
         if (statusText) {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
+
+            if (extensionContext.hasAspireDebugSession()) {
+                extensionContext.aspireDebugSession.sendMessage(formatText(statusText));
+            }
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
         }
@@ -260,13 +263,13 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void> {
-        return startAppHost(projectFile, workingDirectory, args, environment, debug, rpcClient);
+    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        return extensionContext.aspireDebugSession.startAppHost(projectFile, workingDirectory, args, environment, debug);
     }
 
     stopDebugging() {
         this.clearStatusBar();
-        stopAllDebuggingSessions();
+        extensionContext.aspireDebugSession.dispose();
     }
 
     clearStatusBar() {
@@ -294,8 +297,6 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean) => {
-        return interactionService.launchAppHost(projectFile, workingDirectory, args, environment, debug, rpcClient);
-    }));
+    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, workingDirectory, args, environment, debug)));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
 }

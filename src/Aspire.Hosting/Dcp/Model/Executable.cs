@@ -276,9 +276,7 @@ internal static class ProjectLaunchMode
 internal sealed class ProjectLaunchConfiguration
 {
     [JsonPropertyName("type")]
-#pragma warning disable CA1822 // We want this member to be non-static, as it is used in serialization.
-    public string Type => "project";
-#pragma warning restore CA1822
+    public string Type { get; set; } = "project";
 
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ProjectLaunchMode.Debug : ProjectLaunchMode.NoDebug;

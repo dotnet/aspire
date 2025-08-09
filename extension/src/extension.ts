@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 
-import { runCommand } from './commands/run';
 import { addCommand } from './commands/add';
-import { RpcServerInformation, createRpcServer } from './server/rpcServer';
+import { RpcServerConnectionInfo, createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
 import { newCommand } from './commands/new';
@@ -12,18 +11,73 @@ import { publishCommand } from './commands/publish';
 import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
+import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapterDescriptorFactory';
+import { runCommand } from './commands/run';
+import { AspireDebugSession } from './debugger/AspireDebugSession';
+import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
 
-export let rpcServerInfo: RpcServerInformation | undefined;
-export let extensionContext: vscode.ExtensionContext | undefined;
+export class AspireExtensionContext {
+	private _rpcServerInfo: RpcServerConnectionInfo | undefined;
+	private _extensionContext: vscode.ExtensionContext | undefined;
+	private _aspireDebugSession: AspireDebugSession | undefined;
+
+	constructor() {
+		this._rpcServerInfo = undefined;
+		this._extensionContext = undefined;
+		this._aspireDebugSession = undefined;
+	}
+
+	get rpcServerInfo(): RpcServerConnectionInfo {
+		if (!this._rpcServerInfo) {
+			throw new Error('RPC Server is not initialized');
+		}
+		return this._rpcServerInfo;
+	}
+
+	set rpcServerInfo(value: RpcServerConnectionInfo) {
+		this._rpcServerInfo = value;
+	}
+
+	get extensionContext(): vscode.ExtensionContext {
+		if (!this._extensionContext) {
+			throw new Error('Extension context is not initialized');
+		}
+		return this._extensionContext;
+	}
+
+	set extensionContext(value: vscode.ExtensionContext) {
+		this._extensionContext = value;
+	}
+
+	hasAspireDebugSession(): boolean {
+		return !!this._aspireDebugSession;
+	}
+
+	get aspireDebugSession(): AspireDebugSession {
+		if (!this._aspireDebugSession) {
+			throw new Error('Aspire debug session is not initialized');
+		}
+		return this._aspireDebugSession;
+	}
+
+	set aspireDebugSession(value: AspireDebugSession) {
+		this._aspireDebugSession = value;
+	}
+}
+
+export let extensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
-	initializeTelemetry(context);
 	extensionLogOutputChannel.info("Activating Aspire extension");
+	initializeTelemetry(context);
 
-	rpcServerInfo = await createRpcServer(
+	const rpcServerInfo = await createRpcServer(
 		connection => new InteractionService(),
 		(connection, token: string) => new RpcClient(connection, token)
 	);
+
+	extensionContext.rpcServerInfo = rpcServerInfo;
+	extensionContext.extensionContext = context;
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -33,8 +87,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
-
-	extensionContext = context; 
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+	context.subscriptions.push(
+		vscode.debug.registerDebugConfigurationProvider(
+			'aspire',
+			new AspireDebugConfigurationProvider(),
+			vscode.DebugConfigurationProviderTriggerKind.Dynamic
+		)
+	);
 
 	// Return exported API for tests or other extensions
 	return {
@@ -43,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	rpcServerInfo?.dispose();
+	extensionContext.rpcServerInfo.dispose();
 }
 
 async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {
