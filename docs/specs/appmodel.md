@@ -422,7 +422,7 @@ Example: A logging sidecar that is started and stopped together with a main appl
 Aspire does not infer parent-child relationships automatically based on names, dependencies, or network links.
 You must explicitly declare relationships using either:
 
-- **`IResourceWithParent`** (for structural containment and visual nesting; no lifecycle semantics), or
+- **`IResourceWithParent`** (for structural containment and visual nesting), or
 - **`.WithParentRelationship()`** (for visual nesting only)
 
 This explicitness ensures developers have full control over resource containment, presentation, and any optional lifecycle behavior.
