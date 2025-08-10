@@ -411,7 +411,7 @@ Common lifecycle coordination patterns include:
 - **Parent mirrors a child**: A composite or wrapper resource reflects the lifecycle or readiness of one of its children.
 - **Inherit from children (ad hoc)**: Some resources choose to inherit or mirror lifecycle from children. This is not standardized and is not inferred from `IResourceWithParent`.
 
-Lifecycle coordination is typically implemented by propagating events to child resources (see [Well-Known Lifecycle Events](#well-known-lifecycle-events)) and must be authored explicitly using `WaitFor`, lifecycle hooks, or resource-specific behaviors.
+Lifecycle coordination is typically implemented by propagating events to child resources (see [Well-Known Lifecycle Events](#well-known-lifecycle-events)).
 
 Example: A logging sidecar that is started and stopped together with a main application container can be implemented by the parent explicitly coordinating the child. This behavior is authored by the integration and not implied by `IResourceWithParent`.
 
