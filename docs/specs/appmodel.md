@@ -52,7 +52,6 @@ graph LR
   - [Importance of Polymorphism](#importance-of-polymorphism)
 - [Resource Hierarchy and Parent‑Child Relationships](#resource-hierarchy-and-parent-child-relationships)
   - [Lifecycle Containment](#lifecycle-containment)
-  - [Visual Grouping (Without Lifecycle Impact)](#visual-grouping-without-lifecycle-impact)
   - [Manual Relationships — No Inference](#manual-relationships--no-inference)
   - [Real-World Examples](#real-world-examples)
 - [Values and References](#values-and-references)
@@ -393,48 +392,38 @@ Parent-child relationships primarily serve to:
 - Structural ownership and visualization: Expresses containment in the model and drives visual nesting in dashboards and visualizations.
 - Optional lifecycle coordination (opt-in): Some resource types choose to coordinate start/stop behavior relative to other resources. This behavior is separate from the parent-child structure and is not implied by any single interface.
 
+Aspire provides two ways to declare parent-child relationships:
+
+**`IResourceWithParent` (static declaration)**: When a resource implements this interface, it statically declares a parent-child relationship. This establishes structural containment and visual nesting. `IResourceWithParent` implies `WithParentRelationship()`.
+
+**`WithParentRelationship()` (dynamic declaration)**: This method dynamically declares a parent-child relationship during resource construction, affecting only dashboard layout and visual grouping.
+
+Both approaches are purely structural and do not impose any lifecycle behavior.
+
 ---
 
 ### Lifecycle Containment
 
-When a resource implements the IResourceWithParent interface, it statically declares a parent-child relationship. This:
+Lifecycle coordination is optional and separate from structural parent-child relationships. It is implemented on a case-by-case basis by specific resource types or integrations.
 
-- Establishes structural containment and visual nesting (akin to calling .WithParentRelationship()).
-- Does not, by itself, impose any lifecycle behavior. Start/stop sequencing or failure propagation must be authored explicitly (for example, using WaitFor, lifecycle hooks, or resource-specific behaviors).
+Common lifecycle coordination patterns include:
+- **Parent drives children**: A parent resource starts/stops children explicitly (e.g., via hooks or orchestration code).
+- **Parent mirrors a child**: A composite or wrapper resource reflects the lifecycle or readiness of one of its children.
+- **Inherit from children (ad hoc)**: Some resources choose to inherit or mirror lifecycle from children. This is not standardized and is not inferred from `IResourceWithParent`.
 
-In other words, IResourceWithParent defines structure. Lifecycle coordination is a separate concern.
+Lifecycle coordination must be authored explicitly using `WaitFor`, lifecycle hooks, or resource-specific behaviors.
 
-Lifecycle coordination (opt-in, resource-specific)
-Today, lifecycle coordination is implemented on a case-by-case basis by specific resource types or integrations. Common patterns include:
-- Parent drives children: A parent resource starts/stops children explicitly (e.g., via hooks or orchestration code).
-- Parent mirrors a child: A composite or wrapper resource reflects the lifecycle or readiness of one of its children.
-- Inherit from children (adhoc): Some resources choose to inherit or mirror lifecycle from children. This is not standardized and is not inferred from IResourceWithParent.
-
-Example: A logging sidecar that is started and stopped together with a main application container can be implemented by the parent explicitly coordinating the child. This behavior is authored by the integration and not implied by IResourceWithParent.
-
----
-
-### Visual Grouping (Without Lifecycle Impact)
-
-Aspire also supports visual-only parent-child relationships using the WithParentRelationship() method during resource construction.
-
-Visual relationships:
-- Affect only the dashboard layout.
-- Do not affect lifecycle — the resources are independent operationally.
-- Improve clarity by logically grouping related components.
-
-Example:
-A Redis database container and a Redis Commander admin UI container can be grouped visually, even though they start independently.
+Example: A logging sidecar that is started and stopped together with a main application container can be implemented by the parent explicitly coordinating the child. This behavior is authored by the integration and not implied by `IResourceWithParent`.
 
 ---
 
 ### Manual Relationships — No Inference
 
 Aspire does not infer parent-child relationships automatically based on names, dependencies, or network links.
-You must explicitly declare either:
+You must explicitly declare relationships using either:
 
-- IResourceWithParent (for structural containment and visual nesting; no lifecycle semantics), or
-- .WithParentRelationship() (for visual nesting only)
+- **`IResourceWithParent`** (for structural containment and visual nesting; no lifecycle semantics), or
+- **`.WithParentRelationship()`** (for visual nesting only)
 
 This explicitness ensures developers have full control over resource containment, presentation, and any optional lifecycle behavior.
 
