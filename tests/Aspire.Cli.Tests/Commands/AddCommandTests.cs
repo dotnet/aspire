@@ -167,11 +167,16 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommandSortsPackageVersionsWithPrerelease()
     {
+        var searchedCallCount = 0;
         IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            // Disabled because we are call counting package searches and the CLI
+            // package search that happens in the background interferes with the count
+            // non-deterministically.
+            options.DisabledFeatures = [KnownFeatures.UpdateNotificationsEnabled];
 
             options.AddCommandPrompterFactory = (sp) =>
             {
@@ -194,6 +199,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 var runner = new TestDotNetCliRunner();
                 runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
                 {
+                    searchedCallCount++;
+
                     var redis92Package = new NuGetPackage()
                     {
                         Id = "Aspire.Hosting.Redis",
@@ -237,6 +244,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
+        Assert.Equal(2, searchedCallCount);
         Assert.Collection(
             promptedPackages!,
             p => Assert.Equal("9.4.0-preview1.1234", p.Package.Version),
