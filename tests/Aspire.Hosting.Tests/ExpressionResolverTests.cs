@@ -184,6 +184,61 @@ public class ExpressionResolverTests
 
         Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
     }
+
+    [Theory]
+    [InlineData(false, false, "Target=12345;")]  // executable -> executable 
+    [InlineData(false, true, "Target=12345;")]   // executable -> container
+    [InlineData(true, false, "Target=ContainerHostName:12345;")]  // container -> executable 
+    [InlineData(true, true, "Target=testresource:10000;")]   // container -> container
+    public async Task ExecutableEndpointExpressionsShouldResolve(bool sourceIsContainer, bool targetIsContainer, string expectedResult)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var target = builder.AddResource(new TestExecutableEndpointResource("testresource"))
+            .WithEndpoint("endpoint1", e =>
+            {
+                e.UriScheme = "http";
+                e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: targetIsContainer ? "ContainerHostName" : null, targetPortExpression: "10000");
+            });
+
+        if (targetIsContainer)
+        {
+            target = target.WithImage("someimage");
+        }
+
+        // Test endpoint port expression resolution for executable arguments
+        var endpointRef = new EndpointReference(target.Resource, "endpoint1");
+        var portExpression = new EndpointReferenceExpression(endpointRef, EndpointProperty.Port);
+
+        var result = await ExpressionResolver.ResolveAsync(sourceIsContainer, portExpression, "ContainerHostName", CancellationToken.None).DefaultTimeout();
+        
+        var expected = expectedResult.Split('=')[1].TrimEnd(';');
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Fact]
+    public async Task ExecutableWithEndpointArgumentsResolvesCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Create a container resource with an endpoint
+        var container = builder.AddContainer("testcontainer", "nginx")
+            .WithHttpEndpoint(targetPort: 8080, port: 12345);
+
+        // Create an executable that references the container's endpoint port
+        var executable = builder.AddExecutable("testexe", "pwsh.exe", ".")
+            .WithArgs("-port")
+            .WithArgs(x => x.Args.Add(container.GetEndpoint("http").Property(EndpointProperty.TargetPort)));
+
+        // Test that the expression gets resolved for the executable (not container source)
+        var endpointRef = container.GetEndpoint("http");
+        var portExpression = endpointRef.Property(EndpointProperty.TargetPort);
+
+        var result = await ExpressionResolver.ResolveAsync(false, portExpression, "host.docker.internal", CancellationToken.None).DefaultTimeout();
+        
+        // For executable accessing container endpoint, should get the host port (since target port would be for container-to-container)
+        Assert.Equal("12345", result.Value);
+    }
 }
 
 sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
@@ -235,4 +290,11 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
     }
 
     public ReferenceExpression ConnectionStringExpression => Expressions[_exprName];
+}
+
+sealed class TestExecutableEndpointResource : ContainerResource, IResourceWithEndpoints
+{
+    public TestExecutableEndpointResource(string name) : base(name)
+    {
+    }
 }
