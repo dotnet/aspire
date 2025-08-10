@@ -7,6 +7,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -20,17 +21,19 @@ internal sealed class AddCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IPackagingService _packagingService;
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
+        ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
@@ -39,6 +42,7 @@ internal sealed class AddCommand : BaseCommand
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
+        _packagingService = packagingService;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;
@@ -91,11 +95,29 @@ internal sealed class AddCommand : BaseCommand
 
             var packages = await _interactionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
-                () => _nuGetPackageCache.GetIntegrationPackagesAsync(
-                    workingDirectory: effectiveAppHostProjectFile.Directory!,
-                    prerelease: true,
-                    nugetConfigFile: null,
-                    cancellationToken: cancellationToken)
+                async () =>
+                {
+                    // Get channels and find the implicit channel, similar to how templates are handled
+                    var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                    var implicitChannel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Implicit);
+                    
+                    if (implicitChannel is not null)
+                    {
+                        // Use the implicit channel to get integration packages
+                        return await implicitChannel.GetIntegrationPackagesAsync(
+                            workingDirectory: effectiveAppHostProjectFile.Directory!,
+                            cancellationToken: cancellationToken);
+                    }
+                    else
+                    {
+                        // Fallback to the old method if no implicit channel is found
+                        return await _nuGetPackageCache.GetIntegrationPackagesAsync(
+                            workingDirectory: effectiveAppHostProjectFile.Directory!,
+                            prerelease: true,
+                            nugetConfigFile: null,
+                            cancellationToken: cancellationToken);
+                    }
+                }
                 );
 
             if (!packages.Any())
