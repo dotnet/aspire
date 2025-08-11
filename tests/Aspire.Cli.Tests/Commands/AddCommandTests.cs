@@ -201,31 +201,41 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                 {
                     searchedCallCount++;
 
-                    var redis92Package = new NuGetPackage()
+                    if (prerelease)
                     {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "nuget",
-                        Version = "9.2.0"
-                    };
-
-                    var redis94PrereleasePackage = new NuGetPackage()
+                        var redis94PrereleasePackage = new NuGetPackage()
+                        {
+                            Id = "Aspire.Hosting.Redis",
+                            Source = "nuget",
+                            Version = "9.4.0-preview1.1234"
+                        };
+                        
+                        return (
+                            0, // Exit code.
+                            new NuGetPackage[] { redis94PrereleasePackage } // 
+                            );
+                    }
+                    else
                     {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "nuget",
-                        Version = "9.4.0-preview1.1234"
-                    };
+                        var redis92Package = new NuGetPackage()
+                        {
+                            Id = "Aspire.Hosting.Redis",
+                            Source = "nuget",
+                            Version = "9.2.0"
+                        };
 
-                    var redis93Package = new NuGetPackage()
-                    {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "nuget",
-                        Version = "9.3.0"
-                    };
+                        var redis93Package = new NuGetPackage()
+                        {
+                            Id = "Aspire.Hosting.Redis",
+                            Source = "nuget",
+                            Version = "9.3.0"
+                        };
 
-                    return (
-                        0, // Exit code.
-                        new NuGetPackage[] { redis92Package, redis94PrereleasePackage, redis93Package } // 
-                        );
+                        return (
+                            0, // Exit code.
+                            new NuGetPackage[] { redis92Package, redis93Package } // 
+                            );
+                    }
                 };
 
                 runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
