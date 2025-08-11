@@ -152,6 +152,11 @@
         <target state="translated">Caminho do projeto</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target>Perfil de inicialização</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
         <target state="translated">Hora de início</target>
