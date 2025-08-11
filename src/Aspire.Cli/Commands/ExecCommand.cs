@@ -67,6 +67,10 @@ internal class ExecCommand : BaseCommand
         startResourceOption.Description = ExecCommandStrings.StartTargetResourceArgumentDescription;
         Options.Add(startResourceOption);
 
+        var workdirOption = new Option<string>("--workdir", "-w");
+        workdirOption.Description = ExecCommandStrings.WorkdirArgumentDescription;
+        Options.Add(workdirOption);
+
         // only for --help output
         var commandOption = new Option<string>("--");
         commandOption.Description = ExecCommandStrings.CommandArgumentDescription;
