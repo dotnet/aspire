@@ -1,6 +1,6 @@
 # Overview
 
-Aspire client integrations are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire client integrations feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the client integrations included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Integrations Progress](./Aspire_Components_Progress.md) page.
+Aspire client integrations are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire client integrations feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the client integrations included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Client Integrations Progress](./Aspire_Components_Progress.md) page.
 
 ## Contribution guidelines
 
