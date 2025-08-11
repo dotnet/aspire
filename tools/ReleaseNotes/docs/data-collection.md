@@ -4,34 +4,34 @@ This guide covers the complete data collection process required before generatin
 
 ## 🎯 **Goal: Comprehensive Data Foundation**
 
-Collect all necessary data to generate accurate, comprehensive release notes by analyzing client integration changes and API modifications between release versions.
+Collect all necessary data to generate accurate, comprehensive release notes by analyzing component changes and API modifications between release versions.
 
 ## 📥 **Data Collection Steps**
 
-### **Step 1: Analyze Client Integration Changes**
+### **Step 1: Analyze Component Changes**
 
 ```bash
-./analyze-all-client-integrations.sh <base_branch> <target_branch>
+./analyze-all-components.sh <base_branch> <target_branch>
 ```
 
 **Example:**
 ```bash
-./analyze-all-client-integrations.sh release/9.4 main
+./analyze-all-components.sh release/9.4 main
 ```
 
 #### **What This Generates:**
 
 **📁 Individual Component Analysis Files** (`analysis-output/*.md`)
-- One file per Aspire client integration (e.g., `Aspire.Hosting.md`, `Aspire.Azure.Storage.md`)
+- One file per Aspire component (e.g., `Aspire.Hosting.md`, `Aspire.Azure.Storage.md`)
 - Each file contains:
   - **Overall change statistics**: Files added/modified/deleted
-  - **Complete commit history**: All commits for that client integration between releases
+  - **Complete commit history**: All commits for that component between releases
   - **Top contributors**: Who made the most changes
   - **Categorized commits**: Features, bug fixes, breaking changes
 
 **📊 Analysis Summary** (`analysis-output/analysis-summary.md`)
-- High-level overview of all client integration changes
-- Total commit counts across all client integrations
+- High-level overview of all component changes
+- Total commit counts across all components
 - Summary of major patterns and themes
 
 #### **Expected Output Structure:**
@@ -42,7 +42,7 @@ analysis-output/
 ├── Aspire.Azure.Storage.md              # Azure Storage integration
 ├── Aspire.Cli.md                        # CLI tool changes
 ├── Aspire.Dashboard.md                  # Dashboard improvements
-├── ... (one file per client integration)
+├── ... (one file per component)
 └── analysis-summary.md                  # Overall summary
 ```
 
@@ -67,7 +67,7 @@ analysis-output/
 - **Critical for code sample validation** - if it's not in this file, don't document it
 
 **📋 API Change Summary** (`analysis-output/api-changes-build-current/api-changes-summary.md`)
-- New APIs added across all client integrations
+- New APIs added across all components
 - Breaking changes and deprecations
 - Method signature changes
 - New extension methods and builder patterns
@@ -92,10 +92,10 @@ After running both scripts, verify you have:
 
 #### **✅ Component Analysis Verification:**
 ```bash
-# Check client integration count (should be ~40+ files)
+# Check component count (should be ~40+ files)
 ls -1 analysis-output/*.md | wc -l
 
-# Verify major client integrations exist
+# Verify major components exist
 ls analysis-output/Aspire.{Cli,Dashboard,Hosting,Azure.Storage}.md
 
 # Check analysis summary
@@ -118,7 +118,7 @@ head -50 analysis-output/api-changes-build-current/api-changes-summary.md
 
 ### **Component Analysis Files Structure**
 
-Each client integration file (`*.md`) follows this structure:
+Each component file (`*.md`) follows this structure:
 
 ```markdown
 # Component Name Analysis
@@ -182,10 +182,10 @@ Once data collection is complete:
 
 ## 📋 **Data Collection Checklist**
 
-- [ ] Client integration analysis completed (`./analyze-all-client-integrations.sh`)
+- [ ] Component analysis completed (`./analyze-all-components.sh`)
 - [ ] API changes extracted (`./extract-api-changes.sh`)
 - [ ] Component files generated (~40+ files in `analysis-output/`)
 - [ ] Uber API file created (`all-api-changes.txt`)
 - [ ] API summary generated (`api-changes-summary.md`)
-- [ ] Key client integration files verified (CLI, Dashboard, Hosting, Azure)
+- [ ] Key component files verified (CLI, Dashboard, Hosting, Azure)
 - [ ] Ready to proceed with feature analysis and documentation
