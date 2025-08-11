@@ -47,8 +47,7 @@
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.azure-dev",
 				"GitHub.copilot",
-				"ms-kubernetes-tools.vscode-kubernetes-tools",
-        		"microsoft-aspire.aspire-vscode"
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
 			],
 			"settings": {
 				"remote.autoForwardPorts": true,
@@ -61,7 +60,7 @@
 		}
 	},
 	"onCreateCommand": "dotnet restore",
-	"postStartCommand": "dotnet dev-certs https --trust",
+	"postStartCommand": "/workspaces/aspire/.devcontainer/scripts/postStartCommand.sh",
 
 	"remoteEnv": {
 		// When the project is built the Aspire.Cli project produces an executable which can be useful to
