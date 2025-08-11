@@ -330,6 +330,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Launch profile.
+        /// </summary>
+        public static string ResourcesDetailsProjectLaunchProfileProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsProjectLaunchProfileProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Start time.
         /// </summary>
         public static string ResourcesDetailsStartTimeProperty {
