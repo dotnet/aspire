@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="CreateNugetConfigConfirmation">
         <source>Create NuGet.config for selected channels?</source>
-        <target state="new">Create NuGet.config for selected channels?</target>
+        <target state="translated">是否为所选通道创建 NuGet.config?</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="NuGetConfigCreatedConfirmationMessage">
         <source>Created NuGet.config for the selected package channel.</source>
-        <target state="new">Created NuGet.config for the selected package channel.</target>
+        <target state="translated">已为所选包通道创建 NuGet.config。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">
