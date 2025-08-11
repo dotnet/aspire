@@ -367,7 +367,7 @@ add_to_path()
     elif [[ -f "$config_file" ]] && grep -Fxq "$command" "$config_file"; then
         say_info "Command already exists in $config_file, skipping addition"
     elif [[ -w $config_file ]]; then
-        echo -e "\n# Added by get-aspire-cli*.sh script" >> "$config_file"
+        echo -e "\n# Added by Aspire CLI installation script" >> "$config_file"
         echo "$command" >> "$config_file"
         say_info "Successfully added aspire to \$PATH in $config_file"
     else
