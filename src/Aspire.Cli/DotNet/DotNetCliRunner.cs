@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -438,14 +439,24 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             RedirectStandardError = true,
         };
 
+        // First, propagate current process environment variables through the filter
+        foreach (DictionaryEntry envVar in Environment.GetEnvironmentVariables())
+        {
+            var name = envVar.Key.ToString()!;
+            var value = envVar.Value?.ToString() ?? string.Empty;
+            
+            if (options.EnvironmentPropagationFilter is null || options.EnvironmentPropagationFilter(name, value))
+            {
+                startInfo.EnvironmentVariables[name] = value;
+            }
+        }
+
+        // Then, layer additional environment variables on top (no filtering needed)
         if (env is not null)
         {
             foreach (var envKvp in env)
             {
-                if (options.EnvironmentPropagationFilter is null || options.EnvironmentPropagationFilter(envKvp.Key, envKvp.Value))
-                {
-                    startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
-                }
+                startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
             }
         }
 
