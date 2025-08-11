@@ -43,6 +43,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
 
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
+    public Func<string, string, bool>? EnvironmentPropagationFilter { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
@@ -441,7 +442,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             foreach (var envKvp in env)
             {
-                startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
+                if (options.EnvironmentPropagationFilter is null || options.EnvironmentPropagationFilter(envKvp.Key, envKvp.Value))
+                {
+                    startInfo.EnvironmentVariables[envKvp.Key] = envKvp.Value;
+                }
             }
         }
 

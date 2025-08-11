@@ -399,6 +399,177 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         await launchAppHostCalledTcs.Task;
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterAllowsFilteringEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // Filter that only allows environment variables starting with "ALLOWED_"
+            EnvironmentPropagationFilter = (name, value) => name.StartsWith("ALLOWED_")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that only allowed environment variables are present
+                Assert.True(env.ContainsKey("ALLOWED_VAR1"));
+                Assert.Equal("value1", env["ALLOWED_VAR1"]);
+                Assert.False(env.ContainsKey("BLOCKED_VAR"));
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["ALLOWED_VAR1"] = "value1",
+            ["BLOCKED_VAR"] = "blocked_value"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterNullAllowsAllEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // No filter - should allow all variables (default behavior)
+            EnvironmentPropagationFilter = null
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that all environment variables are present when filter is null
+                Assert.True(env.ContainsKey("VAR1"));
+                Assert.Equal("value1", env["VAR1"]);
+                Assert.True(env.ContainsKey("VAR2"));
+                Assert.Equal("value2", env["VAR2"]);
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["VAR1"] = "value1",
+            ["VAR2"] = "value2"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterCanBlockAllEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // Filter that blocks all environment variables
+            EnvironmentPropagationFilter = (name, value) => false
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that no input environment variables are present
+                Assert.False(env.ContainsKey("VAR1"));
+                Assert.False(env.ContainsKey("VAR2"));
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["VAR1"] = "value1",
+            ["VAR2"] = "value2"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
