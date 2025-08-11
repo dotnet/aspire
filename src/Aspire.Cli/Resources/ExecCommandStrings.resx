@@ -154,6 +154,6 @@ Examples:
     <value>Stopping app host...</value>
   </data>
   <data name="WorkdirArgumentDescription" xml:space="preserve">
-    <value>The working directory to execute command in.</value>
+    <value>The working directory to execute the command in.</value>
   </data>
 </root>
