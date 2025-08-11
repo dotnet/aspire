@@ -19,9 +19,11 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
             // If Container -> Container, we go directly to the container name and target port, bypassing the host
             (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
             (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+            (EndpointProperty.TargetPort, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
             // If Container -> Exe or Exe -> Exe, we need to go through the container host for host, and use allocated port
             (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => containerHostName,
             (EndpointProperty.Port, false) => endpointReference.Port.ToString(CultureInfo.InvariantCulture),
+            (EndpointProperty.TargetPort, false) => endpointReference.Port.ToString(CultureInfo.InvariantCulture),
             (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
                                             await EvalEndpointAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),

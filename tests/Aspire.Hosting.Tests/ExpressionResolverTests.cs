@@ -239,6 +239,28 @@ public class ExpressionResolverTests
         // For executable accessing container endpoint, should get the host port (since target port would be for container-to-container)
         Assert.Equal("12345", result.Value);
     }
+
+    [Fact]
+    public async Task ExecutableReferencingOwnEndpointTargetPortResolvesCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Reproduce the exact scenario from the original issue
+        var app = builder.AddExecutable("exe", "pwsh.exe", ".")
+            .WithHttpEndpoint(port: 54321);
+        var endpoint = app.GetEndpoint("http");
+
+        app.WithArgs("-port")
+            .WithArgs(x => x.Args.Add(endpoint.Property(EndpointProperty.TargetPort)));
+
+        // Test that the expression gets resolved when the executable references its own endpoint
+        var portExpression = endpoint.Property(EndpointProperty.TargetPort);
+
+        var result = await ExpressionResolver.ResolveAsync(false, portExpression, "host.docker.internal", CancellationToken.None).DefaultTimeout();
+        
+        // For executable accessing its own endpoint, should get the allocated port
+        Assert.Equal("54321", result.Value);
+    }
 }
 
 sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
