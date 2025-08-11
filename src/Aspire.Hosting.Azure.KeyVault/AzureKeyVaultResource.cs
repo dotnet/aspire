@@ -40,7 +40,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// In run mode, this is set to the secret client used to access the Azure Key Vault.
     /// </summary>
-    public Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
+    Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
     Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? IAzureKeyVaultResource.SecretResolver
     {
