@@ -233,7 +233,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
                         return (
                             0, // Exit code.
-                            new NuGetPackage[] { redis92Package, redis93Package } // 
+                            new NuGetPackage[] { redis92Package, redis93Package }
                             );
                     }
                 };
