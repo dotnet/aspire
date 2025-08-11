@@ -21,8 +21,8 @@ analysis-output/api-changes-build-current/all-api-changes.txt
 ```
 
 **Use for writing accurate code samples** - This file contains **ALL APIs** from the current build:
-- **Complete API files** with method signatures for all components  
-- **All components**: Azure services, hosting platforms, data services
+- **Complete API files** with method signatures for all client integrations  
+- **All client integrations**: Azure services, hosting platforms, data services
 - **Exact method signatures** including parameter names and types
 
 ## Writing Accurate Documentation
@@ -173,7 +173,7 @@ Before writing any API samples:
 
 Store traceability references for each documented change:
 
-- **Commit SHA or message** from component analysis
+- **Commit SHA or message** from client integration analysis
 - **GitHub Issue ID** (if referenced in commit message)
 - **GitHub Pull Request number** (if available)
 - **Component name** where the change was found
