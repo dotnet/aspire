@@ -25,9 +25,9 @@ export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
         ...process.env,
 
         // Extension connection information
-        ASPIRE_EXTENSION_ENDPOINT: extensionContext.rpcServerInfo.address,
-        ASPIRE_EXTENSION_TOKEN: extensionContext.rpcServerInfo.token,
-        ASPIRE_EXTENSION_CERT: Buffer.from(extensionContext.rpcServerInfo.cert, 'utf-8').toString('base64'),
+        ASPIRE_EXTENSION_ENDPOINT: extensionContext.rpcServer.connectionInfo.address,
+        ASPIRE_EXTENSION_TOKEN: extensionContext.rpcServer.connectionInfo.token,
+        ASPIRE_EXTENSION_CERT: Buffer.from(extensionContext.rpcServer.connectionInfo.cert, 'utf-8').toString('base64'),
         ASPIRE_EXTENSION_PROMPT_ENABLED: 'true',
 
         // Use the current locale in the CLI

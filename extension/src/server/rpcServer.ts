@@ -1,4 +1,3 @@
-import * as net from 'net';
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
@@ -13,12 +12,43 @@ import { getSupportedCapabilities } from '../capabilities';
 export type RpcServerConnectionInfo = {
     address: string;
     token: string;
-    server: tls.Server;
-    dispose: () => void;
     cert: string;
 };
 
-export function createRpcServer(interactionService: (connection: MessageConnection) => IInteractionService, rpcClient: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServerConnectionInfo> {
+interface ConnectionServices {
+    interactionService: IInteractionService;
+    rpcClient: ICliRpcClient;
+}
+
+export default class RpcServer {
+    public server: tls.Server;
+    public connectionInfo: RpcServerConnectionInfo;
+    private _services: ConnectionServices | null = null;
+
+    constructor(server: tls.Server, connectionInfo: RpcServerConnectionInfo) {
+        this.server = server;
+        this.connectionInfo = connectionInfo;
+    }
+
+    set services(services: ConnectionServices) {
+        this._services = services;
+    }
+
+    get services(): ConnectionServices {
+        if (!this._services) {
+            throw new Error('Connection services are not initialized');
+        }
+
+        return this._services;
+    }
+
+    public dispose() {
+        extensionLogOutputChannel.info(`Disposing RPC server`);
+        this.server.close();
+    }
+}
+
+export function createRpcServer(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServer> {
     const token = generateToken();
     const { key, cert } = generateSelfSignedCert();
 
@@ -36,46 +66,51 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
         };
     }
 
-    return new Promise<RpcServerConnectionInfo>((resolve, reject) => {
-        const rpcServer = tls.createServer({ key, cert }, (socket) => {
-            extensionLogOutputChannel.info('Client connected to RPC server');
-            const connection = createMessageConnection(
-                new StreamMessageReader(socket),
-                new StreamMessageWriter(socket)
-            );
-
-            connection.onRequest('ping', withAuthentication(async () => {
-                return { message: 'pong' };
-            }));
-
-            connection.onRequest('getCapabilities', withAuthentication(async () => {
-                return getSupportedCapabilities();
-            }));
-
-            addInteractionServiceEndpoints(connection, interactionService(connection), rpcClient(connection, token), withAuthentication);
-
-            connection.listen();
-        });
+    return new Promise<RpcServer>((resolve, reject) => {
+        const server = tls.createServer({ key, cert });
 
         extensionLogOutputChannel.info(`Setting up RPC server with token: ${token}`);
-        rpcServer.listen(0, () => {
-            const addressInfo = rpcServer?.address();
+        server.listen(0, () => {
+            const addressInfo = server?.address();
             if (typeof addressInfo === 'object' && addressInfo?.port) {
                 const fullAddress = `localhost:${addressInfo.port}`;
                 extensionLogOutputChannel.info(`RPC server listening on ${fullAddress}`);
 
-                function disposeRpcServer(rpcServer: net.Server) {
-                    extensionLogOutputChannel.info(`Disposing RPC server`);
-                    rpcServer.close();
-                }
-
-                resolve({
+                const rpcServer = new RpcServer(server, {
                     token: token,
-                    server: rpcServer,
                     address: fullAddress,
-                    dispose: () => disposeRpcServer(rpcServer),
                     cert: cert
                 });
+
+                server.removeAllListeners('connection');
+                server.on('secureConnection', (socket) => {
+                    if (rpcServer.services) {
+                        throw new Error('RPC server services are already initialized');
+                    }
+
+                    extensionLogOutputChannel.info('Client connected to RPC server');
+                    const connection = createMessageConnection(
+                        new StreamMessageReader(socket),
+                        new StreamMessageWriter(socket)
+                    );
+
+                    connection.onRequest('getCapabilities', withAuthentication(async () => {
+                        return getSupportedCapabilities();
+                    }));
+
+                    const rpcClient = rpcClientFactory(connection, token);
+                    const interactionService = interactionServiceFactory(connection);
+                    addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
+
+                    rpcServer.services = {
+                        interactionService,
+                        rpcClient
+                    };
+
+                    connection.listen();
+                });
+
+                resolve(rpcServer);
             }
             else {
                 extensionLogOutputChannel.error(rpcServerAddressError);
@@ -84,7 +119,7 @@ export function createRpcServer(interactionService: (connection: MessageConnecti
             }
         });
 
-        rpcServer.on('error', (err) => {
+        server.on('error', (err) => {
             extensionLogOutputChannel.error(rpcServerError(err));
             reject(err);
         });

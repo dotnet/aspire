@@ -201,6 +201,9 @@ type RpcServerTestInfo = {
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+	getEffectiveAppHostProjectFile(): Promise<string | null> {
+		return Promise.resolve("");
+	}
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}
@@ -226,17 +229,17 @@ async function createTestRpcServer(): Promise<RpcServerTestInfo> {
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService();
 
-	const rpcServerInfo = await createRpcServer(
+	const rpcServer = await createRpcServer(
 		() => interactionService,
 		() => rpcClient
 	);
 
-	if (!rpcServerInfo) {
+	if (!rpcServer) {
 		throw new Error('Failed to set up RPC server');
 	}
 
 	return {
-		rpcServerInfo,
+		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
 		interactionService: interactionService
 	};

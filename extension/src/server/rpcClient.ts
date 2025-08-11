@@ -6,6 +6,7 @@ export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
     validatePromptInputString(input: string): Promise<ValidationResult | null>;
     stopCli(): Promise<void>;
+    getEffectiveAppHostProjectFile(): Promise<string | null>;
 }
 
 export type ValidationResult = {
@@ -60,5 +61,15 @@ export class RpcClient implements ICliRpcClient {
         } else {
             await this._messageConnection.sendRequest('stopCli', this._token);
         }
+    }
+
+    getEffectiveAppHostProjectFile(): Promise<string | null> {
+        return logAsyncOperation(
+            `Requesting effective app host project file`,
+            (file: string | null) => `Received effective app host project file: ${file}`,
+            async () => {
+                return await this._messageConnection.sendRequest<string | null>('getEffectiveAppHostProjectFile', this._token);
+            }
+        );
     }
 }
