@@ -37,10 +37,8 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 
-    /// <summary>
-    /// In run mode, this is set to the secret client used to access the Azure Key Vault.
-    /// </summary>
-    Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
+    // In run mode, this is set to the secret client used to access the Azure Key Vault.
+    internal Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
     Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? IAzureKeyVaultResource.SecretResolver
     {
