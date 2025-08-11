@@ -136,8 +136,9 @@ fi
 log "Using prerelease version suffix: $VERSION_SUFFIX"
 
 if [ -n "$CONFIG" ]; then
-  log "Packing NuGet packages (restore + pack, no top-level build) [-c $CONFIG] with versionsuffix '$VERSION_SUFFIX'"
-  "$REPO_ROOT/build.sh" -r --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX"
+  log "Building and packing NuGet packages [-c $CONFIG] with versionsuffix '$VERSION_SUFFIX'"
+  # Single invocation: restore + build + pack to ensure all Build-triggered targets run and packages are produced.
+  "$REPO_ROOT/build.sh" -r -b --pack -c "$CONFIG" /p:VersionSuffix="$VERSION_SUFFIX"
   PKG_DIR="$REPO_ROOT/artifacts/packages/$CONFIG/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
     error "Could not find packages path $PKG_DIR for CONFIG=$CONFIG"
@@ -145,12 +146,12 @@ if [ -n "$CONFIG" ]; then
   fi
 else
   # Try Release, then Debug
-  log "Packing NuGet packages (restore + pack, no top-level build) [-c Release] with versionsuffix '$VERSION_SUFFIX'"
-  if "$REPO_ROOT/build.sh" -r --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX"; then
+  log "Building and packing NuGet packages [-c Release] with versionsuffix '$VERSION_SUFFIX'"
+  if "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX"; then
     PKG_DIR="$REPO_ROOT/artifacts/packages/Release/Shipping"
   else
-  warn "Release pack failed; trying Debug"
-    "$REPO_ROOT/build.sh" -r --pack -c Debug /p:VersionSuffix="$VERSION_SUFFIX"
+  warn "Release build/pack failed; trying Debug"
+    "$REPO_ROOT/build.sh" -r -b --pack -c Debug /p:VersionSuffix="$VERSION_SUFFIX"
     PKG_DIR="$REPO_ROOT/artifacts/packages/Debug/Shipping"
   fi
   if [ ! -d "$PKG_DIR" ]; then
