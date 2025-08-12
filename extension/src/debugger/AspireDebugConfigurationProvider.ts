@@ -37,8 +37,7 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
 			type: 'aspire',
 			request: 'launch',
 			name: `Aspire: Launch Default AppHost`,
-			program: '${workspaceFolder}',
-			dynamicAppHostDiscovery: true
+			program: '${workspaceFolder}'
 		});
 
 		for (const candidate of await this.getAppHostCandidates()) {

@@ -47,12 +47,12 @@
         },
         "configurationSnippets": [
           {
-            "label": "Aspire: Launch",
-            "description": "Launch an Aspire application",
+            "label": "Aspire: Launch Default AppHost",
+            "description": "Launch the effective Aspire AppHost in your workspace.",
             "body": {
               "type": "aspire",
               "request": "launch",
-              "name": "Aspire: Launch",
+              "name": "Aspire: Launch Default AppHost",
               "program": "${workspaceFolder}"
             }
           }

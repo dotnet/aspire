@@ -38,6 +38,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'launch') {
+      this.sendMessage("Launching Aspire debug session...");
+      this.sendMessage("Spawning aspire cli process...");
       if (message.arguments?.noDebug) {
         sendToAspireTerminal('aspire run', this.dcpServer);
       }

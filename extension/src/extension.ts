@@ -88,11 +88,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+
+	const debugConfigProvider = new AspireDebugConfigurationProvider();
 	context.subscriptions.push(
-		vscode.debug.registerDebugConfigurationProvider(
-			'aspire',
-			new AspireDebugConfigurationProvider(),
-			vscode.DebugConfigurationProviderTriggerKind.Dynamic
+		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic
 		)
 	);
 
