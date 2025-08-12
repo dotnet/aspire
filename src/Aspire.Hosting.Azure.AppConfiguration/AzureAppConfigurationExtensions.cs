@@ -98,7 +98,7 @@ public static class AzureAppConfigurationExtensions
     }
 
     /// <summary>
-    /// Adds a bind mount file for the storage of an Azure App Configuration emulator resource.
+    /// Adds a bind mount for the storage of an Azure App Configuration emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureAppConfigurationEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.aace'</param>
