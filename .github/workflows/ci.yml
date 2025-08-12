@@ -43,7 +43,7 @@ jobs:
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name == 'pull_requestx' }}
         shell: pwsh
         env:
           # Use the pull request head SHA instead of GITHUB_SHA (which can be a merge commit)
