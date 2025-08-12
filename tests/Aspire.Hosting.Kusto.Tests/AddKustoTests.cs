@@ -61,7 +61,7 @@ public class AddKustoTests
         var resourceBuilder = builder.AddKusto().RunAsEmulator(httpPort: port);
 
         // Assert
-        List<EndpointAnnotation> endpointAnnotations = [.. resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>()];
+        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
         var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
 
         Assert.NotNull(httpEndpoint);

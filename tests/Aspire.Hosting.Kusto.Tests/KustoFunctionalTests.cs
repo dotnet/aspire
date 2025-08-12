@@ -79,7 +79,7 @@ public class KustoFunctionalTests
             }
             else
             {
-                throw new InvalidOperationException("Expected to read a row from the Kusto version query, but no rows were returned.");
+                throw new RetryableTestException("Expected to read a row from the Kusto query, but no rows were returned.");
             }
         }
     }
@@ -144,7 +144,7 @@ public class KustoFunctionalTests
 
             if (results.Count == 0)
             {
-                throw new RetryableTestException("Expected to read rows from the Kusto table, but no rows were returned.");
+                throw new RetryableTestException("Expected to read rows from the Kusto query, but no rows were returned.");
             }
 
             return results;
