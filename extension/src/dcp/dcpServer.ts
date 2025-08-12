@@ -176,7 +176,7 @@ export default class DcpServer {
             server.listen(0, () => {
                 const addr = server.address();
                 if (typeof addr === 'object' && addr) {
-                    console.log(`DCP IDE Execution server listening on port ${addr.port} (HTTP)`);
+                    extensionLogOutputChannel.info(`DCP server listening on port ${addr.port} (HTTP)`);
                     const info: DcpServerConnectionInfo = {
                         address: `localhost:${addr.port}`,
                         token: token,

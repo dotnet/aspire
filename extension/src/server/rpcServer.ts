@@ -34,6 +34,10 @@ export default class RpcServer {
         this._services = services;
     }
 
+    hasServices(): boolean {
+        return this._services !== null;
+    }
+
     get services(): ConnectionServices {
         if (!this._services) {
             throw new Error('Connection services are not initialized');
@@ -69,6 +73,11 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
     return new Promise<RpcServer>((resolve, reject) => {
         const server = tls.createServer({ key, cert });
 
+        server.on('error', (err) => {
+            extensionLogOutputChannel.error(rpcServerError(err));
+            reject(err);
+        });
+
         extensionLogOutputChannel.info(`Setting up RPC server with token: ${token}`);
         server.listen(0, () => {
             const addressInfo = server?.address();
@@ -82,9 +91,8 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
                     cert: cert
                 });
 
-                server.removeAllListeners('connection');
                 server.on('secureConnection', (socket) => {
-                    if (rpcServer.services) {
+                    if (rpcServer.hasServices()) {
                         throw new Error('RPC server services are already initialized');
                     }
 

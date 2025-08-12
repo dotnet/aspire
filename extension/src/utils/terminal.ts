@@ -49,9 +49,11 @@ export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
     });
 }
 
-export function sendToAspireTerminal(command: string, dcpServer?: DcpServer) {
+export function sendToAspireTerminal(command: string, dcpServer?: DcpServer, showTerminal: boolean = true) {
     const terminal = getAspireTerminal(dcpServer);
     extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);
-    terminal.show();
+    if (showTerminal) {
+        terminal.show();
+    }
 }
