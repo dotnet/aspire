@@ -42,21 +42,23 @@ jobs:
             \.md$
 
       - id: compute_version_suffix
-        name: Compute version suffix
+        name: Compute version suffix for PRs
+        if: ${{ github.event_name == 'pull_request' }}
         shell: pwsh
+        env:
+          # Use the pull request head SHA instead of GITHUB_SHA (which can be a merge commit)
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.number }}
         run: |
-          Write-Host "Determining VERSION_SUFFIX_OVERRIDE..."
-          Write-Host "Event: $Env:GITHUB_EVENT_NAME"
-          if ($Env:GITHUB_EVENT_NAME -eq 'pull_request') {
-            $SHORT_SHA = $Env:GITHUB_SHA.Substring(0,8)
-            $VERSION_SUFFIX = "/p:VersionSuffix=pr.${{ github.event.number }}.$SHORT_SHA"
-            Write-Host "Computed version suffix: $VERSION_SUFFIX"
-            "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Determining VERSION_SUFFIX_OVERRIDE (PR only step)..."
+          if ([string]::IsNullOrWhiteSpace($Env:PR_HEAD_SHA)) {
+            Write-Error "PR_HEAD_SHA not set; cannot compute version suffix."
+            exit 1
           }
-          else {
-            Write-Host "Not a pull_request event; leaving VERSION_SUFFIX_OVERRIDE empty."
-            "VERSION_SUFFIX_OVERRIDE=" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
-          }
+          $SHORT_SHA = $Env:PR_HEAD_SHA.Substring(0,8)
+          $VERSION_SUFFIX = "/p:VersionSuffix=pr.$($Env:PR_NUMBER).$SHORT_SHA"
+          Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
+          "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
 
   tests:
     uses: ./.github/workflows/tests.yml
