@@ -23,28 +23,11 @@ interface ConnectionServices {
 export default class RpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
-    private _services: ConnectionServices | null = null;
 
     constructor(server: tls.Server, connectionInfo: RpcServerConnectionInfo) {
         this.server = server;
         this.connectionInfo = connectionInfo;
-    }
-
-    set services(services: ConnectionServices) {
-        this._services = services;
-    }
-
-    hasServices(): boolean {
-        return this._services !== null;
-    }
-
-    get services(): ConnectionServices {
-        if (!this._services) {
-            throw new Error('Connection services are not initialized');
-        }
-
-        return this._services;
-    }
+    }    
 
     public dispose() {
         extensionLogOutputChannel.info(`Disposing RPC server`);
@@ -92,10 +75,6 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
                 });
 
                 server.on('secureConnection', (socket) => {
-                    if (rpcServer.hasServices()) {
-                        throw new Error('RPC server services are already initialized');
-                    }
-
                     extensionLogOutputChannel.info('Client connected to RPC server');
                     const connection = createMessageConnection(
                         new StreamMessageReader(socket),
@@ -109,11 +88,6 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
                     const rpcClient = rpcClientFactory(connection, token);
                     const interactionService = interactionServiceFactory(connection);
                     addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
-
-                    rpcServer.services = {
-                        interactionService,
-                        rpcClient
-                    };
 
                     connection.listen();
                 });

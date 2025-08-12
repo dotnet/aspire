@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 import { addCommand } from './commands/add';
-import RpcServer, { createRpcServer } from './server/rpcServer';
 import { RpcClient } from './server/rpcClient';
 import { InteractionService } from './server/interactionService';
 import { newCommand } from './commands/new';
@@ -15,6 +14,7 @@ import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapt
 import { runCommand } from './commands/run';
 import { AspireDebugSession } from './debugger/AspireDebugSession';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
+import RpcServer, { createRpcServer } from './server/rpcServer';
 
 export class AspireExtensionContext {
 	private _rpcServer: RpcServer | undefined;

@@ -3,10 +3,10 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { codespacesLink, directLink } from '../../loc/strings';
-import { createRpcServer, RpcServerConnectionInfo } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
+import { createRpcServer, RpcServerConnectionInfo } from '../../server/rpcServer';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;

@@ -47,12 +47,12 @@
         },
         "configurationSnippets": [
           {
-            "label": "Aspire: Launch Default AppHost",
-            "description": "Launch the effective Aspire AppHost in your workspace.",
+            "label": "%extension.debug.defaultConfiguration.name%",
+            "description": "%extension.debug.defaultConfiguration.description%",
             "body": {
               "type": "aspire",
               "request": "launch",
-              "name": "Aspire: Launch Default AppHost",
+              "name": "%extension.debug.defaultConfiguration.name%",
               "program": "${workspaceFolder}"
             }
           }
@@ -62,7 +62,7 @@
            {
              "type": "aspire",
              "request": "launch",
-             "name": "Aspire: Launch",
+             "name": "%extension.debug.defaultConfiguration.name%",
              "program": "${workspaceFolder}"
            }
          ]
