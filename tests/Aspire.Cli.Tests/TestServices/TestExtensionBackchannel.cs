@@ -56,6 +56,9 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? LogMessageAsyncCalled { get; set; }
     public Func<LogLevel, string, Task>? LogMessageAsyncCallback { get; set; }
 
+    public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
+    public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
+
     public TaskCompletionSource? HasCapabilityAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task<bool>>? HasCapabilityAsyncCallback { get; set; }
 
@@ -171,6 +174,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return LogMessageAsyncCallback != null
             ? LogMessageAsyncCallback.Invoke(logLevel, message)
             : Task.CompletedTask;
+    }
+
+    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        GetCapabilitiesAsyncCalled?.SetResult();
+        return GetCapabilitiesAsyncCallback != null
+            ? GetCapabilitiesAsyncCallback.Invoke(cancellationToken)
+            : Task.FromResult(Array.Empty<string>());
     }
 
     public Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
