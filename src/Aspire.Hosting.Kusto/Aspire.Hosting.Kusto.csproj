@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <IsPackable>false</IsPackable><!-- TODO: Set this to true -->
+    <IsPackable>true</IsPackable>
+    <EnablePackageValidation>false</EnablePackageValidation> <!-- TODO: Remove this once the package ships -->
     <PackageTags>aspire integration hosting kusto</PackageTags>
     <Description>Kusto support for .NET Aspire.</Description>
   </PropertyGroup>
