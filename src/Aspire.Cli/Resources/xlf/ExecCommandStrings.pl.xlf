@@ -65,8 +65,8 @@ Przykłady:
         <note />
       </trans-unit>
       <trans-unit id="WorkdirArgumentDescription">
-        <source>The working directory to execute command in.</source>
-        <target state="new">The working directory to execute command in.</target>
+        <source>The working directory to execute the command in.</source>
+        <target state="new">The working directory to execute the command in.</target>
         <note />
       </trans-unit>
     </body>
