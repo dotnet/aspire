@@ -29,6 +29,11 @@ internal sealed class ExecOptions
     public required string Command { get; set; }
 
     /// <summary>
+    /// Working directory for the command execution.
+    /// </summary>
+    public string? WorkingDirectory { get; set; }
+
+    /// <summary>
     /// Whether to start the <see cref="ResourceName"/> resource before executing the command.
     /// By default is false.
     /// </summary>
