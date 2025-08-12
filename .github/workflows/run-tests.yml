@@ -24,6 +24,9 @@ on:
       extraTestArgs:
         required: false
         type: string
+      versionOverrideArg:
+        required: false
+        type: string
       # Triggers downloading the built nugets, and running the tests
       # from the archive outside the repo
       requiresNugets:
@@ -203,7 +206,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} ${{ inputs.versionOverrideArg }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
@@ -213,6 +216,7 @@ jobs:
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          ${{ inputs.versionOverrideArg }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
       - name: Rebuild for Azure Functions project

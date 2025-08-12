@@ -2,7 +2,11 @@
 name: Tests
 
 on:
-  workflow_call
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
 
 jobs:
   # Duplicated jobs so their dependencies are not blocked on both the
@@ -71,6 +75,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_macos:
     uses: ./.github/workflows/run-tests.yml
@@ -84,6 +89,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_win:
     uses: ./.github/workflows/run-tests.yml
@@ -97,6 +103,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   templates_test_lin:
     name: Templates Linux
@@ -112,6 +119,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -129,6 +137,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -146,6 +155,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
 
@@ -159,6 +169,7 @@ jobs:
       os: ubuntu-latest
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:
     name: Run VS Code extension tests (Windows)
