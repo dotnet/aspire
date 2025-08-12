@@ -830,7 +830,7 @@ function Install-AspireCliFromDownload {
         return
     }
 
-    $cliFiles = Get-ChildItem -Path $DownloadDir -File | Where-Object { $_.Name -match '^$Script:AspireCliArtifactNamePrefix-.*\.(tar\.gz|zip)$' }
+    $cliFiles = Get-ChildItem -Path $DownloadDir -File | Where-Object { $_.Name -match "^$($Script:AspireCliArtifactNamePrefix)-.*\.(tar\.gz|zip)$" }
 
     if ($cliFiles.Count -eq 0) {
         Write-Message "No CLI archive found. Expected a single ${Script:AspireCliArtifactNamePrefix}-*.tar.gz or ${Script:AspireCliArtifactNamePrefix}-*.zip file in artifact root: $DownloadDir" -Level Error
