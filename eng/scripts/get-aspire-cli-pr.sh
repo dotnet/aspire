@@ -5,11 +5,15 @@
 
 set -euo pipefail
 
-# Global constants
+# Global constants / defaults
 readonly BUILT_NUGETS_ARTIFACT_NAME="built-nugets"
 readonly BUILT_NUGETS_RID_ARTIFACT_NAME="built-nugets-for"
 readonly CLI_ARCHIVE_ARTIFACT_NAME_PREFIX="cli-native-archives"
 readonly ASPIRE_CLI_ARTIFACT_NAME_PREFIX="aspire-cli"
+
+# Repository: Allow override via ASPIRE_REPO env var (owner/name). Default: dotnet/aspire
+readonly REPO="${ASPIRE_REPO:-dotnet/aspire}"
+readonly GH_REPOS_BASE="repos/${REPO}"
 
 # Global constants
 readonly RED='\033[0;31m'
@@ -73,7 +77,11 @@ EXAMPLES:
 
 REQUIREMENTS:
     - GitHub CLI (gh) must be installed and authenticated
-    - Permissions to download artifacts from github.com/dotnet/aspire
+    - Permissions to download artifacts from the target repository
+
+ENVIRONMENT VARIABLES:
+    ASPIRE_REPO            Override repository (owner/name). Default: dotnet/aspire
+                           Example: export ASPIRE_REPO=myfork/aspire
 
 EOF
 }
@@ -551,7 +559,7 @@ get_pr_head_sha() {
     say_verbose "Getting HEAD SHA for PR #$pr_number"
 
     local head_sha
-    if ! head_sha=$(gh_api_call "repos/dotnet/aspire/pulls/$pr_number" ".head.sha" "Failed to get HEAD SHA for PR #$pr_number"); then
+    if ! head_sha=$(gh_api_call "${GH_REPOS_BASE}/pulls/$pr_number" ".head.sha" "Failed to get HEAD SHA for PR #$pr_number"); then
         say_info "This could mean:"
         say_info "  - The PR number does not exist"
         say_info "  - You don't have access to the repository"
@@ -575,12 +583,12 @@ find_workflow_run() {
     say_verbose "Finding ci.yml workflow run for SHA: $head_sha"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "repos/dotnet/aspire/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-        say_error "No ci.yml workflow run found for PR SHA: $head_sha. This could mean no workflow has been triggered for this SHA $head_sha . Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+    say_error "No ci.yml workflow run found for PR SHA: $head_sha. This could mean no workflow has been triggered for this SHA $head_sha . Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
@@ -599,9 +607,9 @@ download_built_nugets() {
     local temp_dir="$3"
 
     local download_dir="${temp_dir}/built-nugets"
-    local nugets_download_command=(gh run download "$workflow_run_id" -R dotnet/aspire --name "$BUILT_NUGETS_ARTIFACT_NAME" -D "$download_dir")
+    local nugets_download_command=(gh run download "$workflow_run_id" -R "$REPO" --name "$BUILT_NUGETS_ARTIFACT_NAME" -D "$download_dir")
     local nugets_rid_filename="$BUILT_NUGETS_RID_ARTIFACT_NAME-${rid}"
-    local nugets_rid_download_command=(gh run download "$workflow_run_id" -R dotnet/aspire --name "$nugets_rid_filename" -D "$download_dir")
+    local nugets_rid_download_command=(gh run download "$workflow_run_id" -R "$REPO" --name "$nugets_rid_filename" -D "$download_dir")
 
     if [[ "$DRY_RUN" == true ]]; then
         say_info "[DRY RUN] Would download built nugets with: ${nugets_download_command[*]}"
@@ -615,7 +623,7 @@ download_built_nugets() {
 
     if ! "${nugets_download_command[@]}"; then
         say_verbose "gh run download command failed. Command: ${nugets_download_command[*]}"
-        say_error "Failed to download artifact '$BUILT_NUGETS_ARTIFACT_NAME' from run: $workflow_run_id . If the workflow is still running then the artifact named '$BUILT_NUGETS_ARTIFACT_NAME' may not be available yet. Check at https://github.com/dotnet/aspire/actions/runs/$workflow_run_id#artifacts"
+    say_error "Failed to download artifact '$BUILT_NUGETS_ARTIFACT_NAME' from run: $workflow_run_id . If the workflow is still running then the artifact named '$BUILT_NUGETS_ARTIFACT_NAME' may not be available yet. Check at https://github.com/${REPO}/actions/runs/$workflow_run_id#artifacts"
         return 1
     fi
 
@@ -624,7 +632,7 @@ download_built_nugets() {
 
     if ! "${nugets_rid_download_command[@]}"; then
         say_verbose "gh run download command failed. Command: ${nugets_rid_download_command[*]}"
-        say_error "Failed to download artifact '$nugets_rid_filename' from run: $workflow_run_id . If the workflow is still running then the artifact named '$nugets_rid_filename' may not be available yet. Check at https://github.com/dotnet/aspire/actions/runs/$workflow_run_id#artifacts"
+    say_error "Failed to download artifact '$nugets_rid_filename' from run: $workflow_run_id . If the workflow is still running then the artifact named '$nugets_rid_filename' may not be available yet. Check at https://github.com/${REPO}/actions/runs/$workflow_run_id#artifacts"
         return 1
     fi
 
@@ -675,7 +683,7 @@ download_aspire_cli() {
     cli_archive_name="$CLI_ARCHIVE_ARTIFACT_NAME_PREFIX-${rid}"
 
     local download_dir="${temp_dir}/cli"
-    local download_command=(gh run download "$workflow_run_id" -R dotnet/aspire --name "$cli_archive_name" -D "$download_dir")
+    local download_command=(gh run download "$workflow_run_id" -R "$REPO" --name "$cli_archive_name" -D "$download_dir")
     if [[ "$DRY_RUN" == true ]]; then
         say_info "[DRY RUN] Would download $cli_archive_name with: ${download_command[*]}"
         printf "%s" "/tmp/fake-cli-path"
@@ -687,7 +695,7 @@ download_aspire_cli() {
 
     if ! "${download_command[@]}"; then
         say_verbose "gh run download command failed. Command: ${download_command[*]}"
-        say_error "Failed to download artifact '$cli_archive_name' from run: $workflow_run_id . If the workflow is still running then the artifact named '$cli_archive_name' may not be available yet. Check at https://github.com/dotnet/aspire/actions/runs/$workflow_run_id#artifacts"
+    say_error "Failed to download artifact '$cli_archive_name' from run: $workflow_run_id . If the workflow is still running then the artifact named '$cli_archive_name' may not be available yet. Check at https://github.com/${REPO}/actions/runs/$workflow_run_id#artifacts"
         return 1
     fi
 
@@ -771,7 +779,7 @@ download_and_install_from_pr() {
         fi
     fi
 
-    say_info "Using workflow run https://github.com/dotnet/aspire/actions/runs/$workflow_run_id"
+    say_info "Using workflow run https://github.com/${REPO}/actions/runs/$workflow_run_id"
 
     # Set installation paths
     local cli_install_dir="$INSTALL_PREFIX/bin"

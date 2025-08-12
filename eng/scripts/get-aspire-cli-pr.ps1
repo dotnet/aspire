@@ -63,7 +63,11 @@
 
 .NOTES
     Requires GitHub CLI (gh) to be installed and authenticated
-    Requires appropriate permissions to download artifacts from dotnet/aspire repository
+    Requires appropriate permissions to download artifacts from target repository
+
+.PARAMETER ASPIRE_REPO (environment variable)
+    Override repository (owner/name). Default: dotnet/aspire
+    Example: $env:ASPIRE_REPO = 'myfork/aspire'
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
@@ -101,7 +105,8 @@ $Script:CliArchiveArtifactNamePrefix = "cli-native-archives"
 $Script:AspireCliArtifactNamePrefix = "aspire-cli"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
 $Script:HostOS = "unset"
-$Script:GHReposBase = "repos/dotnet/aspire"
+$Script:Repository = if ($env:ASPIRE_REPO -and $env:ASPIRE_REPO.Trim()) { $env:ASPIRE_REPO.Trim() } else { 'dotnet/aspire' }
+$Script:GHReposBase = "repos/$($Script:Repository)"
 
 # True if the script is executed from a file (pwsh -File … or .\get-aspire-cli-pr.ps1)
 # False if the body is piped / dot‑sourced / iex'd into the current session.
@@ -696,7 +701,7 @@ function Invoke-ArtifactDownload {
         [string]$DownloadDirectory
     )
 
-    $downloadCommand = @("gh", "run", "download", $RunId, "-R", "dotnet/aspire", "--name", $ArtifactName, "-D", $DownloadDirectory)
+    $downloadCommand = @("gh", "run", "download", $RunId, "-R", $Script:Repository, "--name", $ArtifactName, "-D", $DownloadDirectory)
 
     if ($PSCmdlet.ShouldProcess($ArtifactName, "Download $ArtifactName with $($downloadCommand -join ' ')")) {
         Write-Message "Downloading with: $($downloadCommand -join ' ')" -Level Verbose
@@ -885,7 +890,7 @@ function Start-DownloadAndInstall {
         $runId = Find-WorkflowRun -HeadSHA $headSha
     }
 
-    Write-Message "Using workflow run https://github.com/dotnet/aspire/actions/runs/$runId" -Level Info
+    Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
 
     # Set installation paths
     $cliBinDir = Join-Path $resolvedInstallPrefix "bin"

@@ -179,3 +179,19 @@ iex "& { $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/
 ```
 
 NuGet hive path pattern: `~/.aspire/hives/pr-<PR_NUMBER>/packages`
+
+### Repository Override
+
+You can point the PR artifact retrieval scripts at a fork by setting the `ASPIRE_REPO` environment variable to `owner/name` before invoking the script (defaults to `dotnet/aspire`).
+
+Examples:
+
+```bash
+export ASPIRE_REPO=myfork/aspire
+./get-aspire-cli-pr.sh 1234
+```
+
+```powershell
+$env:ASPIRE_REPO = 'myfork/aspire'
+./get-aspire-cli-pr.ps1 1234
+```
