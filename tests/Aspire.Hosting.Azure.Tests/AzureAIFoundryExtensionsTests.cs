@@ -113,7 +113,7 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
+    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
@@ -121,7 +121,7 @@ public class AzureAIFoundryExtensionsTests
         foundry.RunAsFoundryLocal();
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.Single(resource.Deployments);
-        var connectionString = deployment.Resource.ConnectionStringExpression.ValueExpression;
+        var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
         Assert.Contains("Model=gpt-4", connectionString);
         Assert.Contains("DeploymentId=deployment1", connectionString);
         Assert.Contains("Endpoint=", connectionString);
