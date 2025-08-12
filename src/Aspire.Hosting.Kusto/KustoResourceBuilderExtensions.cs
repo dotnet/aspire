@@ -107,7 +107,12 @@ public static class KustoResourceBuilderExtensions
         surrogateBuilder
             .WithAnnotation(new EmulatorResourceAnnotation())
             .WithHttpEndpoint(targetPort: KustoEmulatorContainerDefaults.DefaultTargetPort, port: httpPort, name: "http")
-            .WithImage($"{KustoEmulatorContainerImageTags.Registry}/{KustoEmulatorContainerImageTags.Image}:{KustoEmulatorContainerImageTags.Tag}")
+            .WithAnnotation(new ContainerImageAnnotation
+            {
+                Registry = KustoEmulatorContainerImageTags.Registry,
+                Image = KustoEmulatorContainerImageTags.Image,
+                Tag = KustoEmulatorContainerImageTags.Tag
+            })
             .WithEnvironment("ACCEPT_EULA", "Y")
             .WithEnvironment("-m", "4G");
 

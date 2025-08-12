@@ -13,9 +13,4 @@ internal static class KustoEmulatorContainerDefaults
     /// Based on Azure Data Explorer emulator documentation, it typically uses port 8080.
     /// </summary>
     public const int DefaultTargetPort = 8080;
-
-    /// <summary>
-    /// The default database name for the Kusto emulator.
-    /// </summary>
-    public static string DefaultDbName { get; } = "NetDefaultDB";
 }
