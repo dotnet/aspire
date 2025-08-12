@@ -141,7 +141,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             PrepareServices();
             PrepareContainers();
-            PrepareExecutables();
+            await PrepareExecutables(cancellationToken).ConfigureAwait(false);
 
             await _executorEvents.PublishAsync(new OnResourcesPreparedContext(cancellationToken)).ConfigureAwait(false);
 
@@ -907,14 +907,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private void PrepareExecutables()
+    private async Task PrepareExecutables(CancellationToken cancellationToken)
     {
         PrepareProjectExecutables();
         PreparePlainExecutables();
-        PrepareContainerExecutables();
+        await PrepareContainerExecutables(cancellationToken).ConfigureAwait(false);
     }
 
-    private void PrepareContainerExecutables()
+    private async Task PrepareContainerExecutables(CancellationToken cancellationToken)
     {
         var modelContainerExecutableResources = _model.GetContainerExecutableResources();
         foreach (var containerExecutable in modelContainerExecutableResources)
@@ -923,14 +923,30 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
 
             // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
-            // since this is ContainerExec resource, we will run against one of the container instances
-            var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
+            // since this is ContainerExec resource, we will run first of the instances (same behavior as plain executables).
+            var containerDcpName = containerExecutable.Parent.GetResolvedResourceNames().First();
+
+            // evaluate args
+            List<string>? args = null;
+            if (containerExecutable.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
+            {
+                var context = new CommandLineArgsCallbackContext([], containerExecutable, cancellationToken)
+                {
+                    ExecutionContext = _executionContext
+                };
+                foreach (var c in commandLineArgsCallbackAnnotations)
+                {
+                    await c.Callback(context).ConfigureAwait(false);
+                }
+
+                args = context.Args.Select(x => (string)x).ToList();
+            }
 
             var containerExec = ContainerExec.Create(
                 name: exeInstance.Name,
                 containerName: containerDcpName,
                 command: containerExecutable.Command,
-                args: containerExecutable.Args?.ToList(),
+                args: args,
                 workingDirectory: containerExecutable.WorkingDirectory);
 
             containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);

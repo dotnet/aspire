@@ -9,8 +9,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Executable resource that runs in a container.
 /// </summary>
-internal class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
-    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport
+public class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
+    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithParent<ContainerResource>
 {
     /// <summary>
     /// Gets the command associated with this executable resource.
@@ -23,14 +23,9 @@ internal class ContainerExecutableResource(string name, ContainerResource contai
     public string? WorkingDirectory { get; } = workingDirectory;
 
     /// <summary>
-    /// Args of the command to run in the container.
+    /// The parent container resource that this executable runs in.
     /// </summary>
-    public ICollection<string>? Args { get; init; }
-
-    /// <summary>
-    /// Target container resource that this executable runs in.
-    /// </summary>
-    public ContainerResource? TargetContainerResource { get; } = containerResource ?? throw new ArgumentNullException(nameof(containerResource));
+    public ContainerResource Parent => containerResource ?? throw new ArgumentNullException(nameof(containerResource));
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
