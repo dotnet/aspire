@@ -86,8 +86,8 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertLinks(string text)
     {
-        // Convert [text](url) to just the text with underline and blue color
-        return LinkRegex().Replace(text, "[blue underline]$1[/]");
+        // Convert [text](url) to just the URL with underline and blue color
+        return LinkRegex().Replace(text, "[blue underline]$2[/]");
     }
 
     [GeneratedRegex(@"^### (.+?)\s*$", RegexOptions.Multiline)]
@@ -114,6 +114,6 @@ internal static partial class MarkdownToSpectreConverter
     [GeneratedRegex(@"`([^`]+)`")]
     private static partial Regex InlineCodeRegex();
 
-    [GeneratedRegex(@"\[([^\]]+)\]\([^)]+\)")]
+    [GeneratedRegex(@"\[([^\]]+)\]\(([^)]+)\)")]
     private static partial Regex LinkRegex();
 }

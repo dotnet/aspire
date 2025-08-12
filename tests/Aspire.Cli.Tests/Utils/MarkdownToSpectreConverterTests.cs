@@ -98,8 +98,8 @@ public class MarkdownToSpectreConverterTests
     }
 
     [Theory]
-    [InlineData("[link text](https://example.com)", "[blue underline]link text[/]")]
-    [InlineData("Visit [GitHub](https://github.com) for more info.", "Visit [blue underline]GitHub[/] for more info.")]
+    [InlineData("[link text](https://example.com)", "[blue underline]https://example.com[/]")]
+    [InlineData("Visit [GitHub](https://github.com) for more info.", "Visit [blue underline]https://github.com[/] for more info.")]
     public void ConvertToSpectre_WithLinks_ConvertsCorrectly(string markdown, string expected)
     {
         // Act
@@ -127,7 +127,7 @@ Some more text.";
         var expected = @"[bold green]Main Header[/]
 This is [bold]bold[/] and [italic]italic[/] text with [grey][bold]inline code[/][/].
 [bold blue]Sub Header[/]
-Visit [blue underline]GitHub[/] for more information.
+Visit [blue underline]https://github.com[/] for more information.
 [bold yellow]Small Header[/]
 Some more text.";
         // Normalize line endings in expected string to match converter output
