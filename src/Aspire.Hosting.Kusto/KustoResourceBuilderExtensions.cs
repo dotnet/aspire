@@ -126,7 +126,7 @@ public static class KustoResourceBuilderExtensions
                 Tag = KustoEmulatorContainerImageTags.Tag
             })
             .WithEnvironment("ACCEPT_EULA", "Y")
-            .WithEnvironment("-m", "4G");
+            .WithContainerRuntimeArgs("--memory", "4G");
 
         configureContainer?.Invoke(surrogateBuilder);
 
