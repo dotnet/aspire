@@ -8,7 +8,11 @@
   ],
   "name": "Aspire AppHost",
   "defaultName": "AppHost",
+<<<<<<< HEAD
   "description": "A project template for creating an Aspire AppHost (orchestrator) project.",
+=======
+  "description": "A project template for creating a .NET Aspire AppHost (orchestrator) project.",
+>>>>>>> ffb502a02 (Normalize AppHost naming in templates - fix descriptions and localized strings)
   "shortName": "aspire-apphost",
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,

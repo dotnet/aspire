@@ -14,7 +14,11 @@
   ],
   "name": "Aspire Test Project (NUnit)",
   "defaultName": "Tests",
+<<<<<<< HEAD
   "description": "A project that contains NUnit integration tests of an Aspire AppHost project.",
+=======
+  "description": "A project that contains NUnit integration tests of a .NET Aspire AppHost project.",
+>>>>>>> ffb502a02 (Normalize AppHost naming in templates - fix descriptions and localized strings)
   "shortName": "aspire-nunit",
   "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
