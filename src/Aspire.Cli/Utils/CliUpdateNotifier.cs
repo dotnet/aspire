@@ -31,7 +31,12 @@ internal class CliUpdateNotifier(
                 return;
             }
 
-            var availablePackages = await nuGetPackageCache.GetCliPackagesAsync(workingDirectory, prerelease: true, source: null, cancellationToken);
+            var availablePackages = await nuGetPackageCache.GetCliPackagesAsync(
+                    workingDirectory: workingDirectory,
+                    prerelease: true,
+                    nugetConfigFile: null,
+                    cancellationToken: cancellationToken);
+                    
             var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
 
             if (newerVersion is not null)

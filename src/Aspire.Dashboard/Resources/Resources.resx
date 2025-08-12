@@ -196,6 +196,9 @@
   <data name="ResourcesDetailsProjectPathProperty" xml:space="preserve">
     <value>Project path</value>
   </data>
+  <data name="ResourcesDetailsProjectLaunchProfileProperty" xml:space="preserve">
+    <value>Launch profile</value>
+  </data>
   <data name="ResourcesDetailsStartTimeProperty" xml:space="preserve">
     <value>Start time</value>
   </data>
