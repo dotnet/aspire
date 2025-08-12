@@ -24,7 +24,7 @@ public class ContainerExecutableResourceTests(ITestOutputHelper outputHelper)
            .WithImage("nginx")
            .WithImageTag("1.25");
 
-        var exe = containerResource.AddContainerExecutable("test-exec", "ls");
+        var exe = containerResource.AddContainerExecutable("test-exec", "ls", workingDirectory: ".");
 
         using var app = builder.Build();
 

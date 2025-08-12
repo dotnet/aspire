@@ -20,12 +20,27 @@ public class ContainerExecutableResource(string name, ContainerResource containe
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string? WorkingDirectory { get; } = workingDirectory;
+    public string? WorkingDirectory { get; } = ValidateWorkingDirectory(workingDirectory);
 
     /// <summary>
     /// The parent container resource that this executable runs in.
     /// </summary>
     public ContainerResource Parent => containerResource ?? throw new ArgumentNullException(nameof(containerResource));
+
+    private static string? ValidateWorkingDirectory(string? workingDirectory)
+    {
+        // in DCP if working directory is specified and is not rooted (does not start with "/")
+        // then execution will blow up with something like 'OCI runtime exec failed: exec failed: Cwd must be an absolute path: unknown'
+        if (workingDirectory is not null)
+        {
+            if (!workingDirectory.StartsWith("/"))
+            {
+                workingDirectory = "/" + workingDirectory;
+            }
+        }
+
+        return workingDirectory;
+    }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
