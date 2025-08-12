@@ -90,7 +90,7 @@ public static class AzureAppConfigurationExtensions
         {
             var surrogate = new AzureAppConfigurationEmulatorResource(builder.Resource);
             var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            surrogateBuilder.WithAnonymousAccess(enabled: true, role: "Owner"); // enable anonymous access by default
+            surrogateBuilder.WithAnonymousAccess(role: "Owner"); // enable anonymous access by default
             configureEmulator(surrogateBuilder);
         }
 
@@ -127,13 +127,12 @@ public static class AzureAppConfigurationExtensions
     /// Configures anonymous authentication for the Azure App Configuration emulator resource.
     /// </summary>
     /// <param name="builder">The resource builder for the Azure App Configuration emulator.</param>
-    /// <param name="enabled">Whether anonymous access is enabled. Defaults to <c>true</c>.</param>
     /// <param name="role">The role to assign to the anonymous user. Defaults to "Owner".</param>
     /// <returns>The updated resource builder for further configuration.</returns>
-    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, bool enabled = true, string role = "Owner")
+    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string role = "Owner")
     {
-        builder.Resource.ConfigureAnonymousAuthentication(enabled, role);
-        builder.WithEnvironment("Tenant:AnonymousAuthEnabled", enabled.ToString().ToLower());
+        builder.Resource.ConfigureAnonymousAuthentication(true, role);
+        builder.WithEnvironment("Tenant:AnonymousAuthEnabled","true");
         builder.WithEnvironment("Authentication:Anonymous:AnonymousUserRole", role);
         return builder;
     }

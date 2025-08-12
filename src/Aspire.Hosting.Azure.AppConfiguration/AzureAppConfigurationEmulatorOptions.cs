@@ -5,7 +5,7 @@ namespace Aspire.Hosting.Azure.AppConfiguration;
 
 internal sealed class AzureAppConfigurationEmulatorOptions
 {
-    public bool AnonymousAccessEnabled { get; set; } = true;
+    public bool AnonymousAccessEnabled { get; set; }
 
     public string AnonymousUserRole { get; set; } = "Owner";
 }

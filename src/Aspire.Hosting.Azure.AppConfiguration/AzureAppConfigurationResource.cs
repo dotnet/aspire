@@ -40,7 +40,7 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        IsEmulator
-        ? AzureAppConfigurationEmulatorConnectionString.Create(EmulatorEndpoint, EmulatorOptions)
+        ? AzureAppConfigurationEmulatorConnectionString.Create(EmulatorEndpoint)
         : ReferenceExpression.Create($"{Endpoint}");
 
     /// <inheritdoc/>
