@@ -23,17 +23,8 @@ public class KustoEmulatorResource : ContainerResource, IResourceWithConnectionS
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => InnerResource.Annotations;
 
-    /// <summary>
-    /// Gets the connection string expression for the Kusto resource.
-    /// </summary>
-    public ReferenceExpression ConnectionStringExpression
-    {
-        get
-        {
-            var endpoint = this.GetEndpoint("http");
-            return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
-        }
-    }
+    /// <inheritdoc/>
+    public ReferenceExpression ConnectionStringExpression => InnerResource.ConnectionStringExpression;
 
     /// <summary>
     /// Gets the wrapped Kusto resource.

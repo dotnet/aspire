@@ -24,9 +24,7 @@ public class KustoResource : Resource, IResourceWithConnectionString, IResourceW
     /// </summary>
     public bool IsEmulator => this.IsEmulator();
 
-    /// <summary>
-    /// Gets the connection string expression for the Kusto resource.
-    /// </summary>
+    /// <inheritdoc/>
     public ReferenceExpression ConnectionStringExpression
     {
         get
