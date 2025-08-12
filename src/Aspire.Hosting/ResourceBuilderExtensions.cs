@@ -2155,4 +2155,87 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
+
+    /// <summary>
+    /// Loads environment variables from a .env file and maps them to Aspire parameters.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="envFilePath">The path to the .env file. If not specified, looks for .env in the working directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Each entry from the .env file is mapped to a non-secret parameter with the name format "{resource}-env-{key}" (lowercased).
+    /// If the .env file is not found, nothing happens. If duplicate keys exist, the last one is used.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithEnvFile<T>(this IResourceBuilder<T> builder, string? envFilePath = null)
+        where T : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvFile((entry, paramBuilder) =>
+        {
+            // Default behavior: create non-secret parameter with description
+            paramBuilder.WithDescription(entry.Comment ?? $"Imported from .env: {entry.Key}");
+        }, envFilePath);
+    }
+
+    /// <summary>
+    /// Loads environment variables from a .env file and maps them to Aspire parameters with custom configuration.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configure">Callback to configure each parameter created from .env entries.</param>
+    /// <param name="envFilePath">The path to the .env file. If not specified, looks for .env in the working directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Each entry from the .env file is mapped to a parameter with the name format "{resource}-env-{key}" (lowercased).
+    /// The configure callback allows customization of each parameter, such as marking it as secret or setting descriptions.
+    /// If the .env file is not found, nothing happens. If duplicate keys exist, the last one is used.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithEnvFile<T>(
+        this IResourceBuilder<T> builder,
+        Action<EnvEntry, IResourceBuilder<ParameterResource>> configure,
+        string? envFilePath = null)
+        where T : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        // Determine the .env file path
+        envFilePath ??= Path.Combine(builder.ApplicationBuilder.AppHostDirectory, ".env");
+
+        // Parse the .env file
+        var envEntries = Utils.EnvFileParser.ParseFile(envFilePath);
+
+        // Create parameters for each entry and map them as environment variables
+        foreach (var entry in envEntries)
+        {
+            // Generate unique parameter name: {resource}-env-{key} (lowercased)
+            var parameterName = $"{builder.Resource.Name.ToLowerInvariant()}-env-{entry.Key.ToLowerInvariant()}";
+
+            // Determine if this should be a secret parameter by checking common patterns
+            var isSecret = entry.Key.Contains("SECRET", StringComparison.OrdinalIgnoreCase) ||
+                          entry.Key.Contains("PASSWORD", StringComparison.OrdinalIgnoreCase) ||
+                          entry.Key.Contains("KEY", StringComparison.OrdinalIgnoreCase) ||
+                          entry.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase);
+
+            // Create the parameter with the appropriate secret setting
+            var parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value ?? string.Empty, secret: isSecret);
+
+            // Apply configuration callback
+            configure(entry, parameterBuilder);
+
+            // Establish parent-child relationship for dashboard display
+            parameterBuilder.WithParentRelationship(builder.Resource);
+
+            // Map the parameter as an environment variable
+            builder.WithEnvironment(entry.Key, parameterBuilder);
+        }
+
+        return builder;
+    }
 }
