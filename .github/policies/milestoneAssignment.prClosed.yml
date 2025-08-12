@@ -27,5 +27,5 @@ configuration:
       then:
       - removeMilestone
       - addMilestone:
-          milestone: 9.4.1
+          milestone: 9.4.2
       description: '[Milestone Assignments] Assign Milestone to PRs merged to release/9.4 branch'
