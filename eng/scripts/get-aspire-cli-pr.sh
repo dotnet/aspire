@@ -701,25 +701,27 @@ download_aspire_cli() {
 
     local cli_archive_path
     local -a cli_files=()
-    shopt -s nullglob
-    for f in "$download_dir"/${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.tar.gz "$download_dir"/${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.zip; do
-        [[ -f "$f" ]] && cli_files+=("$f")
-    done
-    shopt -u nullglob
+
+    # Recursively search for CLI archives (.tar.gz or .zip) anywhere inside the artifact.
+    # We purposefully limit to filenames starting with the configured prefix to avoid grabbing unrelated archives.
+    # Using find instead of shell globs allows us to traverse subdirectories created by GitHub after compression.
+    while IFS= read -r -d '' f; do
+        cli_files+=("$f")
+    done < <(find "$download_dir" -type f \( -name "${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.tar.gz" -o -name "${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.zip" \) -print0 | sort -z)
 
     if [[ ${#cli_files[@]} -eq 0 ]]; then
-        say_error "No CLI archive found. Expected a single ${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.tar.gz or ${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.zip file in artifact root: $download_dir"
-        say_info "Candidate files present (root only):"
-        ls -1 "$download_dir" 2>/dev/null | head -20 | sed 's/^/  /'
+        say_error "No CLI archive found. Expected a single ${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.tar.gz or ${ASPIRE_CLI_ARTIFACT_NAME_PREFIX}-*.zip file anywhere under: $download_dir"
+        say_info "Showing up to first 25 candidate regular files under artifact (for debugging):"
+        find "$download_dir" -type f | head -25 | sed 's/^/  /'
         return 1
     fi
     if [[ ${#cli_files[@]} -gt 1 ]]; then
-        say_error "Multiple CLI archives found (expected exactly one):"
+        say_error "Multiple CLI archives found (expected exactly one). Matches:"
         printf '  %s\n' "${cli_files[@]}"
         return 1
     fi
     cli_archive_path="${cli_files[0]}"
-    say_verbose "Successfully downloaded CLI archive to: $cli_archive_path"
+    say_verbose "Detected CLI archive: $cli_archive_path"
 
     # Export the path for the caller to use
     printf "%s" "$cli_archive_path"
