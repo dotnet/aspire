@@ -9,7 +9,8 @@ See [machine-requirements.md](machine-requirements.md).
 ## Build the repo
 
 1. `./dotnet.sh` (macOS and Linux) or `.\dotnet.cmd` (Windows)
-2. `.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
+1. `./dotnet.sh` (macOS and Linux) or `.\dotnet.cmd` (Windows)
+2. `./build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
 
 ## Run TestShop
 
