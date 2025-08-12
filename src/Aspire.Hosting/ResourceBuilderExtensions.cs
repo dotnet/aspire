@@ -2214,8 +2214,8 @@ public static class ResourceBuilderExtensions
         // Create parameters for each entry and map them as environment variables
         foreach (var entry in envEntries)
         {
-            // Generate unique parameter name: {resource}-env-{key} (lowercased)
-            var parameterName = $"{builder.Resource.Name.ToLowerInvariant()}-env-{entry.Key.ToLowerInvariant()}";
+            // Generate unique parameter name: {resource}-env-{key} (lowercased, with underscores replaced by hyphens)
+            var parameterName = $"{builder.Resource.Name.ToLowerInvariant()}-env-{entry.Key.ToLowerInvariant().Replace('_', '-')}";
 
             // Determine if this should be a secret parameter by checking common patterns
             var isSecret = entry.Key.Contains("SECRET", StringComparison.OrdinalIgnoreCase) ||
