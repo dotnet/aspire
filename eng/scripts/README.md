@@ -160,3 +160,22 @@ When modifying these scripts, ensure:
 - Error handling is comprehensive and user-friendly
 - Platform detection logic is robust
 - Security best practices are followed for downloads and file handling
+
+## PR Artifact Retrieval Scripts
+
+Additional scripts exist to fetch CLI and NuGet artifacts from a pull request build:
+
+- `get-aspire-cli-pr.sh`
+- `get-aspire-cli-pr.ps1`
+
+Quick fetch (Bash):
+```bash
+curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
+```
+
+Quick fetch (PowerShell):
+```powershell
+iex "& { $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1) } <PR_NUMBER>"
+```
+
+NuGet hive path pattern: `~/.aspire/hives/pr-<PR_NUMBER>/packages`
