@@ -75,6 +75,7 @@ public static class KustoResourceBuilderExtensions
                 {
                     ClientRequestId = Guid.NewGuid().ToString(),
                 };
+                crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
 
                 await pipeline.ExecuteAsync(async cancellationToken => await adminProvider.ExecuteControlCommandAsync(annotation.Database ?? adminProvider.DefaultDatabaseName, annotation.Script, crp).ConfigureAwait(false), ct).ConfigureAwait(false);
             }
