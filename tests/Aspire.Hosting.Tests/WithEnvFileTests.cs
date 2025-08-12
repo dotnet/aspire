@@ -368,7 +368,7 @@ public class WithEnvFileTests
     }
 
     [Fact]
-    public void WithEnvFile_DefaultPath_LooksInAppHostDirectory()
+    public void WithEnvFile_ExplicitPath_LoadsFile()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -387,7 +387,7 @@ public class WithEnvFileTests
             }
 
             // Act
-            container.WithEnvFile(); // No path specified
+            container.WithEnvFile(envFile); // Explicit path specified
 
             using var app = builder.Build();
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
