@@ -20,7 +20,6 @@ public static class ContainerExecutableResourceBuilderExtensions
     /// <param name="args">The arguments to the executable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for <see cref="ContainerExecutableResource"/>.</returns>
     /// <example>
-    /// Adds an anonymous volume that will be mounted in the container's file system at the path <c>/usr/data</c>:
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
