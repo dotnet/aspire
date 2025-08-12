@@ -1,0 +1,38 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Kusto;
+
+/// <summary>
+/// A resource that represents a Kusto cluster.
+/// </summary>
+public class KustoResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KustoResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    public KustoResource(string name)
+        : base(name)
+    {
+    }
+
+    /// <summary>
+    /// Gets whether the resource is running the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsEmulator();
+
+    /// <summary>
+    /// Gets the connection string expression for the Kusto resource.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            var endpoint = this.GetEndpoint("http");
+            return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+        }
+    }
+}
