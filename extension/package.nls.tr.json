@@ -2,6 +2,8 @@
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
 	"extension.debug.program": "Path to the Aspire solution",
+	"extension.debug.defaultConfiguration.name": "Aspire: Launch Default AppHost",
+	"extension.debug.defaultConfiguration.description": "Launch the effective Aspire AppHost in your workspace.",
 	"command.run": "Run app host",
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",

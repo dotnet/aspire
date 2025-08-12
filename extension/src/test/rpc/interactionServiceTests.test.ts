@@ -6,7 +6,7 @@ import { codespacesLink, directLink } from '../../loc/strings';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { createRpcServer, RpcServerConnectionInfo } from '../../server/rpcServer';
+import { createRpcServer, RpcServerConnectionInfo } from '../../server/RpcServer';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
