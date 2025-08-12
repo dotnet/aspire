@@ -113,6 +113,50 @@ jobs:
         run:
           Move-Item -Path "${{ github.workspace }}/artifacts/packages/built-nugets/Debug" -Destination "${{ github.workspace }}/artifacts/packages"
 
+      - name: Compute RID for arch-specific packages
+        if: ${{ inputs.requiresNugets }}
+        id: compute_rid
+        shell: pwsh
+        run: |
+          $os = "${{ inputs.os }}"
+          switch ($os) {
+            'ubuntu-latest' { $rid = 'linux-x64' }
+            'macos-latest'  { $rid = 'osx-arm64' }
+            'windows-latest'{ $rid = 'win-x64' }
+            Default { Write-Error "Unknown OS '$os' for RID mapping"; exit 1 }
+          }
+          Write-Host "Using RID=$rid"
+          "RID=$rid"    | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "rid=$rid"    | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Download arch-specific nugets
+        if: ${{ inputs.requiresNugets }}
+        continue-on-error: true
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: built-nugets-for-${{ steps.compute_rid.outputs.rid }}
+          path: ${{ github.workspace }}/arch-specific
+
+      - name: Merge arch-specific nugets into package feed
+        if: ${{ inputs.requiresNugets }}
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}/artifacts/packages/Debug/Shipping"
+          if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+          $source = "${{ github.workspace }}/arch-specific"
+          if (-not (Test-Path $source)) {
+            Write-Error "Source folder '$source' does not exist."; exit 1
+          }
+          $nupkgs = Get-ChildItem -Path $source -Filter *.nupkg -ErrorAction SilentlyContinue
+          if (-not $nupkgs -or $nupkgs.Count -eq 0) {
+            Write-Error "No arch-specific nugets found in '$source'"; exit 1
+          } else {
+            foreach ($pkg in $nupkgs) {
+              Copy-Item -Path $pkg.FullName -Destination $dest -Force
+            }
+            Write-Host "Merged $($nupkgs.Count) arch-specific nugets for RID=$env:RID into $dest"
+          }
+
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
         env:

@@ -55,28 +55,9 @@ jobs:
 
   build_packages:
     name: Build packages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Build with packages
-        env:
-          CI: false
-        run: ./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true
-
-      - name: Upload built NuGets
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: built-nugets
-          path: artifacts/packages
-          retention-days: 15
-
-      - name: Upload logs
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: build_packages_logs
-          path: artifacts/log
+    uses: ./.github/workflows/build-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_lin:
     uses: ./.github/workflows/run-tests.yml
