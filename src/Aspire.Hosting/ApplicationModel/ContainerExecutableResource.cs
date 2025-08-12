@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Executable resource that runs in a container.
 /// </summary>
 public class ContainerExecutableResource(string name, ContainerResource containerResource, string command, string? workingDirectory)
-    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithParent<ContainerResource>
+    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithWaitSupport, IResourceWithParent<ContainerResource>
 {
     /// <summary>
     /// Gets the command associated with this executable resource.
