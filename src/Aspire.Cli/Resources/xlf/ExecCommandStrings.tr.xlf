@@ -64,6 +64,11 @@ Examples:
         <target state="translated">Hedef kaynak belirtilmedi. Hedefi belirtmek için --resource veya --start-resource kullanın.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute command in.</source>
+        <target state="new">The working directory to execute command in.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

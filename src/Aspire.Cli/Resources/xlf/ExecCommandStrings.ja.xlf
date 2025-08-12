@@ -64,6 +64,11 @@ Examples:
         <target state="translated">ターゲット リソースが指定されていません。ターゲットを指定するには、--resource または --start-resource を使用します。</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute command in.</source>
+        <target state="new">The working directory to execute command in.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -64,6 +64,11 @@ Examples:
         <target state="translated">대상 리소스가 지정되지 않았습니다. --resource 또는 --start-resource를 사용하여 대상을 지정합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute command in.</source>
+        <target state="new">The working directory to execute command in.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
