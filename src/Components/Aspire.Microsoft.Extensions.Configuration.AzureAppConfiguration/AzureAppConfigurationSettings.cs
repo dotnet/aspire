@@ -63,18 +63,16 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
             }
             else
             {
-                string[] parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                string lastPart = parts[parts.Length - 1];
-                string[] kvp = lastPart.Split('=', 2);
-                if (kvp[0].Trim().Equals("Anonymous", StringComparison.OrdinalIgnoreCase))
+                var connectionBuilder = new StableConnectionStringBuilder(connectionString);
+
+                if (connectionBuilder.TryGetValue("Anonymous", out string enabled))
                 {
-                    if (bool.TryParse(kvp[1].Trim(), out bool enabled))
-                    {
-                        AnonymousAccess = enabled;
-                    }
-                    parts = parts.Take(parts.Length - 1).ToArray();
+                    AnonymousAccess = Boolean.Parse(enabled);
+
+                    connectionBuilder.Remove("Anonymous");
                 }
-                ConnectionString = string.Join(";", parts);
+
+                ConnectionString = connectionBuilder.ConnectionString;
             }
         }
     }
