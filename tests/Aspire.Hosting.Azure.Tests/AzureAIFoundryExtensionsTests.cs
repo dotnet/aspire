@@ -30,6 +30,7 @@ public class AzureAIFoundryExtensionsTests
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         var deployment = Assert.Single(resource.Deployments);
         Assert.Equal("deployment1", deployment.Name);
+        Assert.Equal("deployment1", deployment.DeploymentName);
         Assert.Equal("gpt-4", deployment.ModelName);
         Assert.Equal("1.0", deployment.ModelVersion);
         Assert.Equal("OpenAI", deployment.Format);
@@ -122,7 +123,7 @@ public class AzureAIFoundryExtensionsTests
         Assert.Single(resource.Deployments);
         var connectionString = deployment.Resource.ConnectionStringExpression.ValueExpression;
         Assert.Contains("Model=gpt-4", connectionString);
-        Assert.Contains("DeploymentId=gpt-4", connectionString);
+        Assert.Contains("DeploymentId=deployment1", connectionString);
         Assert.Contains("Endpoint=", connectionString);
         Assert.Contains("Key=", connectionString);
     }
@@ -135,6 +136,7 @@ public class AzureAIFoundryExtensionsTests
         var foundry = builder.AddAzureAIFoundry("foundry");
         var deployment1 = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         var deployment2 = foundry.AddDeployment("deployment2", "Phi-4", "1.0", "Microsoft");
+        var deployment3 = foundry.AddDeployment("my-model", "Phi-4", "1.0", "Microsoft");
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
