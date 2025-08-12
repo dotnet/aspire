@@ -17,9 +17,6 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build solution
-        env:
-          # prevent GitInfo errors
-          CI: false
         # a full build is too slow; also do not fail on errors, continue so that
         # copilot can attempt to recover
         run: ./build.sh -restore || true
