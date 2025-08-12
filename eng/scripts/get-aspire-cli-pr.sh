@@ -618,7 +618,7 @@ download_built_nugets() {
         return 0
     fi
 
-    say_info "Downloading $BUILT_NUGETS_ARTIFACT_NAME artifact."
+    say_info "Downloading built nuget artifacts - $BUILT_NUGETS_ARTIFACT_NAME"
     say_verbose "Downloading with: ${nugets_download_command[*]}"
 
     if ! "${nugets_download_command[@]}"; then
@@ -627,7 +627,7 @@ download_built_nugets() {
         return 1
     fi
 
-    say_info "Downloading $nugets_rid_filename artifact."
+    say_info "Downloading rid specific built nugets artifact - $nugets_rid_filename ..."
     say_verbose "Downloading with: ${nugets_rid_download_command[*]}"
 
     if ! "${nugets_rid_download_command[@]}"; then
