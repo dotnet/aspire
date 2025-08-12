@@ -152,6 +152,11 @@
         <target state="translated">项目路径</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="new">Launch profile</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
         <target state="translated">开始时间</target>
