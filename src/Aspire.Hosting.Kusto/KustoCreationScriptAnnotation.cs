@@ -17,7 +17,7 @@ internal sealed class KustoCreationScriptAnnotation : IResourceAnnotation
     /// The Kusto script to create the database, table, or data.
     /// </param>
     /// <param name="database">
-    /// The name of the database where the table will be created. If <c langword="null"/>, the default database will be used.
+    /// The name of the database where the table will be created. If <see langword="null"/>, the default database will be used.
     /// </param>
     public KustoCreationScriptAnnotation(string script, string? database)
     {
@@ -31,7 +31,7 @@ internal sealed class KustoCreationScriptAnnotation : IResourceAnnotation
     public string Script { get; }
 
     /// <summary>
-    /// Gets the name of the database where the table will be created. If <c langword="null"/>, the default database will be used.
+    /// Gets the name of the database where the table will be created. If <see langword="null"/>, the default database will be used.
     /// </summary>
     public string? Database { get; }
 }

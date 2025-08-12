@@ -147,7 +147,7 @@ public static class KustoResourceBuilderExtensions
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
-    /// <param name="database">The database to use when executing the script. If <c langword="null" /> use the default database.</param>
+    /// <param name="database">The database to use when executing the script. If <see langword="null"/> use the default database.</param>
     /// <returns>The resource builder.</returns>
     public static IResourceBuilder<KustoResource> WithCreationScript(this IResourceBuilder<KustoResource> builder, string script, string? database = null)
     {
