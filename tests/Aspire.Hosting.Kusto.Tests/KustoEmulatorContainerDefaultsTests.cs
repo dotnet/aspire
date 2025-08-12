@@ -3,9 +3,6 @@
 
 namespace Aspire.Hosting.Kusto.Tests;
 
-/// <summary>
-/// Tests for <see cref="KustoEmulatorContainerDefaults"/>.
-/// </summary>
 public class KustoEmulatorContainerDefaultsTests
 {
     [Fact]

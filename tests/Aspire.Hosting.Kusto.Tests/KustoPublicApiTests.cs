@@ -5,10 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Kusto.Tests;
 
-/// <summary>
-/// Tests for <see cref="KustoResource"/> and related functionality.
-/// </summary>
-public class KustoResourceTests
+public class KustoPublicApiTests
 {
     [Fact]
     public void AddKusto_ShouldCreateKustoResourceWithCorrectDefaults()

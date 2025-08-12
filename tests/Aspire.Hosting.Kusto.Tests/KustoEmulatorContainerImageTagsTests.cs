@@ -3,9 +3,6 @@
 
 namespace Aspire.Hosting.Kusto.Tests;
 
-/// <summary>
-/// Tests for <see cref="KustoEmulatorContainerImageTags"/>.
-/// </summary>
 public class KustoEmulatorContainerImageTagsTests
 {
     [Fact]

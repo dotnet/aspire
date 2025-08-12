@@ -3,11 +3,13 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Kusto.Cloud.Platform.Data;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,9 +37,10 @@ public class KustoFunctionalTests
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task KustoEmulator_Starts()
     {
-        using CancellationTokenSource timeout = new(delay: TimeSpan.FromMinutes(3));
+        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
@@ -82,9 +85,10 @@ public class KustoFunctionalTests
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task KustoEmulator_WithCreationScripts_CanReadIngestedData()
     {
-        using CancellationTokenSource timeout = new(delay: TimeSpan.FromMinutes(5));
+        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
