@@ -81,7 +81,7 @@ public class AddKustoTests
 
         // Assert
         var manifestExclusionAnnotation = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().SingleOrDefault();
-        Assert.NotNull(manifestExclusionAnnotation);
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, manifestExclusionAnnotation);
     }
 
     [Fact]
