@@ -8,13 +8,13 @@ For pull-requests in CI the tests are run via GitHub actions defined in `tests-i
 
 ### Steps to prepare for `outside-of-repo` runs
 
-1. [Install the SDK+workload](../Aspire.Template.Tests/README.md#install-the-sdkworkload)
+1. [Install the SDK](../Aspire.Template.Tests/README.md#install-the-sdk)
 
 ### Using it from VS
 
 - For switching to `outside-of-repo` set `<_BuildForTestsRunningOutsideOfRepo>true</_BuildForTestsRunningOutsideOfRepo>` in the project file.
     - tests cannot be run at this point as they will fail complaining about `artifacts/bin/dotnet-latest` being missing
-    - Install the SDK+workload following the steps above
+    - Install the SDK following the steps above
     - Run/debug the tests normally now, and they will be using the SDK
     - Also note that in this case the testproject is run from the bindir for `Aspire.EndToEnd.Tests`, so a path like `artifacts/bin/Aspire.EndToEnd.Tests/Debug/net8.0/testassets/testproject/`
 
@@ -44,18 +44,18 @@ See https://github.com/dotnet/aspire/pull/4179 for an example.
 and allow individual tests to interact with the services.
 This requires:
 
-    - Ability to build, and run an Aspire project - in other words, an SDK with the `aspire` workload installed.
+    - Ability to build, and run an Aspire project - in other words, an SDK with the necessary components installed.
     - `docker`
 
 2. Also, allow using `TestProject.*` in `tests/testproject`, in two modes:
 - `in-repo` test run which directly reference Aspire projects, and repo targets
-- `outside-of-repo` test runs which uses a SDK+workload based on local build output
+- `outside-of-repo` test runs which uses a SDK based on local build output
 
 ## Solution:
 
-### SDK+workload
+### SDK
 
-[Sdk+workload](../Aspire.Template.Tests/README.md#solution-sdkworkload)
+[SDK](../Aspire.Template.Tests/README.md#solution-sdk)
 
 ### TestProject
 
@@ -67,6 +67,6 @@ This requires:
 ### Helix
 
 - The tests are built on the build machine
-- The testproject, and the SDK+workload is sent to Helix
-  - where the tests run using `dotnet` from the SDK+workload path
+- The testproject, and the SDK is sent to Helix
+  - where the tests run using `dotnet` from the SDK path
 - Since `docker` is needed to Helix, this is enabled only for `Linux` in this PR. Blocked on https://github.com/dotnet/dnceng/issues/2067 for windows support.
