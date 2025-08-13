@@ -9,10 +9,10 @@
   $HOME/.aspire/hives/<HiveName> to artifacts/packages/<Config>/Shipping or copies .nupkg files.
 
 .PARAMETER Configuration
-  Build configuration: Release or Debug. If not provided, tries Release then Debug.
+  Build configuration: Release or Debug (positional parameter 0). If omitted, the script tries Release then falls back to Debug.
 
 .PARAMETER Name
-  Hive name. Default: local
+  Hive name (positional parameter 1). Default: local.
 
 .PARAMETER VersionSuffix
   Prerelease version suffix. If omitted, auto-generates: local.YYYYMMDD.tHHmmss (UTC)
@@ -35,28 +35,20 @@
 
 [CmdletBinding(PositionalBinding=$true)]
 param(
-  [Alias('c','configuration')]
-  [ValidateSet('Release','Debug')]
+  [Alias('c')]
+  [Parameter(Position=0)]
   [string] $Configuration,
 
-  # Positional compatibility: allow `Debug myhive`
-  [Parameter(Position=0)]
-  [ValidateSet('Release','Debug')]
-  [string] $PositionalConfiguration,
-
-  [Alias('n','name','hive','hiveName')]
+  [Alias('n','hive','hiveName')]
+  [Parameter(Position=1)]
   [string] $Name = 'local',
 
-  [Parameter(Position=1)]
-  [string] $PositionalHiveName,
-
-  [Alias('v','versionsuffix')]
+  [Alias('v')]
   [string] $VersionSuffix,
 
-  [Alias('copy')]
   [switch] $Copy,
 
-  [Alias('h','help')]
+  [Alias('h')]
   [switch] $Help
 )
 
@@ -68,17 +60,24 @@ Usage:
   .\localhive.ps1 [options]
   .\localhive.ps1 [Release|Debug] [HiveName]
 
+Positional parameters:
+  [Release|Debug]      Optional build configuration (Position 0). If omitted, attempts Release then Debug.
+  [HiveName]           Optional hive name (Position 1). Defaults to 'local'.
+
 Options:
-  -c, --configuration   Build configuration: Release or Debug
-  -n, --name            Hive name (default: local)
-  -v, --versionsuffix   Prerelease version suffix (default: auto-generates local.YYYYMMDD.tHHmmss)
-      --copy            Copy .nupkg files instead of creating a symlink
-  -h, --help            Show this help and exit
+  -Configuration (-c)   Build configuration: Release or Debug
+  -Name (-n)            Hive name (default: local)
+  -VersionSuffix (-v)   Prerelease version suffix (default: auto-generates local.YYYYMMDD.tHHmmss)
+  -Copy                 Copy .nupkg files instead of creating a symlink
+  -Help (-h)            Show this help and exit
 
 Examples:
   .\localhive.ps1 -c Release -n local
   .\localhive.ps1 Debug my-feature
   .\localhive.ps1 -c Release -n demo -v local.20250811.t033324
+  .\localhive.ps1            # Packs (tries Release then Debug) -> hive 'local'
+  .\localhive.ps1 Debug      # Packs Debug -> hive 'local'
+  .\localhive.ps1 Release demo
 
 This will pack NuGet packages into artifacts\packages\<Config>\Shipping and create/update
 a hive at $HOME\.aspire\hives\<HiveName> so the Aspire CLI can use it as a channel.
@@ -91,9 +90,14 @@ function Write-Err   { param([string]$m) Write-Error "[localhive] $m" }
 
 if ($Help) { Show-Usage; exit 0 }
 
-# Reconcile positional fallbacks
-if (-not $Configuration -and $PositionalConfiguration) { $Configuration = $PositionalConfiguration }
-if ($Name -eq 'local' -and $PositionalHiveName) { $Name = $PositionalHiveName }
+# Normalize configuration casing if provided (case-insensitive) and allow common abbreviations.
+if ($Configuration) {
+  switch ($Configuration.ToLowerInvariant()) {
+    'release' { $Configuration = 'Release' }
+    'debug'   { $Configuration = 'Debug' }
+    default   { Write-Err "Unsupported configuration '$Configuration'. Use Release or Debug."; exit 1 }
+  }
+}
 
 # Compute repo root based on script location
 $RepoRoot = Resolve-Path -LiteralPath $PSScriptRoot | Select-Object -ExpandPath
