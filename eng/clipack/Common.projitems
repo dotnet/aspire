@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <Target Name="PublishToDisk"
-          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;PrepareOutputPathForPublishToDisk" />
+          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;PrepareOutputPathForPublishToDisk;_OrganizeLinuxArchiveStructure" />
 
   <Target Name="PrepareOutputPathForPublishToDisk">
     <!-- TODO: avoid generating the file instead of manually deleting it here -->
@@ -83,6 +83,25 @@
            Text="`file` signature for `$(CliRuntime)` did not match the expected regex.
            Got     : $(_FileCommandOutput)
            vs regex: $(FileSignatureRegex)" />
+  </Target>
+
+  <!-- For Linux archives, organize the files into an aspire/ subdirectory -->
+  <Target Name="_OrganizeLinuxArchiveStructure" Condition="$(CliRuntime.StartsWith('linux-'))">
+    <PropertyGroup>
+      <_AspireSubdirectory>$([MSBuild]::NormalizePath($(OutputPath), 'aspire'))</_AspireSubdirectory>
+      <_TempBinaryPath>$([MSBuild]::NormalizePath($(OutputPath), 'aspire.tmp'))</_TempBinaryPath>
+    </PropertyGroup>
+    
+    <!-- Move the aspire binary to a temporary name -->
+    <Move SourceFiles="$(_NativeBinaryPath)" DestinationFiles="$(_TempBinaryPath)" />
+    
+    <!-- Create the aspire subdirectory -->
+    <MakeDir Directories="$(_AspireSubdirectory)" />
+    
+    <!-- Move the aspire binary into the aspire subdirectory -->
+    <Move SourceFiles="$(_TempBinaryPath)" DestinationFiles="$([MSBuild]::NormalizePath($(_AspireSubdirectory), 'aspire'))" />
+    
+    <Message Text="Organized Linux archive structure: moved aspire binary to aspire/ subdirectory" Importance="high" />
   </Target>
 
 </Project>
