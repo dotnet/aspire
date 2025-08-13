@@ -47,7 +47,7 @@ Select a template version:
 (Type to search)
 ```
 
-When complete, the CLI will create a NuGet.config to makes sure that packages are restored from the correct nuget feed.
+When complete, the CLI will create a NuGet.config to make sure that packages are restored from the correct nuget feed.
 
 > [!TIP]
 > `aspire new` will automatically update the aspire templates and they will be available in Visual Studio and `dotnet new`.
