@@ -105,6 +105,15 @@ internal sealed class AddCommand : BaseCommand
 
             var version = parseResult.GetValue<string?>("--version");
 
+            if (version is null)
+            {
+                version = await _interactionService.ShowStatusAsync("Detecting package version.", async () =>
+                {
+                    var info = await _runner.GetAppHostInformationAsync(effectiveAppHostProjectFile, new(), cancellationToken);
+                    return info.AspireHostingVersion;
+                });
+            }
+
             var packagesWithShortName = packages.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
             if (!packagesWithShortName.Any())
@@ -129,7 +138,7 @@ internal sealed class AddCommand : BaseCommand
             // an exact match, then we still prompt, but it will only prompt for
             // the version. If there is more than one match then we prompt.
             var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch {
-                0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
+                0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, version, cancellationToken),
                 1 => filteredPackagesWithShortName.First().Package.Version == version
                     ? filteredPackagesWithShortName.First()
                     : await GetPackageByInteractiveFlow(filteredPackagesWithShortName, null, cancellationToken),
@@ -232,14 +241,14 @@ internal sealed class AddCommand : BaseCommand
         return version;
     }
 
-    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlowWithNoMatchesMessage(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? searchTerm, CancellationToken cancellationToken)
+    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlowWithNoMatchesMessage(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? searchTerm, string? preferredVersion, CancellationToken cancellationToken)
     {
         if (searchTerm is not null)
         {
             _interactionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
         }
 
-        return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
+        return await GetPackageByInteractiveFlow(possiblePackages, preferredVersion, cancellationToken);
     }
 
     internal static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
