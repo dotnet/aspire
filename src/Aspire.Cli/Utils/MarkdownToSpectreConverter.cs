@@ -40,6 +40,9 @@ internal static partial class MarkdownToSpectreConverter
         // Process inline code (`code`)
         result = ConvertInlineCode(result);
 
+        // Process images ![alt](url) - remove them as they can't be displayed in CLI
+        result = ConvertImages(result);
+
         // Process links [text](url)
         result = ConvertLinks(result);
 
@@ -85,6 +88,12 @@ internal static partial class MarkdownToSpectreConverter
     {
         // Convert `code`
         return InlineCodeRegex().Replace(text, "[grey][bold]$1[/][/]");
+    }
+
+    private static string ConvertImages(string text)
+    {
+        // Remove image references ![alt](url) as they can't be displayed in CLI
+        return ImageRegex().Replace(text, "");
     }
 
     private static string ConvertLinks(string text)
@@ -150,6 +159,9 @@ internal static partial class MarkdownToSpectreConverter
 
     [GeneratedRegex(@"`([^`]+)`")]
     private static partial Regex InlineCodeRegex();
+
+    [GeneratedRegex(@"!\[([^\]]*)\]\(([^)]+)\)")]
+    private static partial Regex ImageRegex();
 
     [GeneratedRegex(@"\[([^\]]+)\]\(([^)]+)\)")]
     private static partial Regex LinkRegex();

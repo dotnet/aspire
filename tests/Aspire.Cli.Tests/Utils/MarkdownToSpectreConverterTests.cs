@@ -186,4 +186,66 @@ Some more text.";
         // Assert
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("![alt text](https://example.com/image.png)", "")]
+    [InlineData("![](https://example.com/image.png)", "")]
+    [InlineData("![alt with spaces](https://example.com/image.jpg)", "")]
+    [InlineData("Text before ![image](https://example.com/pic.png) text after", "Text before  text after")]
+    public void ConvertToSpectre_WithImages_OmitsImages(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithMultipleImages_OmitsAllImages()
+    {
+        // Arrange
+        var markdown = "Here is ![first image](https://example.com/1.png) and ![second image](https://example.com/2.jpg) in text.";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal("Here is  and  in text.", result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithImagesAndLinks_ProcessesCorrectly()
+    {
+        // Arrange - test that images are removed but links are preserved
+        var markdown = "Visit [GitHub](https://github.com) and see this ![screenshot](https://example.com/pic.png) for details.";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal("Visit [blue underline]https://github.com[/] and see this  for details.", result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithImagesInComplexMarkdown_HandlesCorrectly()
+    {
+        // Arrange
+        var markdown = @"# Documentation
+This is **important** information with an image: ![diagram](https://example.com/diagram.png)
+
+Visit [our site](https://example.com) for more details.";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        var expected = @"[bold green]Documentation[/]
+This is [bold]important[/] information with an image: 
+
+Visit [blue underline]https://example.com[/] for more details.";
+        // Normalize line endings in expected string to match converter output
+        expected = expected.Replace("\r\n", "\n").Replace("\r", "\n");
+        Assert.Equal(expected, result);
+    }
 }
