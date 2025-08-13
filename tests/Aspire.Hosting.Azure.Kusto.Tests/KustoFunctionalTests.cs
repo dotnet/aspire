@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
 
-namespace Aspire.Hosting.Kusto.Tests;
+namespace Aspire.Hosting.Azure.Kusto.Tests;
 
 public class KustoFunctionalTests
 {

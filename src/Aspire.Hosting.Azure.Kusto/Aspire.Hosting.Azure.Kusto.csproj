@@ -4,8 +4,8 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <EnablePackageValidation>false</EnablePackageValidation> <!-- TODO: Remove this once the package ships -->
-    <PackageTags>aspire integration hosting kusto</PackageTags>
-    <Description>Kusto support for .NET Aspire.</Description>
+    <PackageTags>aspire integration hosting azure kusto</PackageTags>
+    <Description>Azure Kusto support for .NET Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Kusto.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Kusto.Tests" />
   </ItemGroup>
 
 </Project>

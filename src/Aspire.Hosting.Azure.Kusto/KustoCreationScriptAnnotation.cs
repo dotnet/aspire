@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Kusto;
+namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
 /// Annotation to store a Kusto table or creation script.

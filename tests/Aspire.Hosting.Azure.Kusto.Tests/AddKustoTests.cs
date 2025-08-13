@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.Kusto.Tests;
+namespace Aspire.Hosting.Azure.Kusto.Tests;
 
 public class AddKustoTests
 {
@@ -120,6 +120,7 @@ public class AddKustoTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
+
     public void AddKusto_WithInvalidName_ShouldThrowArgumentException(string? invalidName)
     {
         // Arrange

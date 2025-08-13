@@ -53,7 +53,6 @@
     <Project Path="src/Aspire.Hosting.Kafka/Aspire.Hosting.Kafka.csproj" />
     <Project Path="src/Aspire.Hosting.Keycloak/Aspire.Hosting.Keycloak.csproj" />
     <Project Path="src/Aspire.Hosting.Kubernetes/Aspire.Hosting.Kubernetes.csproj" />
-    <Project Path="src/Aspire.Hosting.Kusto/Aspire.Hosting.Kusto.csproj" />
     <Project Path="src/Aspire.Hosting.Milvus/Aspire.Hosting.Milvus.csproj" />
     <Project Path="src/Aspire.Hosting.MongoDB/Aspire.Hosting.MongoDB.csproj" />
     <Project Path="src/Aspire.Hosting.MySql/Aspire.Hosting.MySql.csproj" />
@@ -86,6 +85,7 @@
     <Project Path="src/Aspire.Hosting.Azure.EventHubs/Aspire.Hosting.Azure.EventHubs.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Functions/Aspire.Hosting.Azure.Functions.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.KeyVault/Aspire.Hosting.Azure.KeyVault.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.Kusto/Aspire.Hosting.Azure.Kusto.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.OperationalInsights.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.PostgreSQL/Aspire.Hosting.Azure.PostgreSQL.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Redis/Aspire.Hosting.Azure.Redis.csproj" />
@@ -390,6 +390,7 @@
   </Folder>
   <Folder Name="/tests/Hosting/">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Docker.Tests/Aspire.Hosting.Docker.Tests.csproj" />
@@ -398,7 +399,6 @@
     <Project Path="tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kubernetes.Tests/Aspire.Hosting.Kubernetes.Tests.csproj" />
-    <Project Path="tests/Aspire.Hosting.Kusto.Tests/Aspire.Hosting.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Milvus.Tests/Aspire.Hosting.Milvus.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj" />

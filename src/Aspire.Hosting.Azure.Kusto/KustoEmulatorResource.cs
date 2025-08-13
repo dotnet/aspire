@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Kusto;
+namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
 /// A resource that represents a Kusto emulator running as a container.

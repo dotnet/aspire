@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly;
 
-namespace Aspire.Hosting.Kusto;
+namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
 /// Extension methods for adding Kusto resources to the application model.
