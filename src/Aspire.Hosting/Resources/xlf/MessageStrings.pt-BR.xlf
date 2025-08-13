@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">Volumes anônimos não podem ser somente leitura.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">As montagens associadas devem especificar um caminho absoluto.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">As montagens de associação devem especificar um caminho de origem.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="new">Application orchestrator dependency check returned an error: {0}</target>
+        <target state="translated">A verificação de dependências do orquestrador de aplicativos retornou um erro: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
-        <target state="new">Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</target>
+        <target state="translated">É necessária uma versão mais recente do pacote Aspire.Hosting.AppHost para executar o aplicativo. Verifique se você está usando pelo menos a versão '{0}'.</target>
         <note />
       </trans-unit>
     </body>
