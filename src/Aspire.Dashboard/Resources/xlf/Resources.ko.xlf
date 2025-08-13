@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
         <source>Launch profile</source>
-        <target>시작 프로필</target>
+        <target state="new">Launch profile</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">

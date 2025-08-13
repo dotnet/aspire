@@ -162,16 +162,16 @@
         <target state="translated">Ruta de acceso del proyecto</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="new">Launch profile</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
         <target state="translated">Hora de inicio</target>
         <note />
       </trans-unit>
-        <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
-          <source>Launch profile</source>
-          <target>Perfil de inicio</target>
-          <note />
-        </trans-unit>
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
         <target state="translated">Estado</target>
