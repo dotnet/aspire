@@ -432,9 +432,9 @@
         <target state="translated">들어오는 데이터 다시 시작</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">애플리케이션 선택</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="new">Select a resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

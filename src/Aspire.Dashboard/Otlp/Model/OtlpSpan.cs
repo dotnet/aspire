@@ -23,7 +23,7 @@ public class OtlpSpan
 
     public string TraceId => Trace.TraceId;
     public OtlpTrace Trace { get; }
-    public OtlpApplicationView Source { get; }
+    public OtlpResourceView Source { get; }
 
     public required string SpanId { get; init; }
     public required string? ParentSpanId { get; init; }
@@ -42,15 +42,15 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
-    public OtlpApplication? UninstrumentedPeer { get => _uninstrumentedPeer; init => _uninstrumentedPeer = value; }
+    public OtlpResource? UninstrumentedPeer { get => _uninstrumentedPeer; init => _uninstrumentedPeer = value; }
 
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
 
     private string? _cachedDisplaySummary;
-    private OtlpApplication? _uninstrumentedPeer;
+    private OtlpResource? _uninstrumentedPeer;
 
-    public void SetUninstrumentedPeer(OtlpApplication? peer)
+    public void SetUninstrumentedPeer(OtlpResource? peer)
     {
         _uninstrumentedPeer = peer;
     }
@@ -70,9 +70,9 @@ public class OtlpSpan
         return null;
     }
 
-    public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
+    public OtlpSpan(OtlpResourceView resourceView, OtlpTrace trace, OtlpScope scope)
     {
-        Source = applicationView;
+        Source = resourceView;
         Trace = trace;
         Scope = scope;
     }
@@ -127,7 +127,7 @@ public class OtlpSpan
 
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Application = {Source.ApplicationKey}, UninstrumentedPeerApplication = {UninstrumentedPeer?.ApplicationKey}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Resource = {Source.ResourceKey}, UninstrumentedPeerResource = {UninstrumentedPeer?.ResourceKey}, TraceId = {Trace.TraceId}";
     }
 
     public string GetDisplaySummary()
@@ -195,7 +195,7 @@ public class OtlpSpan
         // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Application.ApplicationName, span.UninstrumentedPeer?.ApplicationName),
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Resource.ResourceName, span.UninstrumentedPeer?.ResourceName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),

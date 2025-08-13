@@ -38,58 +38,58 @@ public static class TraceHelpers
         }
     }
 
-    private readonly record struct OrderedApplicationsState(DateTime? CurrentMinDate);
+    private readonly record struct OrderedResourcesState(DateTime? CurrentMinDate);
 
     /// <summary>
-    /// Get applications for a trace, with grouped information, and ordered using min date.
+    /// Get resources for a trace, with grouped information, and ordered using min date.
     /// It is possible for spans to arrive with dates that are out of order (i.e. child span has earlier
     /// start date than the parent) so ensure it isn't possible for a child to appear before parent.
     /// </summary>
-    public static IEnumerable<OrderedApplication> GetOrderedApplications(OtlpTrace trace)
+    public static IEnumerable<OrderedResource> GetOrderedResources(OtlpTrace trace)
     {
-        var appFirstTimes = new Dictionary<OtlpApplication, OrderedApplication>();
+        var resourceFirstTimes = new Dictionary<OtlpResource, OrderedResource>();
 
-        VisitSpans(trace, (OtlpSpan span, OrderedApplicationsState state) =>
+        VisitSpans(trace, (OtlpSpan span, OrderedResourcesState state) =>
         {
             var currentMinDate = (state.CurrentMinDate == null || state.CurrentMinDate < span.StartTime)
                 ? span.StartTime
                 : state.CurrentMinDate.Value;
 
-            ProcessSpanApp(span, span.Source.Application, appFirstTimes, currentMinDate);
+            ProcessSpanResource(span, span.Source.Resource, resourceFirstTimes, currentMinDate);
             if (span.UninstrumentedPeer is { } peer)
             {
-                ProcessSpanApp(span, peer, appFirstTimes, currentMinDate);
+                ProcessSpanResource(span, peer, resourceFirstTimes, currentMinDate);
             }
 
-            return new OrderedApplicationsState(currentMinDate);
-        }, new OrderedApplicationsState(null));
+            return new OrderedResourcesState(currentMinDate);
+        }, new OrderedResourcesState(null));
 
-        return appFirstTimes.Select(kvp => kvp.Value)
+        return resourceFirstTimes.Select(kvp => kvp.Value)
             .OrderBy(s => s.FirstDateTime)
             .ThenBy(s => s.Index);
     }
 
-    private static void ProcessSpanApp(OtlpSpan span, OtlpApplication application, Dictionary<OtlpApplication, OrderedApplication> appFirstTimes, DateTime currentMinDate)
+    private static void ProcessSpanResource(OtlpSpan span, OtlpResource resource, Dictionary<OtlpResource, OrderedResource> resourceFirstTimes, DateTime currentMinDate)
     {
-        if (appFirstTimes.TryGetValue(application, out var orderedApp))
+        if (resourceFirstTimes.TryGetValue(resource, out var orderedResource))
         {
-            if (currentMinDate < orderedApp.FirstDateTime)
+            if (currentMinDate < orderedResource.FirstDateTime)
             {
-                orderedApp.FirstDateTime = currentMinDate;
+                orderedResource.FirstDateTime = currentMinDate;
             }
 
             if (span.Status == OtlpSpanStatusCode.Error)
             {
-                orderedApp.ErroredSpans++;
+                orderedResource.ErroredSpans++;
             }
 
-            orderedApp.TotalSpans++;
+            orderedResource.TotalSpans++;
         }
         else
         {
-            appFirstTimes.Add(
-                application,
-                new OrderedApplication(application, appFirstTimes.Count, currentMinDate, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
+            resourceFirstTimes.Add(
+                resource,
+                new OrderedResource(resource, resourceFirstTimes.Count, currentMinDate, totalSpans: 1, erroredSpans: span.Status == OtlpSpanStatusCode.Error ? 1 : 0));
         }
     }
 
@@ -148,9 +148,9 @@ public static class TraceHelpers
     }
 }
 
-public sealed class OrderedApplication(OtlpApplication application, int index, DateTime firstDateTime, int totalSpans, int erroredSpans)
+public sealed class OrderedResource(OtlpResource resource, int index, DateTime firstDateTime, int totalSpans, int erroredSpans)
 {
-    public OtlpApplication Application { get; } = application;
+    public OtlpResource Resource { get; } = resource;
     public int Index { get; } = index;
     public DateTime FirstDateTime { get; set; } = firstDateTime;
     public int TotalSpans { get; set; } = totalSpans;

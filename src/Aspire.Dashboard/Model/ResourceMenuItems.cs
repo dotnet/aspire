@@ -128,12 +128,12 @@ public static class ResourceMenuItems
     private static void AddTelemetryMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, NavigationManager navigationManager, TelemetryRepository telemetryRepository, Func<ResourceViewModel, string> getResourceName, IStringLocalizer<Resources.Resources> loc)
     {
         // Show telemetry menu items if there is telemetry for the resource.
-        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name);
-        if (telemetryApplication != null)
+        var telemetryResource = telemetryRepository.GetResourceByCompositeName(resource.Name);
+        if (telemetryResource != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
 
-            if (!telemetryApplication.UninstrumentedPeer)
+            if (!telemetryResource.UninstrumentedPeer)
             {
                 menuItems.Add(new MenuButtonItem
                 {
@@ -160,7 +160,7 @@ public static class ResourceMenuItems
                 }
             });
 
-            if (!telemetryApplication.UninstrumentedPeer)
+            if (!telemetryResource.UninstrumentedPeer)
             {
                 menuItems.Add(new MenuButtonItem
                 {
