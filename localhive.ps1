@@ -128,10 +128,23 @@ Write-Log "Using prerelease version suffix: $VersionSuffix"
 
 # Build and pack
 $pkgDir = $null
+# Use build.cmd on Windows, build.sh otherwise (PowerShell is cross-platform)
+if ($IsWindows) {
+  $buildScript = Join-Path $RepoRoot 'build.cmd'
+}
+else {
+  $buildScript = Join-Path $RepoRoot 'build.sh'
+}
+
+function Get-PackagesPath {
+  param([Parameter(Mandatory)][string]$Config)
+  Join-Path (Join-Path (Join-Path (Join-Path $RepoRoot 'artifacts') 'packages') $Config) 'Shipping'
+}
+
 if ($Configuration) {
   Write-Log "Building and packing NuGet packages [-c $Configuration] with versionsuffix '$VersionSuffix'"
-  & "$RepoRoot\build.cmd" -r -b --pack -c $Configuration "/p:VersionSuffix=$VersionSuffix"
-  $pkgDir = Join-Path $RepoRoot "artifacts\packages\$Configuration\Shipping"
+  & $buildScript -r -b --pack -c $Configuration "/p:VersionSuffix=$VersionSuffix"
+  $pkgDir = Get-PackagesPath -Config $Configuration
   if (-not (Test-Path -LiteralPath $pkgDir)) {
     Write-Err "Could not find packages path $pkgDir for CONFIG=$Configuration"
     exit 1
@@ -141,18 +154,18 @@ else {
   Write-Log "Building and packing NuGet packages [-c Release] with versionsuffix '$VersionSuffix'"
   $releaseOk = $true
   try {
-    & "$RepoRoot\build.cmd" -r -b --pack -c Release "/p:VersionSuffix=$VersionSuffix"
+    & $buildScript -r -b --pack -c Release "/p:VersionSuffix=$VersionSuffix"
   }
   catch {
     $releaseOk = $false
   }
   if ($releaseOk) {
-    $pkgDir = Join-Path $RepoRoot 'artifacts\packages\Release\Shipping'
+    $pkgDir = Get-PackagesPath -Config 'Release'
   }
   else {
     Write-Warn 'Release build/pack failed; trying Debug'
-    & "$RepoRoot\build.cmd" -r -b --pack -c Debug "/p:VersionSuffix=$VersionSuffix"
-    $pkgDir = Join-Path $RepoRoot 'artifacts\packages\Debug\Shipping'
+    & $buildScript -r -b --pack -c Debug "/p:VersionSuffix=$VersionSuffix"
+    $pkgDir = Get-PackagesPath -Config 'Debug'
   }
   if (-not (Test-Path -LiteralPath $pkgDir)) {
     Write-Err "Could not find packages path in $RepoRoot/artifacts/packages for Release or Debug"
@@ -168,7 +181,7 @@ if (-not $packages -or $packages.Count -eq 0) {
 }
 Write-Log ("Found {0} packages in {1}" -f $packages.Count, $pkgDir)
 
-$hivesRoot = Join-Path $HOME ".aspire\hives"
+$hivesRoot = Join-Path (Join-Path $HOME '.aspire') 'hives'
 $hivePath  = Join-Path $hivesRoot $Name
 
 Write-Log "Preparing hive directory: $hivesRoot"
