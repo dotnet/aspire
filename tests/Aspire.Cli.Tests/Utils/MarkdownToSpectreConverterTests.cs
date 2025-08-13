@@ -312,4 +312,81 @@ Some [strikethrough]strikethrough[/] text with [grey]inline code block[/].
 [bold]Header 6[/]";
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void ConvertToSpectre_WithMultilineQuotesWithEmptyLines_ConvertsAllLines()
+    {
+        // Arrange
+        var markdown = @"> Line 1
+> 
+> Line 2";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        var expected = @"[italic grey]Line 1[/]
+[italic grey][/]
+[italic grey]Line 2[/]";
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("> ", "[italic grey][/]")]
+    [InlineData(">", "[italic grey][/]")]
+    [InlineData("> text", "[italic grey]text[/]")]
+    public void ConvertToSpectre_WithVariousQuoteFormats_ConvertsCorrectly(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("```bash\nexport APP_NAME=\"your-app-name\"\n```", "[grey]export APP_NAME=\"your-app-name\"[/]")]
+    [InlineData("```javascript\nconsole.log('hello');\n```", "[grey]console.log('hello');[/]")]
+    [InlineData("```\nno language specified\n```", "[grey]no language specified[/]")]
+    [InlineData("```python\nprint('test')\nprint('multiline')\n```", "[grey]print('test')\nprint('multiline')[/]")]
+    public void ConvertToSpectre_WithCodeBlocksWithLanguages_RemovesLanguageNames(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithComplexMultilineQuotesAndCodeBlocks_ConvertsCorrectly()
+    {
+        // Arrange
+        var markdown = @"# Instructions
+> This is important
+> 
+> Please follow these steps:
+
+```bash
+cd /path/to/project
+npm install
+```
+
+> That's all!";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        var expected = @"[bold green]Instructions[/]
+[italic grey]This is important[/]
+[italic grey][/]
+[italic grey]Please follow these steps:[/]
+
+[grey]cd /path/to/project
+npm install[/]
+
+[italic grey]That's all![/]";
+        Assert.Equal(expected, result);
+    }
 }

@@ -110,13 +110,50 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertCodeBlocks(string text)
     {
-        // Convert multi-line code blocks ```code```
-        return CodeBlockRegex().Replace(text, "[grey]$1[/]");
+        // Convert multi-line code blocks ```code``` 
+        // Remove language name from the beginning if present
+        return CodeBlockRegex().Replace(text, match =>
+        {
+            var content = match.Groups[1].Value.Trim();
+            
+            // Check if the first line contains a language name (no spaces, common language names)
+            var lines = content.Split('\n');
+            if (lines.Length > 1)
+            {
+                var firstLine = lines[0].Trim();
+                // If first line looks like a language name (single word, common languages)
+                if (!string.IsNullOrEmpty(firstLine) && !firstLine.Contains(' ') && IsLikelyLanguageName(firstLine))
+                {
+                    // Remove the language line and rejoin
+                    var codeContent = string.Join('\n', lines.Skip(1));
+                    return $"[grey]{codeContent}[/]";
+                }
+            }
+            
+            return $"[grey]{content}[/]";
+        });
+    }
+
+    private static bool IsLikelyLanguageName(string text)
+    {
+        // Common language names that would appear at the start of code blocks
+        var commonLanguages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "bash", "sh", "shell", "cmd", "powershell", "ps1",
+            "javascript", "js", "typescript", "ts", "jsx", "tsx",
+            "python", "py", "java", "c", "cpp", "csharp", "cs", "vb",
+            "html", "css", "scss", "sass", "less", "xml", "yaml", "yml", "json",
+            "sql", "php", "ruby", "rb", "go", "rust", "swift", "kotlin",
+            "scala", "clojure", "haskell", "perl", "lua", "r", "matlab",
+            "dockerfile", "makefile", "ini", "toml", "properties"
+        };
+        
+        return commonLanguages.Contains(text);
     }
 
     private static string ConvertQuotedText(string text)
     {
-        // Convert > quoted text
+        // Convert > quoted text - handle all forms: "> text", "> ", and ">"
         return QuotedTextRegex().Replace(text, "[italic grey]$1[/]");
     }
 
@@ -208,7 +245,7 @@ internal static partial class MarkdownToSpectreConverter
     [GeneratedRegex(@"```\s*(.*?)\s*```", RegexOptions.Singleline)]
     private static partial Regex CodeBlockRegex();
 
-    [GeneratedRegex(@"^> (.+?)$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^>\s*(.*)$", RegexOptions.Multiline)]
     private static partial Regex QuotedTextRegex();
 
     [GeneratedRegex(@"`([^`]+)`")]
