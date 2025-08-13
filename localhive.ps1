@@ -100,7 +100,7 @@ if ($Configuration) {
 }
 
 # Compute repo root based on script location
-$RepoRoot = Resolve-Path -LiteralPath $PSScriptRoot | Select-Object -ExpandPath
+$RepoRoot = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 
 function Test-VersionSuffix {
   param([Parameter(Mandatory)][string]$Suffix)
