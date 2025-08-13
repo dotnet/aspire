@@ -17,7 +17,7 @@ dotnet add package Aspire.Hosting.Azure.Kusto
 Then, in the _AppHost.cs_ file of `AppHost`, add a Kusto resource and consume the connection using the following method:
 
 ```csharp
-var db = builder.AddKusto().RunAsEmulator();
+var db = builder.AddKusto("kusto").RunAsEmulator();
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(db);
@@ -26,7 +26,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithCreationScript` method configures a script to run when the Kusto emulator starts. This can be used to create databases, tables, and ingest data:
 
 ```csharp
-var kusto = builder.AddKusto()
+var kusto = builder.AddKusto("kusto")
     .RunAsEmulator()
     .WithCreationScript(".create database TestDb volatile;")
     .WithCreationScript(

@@ -44,7 +44,7 @@ public class KustoFunctionalTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
-        var kusto = builder.AddKusto().RunAsEmulator();
+        var kusto = builder.AddKusto("kusto").RunAsEmulator();
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -93,7 +93,7 @@ public class KustoFunctionalTests
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
-        var kusto = builder.AddKusto()
+        var kusto = builder.AddKusto("kusto")
             .RunAsEmulator()
             .WithCreationScript(".create database TestDb volatile;")
             .WithCreationScript(

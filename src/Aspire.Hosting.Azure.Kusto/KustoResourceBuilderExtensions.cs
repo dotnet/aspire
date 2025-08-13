@@ -31,12 +31,12 @@ public static class KustoResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<KustoResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name = "kusto")
+    public static IResourceBuilder<KustoResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        KustoResource resource = new(name);
+        var resource = new KustoResource(name);
         var resourceBuilder = builder.AddResource(resource);
 
         // Register a health check that will be used to verify Kusto is available

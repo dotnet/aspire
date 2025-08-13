@@ -8,21 +8,20 @@ namespace Aspire.Hosting.Azure.Kusto.Tests;
 
 public class AddKustoTests
 {
-    [Theory]
-    [InlineData(null, "kusto")]
-    [InlineData("test-kusto", "test-kusto")]
-    public void AddKusto_ShouldCreateKustoResourceWithCorrectName(string? resourceName, string expectedName)
+    [Fact]
+    public void AddKusto_ShouldCreateKustoResourceWithCorrectName()
     {
         // Arrange
+        const string name = "kusto";
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = resourceName is null ? builder.AddKusto() : builder.AddKusto(resourceName);
+        var resourceBuilder = builder.AddKusto(name);
 
         // Assert
         Assert.NotNull(resourceBuilder);
         Assert.NotNull(resourceBuilder.Resource);
-        Assert.Equal(expectedName, resourceBuilder.Resource.Name);
+        Assert.Equal(name, resourceBuilder.Resource.Name);
         Assert.IsType<KustoResource>(resourceBuilder.Resource);
     }
 
@@ -58,7 +57,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto().RunAsEmulator(httpPort: port);
+        var resourceBuilder = builder.AddKusto("kusto").RunAsEmulator(httpPort: port);
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -77,7 +76,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto();
+        var resourceBuilder = builder.AddKusto("kusto");
 
         // Assert
         var manifestExclusionAnnotation = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().SingleOrDefault();
@@ -106,7 +105,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto().RunAsEmulator(configureContainer: builder =>
+        var resourceBuilder = builder.AddKusto("kusto").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithAnnotation(new ContainerNameAnnotation() { Name = "custom-kusto-emulator" });
         });
@@ -162,7 +161,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto();
+        var resourceBuilder = builder.AddKusto("kusto");
 
         // Assert
         Assert.IsAssignableFrom<IResourceWithConnectionString>(resourceBuilder.Resource);
