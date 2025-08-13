@@ -432,9 +432,9 @@
         <target state="translated">Obnovit příchozí data</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="new">Select a resource</target>
+      <trans-unit id="SelectAnApplication">
+        <source>Select an application</source>
+        <target state="translated">Vybrat aplikaci</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

@@ -432,9 +432,9 @@
         <target state="translated">恢复传入数据</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="new">Select a resource</target>
+      <trans-unit id="SelectAnApplication">
+        <source>Select an application</source>
+        <target state="translated">选择应用程序</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">
