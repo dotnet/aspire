@@ -278,58 +278,86 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
 {
     public virtual async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
-        var selectedPackage = packages.First();
+        var firstPackage = packages.First();
 
-        var packagesGroupedByReleaseStatus = packages.GroupBy(p => SemVersion.Parse(p.Package.Version).IsPrerelease ? "Prerelease" : "Released");
-        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
-        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
-
-        var selections = new List<(string SelectionText, Func<Task<(string, NuGetPackage, PackageChannel)>> PackageSelector)>();
-
-        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>())
+        // Helper to keep labels consistently formatted: "Version (source)"
+        static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            selections.Add(($"{releasedPackage.Package.Version} ({releasedPackage.Package.Source})", () => Task.FromResult(releasedPackage)));
+            var pkg = item.Package;
+            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
+            return $"{pkg.Version} ({source})";
         }
 
-        if (releasedGroup is not null && prereleaseGroup is not null)
+        async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
+            PackageChannel channel,
+            IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> items,
+            CancellationToken ct)
         {
-            // If we have prerelease packages (and there are released packages) we
-            // want to show a sub-menu option which we will use to prompt the user.
-            // To make this work the first prompt returns a function which is invoke
-            // which will either return the package or trigger another prompt for
-            // sub-packages. This is the sub-prompt logic.
-            selections.Add((AddCommandStrings.UsePrereleasePackages, async () =>
+            var choices = items
+                .Select(i => (
+                    Label: FormatVersionLabel(i),
+                    Result: i
+                ))
+                .ToArray();
+
+            var selection = await interactionService.PromptForSelectionAsync(
+                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
+                choices,
+                c => c.Label,
+                ct);
+
+            return selection.Result;
+        }
+
+        // Group the incoming package versions by channel
+        var byChannel = packages
+            .GroupBy(p => p.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // Build the root menu: implicit channel packages directly, explicit channels as submenus
+        var rootChoices = new List<(string Label, Func<CancellationToken, Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>> Action)>();
+
+        if (implicitGroup is not null)
+        {
+            foreach (var item in implicitGroup)
             {
-                return await interactionService.PromptForSelectionAsync(
-                     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-                     prereleaseGroup,
-                     (p) => $"{p.Package.Version} ({p.Package.Source})",
-                     cancellationToken
-                     );
+                var captured = item;
+                rootChoices.Add((
+                    Label: FormatVersionLabel(captured),
+                    Action: ct => Task.FromResult(captured)
+                ));
             }
+        }
+
+        foreach (var channelGroup in explicitGroups)
+        {
+            var channel = channelGroup.Key;
+            var items = channelGroup.ToArray();
+
+            rootChoices.Add((
+                Label: channel.Name,
+                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
             ));
         }
-        else if (prereleaseGroup is not null)
+
+        // Fallback if no choices for some reason
+        if (rootChoices.Count == 0)
         {
-            // Fallback behavior if we happen to have NuGet feeds configured such
-            // that we only have access to prerelease packages - in this
-            // case we just want to display them rather than having a special
-            // expander menu.
-            foreach (var prereleasePackage in prereleaseGroup)
-            {
-                selections.Add(($"{prereleasePackage.Package.Version} ({prereleasePackage.Package.Source})", () => Task.FromResult(prereleasePackage)));
-            }
+            return firstPackage;
         }
 
-        var selection = await interactionService.PromptForSelectionAsync(
-            string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-            selections,
-            s => s.SelectionText,
-            cancellationToken
-            );
+        var topSelection = await interactionService.PromptForSelectionAsync(
+            string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
+            rootChoices,
+            c => c.Label,
+            cancellationToken);
 
-        var package = await selection.PackageSelector();
-        return package;
+        return await topSelection.Action(cancellationToken);
     }
 
     public virtual async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
