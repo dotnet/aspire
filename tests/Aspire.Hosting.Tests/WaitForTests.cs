@@ -850,10 +850,10 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         // Add a health check that never becomes healthy
-        var neverHealthyTcs = new TaskCompletionSource<HealthCheckResult>();
+        var healthyTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("never_healthy", () =>
         {
-            return neverHealthyTcs.Task; // This task never completes, so health check never passes
+            return healthyTcs.Task;
         });
 
         // Create a dependency that we can control manually with a health check that never passes
@@ -882,6 +882,8 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         // Nginx should now start since we only wait for Running state, not health checks
         var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
         await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
+
+        healthyTcs.TrySetResult(HealthCheckResult.Healthy());
 
         await startTask;
 
