@@ -2177,8 +2177,11 @@ public static class ResourceBuilderExtensions
 
         return builder.WithEnvFile((entry, paramBuilder) =>
         {
-            // Default behavior: create non-secret parameter with description
-            paramBuilder.WithDescription(entry.Comment ?? $"Imported from .env: {entry.Key}");
+            // Default behavior: use comment as description if available
+            if (!string.IsNullOrEmpty(entry.Comment))
+            {
+                paramBuilder.WithDescription(entry.Comment);
+            }
         }, envFilePath);
     }
 
@@ -2223,7 +2226,16 @@ public static class ResourceBuilderExtensions
                           entry.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase);
 
             // Create the parameter with the appropriate secret setting
-            var parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value ?? string.Empty, secret: isSecret);
+            IResourceBuilder<ParameterResource> parameterBuilder;
+            if (!string.IsNullOrEmpty(entry.Value))
+            {
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value, secret: isSecret);
+            }
+            else
+            {
+                // When value is null or empty, create a parameter that will throw MissingParameterValueException if not provided via configuration
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, secret: isSecret);
+            }
 
             // Apply configuration callback
             configure(entry, parameterBuilder);
@@ -2256,8 +2268,11 @@ public static class ResourceBuilderExtensions
 
         return builder.WithEnvFile((entry, paramBuilder) =>
         {
-            // Default behavior: create non-secret parameter with description
-            paramBuilder.WithDescription(entry.Comment ?? $"Imported from .env: {entry.Key}");
+            // Default behavior: use comment as description if available
+            if (!string.IsNullOrEmpty(entry.Comment))
+            {
+                paramBuilder.WithDescription(entry.Comment);
+            }
         }, envFilePath);
     }
 
@@ -2302,7 +2317,16 @@ public static class ResourceBuilderExtensions
                           entry.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase);
 
             // Create the parameter with the appropriate secret setting
-            var parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value ?? string.Empty, secret: isSecret);
+            IResourceBuilder<ParameterResource> parameterBuilder;
+            if (!string.IsNullOrEmpty(entry.Value))
+            {
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value, secret: isSecret);
+            }
+            else
+            {
+                // When value is null or empty, create a parameter that will throw MissingParameterValueException if not provided via configuration
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, secret: isSecret);
+            }
 
             // Apply configuration callback
             configure(entry, parameterBuilder);
@@ -2335,8 +2359,11 @@ public static class ResourceBuilderExtensions
 
         return builder.WithEnvFile((entry, paramBuilder) =>
         {
-            // Default behavior: create non-secret parameter with description
-            paramBuilder.WithDescription(entry.Comment ?? $"Imported from .env: {entry.Key}");
+            // Default behavior: use comment as description if available
+            if (!string.IsNullOrEmpty(entry.Comment))
+            {
+                paramBuilder.WithDescription(entry.Comment);
+            }
         }, envFilePath);
     }
 
@@ -2386,7 +2413,16 @@ public static class ResourceBuilderExtensions
                           entry.Key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase);
 
             // Create the parameter with the appropriate secret setting
-            var parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value ?? string.Empty, secret: isSecret);
+            IResourceBuilder<ParameterResource> parameterBuilder;
+            if (!string.IsNullOrEmpty(entry.Value))
+            {
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, entry.Value, secret: isSecret);
+            }
+            else
+            {
+                // When value is null or empty, create a parameter that will throw MissingParameterValueException if not provided via configuration
+                parameterBuilder = builder.ApplicationBuilder.AddParameter(parameterName, secret: isSecret);
+            }
 
             // Apply configuration callback
             configure(entry, parameterBuilder);
