@@ -6,6 +6,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests;
@@ -848,8 +849,16 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
-        // Create a dependency that we can control manually
-        var dependency = builder.AddResource(new CustomResource("test"));
+        // Add a health check that never becomes healthy
+        var neverHealthyTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("never_healthy", () =>
+        {
+            return neverHealthyTcs.Task; // This task never completes, so health check never passes
+        });
+
+        // Create a dependency that we can control manually with a health check that never passes
+        var dependency = builder.AddResource(new CustomResource("test"))
+                                .WithHealthCheck("never_healthy");
 
         // Create a resource that waits for the dependency to start (but not for health checks)
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
