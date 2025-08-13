@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.AI.Inference
 
 ## Usage example
 
-In the _AppHost.cs_ file of your project, call the `AddAzureChatCompletionsClient` extension method to register a `ChatCompletionsClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureChatCompletionsClient` extension method to register a `ChatCompletionsClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureChatCompletionsClient("connectionName");
