@@ -17,6 +17,11 @@ public class AspireTemplateColumn<TGridItem> : TemplateColumn<TGridItem>, IAspir
     protected override void OnInitialized()
     {
         Tooltip = true;
+
+        if (ColumnManager is not null && ColumnId is not null)
+        {
+            Width = ColumnManager.GetColumnWidth(ColumnId);
+        }
     }
 
     protected override bool ShouldRender()
