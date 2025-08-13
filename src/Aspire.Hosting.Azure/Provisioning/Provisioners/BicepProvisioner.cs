@@ -169,6 +169,7 @@ internal sealed class BicepProvisioner(
         var deployments = context.ExecutionContext.IsPublishMode
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
+        var deploymentName = resource.Name;
 
         var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -177,12 +178,14 @@ internal sealed class BicepProvisioner(
             DebugSettingDetailLevel = "ResponseContent"
         });
         // Only set the location for publish mode deployments
-        // that are scoped to the resource
+        // and set the deployment name to include the resource group name
+        // hashed with the current Unix timestamp
         if (context.ExecutionContext.IsPublishMode)
         {
             deploymentContent.Location = context.Location;
+            deploymentName = $"{resourceGroup.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
         }
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, deploymentContent, cancellationToken).ConfigureAwait(false);
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
         var url = GetDeploymentUrl(context, resourceGroup, resource.Name);
