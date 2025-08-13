@@ -87,13 +87,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
 
 	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
 
 	const debugConfigProvider = new AspireDebugConfigurationProvider();
 	context.subscriptions.push(
-		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic
-		)
+		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
 	);
+	context.subscriptions.push(
+		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Initial)
+	);
+
+		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+
+	vscode.workspace.onDidChangeWorkspaceFolders(async () => {
+    extensionLogOutputChannel.info("Workspace folders changed, refreshing debug configurations");
+    // This will trigger VS Code to refresh debug configurations
+    vscode.commands.executeCommand('workbench.action.debug.configure');
+});
 
 	// Return exported API for tests or other extensions
 	return {

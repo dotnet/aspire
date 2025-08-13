@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
+import * as fs from "fs";
 import { sendToAspireTerminal, getAspireTerminal } from "../utils/terminal";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
@@ -38,8 +39,16 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'launch') {
-      this.sendMessage("Launching Aspire debug session...");
-      this.sendMessage("Spawning aspire cli process...");
+      const appHostPath = this.session.configuration.program as string;
+      if (isDirectory(appHostPath)) {
+        this.sendMessageWithEmoji("📁", `Launching Aspire debug session using directory ${appHostPath}: attempting to determine effective AppHost...`);
+      }
+      else {
+        this.sendMessageWithEmoji("📂", `Launching Aspire debug session for AppHost ${appHostPath}...`);
+      }
+
+      this.sendMessageWithEmoji("⚙️", "Spawning aspire cli process...");
+
       if (message.arguments?.noDebug) {
         sendToAspireTerminal('aspire run', this.dcpServer);
       }
@@ -59,6 +68,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
+      this.sendMessageWithEmoji("🔌", `Disconnecting from Aspire debug session... Child processes will be stopped.`);
+
       const terminal = getAspireTerminal();
       terminal.dispose();
 
@@ -81,6 +92,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         command: message.command,
         body: {}
       });
+    }
+
+    function isDirectory(pathToCheck: string): boolean {
+      return fs.existsSync(pathToCheck) && fs.statSync(pathToCheck).isDirectory();
     }
   }
 
@@ -182,15 +197,19 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._onDidSendMessage.fire(event);
   }
 
+  sendMessageWithEmoji(emoji: string, message: string) {
+    this.sendMessage(`${emoji}  ${message}`);
+  }
+
   sendMessage(message: string) {
     this.sendEvent({
-        type: 'event',
-        seq: this._messageSeq++,
-        event: 'output',
-        body: {
-          category: 'stdout',
-          output: `${message}\n`
-        }
-      });
+      type: 'event',
+      seq: this._messageSeq++,
+      event: 'output',
+      body: {
+        category: 'stdout',
+        output: `${message}\n`
+      }
+    });
   }
 }
