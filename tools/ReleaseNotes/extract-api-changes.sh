@@ -76,7 +76,7 @@ main() {
     
     # First, export the expected API file paths
     echo "    📋 Exporting project info and expected API file paths..."
-    if ! dotnet build "$api_diff_proj" -t:ExportProjectInfo -p:OutputPath="$API_CHANGES_DIR/" --verbosity minimal; then
+    if ! "$GIT_ROOT/dotnet.sh" build "$api_diff_proj" -t:ExportProjectInfo -p:OutputPath="$API_CHANGES_DIR/" --verbosity minimal; then
         echo "    ❌ Failed to export project info"
         exit 1
     fi
@@ -93,7 +93,7 @@ main() {
     
     # Build all projects using the dedicated project file with binary logging
     echo "    📝 Binary log will be saved to: $API_CHANGES_DIR/build.binlog"
-    if dotnet build "$api_diff_proj" -t:BuildAndGenerateAPI /bl:"$API_CHANGES_DIR/build.binlog"; then
+    if "$GIT_ROOT/dotnet.sh" build "$api_diff_proj" -t:BuildAndGenerateAPI /bl:"$API_CHANGES_DIR/build.binlog"; then
         local build_end_time=$(date +%s)
         local build_time=$((build_end_time - build_start_time))
         echo "    ✅ All projects built successfully in ${build_time}s"

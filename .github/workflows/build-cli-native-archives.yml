@@ -2,6 +2,10 @@ name: Build native CLI archives
 
 on:
   workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
 
 jobs:
 
@@ -36,6 +40,7 @@ jobs:
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
+          ${{ inputs.versionOverrideArg }}
 
       - name: Build CLI packages (Unix)
         env:
@@ -51,6 +56,7 @@ jobs:
           /p:ContinuousIntegrationBuild=true
           /p:SkipManagedBuild=true
           /p:TargetRids=${{ matrix.targets.rids }}
+          ${{ inputs.versionOverrideArg }}
 
       - name: Upload logs
         if: always()

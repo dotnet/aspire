@@ -244,10 +244,11 @@ internal class ExecResourceManager
     {
         var (exe, args) = ParseCommand();
         string execResourceName = container.Name + "-exec";
+        var workingDirectory = _execOptions.WorkingDirectory;
 
         // we cant resolve dcp name of container resource here - too early in the startup pipeline
         // it will be resolved later in the Dcp layer
-        var containerExecutable = new ContainerExecutableResource(execResourceName, container, exe, workingDirectory: null)
+        var containerExecutable = new ContainerExecutableResource(execResourceName, container, exe, workingDirectory: workingDirectory)
         {
             Args = args
         };

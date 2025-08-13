@@ -42,127 +42,193 @@ Moving between minor releases of Aspire is simple:
 
 If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using .NET Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
 
-## 🚀 CLI improvements
+## 🖥️ App model enhancements
 
-### ✨ Container exec support
+### 🎨 Resource icon metadata
 
-The `aspire exec` command now supports executing commands inside containers, providing a powerful way to interact with containerized resources directly from the CLI.
+Surface resource icons in the dashboard and tooling via new APIs:
 
-```bash
-# Execute a command inside a container resource
-aspire exec --resource nginxcontainer ls
+- `WithIconName<T>(..., string iconName, IconVariant iconVariant = IconVariant.Filled)` extension on `IResourceBuilder<T>`
+- `ResourceIconAnnotation` to annotate custom resources
+- `CustomResourceSnapshot` now includes `IconName` and `IconVariant`
 
-# Run an interactive shell in a container
-aspire exec --resource webapi bash
+```csharp
+var cache = builder.AddRedis("cache")
+    .WithIconName("Database"); // IconVariant defaults to Filled
 ```
 
-> [!NOTE]
-> Container exec functionality is currently feature-flagged and may require enabling through configuration.
+Additional examples:
 
-### 🛠️ Enhanced debugging support
+```csharp
+var web = builder
+    .AddContainer("nginx", "nginx:alpine")
+    .WithIconName("GlobeArrowForward", IconVariant.Regular);
 
-VS Code extension now provides improved debugging capabilities for AppHost projects:
-
-- **Debug/No Debug selection**: Choose whether to launch AppHost with debugging enabled
-- **Automatic building**: AppHost projects are built automatically when C# Dev Kit is installed  
-- **Fallback support**: Graceful fallback to `dotnet watch` when debugging extensions aren't available
-- **Integrated lifecycle**: Stopping the AppHost automatically stops the CLI process
-
-### 🌐 SSH Remote development support
-
-Added first-class support for SSH Remote VS Code development environments with automatic port forwarding configuration:
-
-```bash
-# SSH Remote environments are automatically detected when both variables are present:
-# VSCODE_IPC_HOOK_CLI - Indicates VS Code running with IPC hook CLI  
-# SSH_CONNECTION - Standard SSH environment variable
+var seedJob = builder
+    .AddExecutable("seed", "dotnet", ["run", "--project", "./tools/Seed"])
+    .WithIconName("Code");
 ```
 
-Port forwarding settings are now automatically configured for:
-- **Codespaces** (existing)
-- **Devcontainers** (existing)  
-- **SSH Remote** (new in 9.5)
+### ✨ Command-line args callback context additions
 
-### 🔧 Improved reliability
+`CommandLineArgsCallbackContext` now exposes the resource and has a new constructor overload.
 
-Enhanced AppHost orphan detection to be robust against PID reuse:
+- New property: `IResource Resource`
+- New ctor: `(IList<object> args, IResource resource, CancellationToken ct = default)`
 
-- **Process verification**: Uses both PID and process start time for accurate detection
-- **Backwards compatibility**: Gracefully falls back to PID-only logic when needed
-- **Cross-platform**: Reliable process monitoring across different operating systems
+```csharp
+var api = builder.AddProject<Projects.Api>("api")
+    .WithArgs(ctx =>
+    {
+        if (ctx.Resource.Name == "api")
+        {
+            ctx.Args.Add("--logLevel");
+            ctx.Args.Add("Information");
+        }
+    });
+```
 
-### ⚡ Better error handling  
+### 🤖 OpenAI hosting integration (new)
 
-Improved `aspire exec` command validation and error reporting:
+New app model APIs to configure OpenAI as a first-class resource and add child models ([#10830](https://github.com/dotnet/aspire/pull/10830)):
 
-- **Fail-fast validation**: Arguments are validated early to provide quick feedback
-- **Better error messages**: Clear error reporting when commands or arguments are missing
-- **Enhanced help**: Improved `aspire exec --help` output with better guidance
+- `builder.AddOpenAI(string name)` → `IResourceBuilder<OpenAIResource>`
+- `openai.WithApiKey(IResourceBuilder<ParameterResource> apiKey)`
+- `openai.WithEndpoint(string endpoint)`
+- `openai.AddModel(string name, string model)` → `IResourceBuilder<OpenAIModelResource>`
+- `OpenAIModelResource` implements `IResourceWithParent<OpenAIResource>`; you can call `.WithHealthCheck()` on the model builder
 
-## 🖥️ Dashboard enhancements
+Example:
 
-### 📊 Enhanced trace visualization
+```csharp
+using Aspire.Hosting;
+using Aspire.Hosting.OpenAI;
 
-Significant improvements to trace detail pages:
+var openai = builder.AddOpenAI("openai")
+    .WithApiKey(builder.AddParameter("OPENAI__API_KEY"))
+    .WithEndpoint("https://api.openai.com");
 
-- **Performance optimizations**: Faster loading and rendering of trace details
-- **Error highlighting**: Error traces and spans are displayed with error color coding
-- **Improved span details**: Better percentage calculations and visual indicators
-- **Enhanced navigation**: Links between telemetry and resources in grid values
+var gpt4o = openai.AddModel("gpt4o", "gpt-4o-mini")
+    .WithHealthCheck();
 
-### 🔗 Better resource integration
+builder.AddProject<Projects.Api>("api")
+    .WithReference(gpt4o); // injects connection info for the selected model
+```
 
-- **Resource linking**: Navigate directly from telemetry data to associated resources
-- **Improved filtering**: Better resource filtering with grouping labels
-- **Cleaner display**: Hide "(None)" text when only one resource is available
+## 🧰 CLI improvements
 
-### 🎨 UI improvements
+### 🧪 Run commands inside containers with aspire exec
 
-- **Updated toolbars**: Refreshed mobile and desktop toolbar designs
-- **Better accessibility**: Resource details view headers now use proper heading elements
-- **Icon enhancements**: More icons added to dashboard property values for better visual clarity
-- **FluentUI update**: Updated to FluentUI 4.12.1 with various improvements
+Run ad‑hoc commands inside a running container resource and stream output ([#10380](https://github.com/dotnet/aspire/pull/10380)).
 
-### 📋 Console logs enhancements
+```bash
+aspire exec --resource nginxcontainer ls -la
+aspire exec --resource api-container dotnet -- --info
+```
 
-- **Dynamic updates**: Resource list updates properly after visibility changes
-- **Better item counting**: Improved "Showing X items" text with accessibility announcements
-- **Argument display**: Arguments with spaces are now properly quoted in displays
+Sample output:
 
-## 🔧 Quality and reliability improvements
+```text
+> aspire exec --resource api-container dotnet -- --info
+Executing in container 'api-container'...
+Microsoft .NET SDK 9.0.100-preview.6.****
+...
+Exit code: 0
+```
 
-This release focuses heavily on quality improvements, bug fixes, and developer experience enhancements:
+- Details:
+  - Executes the command inside the container via DCP ContainerExec; stdout/stderr are streamed back to the CLI
+  - Internally models a ContainerExecutableResource for execution; no public API changes
+  - Includes unit tests covering execution and logging paths
 
-### 🌍 Localization
+### 🧷 More robust orphan detection
 
-- **Expanded language support**: Enhanced localization across multiple languages
-- **Resource string improvements**: Better organization of CLI and Dashboard resource strings
-- **Consistent translations**: Updated translation files across all supported languages
+AppHost orphan detection is now resilient to PID reuse by setting `ASPIRE_CLI_STARTED` and verifying the process start time in addition to PID ([#10673](https://github.com/dotnet/aspire/pull/10673)). This improves lifecycle reliability during local development.
 
-### 🔨 Build and deployment
+- Details:
+  - Adds `ASPIRE_CLI_STARTED` (DateTime.ToBinary) and checks PID + start time with ±1s tolerance
+  - Changes in `KnownConfigNames`, `DotNetCliRunner`, and `CliOrphanDetector`; falls back to PID-only if start time is unavailable
+  - Comprehensive tests cover PID reuse, invalid start times, and fallback behavior
 
-- **Native AOT support**: Extended native AOT compilation support for CLI on additional platforms:
-  - linux-arm64
-  - linux-musl-x64
-- **Configuration fixes**: Resolved issues with global configuration file handling
+### 🛑 Fail fast when Dashboard can't become healthy
 
-### 🧪 External service improvements
+The CLI no longer hangs when the dashboard fails to start. It surfaces a clear error and exits, enabling faster recovery ([#10567](https://github.com/dotnet/aspire/pull/10567)).
 
-- **Manifest generation**: Fixed issues with external services using URL parameters failing to generate manifests
-- **Parameter handling**: Enhanced parameter value access for external service resources
+Example error:
 
-## 📝 Developer experience
+```text
+Dashboard failed to start: Resource 'dashboard' reached terminal state 'FailedToStart'.
+Inner exception: ResourceFailedException: dashboard (FailedToStart)
+```
 
-### 🎯 Better CLI configuration
+- Details:
+  - Introduces shared `ResourceFailedException` (includes resource name and failed state)
+  - Thrown for terminal states: `FailedToStart`, `RuntimeUnhealthy`, `Exited`, `Finished`
+  - CLI catches and exits with a clear message and non-zero code; AOT JSON serialization is rooted
 
-- **Improved config handling**: Fixed issues with `aspire config set` writing incorrect paths to global settings
-- **Feature flag control**: Better control over experimental CLI features through feature flags
+## 🖼️ Dashboard enhancements
 
-### 🔍 Enhanced health checks
+### 🖼️ Custom resource icons in the Dashboard
 
-- **Log suppression**: Health check logs are now properly suppressed to reduce noise
-- **Async support**: Improved health check method support for external service resources with asynchronous parameter access
+Resources can specify Fluent UI icons that are shown in the Dashboard topology and lists ([#10760](https://github.com/dotnet/aspire/pull/10760)). See the new app model APIs above.
+
+- Details:
+  - New `ResourceIconAnnotation` + `WithIconName()` extension; `CustomResourceSnapshot` gains `IconName`/`IconVariant`
+  - Protobuf schema extended; `ResourceNotificationService` manages icon data via `UpdateIcons()` pattern
+  - Dashboard prefers custom icons and falls back to defaults when not specified
+
+Screenshot placeholder:
+> Replace with final image when available: [Custom icons shown in Dashboard]
+
+### 🔍 Enhanced telemetry navigation
+
+Clickable links in property grids make it easier to navigate between telemetry (trace IDs, span IDs) and related resources ([#10648](https://github.com/dotnet/aspire/pull/10648)).
+
+- Details:
+  - Supports registering custom components to render property grid values with deep links
+  - Adds icons to various status indicators for quicker scanning
+
+Screenshot placeholder:
+> Replace with final image when available: [Property grid links to traces/spans/resources]
+
+### 🎨 UX polish
+
+- Error traces and spans are highlighted with error color for consistency ([#10742](https://github.com/dotnet/aspire/pull/10742)).
+- Updated default icons for common resource types (Parameter → Key; Executable → Code; External service → GlobeArrowForward) ([#10762](https://github.com/dotnet/aspire/pull/10762)).
+
+Screenshot placeholder:
+> Replace with final image when available: [Error-colored traces and updated default icons]
+
+### 📈 Additional telemetry and UX improvements
+
+- Fix navigating to resources when a resource is already selected ([#10848](https://github.com/dotnet/aspire/pull/10848)).
+- Bug fix: correct port parsing so that "pipe"(|) is not mistaken as a port separator ([#10884](https://github.com/dotnet/aspire/pull/10884)).
+
+## 🔌 Remote development
+
+Automatic port‑forwarding settings are now written for SSH Remote VS Code sessions (in addition to Dev Containers and Codespaces), detected via environment variables like `VSCODE_IPC_HOOK_CLI` and `SSH_CONNECTION` ([#10715](https://github.com/dotnet/aspire/pull/10715)).
+
+- Details:
+  - Introduces `SshRemoteOptions` and `ConfigureSshRemoteOptions` for environment detection
+  - Uses the same settings path as Dev Containers: `.vscode-server/data/Machine/settings.json`
+  - Unit tests cover detection matrix; no breaking changes
+
+## 🎯 VS Code extension
+
+The extension adds AppHost debug support, integrating with C# extensions when available and falling back to the terminal otherwise ([#10369](https://github.com/dotnet/aspire/pull/10369)).
+
+- Details:
+  - Choose Run or Debug; when debugging and C# extension is installed, the AppHost launches under the debugger; otherwise uses a VS Code terminal with `dotnet watch`
+  - Exiting the AppHost stops the CLI process; session management handled by the extension
+  - Includes tests; lays groundwork for a dedicated Aspire debugger experience
+
+GIF/video placeholder:
+> Replace with final capture when available: [Debugging AppHost from VS Code]
+
+## ⚠️ Breaking changes
+
+- `GitHubModelResource` no longer implements `IResourceWithoutLifetime`.
 
 ---
 
-*For the complete list of changes, bug fixes, and improvements in this release, see the [.NET Aspire 9.5 release notes on GitHub](https://github.com/dotnet/aspire/releases).*
+_For the complete list of changes, bug fixes, and improvements in this release, see the [.NET Aspire 9.5 release notes on GitHub](https://github.com/dotnet/aspire/releases)._
