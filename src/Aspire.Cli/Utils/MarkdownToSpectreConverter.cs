@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Cli.Utils;
@@ -28,7 +29,13 @@ internal static partial class MarkdownToSpectreConverter
         // Normalize line endings to LF to ensure consistent output
         result = result.Replace("\r\n", "\n").Replace("\r", "\n");
 
-        // Process headers (# ## ###)
+        // Process quoted text (> text) - do this first as it's line-based
+        result = ConvertQuotedText(result);
+
+        // Process multi-line code blocks (```) - do this before inline code
+        result = ConvertCodeBlocks(result);
+
+        // Process headers (# ## ### #### ##### ######)
         result = ConvertHeaders(result);
 
         // Process bold text (**bold** or __bold__)
@@ -36,6 +43,9 @@ internal static partial class MarkdownToSpectreConverter
 
         // Process italic text (*italic* or _italic_)
         result = ConvertItalic(result);
+
+        // Process strikethrough text (~~text~~)
+        result = ConvertStrikethrough(result);
 
         // Process inline code (`code`)
         result = ConvertInlineCode(result);
@@ -54,6 +64,15 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertHeaders(string text)
     {
+        // Convert ###### Header 6 (most specific first)
+        text = HeaderLevel6Regex().Replace(text, "[bold]$1[/]");
+        
+        // Convert ##### Header 5
+        text = HeaderLevel5Regex().Replace(text, "[bold]$1[/]");
+        
+        // Convert #### Header 4
+        text = HeaderLevel4Regex().Replace(text, "[bold]$1[/]");
+        
         // Convert ### Header 3
         text = HeaderLevel3Regex().Replace(text, "[bold yellow]$1[/]");
         
@@ -82,6 +101,24 @@ internal static partial class MarkdownToSpectreConverter
         text = ItalicSingleUnderscoreRegex().Replace(text, "[italic]$1[/]");
         
         return text;
+    }
+
+    private static string ConvertStrikethrough(string text)
+    {
+        // Convert ~~strikethrough~~
+        return StrikethroughRegex().Replace(text, "[strikethrough]$1[/]");
+    }
+
+    private static string ConvertCodeBlocks(string text)
+    {
+        // Convert multi-line code blocks ```code```
+        return CodeBlockRegex().Replace(text, "[grey]$1[/]");
+    }
+
+    private static string ConvertQuotedText(string text)
+    {
+        // Convert > quoted text
+        return QuotedTextRegex().Replace(text, "[italic grey]$1[/]");
     }
 
     private static string ConvertInlineCode(string text)
@@ -136,6 +173,15 @@ internal static partial class MarkdownToSpectreConverter
         return textWithPlaceholders;
     }
 
+    [GeneratedRegex(@"^###### (.+?)\s*$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel6Regex();
+
+    [GeneratedRegex(@"^##### (.+?)\s*$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel5Regex();
+
+    [GeneratedRegex(@"^#### (.+?)\s*$", RegexOptions.Multiline)]
+    private static partial Regex HeaderLevel4Regex();
+
     [GeneratedRegex(@"^### (.+?)\s*$", RegexOptions.Multiline)]
     private static partial Regex HeaderLevel3Regex();
 
@@ -156,6 +202,15 @@ internal static partial class MarkdownToSpectreConverter
 
     [GeneratedRegex(@"(?<!_)_([^_\n]+)_(?!_)")]
     private static partial Regex ItalicSingleUnderscoreRegex();
+
+    [GeneratedRegex(@"~~([^~]+)~~")]
+    private static partial Regex StrikethroughRegex();
+
+    [GeneratedRegex(@"```\s*(.*?)\s*```", RegexOptions.Singleline)]
+    private static partial Regex CodeBlockRegex();
+
+    [GeneratedRegex(@"^> (.+?)$", RegexOptions.Multiline)]
+    private static partial Regex QuotedTextRegex();
 
     [GeneratedRegex(@"`([^`]+)`")]
     private static partial Regex InlineCodeRegex();

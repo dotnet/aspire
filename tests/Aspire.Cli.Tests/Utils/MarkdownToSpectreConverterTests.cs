@@ -50,6 +50,9 @@ public class MarkdownToSpectreConverterTests
     [InlineData("# Header 1", "[bold green]Header 1[/]")]
     [InlineData("## Header 2", "[bold blue]Header 2[/]")]
     [InlineData("### Header 3", "[bold yellow]Header 3[/]")]
+    [InlineData("#### Header 4", "[bold]Header 4[/]")]
+    [InlineData("##### Header 5", "[bold]Header 5[/]")]
+    [InlineData("###### Header 6", "[bold]Header 6[/]")]
     public void ConvertToSpectre_WithHeaders_ConvertsCorrectly(string markdown, string expected)
     {
         // Act
@@ -246,6 +249,67 @@ This is [bold]important[/] information with an image:
 Visit [blue underline]https://example.com[/] for more details.";
         // Normalize line endings in expected string to match converter output
         expected = expected.Replace("\r\n", "\n").Replace("\r", "\n");
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("~~strikethrough text~~", "[strikethrough]strikethrough text[/]")]
+    [InlineData("This is ~~deleted~~ text.", "This is [strikethrough]deleted[/] text.")]
+    [InlineData("Multiple ~~words~~ and ~~more~~", "Multiple [strikethrough]words[/] and [strikethrough]more[/]")]
+    public void ConvertToSpectre_WithStrikethrough_ConvertsCorrectly(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("```\ncode block\n```", "[grey]code block[/]")]
+    [InlineData("```\nmulti\nline\ncode\n```", "[grey]multi\nline\ncode[/]")]
+    [InlineData("Text before ```code``` after", "Text before [grey]code[/] after")]
+    public void ConvertToSpectre_WithCodeBlocks_ConvertsCorrectly(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("> quoted text", "[italic grey]quoted text[/]")]
+    [InlineData("> This is a quote", "[italic grey]This is a quote[/]")]
+    [InlineData("Normal text\n> quoted line\nMore text", "Normal text\n[italic grey]quoted line[/]\nMore text")]
+    public void ConvertToSpectre_WithQuotedText_ConvertsCorrectly(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithAllNewFeatures_ConvertsCorrectly()
+    {
+        // Arrange
+        var markdown = @"#### Header 4
+> This is a quoted line
+Some ~~strikethrough~~ text with ```inline code block```.
+##### Header 5
+###### Header 6";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        var expected = @"[bold]Header 4[/]
+[italic grey]This is a quoted line[/]
+Some [strikethrough]strikethrough[/] text with [grey]inline code block[/].
+[bold]Header 5[/]
+[bold]Header 6[/]";
         Assert.Equal(expected, result);
     }
 }
