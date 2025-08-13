@@ -154,7 +154,21 @@ internal static partial class MarkdownToSpectreConverter
     private static string ConvertQuotedText(string text)
     {
         // Convert > quoted text - handle all forms: "> text", "> ", and ">"
-        return QuotedTextRegex().Replace(text, "[italic grey]$1[/]");
+        // Process line by line to avoid regex matching across line boundaries
+        var lines = text.Split('\n');
+        var regex = new Regex(@"^>\s*(.*)$");
+        
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var match = regex.Match(lines[i]);
+            if (match.Success)
+            {
+                var content = match.Groups[1].Value;
+                lines[i] = $"[italic grey]{content}[/]";
+            }
+        }
+        
+        return string.Join('\n', lines);
     }
 
     private static string ConvertInlineCode(string text)
@@ -244,9 +258,6 @@ internal static partial class MarkdownToSpectreConverter
 
     [GeneratedRegex(@"```\s*(.*?)\s*```", RegexOptions.Singleline)]
     private static partial Regex CodeBlockRegex();
-
-    [GeneratedRegex(@"^>\s*(.*)$", RegexOptions.Multiline)]
-    private static partial Regex QuotedTextRegex();
 
     [GeneratedRegex(@"`([^`]+)`")]
     private static partial Regex InlineCodeRegex();
