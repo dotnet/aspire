@@ -43,6 +43,9 @@ internal static partial class MarkdownToSpectreConverter
         // Process links [text](url)
         result = ConvertLinks(result);
 
+        // Escape any remaining square brackets that could be interpreted as Spectre markup
+        result = EscapeRemainingSquareBrackets(result);
+
         return result;
     }
 
@@ -88,6 +91,40 @@ internal static partial class MarkdownToSpectreConverter
     {
         // Convert [text](url) to just the URL with underline and blue color
         return LinkRegex().Replace(text, "[blue underline]$2[/]");
+    }
+
+    private static string EscapeRemainingSquareBrackets(string text)
+    {
+        // Escape any remaining square brackets that are not part of Spectre markup
+        // We need to preserve Spectre markup tags like [bold], [/], [blue underline], etc.
+        // but escape markdown constructs like reference links [text][ref]
+        
+        // Use a regex to find standalone square brackets that are not Spectre markup
+        // Spectre markup pattern: [word] or [word word] or [/] 
+        // Reference/other markdown pattern: everything else with square brackets
+        
+        // First, temporarily replace all Spectre markup with placeholders
+        var spectreMarkups = new List<string>();
+        var spectrePattern = @"\[(?:/?(?:bold|italic|grey|blue|green|yellow|underline|strikethrough)\s?)+\]|\[/\]";
+        var spectreRegex = new Regex(spectrePattern);
+        
+        var textWithPlaceholders = spectreRegex.Replace(text, match =>
+        {
+            var placeholder = $"__SPECTRE_MARKUP_{spectreMarkups.Count}__";
+            spectreMarkups.Add(match.Value);
+            return placeholder;
+        });
+        
+        // Now escape remaining square brackets
+        textWithPlaceholders = textWithPlaceholders.Replace("[", "[[").Replace("]", "]]");
+        
+        // Restore Spectre markup
+        for (int i = 0; i < spectreMarkups.Count; i++)
+        {
+            textWithPlaceholders = textWithPlaceholders.Replace($"__SPECTRE_MARKUP_{i}__", spectreMarkups[i]);
+        }
+        
+        return textWithPlaceholders;
     }
 
     [GeneratedRegex(@"^### (.+?)\s*$", RegexOptions.Multiline)]

@@ -147,4 +147,43 @@ Some more text.";
         // Assert
         Assert.Equal("This should not break: [bold]bold[/] and [italic]italic[/]", result);
     }
+
+    [Fact]
+    public void ConvertToSpectre_WithReferenceLinks_EscapesSquareBrackets()
+    {
+        // Arrange - test reference style links that should be escaped
+        var markdown = "Reference style: [ref link][id1] and another [second][id2].";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal("Reference style: [[ref link]][[id1]] and another [[second]][[id2]].", result);
+    }
+
+    [Fact]
+    public void ConvertToSpectre_WithMixedLinks_HandlesCorrectly()
+    {
+        // Arrange - test mix of inline links (should convert) and reference links (should escape)
+        var markdown = "Inline [GitHub](https://github.com) and reference [docs][ref1].";
+
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal("Inline [blue underline]https://github.com[/] and reference [[docs]][[ref1]].", result);
+    }
+
+    [Theory]
+    [InlineData("[standalone]", "[[standalone]]")]
+    [InlineData("Text [bracket] more text", "Text [[bracket]] more text")]
+    [InlineData("[multiple] [brackets] [here]", "[[multiple]] [[brackets]] [[here]]")]
+    public void ConvertToSpectre_WithStandaloneBrackets_EscapesCorrectly(string markdown, string expected)
+    {
+        // Act
+        var result = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
 }
