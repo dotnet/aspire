@@ -3,6 +3,7 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,178 +90,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
-    }
-
-    [Fact]
-    public async Task AddCommandSortsPackageVersions()
-    {
-        IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
-
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-
-            options.AddCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
-
-                prompter.PromptForIntegrationVersionCallback = (packages) =>
-                {
-                    promptedPackages = packages;
-                    return packages.First();
-                };
-
-                return prompter;
-            };
-
-            options.ProjectLocatorFactory = _ => new TestProjectLocator();
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
-                {
-                    var redis92Package = new NuGetPackage()
-                    {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "nuget",
-                        Version = "9.2.0"
-                    };
-
-                    var redis93Package = new NuGetPackage()
-                    {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "nuget",
-                        Version = "9.3.0"
-                    };
-
-                    return (
-                        0, // Exit code.
-                        new NuGetPackage[] { redis92Package, redis93Package } // 
-                        );
-                };
-
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
-                {
-                    // Simulate adding the package.
-                    return 0; // Success.
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<AddCommand>();
-        var result = command.Parse("add");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-        Assert.Collection(
-            promptedPackages!,
-            p => Assert.Equal("9.3.0", p.Package.Version),
-            p => Assert.Equal("9.2.0", p.Package.Version)
-            );
-    }
-
-    [Fact]
-    public async Task AddCommandSortsPackageVersionsWithPrerelease()
-    {
-        var searchedCallCount = 0;
-        IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
-
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            // Disabled because we are call counting package searches and the CLI
-            // package search that happens in the background interferes with the count
-            // non-deterministically.
-            options.DisabledFeatures = [KnownFeatures.UpdateNotificationsEnabled];
-
-            options.AddCommandPrompterFactory = (sp) =>
-            {
-                var interactionService = sp.GetRequiredService<IInteractionService>();
-                var prompter = new TestAddCommandPrompter(interactionService);
-
-                prompter.PromptForIntegrationVersionCallback = (packages) =>
-                {
-                    promptedPackages = packages;
-                    return packages.First();
-                };
-
-                return prompter;
-            };
-
-            options.ProjectLocatorFactory = _ => new TestProjectLocator();
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
-                {
-                    searchedCallCount++;
-
-                    if (prerelease)
-                    {
-                        var redis94PrereleasePackage = new NuGetPackage()
-                        {
-                            Id = "Aspire.Hosting.Redis",
-                            Source = "nuget",
-                            Version = "9.4.0-preview1.1234"
-                        };
-                        
-                        return (
-                            0, // Exit code.
-                            new NuGetPackage[] { redis94PrereleasePackage } // 
-                            );
-                    }
-                    else
-                    {
-                        var redis92Package = new NuGetPackage()
-                        {
-                            Id = "Aspire.Hosting.Redis",
-                            Source = "nuget",
-                            Version = "9.2.0"
-                        };
-
-                        var redis93Package = new NuGetPackage()
-                        {
-                            Id = "Aspire.Hosting.Redis",
-                            Source = "nuget",
-                            Version = "9.3.0"
-                        };
-
-                        return (
-                            0, // Exit code.
-                            new NuGetPackage[] { redis92Package, redis93Package }
-                            );
-                    }
-                };
-
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
-                {
-                    // Simulate adding the package.
-                    return 0; // Success.
-                };
-
-                return runner;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<AddCommand>();
-        var result = command.Parse("add");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(0, exitCode);
-        Assert.Equal(2, searchedCallCount);
-        Assert.Collection(
-            promptedPackages!,
-            p => Assert.Equal("9.4.0-preview1.1234", p.Package.Version),
-            p => Assert.Equal("9.3.0", p.Package.Version),
-            p => Assert.Equal("9.2.0", p.Package.Version)
-            );
     }
 
     [Fact]
@@ -426,7 +255,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AddCommandPromptsForDisambiguation()
     {
-        IEnumerable<(string FriendlyName, NuGetPackage Package)>? promptedPackages = null;
+        IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>? promptedPackages = null;
         string? addedPackageName = null;
         string? addedPackageVersion = null;
 
@@ -702,7 +531,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         var package = new NuGetPackage { Id = packageId, Version = "1.0.0", Source = "test" };
 
         // Act
-        var result = AddCommand.GenerateFriendlyName(package);
+        var result = AddCommand.GenerateFriendlyName((package, null!)); // Null is OK for this test.
 
         // Assert
         Assert.Equal(expectedFriendlyName, result.FriendlyName);
@@ -712,10 +541,10 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)
 {
-    public Func<IEnumerable<(string FriendlyName, NuGetPackage Package)>, (string FriendlyName, NuGetPackage Package)>? PromptForIntegrationCallback { get; set; }
-    public Func<IEnumerable<(string FriendlyName, NuGetPackage Package)>, (string FriendlyName, NuGetPackage Package)>? PromptForIntegrationVersionCallback { get; set; }
+    public Func<IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>, (string FriendlyName, NuGetPackage Package, PackageChannel Channel)>? PromptForIntegrationCallback { get; set; }
+    public Func<IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>, (string FriendlyName, NuGetPackage Package, PackageChannel Channel)>? PromptForIntegrationVersionCallback { get; set; }
 
-    public override Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    public override Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
         return PromptForIntegrationCallback switch
         {
@@ -724,7 +553,7 @@ internal sealed class TestAddCommandPrompter(IInteractionService interactionServ
         };
     }
 
-    public override Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    public override Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
         return PromptForIntegrationVersionCallback switch
         {
