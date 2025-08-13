@@ -563,8 +563,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var promptCall = promptCalls[0];
         
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):" 
-        // should be converted to Spectre markup "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]Azure Portal[/]:[/]"
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]Azure Portal[/]:[/]";
+        // should be converted to Spectre markup with URL instead of text
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
@@ -642,7 +642,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                     Id = prompt.PromptId,
                     StatusText = prompt.Inputs.Count > 1
                         ? prompt.Title ?? prompt.Message
-                        : prompt.Inputs[0].Label,
+                        : prompt.Message,
                     CompletionState = CompletionStates.InProgress,
                     StepId = "publish-step",
                     Inputs = inputs
