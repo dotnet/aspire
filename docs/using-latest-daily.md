@@ -34,7 +34,7 @@ aspire new
 
 Running through the wizard will allow you to select a channel (daily/stable etc).
 
-```
+```shell
 Enter the project name (aspire-projects): dailybuild0
 Enter the output path: (./dailybuild0): ./dailybuild0
 ✔  Using Redis Cache for caching.
