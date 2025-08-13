@@ -100,8 +100,6 @@
     
     <!-- Move the aspire binary into the aspire subdirectory -->
     <Move SourceFiles="$(_TempBinaryPath)" DestinationFiles="$([MSBuild]::NormalizePath($(_AspireSubdirectory), 'aspire'))" />
-    
-    <Message Text="Organized Linux archive structure: moved aspire binary to aspire/ subdirectory" Importance="high" />
   </Target>
 
 </Project>
