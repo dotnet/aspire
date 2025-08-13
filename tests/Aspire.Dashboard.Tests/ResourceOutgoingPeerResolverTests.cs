@@ -17,7 +17,7 @@ public class ResourceOutgoingPeerResolverTests
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null, KnownResourceState? state = null)
     {
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             displayName: displayName,
             state: state,
             urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]);
@@ -334,7 +334,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.ConnectionString,
             properties: properties);
     }
@@ -352,7 +352,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.Parameter,
             properties: properties);
     }

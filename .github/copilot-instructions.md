@@ -50,7 +50,7 @@ Note that tests for a project can be executed without first building from the ro
 (4) To run just certain tests, it's important to include the filter, for example:
 
 ```
-dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --filter "TestingBuilderHasAllPropertiesFromRealBuilder"
+dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder"
 ```
 
 Important: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
@@ -64,10 +64,12 @@ When running tests in automated environments (including Copilot agent), **always
 dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter-not-trait "quarantined=true"
 
 # For specific test filters, combine with quarantine exclusion
-dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter "TestName" --filter-not-trait "quarantined=true"
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj --filter-method "TestName" --filter-not-trait "quarantined=true"
 ```
 
 Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
+
+Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
 
 ## Quarantined tests
 

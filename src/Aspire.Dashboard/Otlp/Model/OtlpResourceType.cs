@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-public enum OtlpApplicationType
+public enum OtlpResourceType
 {
     ResourceGrouping,
     Singleton,

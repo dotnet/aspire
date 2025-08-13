@@ -835,11 +835,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select an application.
+        ///   Looks up a localized string similar to Select a resource.
         /// </summary>
-        public static string SelectAnApplication {
+        public static string SelectAResource {
             get {
-                return ResourceManager.GetString("SelectAnApplication", resourceCulture);
+                return ResourceManager.GetString("SelectAResource", resourceCulture);
             }
         }
         

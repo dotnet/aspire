@@ -156,7 +156,7 @@ public partial class PlotlyChart : ChartBase
             string title;
             if (exemplar.Span != null)
             {
-                title = SpanWaterfallViewModel.GetTitle(exemplar.Span, Applications);
+                title = SpanWaterfallViewModel.GetTitle(exemplar.Span, Resources);
             }
             else if (!string.IsNullOrEmpty(exemplar.TraceId))
             {

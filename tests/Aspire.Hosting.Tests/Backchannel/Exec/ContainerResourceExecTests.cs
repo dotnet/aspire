@@ -15,6 +15,31 @@ public class ContainerResourceExecTests : ExecTestsBase
 
     [Fact]
     [RequiresDocker]
+    public async Task Exec_NginxContainer_ListFiles_WithWorkdirSpecified_ProducesLogs_Success()
+    {
+        string[] args = [
+            "--operation", "run",
+            "--resource", "test",
+            "--command", "\"ls\"",
+            "--workdir", "/bin"
+        ];
+
+        using var builder = PrepareBuilder(args);
+        WithContainerResource(builder);
+
+        using var app = builder.Build();
+
+        var logs = await ExecWithLogCollectionAsync(app);
+        AssertLogsContain(logs,
+            "apt-get", "base32", "base64", // typical output of `ls /bin` in a container
+            "Aspire exec exit code: 0" // exit code is submitted separately from the command logs
+        );
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task Exec_NginxContainer_ListFiles_ProducesLogs_Success()
     {
         string[] args = [

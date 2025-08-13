@@ -6,7 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -19,18 +19,18 @@ namespace Aspire.Cli.Commands;
 internal sealed class AddCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
-    private readonly INuGetPackageCache _nuGetPackageCache;
+    private readonly IPackagingService _packagingService;
     private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public AddCommand(IDotNetCliRunner runner, INuGetPackageCache nuGetPackageCache, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
+    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base("add", AddCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(nuGetPackageCache);
+        ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(prompter);
@@ -38,7 +38,7 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
-        _nuGetPackageCache = nuGetPackageCache;
+        _packagingService = packagingService;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;
@@ -89,23 +89,39 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packages = await _interactionService.ShowStatusAsync(
+            var packagesWithChannels = await _interactionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
-                () => _nuGetPackageCache.GetIntegrationPackagesAsync(
-                    workingDirectory: effectiveAppHostProjectFile.Directory!,
-                    prerelease: true,
-                    source: source,
-                    cancellationToken: cancellationToken)
-                );
+                async () =>
+                {
+                    // Get channels and find the implicit channel, similar to how templates are handled
+                    var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            if (!packages.Any())
+                    var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
+                    var packagesLock = new object();
+
+                    await Parallel.ForEachAsync(channels, async (channel, ct) =>
+                    {
+                        var integrationPackages = await channel.GetIntegrationPackagesAsync(
+                            workingDirectory: effectiveAppHostProjectFile.Directory!,
+                            cancellationToken: ct);
+                        lock (packagesLock)
+                        {
+                            packages.AddRange(integrationPackages.Select(p => (p, channel)));
+                        }
+                    });
+
+                    return packages;
+
+                });
+
+            if (!packagesWithChannels.Any())
             {
                 throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
             }
 
             var version = parseResult.GetValue<string?>("--version");
 
-            var packagesWithShortName = packages.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
+            var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
 
             if (!packagesWithShortName.Any())
             {
@@ -203,7 +219,7 @@ internal sealed class AddCommand : BaseCommand
         }
     }
 
-    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
+    private async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> GetPackageByInteractiveFlow(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> possiblePackages, string? preferredVersion, CancellationToken cancellationToken)
     {
         var distinctPackages = possiblePackages.DistinctBy(p => p.Package.Id);
 
@@ -232,7 +248,7 @@ internal sealed class AddCommand : BaseCommand
         return version;
     }
 
-    private async Task<(string FriendlyName, NuGetPackage Package)> GetPackageByInteractiveFlowWithNoMatchesMessage(IEnumerable<(string FriendlyName, NuGetPackage Package)> possiblePackages, string? searchTerm, CancellationToken cancellationToken)
+    private async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> GetPackageByInteractiveFlowWithNoMatchesMessage(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> possiblePackages, string? searchTerm, CancellationToken cancellationToken)
     {
         if (searchTerm is not null)
         {
@@ -242,81 +258,109 @@ internal sealed class AddCommand : BaseCommand
         return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);
     }
 
-    internal static (string FriendlyName, NuGetPackage Package) GenerateFriendlyName(NuGetPackage package)
+    internal static (string FriendlyName, NuGetPackage Package, PackageChannel Channel) GenerateFriendlyName((NuGetPackage Package, PackageChannel Channel) packageWithChannel)
     {
         // Remove 'Aspire.Hosting' segment from anywhere in the package name
-        var packageId = package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
+        var packageId = packageWithChannel.Package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
         
-        return (friendlyName, package);
+        return (friendlyName, packageWithChannel.Package, packageWithChannel.Channel);
     }
 }
 
 internal interface IAddCommandPrompter
 {
-    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
-    Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken);
+    Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken);
+    Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken);
 }
 
-internal class  AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
+internal class AddCommandPrompter(IInteractionService interactionService) : IAddCommandPrompter
 {
-    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    public virtual async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationVersionAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
-        var selectedPackage = packages.First();
+        var firstPackage = packages.First();
 
-        var packagesGroupedByReleaseStatus = packages.GroupBy(p => SemVersion.Parse(p.Package.Version).IsPrerelease ? "Prerelease" : "Released");
-        var releasedGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Released");
-        var prereleaseGroup = packagesGroupedByReleaseStatus.FirstOrDefault(g => g.Key == "Prerelease");
-
-        var selections = new List<(string SelectionText, Func<Task<(string, NuGetPackage)>> PackageSelector)>();
-
-        foreach (var releasedPackage in releasedGroup ?? Enumerable.Empty<(string FriendlyName, NuGetPackage Package)>())
+        // Helper to keep labels consistently formatted: "Version (source)"
+        static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
-            selections.Add(($"{releasedPackage.Package.Version} ({releasedPackage.Package.Source})", () => Task.FromResult(releasedPackage)));
+            var pkg = item.Package;
+            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
+            return $"{pkg.Version} ({source})";
         }
 
-        if (releasedGroup is not null && prereleaseGroup is not null)
+        async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
+            PackageChannel channel,
+            IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> items,
+            CancellationToken ct)
         {
-            // If we have prerelease packages (and there are released packages) we
-            // want to show a sub-menu option which we will use to prompt the user.
-            // To make this work the first prompt returns a function which is invoke
-            // which will either return the package or trigger another prompt for
-            // sub-packages. This is the sub-prompt logic.
-            selections.Add((AddCommandStrings.UsePrereleasePackages, async () =>
+            var choices = items
+                .Select(i => (
+                    Label: FormatVersionLabel(i),
+                    Result: i
+                ))
+                .ToArray();
+
+            var selection = await interactionService.PromptForSelectionAsync(
+                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
+                choices,
+                c => c.Label,
+                ct);
+
+            return selection.Result;
+        }
+
+        // Group the incoming package versions by channel
+        var byChannel = packages
+            .GroupBy(p => p.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // Build the root menu: implicit channel packages directly, explicit channels as submenus
+        var rootChoices = new List<(string Label, Func<CancellationToken, Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>> Action)>();
+
+        if (implicitGroup is not null)
+        {
+            foreach (var item in implicitGroup)
             {
-                return await interactionService.PromptForSelectionAsync(
-                     string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-                     prereleaseGroup,
-                     (p) => $"{p.Package.Version} ({p.Package.Source})",
-                     cancellationToken
-                     );
+                var captured = item;
+                rootChoices.Add((
+                    Label: FormatVersionLabel(captured),
+                    Action: ct => Task.FromResult(captured)
+                ));
             }
+        }
+
+        foreach (var channelGroup in explicitGroups)
+        {
+            var channel = channelGroup.Key;
+            var items = channelGroup.ToArray();
+
+            rootChoices.Add((
+                Label: channel.Name,
+                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
             ));
         }
-        else if (prereleaseGroup is not null)
+
+        // Fallback if no choices for some reason
+        if (rootChoices.Count == 0)
         {
-            // Fallback behavior if we happen to have NuGet feeds configured such
-            // that we only have access to prerelease packages - in this
-            // case we just want to display them rather than having a special
-            // expander menu.
-            foreach (var prereleasePackage in prereleaseGroup)
-            {
-                selections.Add(($"{prereleasePackage.Package.Version} ({prereleasePackage.Package.Source})", () => Task.FromResult(prereleasePackage)));
-            }
+            return firstPackage;
         }
 
-        var selection = await interactionService.PromptForSelectionAsync(
-            string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, selectedPackage.Package.Id),
-            selections,
-            s => s.SelectionText,
-            cancellationToken
-            );
+        var topSelection = await interactionService.PromptForSelectionAsync(
+            string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
+            rootChoices,
+            c => c.Label,
+            cancellationToken);
 
-        var package = await selection.PackageSelector();
-        return package;
+        return await topSelection.Action(cancellationToken);
     }
 
-    public virtual async Task<(string FriendlyName, NuGetPackage Package)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package)> packages, CancellationToken cancellationToken)
+    public virtual async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForIntegrationAsync(IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> packages, CancellationToken cancellationToken)
     {
         var selectedIntegration = await interactionService.PromptForSelectionAsync(
             AddCommandStrings.SelectAnIntegrationToAdd,
@@ -326,7 +370,7 @@ internal class  AddCommandPrompter(IInteractionService interactionService) : IAd
         return selectedIntegration;
     }
 
-    private static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package) packageWithFriendlyName)
+    private static string PackageNameWithFriendlyNameIfAvailable((string FriendlyName, NuGetPackage Package, PackageChannel Channel) packageWithFriendlyName)
     {
         if (packageWithFriendlyName.FriendlyName is { } friendlyName)
         {

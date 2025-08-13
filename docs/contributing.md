@@ -31,6 +31,10 @@ Or, if you are using Visual Studio:
 
 Make sure you [build the repo](#build-the-repo) from command line at least once. Then use `./start-code.sh` (macOS and Linux) or `.\start-code.cmd` to start VS Code.
 
+## Using Visual Studio
+
+Make sure you [build the repo](#build-the-repo) from command line at least once using `.\build.cmd` (Windows). Then use `.\startvs.cmd` to start Visual Studio with the correct environment setup.
+
 ## Native build
 
 The default build includes native builds for `Aspire.Cli` which produces Native AOT binaries for some platforms. These projects are in `eng/clipack/Aspire.Cli.*`.

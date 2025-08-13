@@ -494,7 +494,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--start-resource", "Exec:ResourceName" },
-            { "--command", "Exec:Command" }
+            { "--command", "Exec:Command" },
+            { "--workdir", "Exec:WorkingDirectory" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 
