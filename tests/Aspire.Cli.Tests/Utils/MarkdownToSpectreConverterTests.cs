@@ -309,7 +309,7 @@ Some ~~strikethrough~~ text with ```inline code block```.
 [italic grey]This is a quoted line[/]
 Some [strikethrough]strikethrough[/] text with [grey]inline code block[/].
 [bold]Header 5[/]
-[bold]Header 6[/]";
+[bold]Header 6[/]".Replace("\r\n", "\n").Replace("\r", "\n");
         Assert.Equal(expected, result);
     }
 
@@ -327,7 +327,7 @@ Some [strikethrough]strikethrough[/] text with [grey]inline code block[/].
         // Assert
         var expected = @"[italic grey]Line 1[/]
 [italic grey][/]
-[italic grey]Line 2[/]";
+[italic grey]Line 2[/]".Replace("\r\n", "\n").Replace("\r", "\n");
         Assert.Equal(expected, result);
     }
 
@@ -386,7 +386,7 @@ npm install
 [grey]cd /path/to/project
 npm install[/]
 
-[italic grey]That's all![/]";
+[italic grey]That's all![/]".Replace("\r\n", "\n").Replace("\r", "\n");
         Assert.Equal(expected, result);
     }
 }
