@@ -605,6 +605,12 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WaitForCompletion<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency, int exitCode = 0)
             where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<T> WaitForStart<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency, ApplicationModel.WaitBehavior waitBehavior)
+            where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WaitForStart<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency)
+            where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithArgs<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.CommandLineArgsCallbackContext> callback)
             where T : ApplicationModel.IResourceWithArgs { throw null; }
 
@@ -2242,7 +2248,8 @@ namespace Aspire.Hosting.ApplicationModel
     public enum WaitType
     {
         WaitUntilHealthy = 0,
-        WaitForCompletion = 1
+        WaitForCompletion = 1,
+        WaitUntilStarted = 2
     }
 }
 

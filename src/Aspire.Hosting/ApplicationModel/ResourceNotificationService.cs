@@ -356,6 +356,74 @@ public class ResourceNotificationService : IDisposable
         }
     }
 
+    private async Task WaitUntilStartedAsync(IResource resource, IResource dependency, WaitBehavior waitBehavior, CancellationToken cancellationToken)
+    {
+        var resourceLogger = _resourceLoggerService.GetLogger(resource);
+        resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
+        await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+
+        var names = dependency.GetResolvedResourceNames();
+        var tasks = new Task[names.Length];
+
+        for (var i = 0; i < names.Length; i++)
+        {
+            var displayName = names.Length > 1 ? names[i] : dependency.Name;
+            tasks[i] = Core(displayName, names[i]);
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        async Task Core(string displayName, string resourceId)
+        {
+            var resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && IsContinuableState(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (waitBehavior == WaitBehavior.StopOnResourceUnavailable)
+            {
+                if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+                {
+                    resourceLogger.LogError(
+                        "Dependency resource '{ResourceName}' failed to start.",
+                        displayName
+                        );
+
+                    throw new DistributedApplicationException($"Dependency resource '{displayName}' failed to start.");
+                }
+                else if (snapshot.State!.Text == KnownResourceStates.Finished ||
+                         snapshot.State.Text == KnownResourceStates.Exited ||
+                         snapshot.State.Text == KnownResourceStates.RuntimeUnhealthy)
+                {
+                    resourceLogger.LogError(
+                        "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                        displayName,
+                        snapshot.State.Text
+                        );
+
+                    throw new DistributedApplicationException(
+                        $"Resource '{displayName}' has entered the '{snapshot.State.Text}' state prematurely."
+                        );
+                }
+            }
+
+            // Unlike WaitUntilHealthyAsync, we don't wait for health checks here.
+            // We only wait for the resource to reach the Running state.
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}' to start.", displayName);
+
+            static bool IsContinuableState(WaitBehavior waitBehavior, CustomResourceSnapshot snapshot) =>
+                waitBehavior switch
+                {
+                    WaitBehavior.WaitOnResourceUnavailable => snapshot.State?.Text == KnownResourceStates.Running,
+                    WaitBehavior.StopOnResourceUnavailable => snapshot.State?.Text == KnownResourceStates.Running ||
+                                                            snapshot.State?.Text == KnownResourceStates.Finished ||
+                                                            snapshot.State?.Text == KnownResourceStates.Exited ||
+                                                            snapshot.State?.Text == KnownResourceStates.FailedToStart ||
+                                                            snapshot.State?.Text == KnownResourceStates.RuntimeUnhealthy,
+                    _ => throw new DistributedApplicationException($"Unexpected wait behavior: {waitBehavior}")
+                };
+        }
+    }
+
     /// <summary>
     /// Waits for all dependencies of the resource to be ready.
     /// </summary>
@@ -383,6 +451,7 @@ public class ResourceNotificationService : IDisposable
             {
                 WaitType.WaitUntilHealthy => WaitUntilHealthyAsync(resource, waitAnnotation.Resource, waitAnnotation.WaitBehavior ?? DefaultWaitBehavior, cancellationToken),
                 WaitType.WaitForCompletion => WaitUntilCompletionAsync(resource, waitAnnotation.Resource, waitAnnotation.ExitCode, cancellationToken),
+                WaitType.WaitUntilStarted => WaitUntilStartedAsync(resource, waitAnnotation.Resource, waitAnnotation.WaitBehavior ?? DefaultWaitBehavior, cancellationToken),
                 _ => throw new DistributedApplicationException($"Unexpected wait type: {waitAnnotation.WaitType}")
             };
             pendingDependencies.Add(pendingDependency);
