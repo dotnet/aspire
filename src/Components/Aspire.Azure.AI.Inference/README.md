@@ -105,7 +105,7 @@ You can also pass the `Action<ChatCompletionsClientSettings> configureSettings` 
 builder.AddAzureChatCompletionsClient("connectionName", settings => settings.DisableTracing = true);
 ```
 
-You can also setup the [AzureAIInferenceClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.inference.AzureAIInferenceClientOptions) using the optional `Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>> configureClientBuilder` parameter of the `AddChatCompletionsClient` method. For example, to set the client ID for this client:
+You can also setup the [AzureAIInferenceClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.inference.AzureAIInferenceClientOptions) using the optional `Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>> configureClientBuilder` parameter of the `AddAzureChatCompletionsClient` method. For example, to set the client ID for this client:
 
 ```csharp
 builder.AddAzureChatCompletionsClient("connectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
