@@ -89,17 +89,25 @@
   <Target Name="_OrganizeLinuxArchiveStructure" Condition="$(CliRuntime.StartsWith('linux-'))">
     <PropertyGroup>
       <_AspireSubdirectory>$([MSBuild]::NormalizePath($(OutputPath), 'aspire'))</_AspireSubdirectory>
-      <_TempBinaryPath>$([MSBuild]::NormalizePath($(OutputPath), 'aspire.tmp'))</_TempBinaryPath>
     </PropertyGroup>
     
-    <!-- Move the aspire binary to a temporary name -->
-    <Move SourceFiles="$(_NativeBinaryPath)" DestinationFiles="$(_TempBinaryPath)" />
+    <!-- Ensure the aspire binary exists before proceeding -->
+    <Error Condition="!Exists('$(_NativeBinaryPath)')" Text="Cannot reorganize: aspire binary not found at $(_NativeBinaryPath)" />
     
-    <!-- Create the aspire subdirectory -->
+    <!-- Rename aspire binary to avoid conflict with directory -->
+    <Move SourceFiles="$(_NativeBinaryPath)" DestinationFiles="$(_NativeBinaryPath).tmp" />
+    
+    <!-- Create aspire subdirectory -->
     <MakeDir Directories="$(_AspireSubdirectory)" />
     
-    <!-- Move the aspire binary into the aspire subdirectory -->
-    <Move SourceFiles="$(_TempBinaryPath)" DestinationFiles="$([MSBuild]::NormalizePath($(_AspireSubdirectory), 'aspire'))" />
+    <!-- Move renamed aspire binary to subdirectory -->
+    <Move SourceFiles="$(_NativeBinaryPath).tmp" DestinationFiles="$([MSBuild]::NormalizePath($(_AspireSubdirectory), 'aspire'))" />
+    
+    <!-- Move any other files that might exist -->
+    <ItemGroup>
+      <OtherFiles Include="$(OutputPath)*.*" />
+    </ItemGroup>
+    <Move SourceFiles="@(OtherFiles)" DestinationFolder="$(_AspireSubdirectory)" ContinueOnError="true" />
   </Target>
 
 </Project>
