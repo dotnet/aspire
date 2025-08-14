@@ -107,7 +107,7 @@ public static class AzureAppConfigurationExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithBindMount(path ?? $".aace", "/app/.aace", isReadOnly: false);
+        return builder.WithBindMount(path ?? $".aace/{builder.Resource.Name}", "/app/.aace", isReadOnly: false);
     }
 
     /// <summary>
