@@ -973,7 +973,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 .RemoveSuffix("Resource")
                 .Underscore();
 
-            if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes().Contains(resourceType))
+            if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains(resourceType) is not false)
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
@@ -1034,13 +1034,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var projectArgs = new List<string>();
 
-                projectLaunchConfiguration.Mode = _configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug"
-                    ? ProjectLaunchMode.Debug
-                    : ProjectLaunchMode.NoDebug;
-
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
+                // We cannot use the IDE execution type if the Aspire extension does not support c# projects
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains("project") is not false)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
+
+                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
+                    {
+                        projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
+                    }
 
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
                     if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -2026,10 +2028,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Returns a list of resource types that are supported for IDE launch. Always contains project
     /// </summary>
-    private List<string> GetDebugSupportedResourceTypes()
+    private List<string>? GetDebugSupportedResourceTypes()
     {
         return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
-            ? []
+            ? null
             : capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 

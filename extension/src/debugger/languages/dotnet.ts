@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { debugProject, csharpDevKitNotInstalled, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
+import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../../utils/environment';
@@ -21,7 +21,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
         }
 
         if (!getSupportedCapabilities().includes('csharp')) {
-            throw new Error('C# support is not enabled in this workspace. The C# extension is required.');
+            throw new Error('C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
         }
 
         const config: AspireExtendedDebugConfiguration = {
@@ -54,7 +54,9 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
 async function buildDotNetProject(projectFile: string): Promise<void> {
     const csharpDevKit = vscode.extensions.getExtension('ms-dotnettools.csdevkit');
     if (!csharpDevKit) {
-        return Promise.reject(new Error(csharpDevKitNotInstalled));
+        // If c# dev kit is not installed, we will have already built this project on the command line using the Aspire CLI
+        // thus we should just immediately return
+        return Promise.resolve();
     }
 
     if (!csharpDevKit.isActive) {

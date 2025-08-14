@@ -130,7 +130,7 @@ internal sealed class RunCommand : BaseCommand
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
                 if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel)
-                    || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
+                    || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
                     var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
 

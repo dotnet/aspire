@@ -32,7 +32,6 @@ export const aspireOutputChannelName = localize('aspire-vscode.strings.aspireOut
 export const fieldRequired = localize('aspire-vscode.strings.fieldRequired', 'This field is required');
 export const debugProject = (projectName: string) => localize('aspire-vscode.strings.debugProject', 'Debug {0}', projectName);
 export const watchProject = (projectName: string, projectType: string) => localize('aspire-vscode.strings.watchProject', 'Watch {0} ({1})', projectName, projectType);
-export const csharpDevKitNotInstalled = localize('aspire-vscode.strings.csharpDevKitNotInstalled', 'C# Dev Kit is not installed. Please install it from the marketplace.');
 export const noCsharpBuildTask = localize('aspire-vscode.strings.noCsharpBuildTask', 'No C# Dev Kit build task found.');
 export const noWatchTask = localize('aspire-vscode.strings.noWatchTask', 'No watch task found. Please ensure a watch task is defined in your workspace.');
 export const buildFailedWithExitCode = (exitCode: number) => localize('aspire-vscode.strings.buildFailedWithExitCode', 'Build failed with exit code {0}', exitCode);

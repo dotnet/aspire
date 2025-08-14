@@ -472,23 +472,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
-        if (backchannelCompletionSource is not null
-            && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
+        if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
+            // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
             startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
             startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
-            await extensionInteractionService.LaunchAppHostAsync(
-                projectFile.FullName,
-                startInfo.WorkingDirectory,
-                startInfo.ArgumentList.ToList(),
-                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
-                options.StartDebugSession);
+            if (backchannelCompletionSource is not null
+                && projectFile is not null
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.CSharp, cancellationToken))
+            {
+                await extensionInteractionService.LaunchAppHostAsync(
+                    projectFile.FullName,
+                    startInfo.WorkingDirectory,
+                    startInfo.ArgumentList.ToList(),
+                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                    options.StartDebugSession);
 
-            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
 
-            return ExitCodeConstants.Success;
+                return ExitCodeConstants.Success;
+            }
         }
 
         var process = new Process { StartInfo = startInfo };
