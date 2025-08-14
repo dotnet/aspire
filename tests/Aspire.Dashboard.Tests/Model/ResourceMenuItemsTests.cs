@@ -52,7 +52,7 @@ public sealed class ResourceMenuItemsTests
     public void AddMenuItems_UninstrumentedPeer_TraceItem()
     {
         // Arrange
-        var resource = ModelTestHelpers.CreateResource(appName: "test-abc");
+        var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes => (resource.Name, resource));
         var repository = TelemetryTestHelpers.CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
         var addContext = new AddContext();
@@ -105,7 +105,7 @@ public sealed class ResourceMenuItemsTests
     public void AddMenuItems_HasTelemetry_TelemetryItems()
     {
         // Arrange
-        var resource = ModelTestHelpers.CreateResource(appName: "test-abc");
+        var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var repository = TelemetryTestHelpers.CreateRepository();
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()

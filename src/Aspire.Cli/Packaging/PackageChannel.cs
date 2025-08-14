@@ -49,6 +49,41 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         return filteredPackages;
     }
 
+    public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+    {
+        var tasks = new List<Task<IEnumerable<NuGetPackage>>>();
+
+        using var tempNuGetConfig = Type is PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(Mappings!) : null;
+
+        if (Quality is PackageChannelQuality.Stable || Quality is PackageChannelQuality.Both)
+        {
+            tasks.Add(nuGetPackageCache.GetIntegrationPackagesAsync(workingDirectory, false, tempNuGetConfig?.ConfigFile, cancellationToken));
+        }
+
+        if (Quality is PackageChannelQuality.Prerelease || Quality is PackageChannelQuality.Both)
+        {
+            tasks.Add(nuGetPackageCache.GetIntegrationPackagesAsync(workingDirectory, true, tempNuGetConfig?.ConfigFile, cancellationToken));
+        }
+
+        var packageResults = await Task.WhenAll(tasks);
+
+        var packages = packageResults
+            .SelectMany(p => p)
+            .DistinctBy(p => $"{p.Id}-{p.Version}");
+
+        // When doing a `dotnet package search` the the results may include stable packages even when searching for
+        // prerelease packages. This filters out this noise.
+        var filteredPackages = packages.Where(p => new { SemVer = SemVersion.Parse(p.Version), Quality = Quality } switch
+        {
+            { Quality: PackageChannelQuality.Both } => true,
+            { Quality: PackageChannelQuality.Stable, SemVer: { IsPrerelease: false } } => true,
+            { Quality: PackageChannelQuality.Prerelease, SemVer: { IsPrerelease: true } } => true,
+            _ => false
+        });
+
+        return filteredPackages;
+    }
+
     public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
     {
         return new PackageChannel(name, quality, mappings, nuGetPackageCache);
