@@ -21,7 +21,7 @@ They download the correct build artifacts for your OS/architecture, install the 
 - Archive tools:
   - On Unix/macOS: `tar` (and/or `unzip`, depending on the archive format)
   - On Windows (PowerShell script): built-in extraction is used; for Git Bash + `.sh` script, ensure `unzip` or `tar` is available
-- Optional (for one‑liners):
+- Optional (for one-liners):
   - Bash: `curl`
   - PowerShell: `Invoke-RestMethod`/`irm` (built-in)
 
