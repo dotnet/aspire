@@ -86,30 +86,17 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task KustoEmulator_WithCreationScripts_CanReadIngestedData()
+    public async Task KustoEmulator_WithCreationScript_CanReadIngestedData()
     {
         using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
-        var kusto = builder.AddKusto("kusto")
-            .RunAsEmulator()
-            .WithCreationScript(".create database TestDb volatile;")
-            .WithCreationScript(
-            """
-            .execute database script with (ThrowOnErrors=true) <|
-                .create-merge table TestTable (Id: int, Name: string, Timestamp: datetime)
+        var kusto = builder.AddKusto("kusto").RunAsEmulator();
+        var kustoDb = kusto.AddDatabase("TestDb");
 
-                .ingest inline into table TestTable <|
-                    1,"Alice",datetime(2024-01-01T10:00:00Z)
-                    2,"Bob",datetime(2024-01-01T11:00:00Z)
-                    3,"Charlie",datetime(2024-01-01T12:00:00Z)
-            """,
-            "TestDb");
-
-        var waiter = builder.AddResource(new WaiterResource("waiter"))
-                           .WaitFor(kusto);
+        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -118,28 +105,52 @@ public class KustoFunctionalTests
         await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
-        hb.Configuration["ConnectionStrings:KustoConnection"] = await kusto.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
+        hb.Configuration["ConnectionStrings:KustoTestDbConnection"] = await kustoDb.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
-            var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoConnection") ?? throw new ArgumentException("Connection string for Kusto is not set in configuration.");
+            var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoTestDbConnection") ?? throw new ArgumentException("Connection string for Kusto is not set in configuration.");
             KustoConnectionStringBuilder kcsb = new(connectionString);
 
             return KustoClientFactory.CreateCslQueryProvider(kcsb);
+        });
+        hb.Services.AddSingleton<ICslAdminProvider>(sp =>
+        {
+            var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoTestDbConnection") ?? throw new ArgumentException("Connection string for Kusto TestDb is not set in configuration.");
+            KustoConnectionStringBuilder kcsb = new(connectionString);
+            return KustoClientFactory.CreateCslAdminProvider(kcsb);
         });
 
         using var host = hb.Build();
         await host.StartAsync(cts.Token);
 
+        var admin = host.Services.GetRequiredService<ICslAdminProvider>();
+        await _resiliencePipeline.ExecuteAsync(async cancellationToken => await SeedDataAsync(admin), cts.Token);
+
         var client = host.Services.GetRequiredService<ICslQueryProvider>();
 
-        var results = await _resiliencePipeline.ExecuteAsync(async cancellationToken => await ReadDataAsync(client, "TestDb", cancellationToken), cts.Token);
+        var results = await _resiliencePipeline.ExecuteAsync(async cancellationToken => await ReadDataAsync(client, cancellationToken), cts.Token);
 
         await Verify(results)
             .DontScrubDateTimes();
 
-        static async Task<List<object[]>> ReadDataAsync(ICslQueryProvider client, string database, CancellationToken cancellationToken)
+        static async Task SeedDataAsync(ICslAdminProvider provider)
         {
-            using var reader = await client.ExecuteQueryAsync(database, "TestTable", new ClientRequestProperties(), cancellationToken);
+            const string command =
+            """
+            .execute database script with (ThrowOnErrors=true) <|
+                .create-merge table TestTable (Id: int, Name: string, Timestamp: datetime)
+                .ingest inline into table TestTable <|
+                    1,"Alice",datetime(2024-01-01T10:00:00Z)
+                    2,"Bob",datetime(2024-01-01T11:00:00Z)
+                    3,"Charlie",datetime(2024-01-01T12:00:00Z)
+            """;
+
+            await provider.ExecuteControlCommandAsync(provider.DefaultDatabaseName, command, new ClientRequestProperties());
+        }
+
+        static async Task<List<object[]>> ReadDataAsync(ICslQueryProvider client, CancellationToken cancellationToken)
+        {
+            using var reader = await client.ExecuteQueryAsync(client.DefaultDatabaseName, "TestTable", new ClientRequestProperties(), cancellationToken);
             var results = reader.ToEnumerableObjectArray().ToList();
 
             if (results.Count == 0)

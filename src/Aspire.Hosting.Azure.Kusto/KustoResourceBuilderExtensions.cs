@@ -8,6 +8,7 @@ using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Polly;
 
 namespace Aspire.Hosting.Azure.Kusto;
@@ -17,12 +18,21 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 public static class KustoResourceBuilderExtensions
 {
+    private static readonly ResiliencePipeline s_pipeline = new ResiliencePipelineBuilder()
+        .AddRetry(new()
+        {
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(2),
+            ShouldHandle = new PredicateBuilder().Handle<KustoRequestThrottledException>(),
+        })
+        .Build();
+
     /// <summary>
     /// Adds a Kusto resource to the application model.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When adding a <see cref="KustoResource"/> to your application model the resource can then
+    /// When adding a <see cref="KustoServerResource"/> to your application model the resource can then
     /// be referenced by other resources using the resource name. When the dependent resource is using
     /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
     /// then the dependent resource will wait until the Kusto database is available.
@@ -31,12 +41,12 @@ public static class KustoResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<KustoResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+    public static IResourceBuilder<KustoServerResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var resource = new KustoResource(name);
+        var resource = new KustoServerResource(name);
         var resourceBuilder = builder.AddResource(resource);
 
         // Register a health check that will be used to verify Kusto is available
@@ -44,7 +54,7 @@ public static class KustoResourceBuilderExtensions
         resourceBuilder.OnConnectionStringAvailable(async (resource, evt, ct) =>
         {
             var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
-            throw new DistributedApplicationException($"ConnectionStringAvailableEvent  published for resource '{resource.Name}', but the connection string was null.");
+            throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{resource.Name}', but the connection string was null.");
 
             var kcsb = new KustoConnectionStringBuilder(connectionString);
             queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
@@ -60,38 +70,70 @@ public static class KustoResourceBuilderExtensions
              timeout: default));
 
         // Execute any setup now that Kusto is ready
-        resourceBuilder.OnResourceReady(async (resource, evt, ct) =>
+        resourceBuilder.OnResourceReady(async (server, evt, ct) =>
         {
-            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
+            var connectionString = await server.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
                 throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is null.");
-
-            var pipeline = new ResiliencePipelineBuilder()
-                .AddRetry(new()
-                {
-                    MaxRetryAttempts = 3,
-                    Delay = TimeSpan.FromSeconds(2),
-                    ShouldHandle = new PredicateBuilder().Handle<KustoRequestThrottledException>(),
-                })
-                .Build();
 
             var kcsb = new KustoConnectionStringBuilder(connectionString);
             using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
 
-            foreach (var annotation in resource.Annotations.OfType<KustoCreationScriptAnnotation>())
+            foreach (var name in server.Databases.Keys)
             {
-                var crp = new ClientRequestProperties()
+                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is KustoDatabaseResource kustoDatabase)
                 {
-                    ClientRequestId = Guid.NewGuid().ToString(),
-                };
-                crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
-
-                await pipeline.ExecuteAsync(async cancellationToken => await adminProvider.ExecuteControlCommandAsync(annotation.Database ?? adminProvider.DefaultDatabaseName, annotation.Script, crp).ConfigureAwait(false), ct).ConfigureAwait(false);
+                    await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
+                }
             }
         });
 
         return resourceBuilder
             .WithHealthCheck(healthCheckKey)
             .ExcludeFromManifest();
+    }
+
+    /// <summary>
+    /// Adds a Kusto database to the application model.
+    /// </summary>
+    /// <param name="builder">The Kusto server resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KustoDatabaseResource> AddDatabase(this IResourceBuilder<KustoServerResource> builder, [ResourceName] string name, string? databaseName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var kustoDatabase = new KustoDatabaseResource(name, databaseName, builder.Resource);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
+
+        // TODO: Refactor to shared heatlh check
+
+        // Register a health check that will be used to verify database is available
+        ICslQueryProvider? queryProvider = null;
+        resourceBuilder.OnConnectionStringAvailable(async (db, evt, ct) =>
+        {
+            var connectionString = await db.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
+            throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{db.Name}', but the connection string was null.");
+
+            var kcsb = new KustoConnectionStringBuilder(connectionString);
+            queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
+        });
+
+        var healthCheckKey = $"{kustoDatabase.Name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+         .Add(new HealthCheckRegistration(
+             healthCheckKey,
+             _ => new KustoHealthCheck(queryProvider!),
+             failureStatus: default,
+             tags: default,
+             timeout: default));
+
+        return resourceBuilder;
     }
 
     /// <summary>
@@ -106,8 +148,8 @@ public static class KustoResourceBuilderExtensions
     /// Optional action to configure the Kusto emulator container.
     /// </param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<KustoResource> RunAsEmulator(
-        this IResourceBuilder<KustoResource> builder,
+    public static IResourceBuilder<KustoServerResource> RunAsEmulator(
+        this IResourceBuilder<KustoServerResource> builder,
         int? httpPort = null,
         Action<IResourceBuilder<KustoEmulatorResource>>? configureContainer = null)
     {
@@ -134,29 +176,53 @@ public static class KustoResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the Kusto resource with any control script (e.g. to create tables or ingest data with the .ingest command).
+    /// Defines the script used to create the database.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// This method allows you to specify a KQL script that will be executed against the Kusto database when the resource is ready.
-    /// </para>
-    /// <para>
-    /// When creating and populating databases, the creation operations must be split across multiple scripts, as the database must first be
-    /// created, and then a subsequent script must run using a connection to the newly created database.
-    /// </para>
+    /// This script will only be executed when the Kusto resource is running in emulator mode. In production scenarios, the database creation should be handled as part of the provisioning process.
+    /// <value>Default script is <code>.create database DATABASE_NAME volatile</code></value>
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
-    /// <param name="database">The database to use when executing the script. If <see langword="null"/> use the default database.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<KustoResource> WithCreationScript(this IResourceBuilder<KustoResource> builder, string script, string? database = null)
+    public static IResourceBuilder<KustoDatabaseResource> WithCreationScript(this IResourceBuilder<KustoDatabaseResource> builder, string script)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
         // Store script as an annotation on the resource
-        builder.WithAnnotation(new KustoCreationScriptAnnotation(script, database));
+        builder.WithAnnotation(new KustoCreateDatabaseScriptAnnotation(script));
 
         return builder;
+    }
+
+    private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, KustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        var crp = new ClientRequestProperties()
+        {
+            ClientRequestId = Guid.NewGuid().ToString(),
+        };
+        crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
+
+        var scriptAnnotation = databaseResource.Annotations.OfType<KustoCreateDatabaseScriptAnnotation>().LastOrDefault();
+        var script = scriptAnnotation?.Script ?? $".create database {databaseResource.DatabaseName} volatile;";
+
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource.Parent);
+        logger.LogDebug("Creating database '{DatabaseName}'", databaseResource.DatabaseName);
+
+        try
+        {
+            await s_pipeline.ExecuteAsync(async cancellationToken => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Database '{DatabaseName}' created successfully", databaseResource.DatabaseName);
+        }
+        catch (KustoBadRequestException e) when (e.Message.Contains("EntityNameAlreadyExistsException"))
+        {
+            // Ignore the error if the database already exists.
+            logger.LogDebug("Database '{DatabaseName}' already exists", databaseResource.DatabaseName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", databaseResource.DatabaseName);
+        }
     }
 }
