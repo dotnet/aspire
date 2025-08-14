@@ -32,7 +32,6 @@
 	"aspire-vscode.strings.fieldRequired": "This field is required",
 	"aspire-vscode.strings.debugProject": "Debug {0}",
 	"aspire-vscode.strings.watchProject": "Watch {0} ({1})",
-	"aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed. Please install it from the marketplace.",
 	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found.",
 	"aspire-vscode.strings.noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
 	"aspire-vscode.strings.buildFailedWithExitCode": "Build failed with exit code {0}",
