@@ -86,7 +86,7 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task KustoEmulator_WithCreationScript_CanReadIngestedData()
+    public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
         using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
@@ -159,6 +159,57 @@ public class KustoFunctionalTests
             }
 
             return results;
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
+    {
+        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
+        using var temp = new TempDirectory();
+
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
+
+        const string dbName = "TestDb";
+        const string dbPath = "/kustodata";
+        var kusto = builder.AddKusto("kusto").RunAsEmulator(configureContainer: container =>
+        {
+            container.WithBindMount(temp.Path, dbPath);
+        });
+        var kustoDb = kusto.AddDatabase("TestDb")
+            .WithCreationScript(
+            $"""
+            .create database {dbName} persist (
+                @"{dbPath}/dbs/{dbName}/md",
+                @"{dbPath}/dbs/{dbName}/data"
+            )
+            """);
+
+        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
+
+        // Ensure the directory is empty before starting the application
+        Assert.Empty(GetFilesInMount());
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
+
+        // Ensure the directory has dbs
+        Assert.NotEmpty(GetFilesInMount());
+
+        string[] GetFilesInMount()
+        {
+            const string searchPattern = "*";
+            var enumerationOptions = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+            };
+
+            return Directory.GetFileSystemEntries(temp.Path, searchPattern, enumerationOptions);
         }
     }
 
