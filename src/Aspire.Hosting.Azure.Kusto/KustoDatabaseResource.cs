@@ -33,7 +33,7 @@ public class KustoDatabaseResource : Resource, IResourceWithParent<KustoServerRe
     public KustoServerResource Parent { get; }
 
     /// <summary>
-    /// Gets the connection string expression for the Postgres database.
+    /// Gets the connection string expression for the Kusto database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
     {
