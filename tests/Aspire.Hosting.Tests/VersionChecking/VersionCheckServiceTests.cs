@@ -188,9 +188,15 @@ public class VersionCheckServiceTests
     {
         // Arrange
         var interactionService = new TestInteractionService();
-        var configurationManager = new ConfigurationManager();
         var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
+
+        var configurationManager = new ConfigurationManager();
+        configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [VersionCheckService.KnownLatestVersionKey] = "100.0.0" // ignored
+        });
+
         var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager);
 
         // Act

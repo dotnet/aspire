@@ -93,6 +93,7 @@ internal sealed class VersionCheckService : BackgroundService
         }
 
         List<NuGetPackage>? packages = null;
+        SemVersion? storedKnownLatestVersion = null;
         if (checkForLatestVersion)
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
@@ -100,8 +101,10 @@ internal sealed class VersionCheckService : BackgroundService
             SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
-
-        TryGetConfigVersion(KnownLatestVersionKey, out var storedKnownLatestVersion);
+        else
+        {
+            TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion);
+        }
 
         var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
 
