@@ -43,13 +43,15 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       const appHostPath = this.session.configuration.program as string;
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", `Launching Aspire debug session using directory ${appHostPath}: attempting to determine effective AppHost...`);
+           this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
       }
       else {
         this.sendMessageWithEmoji("📂", `Launching Aspire debug session for AppHost ${appHostPath}...`);
+
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
       }
 
-      this.sendMessageWithEmoji("⚙️", "Spawning aspire cli process...");
-      this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session']);
 
       this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
 
@@ -94,7 +96,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  spawnRunCommand(args: string[]) {
+  spawnRunCommand(args: string[], workingDirectory: string | undefined) {
     spawnCliProcess(
       'aspire',
       args,
@@ -110,7 +112,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
             // if the process failed, we want to stop the debug session
             this.dispose();
         },
-        dcpServer: this.dcpServer
+        dcpServer: this.dcpServer,
+        workingDirectory: workingDirectory
       }
     );
   }

@@ -3,6 +3,7 @@ import { EnvVar } from "../../dcp/types";
 import { mergeEnvs } from "../../utils/environment";
 import { createEnvironment } from "../../utils/terminal";
 import DcpServer from "../../dcp/AspireDcpServer";
+import { extensionLogOutputChannel } from "../../utils/logging";
 
 export interface SpawnProcessOptions {
     stdoutCallback?: (data: string) => void;
@@ -16,9 +17,12 @@ export interface SpawnProcessOptions {
 export function spawnCliProcess(command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
     const envVars = mergeEnvs(process.env, options?.env);
     const additionalEnv = createEnvironment(options?.dcpServer);
+    const workingDirectory = options?.workingDirectory ?? process.cwd();
+
+    extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);
 
     const child = spawn(command, args ?? [], {
-        cwd: options?.workingDirectory ?? process.cwd(),
+        cwd: workingDirectory,
         env: { ...envVars, ...additionalEnv },
         shell: true // Ensures Windows compatibility
     });
