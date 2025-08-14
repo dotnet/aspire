@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
-/// Annotation to store a Kusto table or creation script.
+/// Annotation to store a Kusto database creation script.
 /// </summary>
 internal sealed class KustoCreateDatabaseScriptAnnotation : IResourceAnnotation
 {
@@ -14,7 +14,7 @@ internal sealed class KustoCreateDatabaseScriptAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="KustoCreateDatabaseScriptAnnotation"/> class.
     /// </summary>
     /// <param name="script">
-    /// The Kusto script to create the database, table, or data.
+    /// The Kusto script to create the database.
     /// </param>
     public KustoCreateDatabaseScriptAnnotation(string script)
     {
@@ -22,7 +22,7 @@ internal sealed class KustoCreateDatabaseScriptAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets the Kusto script to create the database, table, or data.
+    /// Gets the Kusto script to create the database.
     /// </summary>
     public string Script { get; }
 }
