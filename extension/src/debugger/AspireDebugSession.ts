@@ -100,10 +100,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       args,
       {
         stdoutCallback: (data) => {
-          this.sendMessageWithEmoji("📜", data);
+          this.sendMessageWithEmoji("📜", data, false);
         },
         stderrCallback: (data) => {
-          this.sendMessageWithEmoji("❌", data);
+          this.sendMessageWithEmoji("❌", data, false);
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", `Process exited with code ${code}`);
@@ -191,10 +191,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   dispose(): void {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
     vscode.debug.stopDebugging(this.session);
-
-    const terminal = getAspireTerminal().dispose();
     this.dcpServer.dispose();
-
     this._disposables.forEach(disposable => disposable.dispose());
   }
 
@@ -213,18 +210,18 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._onDidSendMessage.fire(event);
   }
 
-  sendMessageWithEmoji(emoji: string, message: string) {
-    this.sendMessage(`${emoji}  ${message}`);
+  sendMessageWithEmoji(emoji: string, message: string, addNewLine: boolean = true) {
+    this.sendMessage(`${emoji}  ${message}`, addNewLine);
   }
 
-  sendMessage(message: string) {
+  sendMessage(message: string, addNewLine: boolean = true) {
     this.sendEvent({
       type: 'event',
       seq: this._messageSeq++,
       event: 'output',
       body: {
         category: 'stdout',
-        output: `${message}\n`
+        output: `${message}${addNewLine ? '\n' : ''}`
       }
     });
   }
