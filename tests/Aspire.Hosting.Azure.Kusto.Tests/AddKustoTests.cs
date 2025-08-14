@@ -22,7 +22,7 @@ public class AddKustoTests
         Assert.NotNull(resourceBuilder);
         Assert.NotNull(resourceBuilder.Resource);
         Assert.Equal(name, resourceBuilder.Resource.Name);
-        Assert.IsType<KustoResource>(resourceBuilder.Resource);
+        Assert.IsType<KustoServerResource>(resourceBuilder.Resource);
     }
 
     [Theory]
@@ -151,7 +151,7 @@ public class AddKustoTests
     public void RunAsEmulator_WithNullBuilder_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => ((IResourceBuilder<KustoResource>)null!).RunAsEmulator());
+        Assert.Throws<ArgumentNullException>(() => ((IResourceBuilder<KustoServerResource>)null!).RunAsEmulator());
     }
 
     [Fact]
@@ -165,20 +165,6 @@ public class AddKustoTests
 
         // Assert
         Assert.IsAssignableFrom<IResourceWithConnectionString>(resourceBuilder.Resource);
-    }
-
-    [Fact]
-    public void ConnectionStringExpression_ShouldReturnValidReferenceExpression()
-    {
-        // Arrange
-        var resource = DistributedApplication.CreateBuilder().AddKusto("test-kusto").Resource;
-
-        // Act
-        var connectionStringExpression = resource.ConnectionStringExpression;
-
-        // Assert
-        Assert.NotNull(connectionStringExpression);
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
     }
 
     [Theory]

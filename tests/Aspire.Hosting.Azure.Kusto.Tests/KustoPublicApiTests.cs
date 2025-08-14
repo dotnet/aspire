@@ -9,7 +9,7 @@ public class KustoPublicApiTests
     public void KustoResourceShouldThrowWhenNameIsNull()
     {
         // Act
-        var action = () => new KustoResource(null!);
+        var action = () => new KustoServerResource(null!);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -21,17 +21,30 @@ public class KustoPublicApiTests
     public void KustoResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Act
-        var action = () => new KustoResource(name);
+        var action = () => new KustoServerResource(name);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
     }
 
     [Fact]
+    public void KustoResourceShouldReturnValidReferenceExpression()
+    {
+        // Arrange
+        var resource = new KustoServerResource("test-kusto");
+
+        // Act
+        var connectionStringExpression = resource.ConnectionStringExpression;
+
+        // Assert
+        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public void KustoDatabaseResourceShouldThrowWhenNameIsNull()
     {
         // Arrange
-        var parentResource = new KustoResource("kusto");
+        var parentResource = new KustoServerResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource(null!, "db", parentResource);
@@ -46,7 +59,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new KustoResource("kusto");
+        var parentResource = new KustoServerResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", name, parentResource);
@@ -59,7 +72,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
     {
         // Arrange
-        var parentResource = new KustoResource("kusto");
+        var parentResource = new KustoServerResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", null!, parentResource);
@@ -74,7 +87,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenDatabaseNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new KustoResource("kusto");
+        var parentResource = new KustoServerResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", name, parentResource);
@@ -87,12 +100,48 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenKustoParentResourceIsNull()
     {
         // Arrange
-        KustoResource kustoParentResource = null!;
+        KustoServerResource kustoParentResource = null!;
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", "db1", kustoParentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
+    }
+
+    [Fact]
+    public void KustoDatabaseResourceShouldReturnValidReferenceExpression()
+    {
+        // Arrange
+        var resource = new KustoDatabaseResource("kusto-db", "myDatabase", new KustoServerResource("kusto"));
+
+        // Act
+        var connectionStringExpression = resource.ConnectionStringExpression;
+
+        // Assert
+        Assert.Equal("{kusto.connectionString};Initial Catalog=myDatabase", connectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void KustoEmulatorResourceShouldThrowWhenInnerResourceIsNull()
+    {
+        // Act
+        var action = () => new KustoEmulatorResource(null!);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(action);
+    }
+
+    [Fact]
+    public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
+    {
+        // Arrange
+        var resource = new KustoEmulatorResource(new KustoServerResource("test-kusto"));
+
+        // Act
+        var connectionStringExpression = resource.ConnectionStringExpression;
+
+        // Assert
+        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
     }
 }

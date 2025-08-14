@@ -8,13 +8,15 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// A resource that represents a Kusto cluster.
 /// </summary>
-public class KustoResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
+public class KustoServerResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
 {
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="KustoResource"/> class.
+    /// Initializes a new instance of the <see cref="KustoServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    public KustoResource(string name)
+    public KustoServerResource(string name)
         : base(name)
     {
     }
@@ -32,5 +34,15 @@ public class KustoResource : Resource, IResourceWithConnectionString, IResourceW
             var endpoint = this.GetEndpoint("http");
             return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
         }
+    }
+
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the database name.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> Databases => _databases;
+
+    internal void AddDatabase(string name, string databaseName)
+    {
+        _databases.TryAdd(name, databaseName);
     }
 }
