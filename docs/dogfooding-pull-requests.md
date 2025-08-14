@@ -2,7 +2,7 @@
 
 This section explains how to locally try out (dogfood) changes from a specific pull request (PR) by installing the Aspire CLI and corresponding NuGet packages built by that PR's CI run.
 
-Two cross‑platform helper scripts are available:
+Two cross-platform helper scripts are available:
 - Bash: `eng/scripts/get-aspire-cli-pr.sh`
 - PowerShell: `eng/scripts/get-aspire-cli-pr.ps1`
 
