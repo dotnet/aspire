@@ -7,6 +7,7 @@ import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } 
 import { extensionLogOutputChannel } from "../utils/logging";
 import { startDotNetProgram } from "./languages/dotnet";
 import DcpServer from "../dcp/AspireDcpServer";
+import { spawnCliProcess } from "./languages/cli";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -48,13 +49,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       }
 
       this.sendMessageWithEmoji("⚙️", "Spawning aspire cli process...");
-
-      if (message.arguments?.noDebug) {
-        sendToAspireTerminal('aspire run', this.dcpServer, false);
-      }
-      else {
-        sendToAspireTerminal('aspire run --start-debug-session', this.dcpServer, false);
-      }
+      this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session']);
 
       this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
 
@@ -97,6 +92,27 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     function isDirectory(pathToCheck: string): boolean {
       return fs.existsSync(pathToCheck) && fs.statSync(pathToCheck).isDirectory();
     }
+  }
+
+  spawnRunCommand(args: string[]) {
+    spawnCliProcess(
+      'aspire',
+      args,
+      {
+        stdoutCallback: (data) => {
+          this.sendMessageWithEmoji("📜", data);
+        },
+        stderrCallback: (data) => {
+          this.sendMessageWithEmoji("❌", data);
+        },
+        exitCallback: (code) => {
+          this.sendMessageWithEmoji("🔚", `Process exited with code ${code}`);
+            // if the process failed, we want to stop the debug session
+            this.dispose();
+        },
+        dcpServer: this.dcpServer
+      }
+    );
   }
 
   sendStoppedEvent(reason: string = 'stopped'): void {
