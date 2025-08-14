@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Kusto.Data;
 using Kusto.Data.Common;
+using Kusto.Data.Net.Client;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.Kusto;
@@ -11,13 +13,13 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 internal sealed class KustoHealthCheck : IHealthCheck
 {
-    private readonly ICslQueryProvider _queryProvider;
+    private readonly KustoConnectionStringBuilder _kcsb;
 
-    public KustoHealthCheck(ICslQueryProvider queryProvider)
+    public KustoHealthCheck(KustoConnectionStringBuilder connectionStringBuilder)
     {
-        ArgumentNullException.ThrowIfNull(queryProvider);
+        ArgumentNullException.ThrowIfNull(connectionStringBuilder);
 
-        _queryProvider = queryProvider;
+        _kcsb = connectionStringBuilder;
     }
 
     /// <inheritdoc />
@@ -25,13 +27,13 @@ internal sealed class KustoHealthCheck : IHealthCheck
     {
         try
         {
+            const string query = "print message = \"Hello, World!\"";
             var clientRequestProperties = new ClientRequestProperties()
             {
                 ClientRequestId = Guid.NewGuid().ToString(),
             };
-
-            const string query = "print message = \"Hello, World!\"";
-            using var reader = await _queryProvider.ExecuteQueryAsync(_queryProvider.DefaultDatabaseName, query, clientRequestProperties, cancellationToken).ConfigureAwait(false);
+            var client = KustoClientFactory.CreateCslQueryProvider(_kcsb);
+            using var reader = await client.ExecuteQueryAsync(client.DefaultDatabaseName, query, clientRequestProperties, cancellationToken).ConfigureAwait(false);
 
             if (reader.Read())
             {

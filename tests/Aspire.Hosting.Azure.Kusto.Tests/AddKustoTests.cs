@@ -300,4 +300,33 @@ public class AddKustoTests
         Assert.NotNull(lifetimeAnnotation);
         Assert.Equal(ContainerLifetime.Persistent, lifetimeAnnotation.Lifetime);
     }
+
+    [Fact]
+    public void AddKusto_ShouldAddHealthCheckAnnotation()
+    {
+        // Arrange
+        const string name = "kusto";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Act
+        var kustoServer = builder.AddKusto(name);
+
+        // Assert
+        Assert.Single(kustoServer.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");
+    }
+
+    [Fact]
+    public void AddDatabase_ShouldAddHealthCheckAnnotation()
+    {
+        // Arrange
+        const string name = "db";
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddKusto("kusto");
+
+        // Act
+        var database = kusto.AddDatabase(name);
+
+        // Assert
+        Assert.Single(database.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");
+    }
 }

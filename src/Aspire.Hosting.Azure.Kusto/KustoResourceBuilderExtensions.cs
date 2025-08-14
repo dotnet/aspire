@@ -7,7 +7,6 @@ using Kusto.Data.Common;
 using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Polly;
 
@@ -50,34 +49,30 @@ public static class KustoResourceBuilderExtensions
         var resourceBuilder = builder.AddResource(resource);
 
         // Register a health check that will be used to verify Kusto is available
-        ICslQueryProvider? queryProvider = null;
+        KustoConnectionStringBuilder? kcsb = null;
         resourceBuilder.OnConnectionStringAvailable(async (resource, evt, ct) =>
         {
             var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
             throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{resource.Name}', but the connection string was null.");
 
-            var kcsb = new KustoConnectionStringBuilder(connectionString);
-            queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
+            kcsb = new KustoConnectionStringBuilder(connectionString);
         });
 
         var healthCheckKey = $"{resource.Name}_check";
-        resourceBuilder.ApplicationBuilder.Services.AddHealthChecks()
-         .Add(new HealthCheckRegistration(
-             healthCheckKey,
-             _ => new KustoHealthCheck(queryProvider!),
-             failureStatus: default,
-             tags: default,
-             timeout: default));
+        resourceBuilder.ApplicationBuilder
+            .Services
+            .AddHealthChecks()
+            .AddKustoHealthCheck(healthCheckKey, _ => kcsb!);
 
         // Execute any setup now that Kusto is ready
         resourceBuilder.OnResourceReady(async (server, evt, ct) =>
         {
-            var connectionString = await server.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
-                throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is null.");
+            if (kcsb is null)
+            {
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{server.Name}' is not set.");
+            }
 
-            var kcsb = new KustoConnectionStringBuilder(connectionString);
             using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
-
             foreach (var name in server.Databases.Keys)
             {
                 if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is KustoDatabaseResource kustoDatabase)
@@ -111,29 +106,24 @@ public static class KustoResourceBuilderExtensions
         var kustoDatabase = new KustoDatabaseResource(name, databaseName, builder.Resource);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
 
-        // TODO: Refactor to shared heatlh check
-
         // Register a health check that will be used to verify database is available
-        ICslQueryProvider? queryProvider = null;
+        KustoConnectionStringBuilder? kcsb = null;
         resourceBuilder.OnConnectionStringAvailable(async (db, evt, ct) =>
         {
             var connectionString = await db.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
             throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{db.Name}', but the connection string was null.");
 
-            var kcsb = new KustoConnectionStringBuilder(connectionString);
-            queryProvider = KustoClientFactory.CreateCslQueryProvider(kcsb);
+            kcsb = new KustoConnectionStringBuilder(connectionString);
         });
 
         var healthCheckKey = $"{kustoDatabase.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-         .Add(new HealthCheckRegistration(
-             healthCheckKey,
-             _ => new KustoHealthCheck(queryProvider!),
-             failureStatus: default,
-             tags: default,
-             timeout: default));
+        resourceBuilder.ApplicationBuilder
+            .Services
+            .AddHealthChecks()
+            .AddKustoHealthCheck(healthCheckKey, _ => kcsb!);
 
-        return resourceBuilder;
+        return resourceBuilder
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
