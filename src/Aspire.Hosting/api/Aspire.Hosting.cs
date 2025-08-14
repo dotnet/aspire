@@ -349,7 +349,7 @@ namespace Aspire.Hosting
         System.Threading.Tasks.Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
-        System.Threading.Tasks.Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, System.Collections.Generic.IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<InteractionResult<System.Collections.Generic.IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, System.Collections.Generic.IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<InteractionResult<bool>> PromptMessageBoxAsync(string title, string message, MessageBoxInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default);
     }
@@ -364,7 +364,7 @@ namespace Aspire.Hosting
     {
         public required System.Threading.CancellationToken CancellationToken { get { throw null; } init { } }
 
-        public required InteractionInputCollection Inputs { get { throw null; } init { } }
+        public required System.Collections.Generic.IReadOnlyList<InteractionInput> Inputs { get { throw null; } init { } }
 
         public required System.IServiceProvider ServiceProvider { get { throw null; } init { } }
 
@@ -382,28 +382,6 @@ namespace Aspire.Hosting
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class InteractionInputCollection : System.Collections.Generic.IReadOnlyList<InteractionInput>, System.Collections.Generic.IEnumerable<InteractionInput>, System.Collections.IEnumerable
-    {
-        public InteractionInputCollection(System.Collections.Generic.IReadOnlyList<InteractionInput> inputs) { }
-
-        public int Count { get { throw null; } }
-
-        public System.Collections.Generic.IEnumerable<string> Names { get { throw null; } }
-
-        public InteractionInput this[int index] { get { throw null; } }
-
-        public InteractionInput this[string name] { get { throw null; } }
-
-        public bool ContainsName(string name) { throw null; }
-
-        public System.Collections.Generic.IEnumerator<InteractionInput> GetEnumerator() { throw null; }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { throw null; }
-
-        public bool TryGetByName(string name, out InteractionInput? input) { throw null; }
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class InteractionInput
     {
         public string? Description { get { throw null; } init { } }
@@ -415,8 +393,6 @@ namespace Aspire.Hosting
         public required string Label { get { throw null; } init { } }
 
         public int? MaxLength { get { throw null; } set { } }
-
-        public string? Name { get { throw null; } init { } }
 
         public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, string>>? Options { get { throw null; } init { } }
 
