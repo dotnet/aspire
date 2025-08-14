@@ -6,7 +6,11 @@ Two cross‑platform helper scripts are available:
 - Bash: `eng/scripts/get-aspire-cli-pr.sh`
 - PowerShell: `eng/scripts/get-aspire-cli-pr.ps1`
 
-They download the correct build artifacts for your OS/architecture, install the `aspire` CLI to a local prefix, and populate a PR‑scoped NuGet "hive" with the matching packages. This local, PR-specific NuGet hive keeps packages isolated, making it easy to create new projects that use only the packages from the PR build.
+Two cross-platform helper scripts are available:
+- Bash: `eng/scripts/get-aspire-cli-pr.sh`
+- PowerShell: `eng/scripts/get-aspire-cli-pr.ps1`
+
+They download the correct build artifacts for your OS/architecture, install the `aspire` CLI to a local prefix, and populate a PR-scoped NuGet "hive" with the matching packages. This local, PR-specific NuGet hive keeps packages isolated, making it easy to create new projects that use only the packages from the PR build.
 
 ## Prerequisites
 
