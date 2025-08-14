@@ -31,7 +31,7 @@ internal abstract class BaseCommand : Command
                     // being available (it should already be in the cache for longer running
                     // commands and some commands will opt out entirely)
                     var cts = !Debugger.IsAttached
-                        ? new CancellationTokenSource(TimeSpan.FromSeconds(10))
+                        ? new CancellationTokenSource(TimeSpan.FromMilliseconds(100))
                         : new CancellationTokenSource();
                     await updateNotifier.NotifyIfUpdateAvailableAsync(currentDirectory, cancellationToken: cts.Token);
                 }

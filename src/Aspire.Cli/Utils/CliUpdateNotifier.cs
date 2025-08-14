@@ -11,7 +11,7 @@ namespace Aspire.Cli.Utils;
 
 internal interface ICliUpdateNotifier
 {
-    Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default);
+    Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
 }
 
 internal class CliUpdateNotifier(
@@ -20,7 +20,7 @@ internal class CliUpdateNotifier(
     IInteractionService interactionService) : ICliUpdateNotifier
 {
 
-    public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default)
+    public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
         try
         {
@@ -31,18 +31,33 @@ internal class CliUpdateNotifier(
                 return;
             }
 
-            var availablePackages = await nuGetPackageCache.GetCliPackagesAsync(
+            // Ultimately the package nuget cache invokes dotnet CLI runner
+            // which launches the dotnet package search command. It can take some
+            // time for the wait on this process to be cancelled and for it to unwind
+            // so this change makes it so that we can detect cancellation on this
+            // side and exit gracefully if we didn't already have a cached result.
+            var tcs = new TaskCompletionSource();
+            cancellationToken.Register(() => tcs.TrySetResult());
+
+            var pendingAvailablePackages = nuGetPackageCache.GetCliPackagesAsync(
                     workingDirectory: workingDirectory,
                     prerelease: true,
                     nugetConfigFile: null,
                     cancellationToken: cancellationToken);
-                    
-            var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
 
-            if (newerVersion is not null)
+            await Task.WhenAny(tcs.Task, pendingAvailablePackages);
+
+            if (!cancellationToken.IsCancellationRequested)
             {
-                interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
+                var availablePackages = await pendingAvailablePackages;
+                var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
+
+                if (newerVersion is not null)
+                {
+                    interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
+                }
             }
+                    
         }
         catch (Exception ex)
         {
