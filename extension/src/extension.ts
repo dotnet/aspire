@@ -112,6 +112,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	extensionContext.rpcServer.dispose();
+    if (extensionContext.hasAspireDebugSession()) {
+        extensionContext.aspireDebugSession.dispose();
+    }
 }
 
 async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {

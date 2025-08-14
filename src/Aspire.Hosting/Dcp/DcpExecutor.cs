@@ -980,7 +980,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 projectLaunchConfiguration.Type = resourceType;
                 projectLaunchConfiguration.ProjectPath = executable.WorkingDirectory;
 
-                if (_configuration[KnownConfigNames.ExtensionEndpoint] is not null)
+                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
                 {
                     projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
                 }

@@ -15,23 +15,27 @@ export type RpcServerConnectionInfo = {
     cert: string;
 };
 
-interface ConnectionServices {
-    interactionService: IInteractionService;
-    rpcClient: ICliRpcClient;
+interface Connection {
+    stopCli: () => void;
 }
 
 export default class RpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
+    public connections: Connection[] = [];
 
     constructor(server: tls.Server, connectionInfo: RpcServerConnectionInfo) {
         this.server = server;
         this.connectionInfo = connectionInfo;
-    }    
+    }
 
     public dispose() {
         extensionLogOutputChannel.info(`Disposing RPC server`);
         this.server.close();
+    }
+
+    public requestStopCli() {
+        this.connections.forEach(connection => connection.stopCli());
     }
 }
 
@@ -88,6 +92,22 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
                     const rpcClient = rpcClientFactory(connection, token);
                     const interactionService = interactionServiceFactory(connection);
                     addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
+
+                    const clientFunctionality: Connection = {
+                        stopCli: () => {
+                            rpcClient.stopCli();
+                        }
+                    };
+
+                    rpcServer.connections.push(clientFunctionality);
+
+                    connection.onClose(() => {
+                        const index = rpcServer.connections.indexOf(clientFunctionality);
+                        if (index !== -1) {
+                            rpcServer.connections.splice(index, 1);
+                        }
+                        extensionLogOutputChannel.info('Client disconnected from RPC server');
+                    });
 
                     connection.listen();
                 });

@@ -8,6 +8,7 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import { startDotNetProgram } from "./languages/dotnet";
 import DcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
+import { extensionContext } from "../extension";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -43,7 +44,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       const appHostPath = this.session.configuration.program as string;
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", `Launching Aspire debug session using directory ${appHostPath}: attempting to determine effective AppHost...`);
-           this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
+        this.spawnRunCommand(message.arguments?.noDebug ? ['run', '--wait-for-debugger'] : ['run', '--start-debug-session'], appHostPath);
       }
       else {
         this.sendMessageWithEmoji("📂", `Launching Aspire debug session for AppHost ${appHostPath}...`);
@@ -51,7 +52,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
       }
-
 
       this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
 
@@ -66,9 +66,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
       this.sendMessageWithEmoji("🔌", `Disconnecting from Aspire debug session... Child processes will be stopped.`);
-
-      const terminal = getAspireTerminal();
-      terminal.dispose();
+      this.dispose();
 
       this.sendEvent({
         type: 'response',
@@ -97,7 +95,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   spawnRunCommand(args: string[], workingDirectory: string | undefined) {
-    spawnCliProcess(
+    const childProcess = spawnCliProcess(
       'aspire',
       args,
       {
@@ -109,13 +107,20 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", `Process exited with code ${code}`);
-            // if the process failed, we want to stop the debug session
-            this.dispose();
+          // if the process failed, we want to stop the debug session
+          this.dispose();
         },
         dcpServer: this.dcpServer,
         workingDirectory: workingDirectory
       }
     );
+
+    this._disposables.push({
+      dispose: () => {
+        extensionContext.rpcServer.requestStopCli();
+        extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
+      }
+    });
   }
 
   sendStoppedEvent(reason: string = 'stopped'): void {

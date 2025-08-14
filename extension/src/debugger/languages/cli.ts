@@ -24,7 +24,7 @@ export function spawnCliProcess(command: string, args?: string[], options?: Spaw
     const child = spawn(command, args ?? [], {
         cwd: workingDirectory,
         env: { ...envVars, ...additionalEnv },
-        shell: true // Ensures Windows compatibility
+        shell: true // Ensures Windows compatibility,
     });
 
     child.stdout.on("data", (data) => {
