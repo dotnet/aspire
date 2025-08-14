@@ -15,19 +15,6 @@ using Semver;
 
 namespace Aspire.Hosting.VersionChecking;
 
-internal interface IPackageVersionProvider
-{
-    SemVersion? GetPackageVersion();
-}
-
-internal sealed class PackageVersionProvider : IPackageVersionProvider
-{
-    public SemVersion? GetPackageVersion()
-    {
-        return PackageUpdateHelpers.GetCurrentPackageVersion();
-    }
-}
-
 internal sealed class VersionCheckService : BackgroundService
 {
     private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(2);
