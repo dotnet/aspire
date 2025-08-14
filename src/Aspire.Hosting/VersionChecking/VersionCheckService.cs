@@ -106,6 +106,8 @@ internal sealed class VersionCheckService : BackgroundService
             TryGetConfigVersion(KnownLatestVersionKey, out storedKnownLatestVersion);
         }
 
+        // Use known package versions to figure out what the newest valid version is.
+        // Note: A pre-release version is only selected if the current app host version is pre-release.
         var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
