@@ -175,7 +175,7 @@ public class InteractionServiceTests
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Text, };
         var resultTask = interactionService.PromptInputAsync(
             "Please provide", "please",
             input,
@@ -208,7 +208,7 @@ public class InteractionServiceTests
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, Required = true };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Text, Required = true };
         var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
@@ -227,7 +227,7 @@ public class InteractionServiceTests
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Choice, Options = [KeyValuePair.Create("first", "First option!"), KeyValuePair.Create("second", "Second option!")] };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Choice, Options = [KeyValuePair.Create("first", "First option!"), KeyValuePair.Create("second", "Second option!")] };
         var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
@@ -247,7 +247,7 @@ public class InteractionServiceTests
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Number };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Number };
         var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
@@ -267,7 +267,7 @@ public class InteractionServiceTests
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Boolean };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Boolean };
         var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
@@ -297,7 +297,7 @@ public class InteractionServiceTests
         {
             var interactionService = CreateInteractionService();
 
-            var input = new InteractionInput { Label = "Value", InputType = inputType, MaxLength = maxLength };
+            var input = new InteractionInput { Name = "Value", Label = "Value", InputType = inputType, MaxLength = maxLength };
             var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
 
             var interaction = Assert.Single(interactionService.GetCurrentInteractions());
@@ -327,6 +327,7 @@ public class InteractionServiceTests
         // Arrange & Act
         var input = new InteractionInput
         {
+            Name = "TestLabel",
             Label = "Test Label",
             InputType = InputType.Text,
             Description = "Test description",
@@ -346,6 +347,7 @@ public class InteractionServiceTests
         // Arrange & Act
         var input = new InteractionInput
         {
+            Name = "TestLabel",
             Label = "Test Label",
             InputType = InputType.Text,
             Description = "**Bold** description",
@@ -363,6 +365,7 @@ public class InteractionServiceTests
         // Arrange & Act
         var input = new InteractionInput
         {
+            Name = "TestLabel",
             Label = "Test Label",
             InputType = InputType.Text,
             Description = null,
@@ -397,6 +400,7 @@ public class InteractionServiceTests
         {
             var input = new InteractionInput
             {
+                Name = "TestLabel",
                 Label = "Test Label",
                 InputType = InputType.Text,
                 MaxLength = length
@@ -445,14 +449,14 @@ public class InteractionServiceTests
     }
 
     [Fact]
-    public void InteractionInputCollection_WithoutNames_GeneratesNames()
+    public void InteractionInputCollection_WithNames_AccessibleByName()
     {
         // Arrange
         var inputs = new List<InteractionInput>
         {
-            new InteractionInput { Label = "User Name", InputType = InputType.Text },
-            new InteractionInput { Label = "Email Address", InputType = InputType.Text },
-            new InteractionInput { Label = "Age", InputType = InputType.Number }
+            new InteractionInput { Name = "UserName", Label = "User Name", InputType = InputType.Text },
+            new InteractionInput { Name = "EmailAddress", Label = "Email Address", InputType = InputType.Text },
+            new InteractionInput { Name = "Age", InputType = InputType.Number }
         };
 
         // Act
@@ -461,20 +465,21 @@ public class InteractionServiceTests
         // Assert
         Assert.Equal(3, collection.Count);
         
-        // Names should be generated from labels
-        Assert.True(collection.ContainsName("User_Name"));
-        Assert.True(collection.ContainsName("Email_Address"));
+        // Names should be accessible
+        Assert.True(collection.ContainsName("UserName"));
+        Assert.True(collection.ContainsName("EmailAddress"));
         Assert.True(collection.ContainsName("Age"));
         
-        // Check that generated names are accessible
-        Assert.Equal("User Name", collection["User_Name"].Label);
-        Assert.Equal("Email Address", collection["Email_Address"].Label);
-        Assert.Equal("Age", collection["Age"].Label);
+        // Check that names are accessible
+        Assert.Equal("User Name", collection["UserName"].Label);
+        Assert.Equal("Email Address", collection["EmailAddress"].Label);
+        Assert.Null(collection["Age"].Label); // No label specified, should use EffectiveLabel
+        Assert.Equal("Age", collection["Age"].EffectiveLabel);
         
         // Check that the original inputs still work by index
         Assert.Equal("User Name", collection[0].Label);
         Assert.Equal("Email Address", collection[1].Label);
-        Assert.Equal("Age", collection[2].Label);
+        Assert.Null(collection[2].Label);
     }
 
     [Fact]
@@ -484,7 +489,7 @@ public class InteractionServiceTests
         var inputs = new List<InteractionInput>
         {
             new InteractionInput { Name = "ExplicitName", Label = "Explicit", InputType = InputType.Text },
-            new InteractionInput { Label = "Generated Label", InputType = InputType.Text },
+            new InteractionInput { Name = "GeneratedLabel", Label = "Generated Label", InputType = InputType.Text },
             new InteractionInput { Name = "AnotherExplicit", Label = "Another", InputType = InputType.Text }
         };
 
@@ -494,13 +499,10 @@ public class InteractionServiceTests
         // Assert
         Assert.Equal(3, collection.Count);
         
-        // Explicit names should work
+        // All names should work
         Assert.Equal("Explicit", collection["ExplicitName"].Label);
         Assert.Equal("Another", collection["AnotherExplicit"].Label);
-        
-        // Generated name should work
-        Assert.True(collection.ContainsName("Generated_Label"));
-        Assert.Equal("Generated Label", collection["Generated_Label"].Label);
+        Assert.Equal("Generated Label", collection["GeneratedLabel"].Label);
     }
 
     [Fact]
@@ -534,14 +536,14 @@ public class InteractionServiceTests
     }
 
     [Fact]
-    public void InteractionInputCollection_WithConflictingGeneratedNames_ResolvesUniquely()
+    public void InteractionInputCollection_WithUniqueNames_WorksCorrectly()
     {
         // Arrange
         var inputs = new List<InteractionInput>
         {
-            new InteractionInput { Label = "Input", InputType = InputType.Text },
-            new InteractionInput { Label = "Input", InputType = InputType.Text },
-            new InteractionInput { Label = "Input", InputType = InputType.Text }
+            new InteractionInput { Name = "Input1", InputType = InputType.Text },
+            new InteractionInput { Name = "Input2", InputType = InputType.Text },
+            new InteractionInput { Name = "Input3", InputType = InputType.Text }
         };
 
         // Act
@@ -550,26 +552,31 @@ public class InteractionServiceTests
         // Assert
         Assert.Equal(3, collection.Count);
         
-        // Should generate unique names
-        Assert.True(collection.ContainsName("Input"));
-        Assert.True(collection.ContainsName("Input_1"));
-        Assert.True(collection.ContainsName("Input_2"));
+        // All names should be accessible
+        Assert.True(collection.ContainsName("Input1"));
+        Assert.True(collection.ContainsName("Input2"));
+        Assert.True(collection.ContainsName("Input3"));
         
-        // All should be accessible by their generated names
-        Assert.NotNull(collection["Input"]);
-        Assert.NotNull(collection["Input_1"]);
-        Assert.NotNull(collection["Input_2"]);
+        // All should be accessible by their names
+        Assert.NotNull(collection["Input1"]);
+        Assert.NotNull(collection["Input2"]);
+        Assert.NotNull(collection["Input3"]);
+        
+        // All should use name as effective label since no label is specified
+        Assert.Equal("Input1", collection["Input1"].EffectiveLabel);
+        Assert.Equal("Input2", collection["Input2"].EffectiveLabel);
+        Assert.Equal("Input3", collection["Input3"].EffectiveLabel);
     }
 
     [Fact]
-    public void InteractionInputCollection_WithInvalidLabel_GeneratesValidName()
+    public void InteractionInputCollection_WithValidNamesAndLabels_WorksCorrectly()
     {
         // Arrange
         var inputs = new List<InteractionInput>
         {
-            new InteractionInput { Label = "!@#$%^&*()", InputType = InputType.Text },
-            new InteractionInput { Label = "", InputType = InputType.Text },
-            new InteractionInput { Label = "   ", InputType = InputType.Text }
+            new InteractionInput { Name = "SpecialInput", Label = "!@#$%^&*()", InputType = InputType.Text },
+            new InteractionInput { Name = "EmptyLabel", Label = "", InputType = InputType.Text },
+            new InteractionInput { Name = "WhitespaceLabel", Label = "   ", InputType = InputType.Text }
         };
 
         // Act
@@ -578,14 +585,25 @@ public class InteractionServiceTests
         // Assert
         Assert.Equal(3, collection.Count);
         
-        // Should generate valid names even for invalid labels
+        // All names should be accessible
         Assert.True(collection.Names.All(name => !string.IsNullOrWhiteSpace(name)));
         
-        // All inputs should be accessible by their generated names
+        // All inputs should be accessible by their names
         foreach (var name in collection.Names)
         {
             Assert.NotNull(collection[name]);
         }
+        
+        // Labels should be preserved as specified, effective labels should fall back to names
+        Assert.Equal("!@#$%^&*()", collection["SpecialInput"].Label);
+        Assert.Equal("!@#$%^&*()", collection["SpecialInput"].EffectiveLabel);
+        
+        Assert.Equal("", collection["EmptyLabel"].Label);
+        Assert.Equal("EmptyLabel", collection["EmptyLabel"].EffectiveLabel); // Falls back to name
+        
+        Assert.Equal("   ", collection["WhitespaceLabel"].Label);
+        Assert.Equal("WhitespaceLabel", collection["WhitespaceLabel"].EffectiveLabel); // Falls back to name
+    }
     }
 
     [Fact]

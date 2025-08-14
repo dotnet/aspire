@@ -101,9 +101,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).
                     """,
                     [
-                        new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select location", Required = true, Options = [..locations] },
-                        new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select subscription ID", Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName() },
+                        new InteractionInput { Name = "Location", InputType = InputType.Choice, Label = "Location", Placeholder = "Select location", Required = true, Options = [..locations] },
+                        new InteractionInput { Name = "SubscriptionId", InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select subscription ID", Required = true },
+                        new InteractionInput { Name = "ResourceGroup", InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName() },
                     ],
                     new InputsDialogInteractionOptions
                     {

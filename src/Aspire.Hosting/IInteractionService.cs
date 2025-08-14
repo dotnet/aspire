@@ -107,14 +107,18 @@ public sealed class InteractionInput
 {
     /// <summary>
     /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
-    /// If not specified, a name will be generated automatically.
     /// </summary>
-    public string? Name { get; internal set; }
+    public required string Name { get; init; }
 
     /// <summary>
-    /// Gets or sets the label for the input.
+    /// Gets or sets the label for the input. If not specified, the name will be used as the label.
     /// </summary>
-    public required string Label { get; init; }
+    public string? Label { get; init; }
+
+    /// <summary>
+    /// Gets the effective label for the input. Returns the Label if specified, otherwise returns the Name.
+    /// </summary>
+    public string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
 
     /// <summary>
     /// Gets or sets the description for the input.
@@ -188,87 +192,22 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// <param name="inputs">The collection of interaction inputs to wrap.</param>
     public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
     {
-        // Create a new list with proper names assigned
-        var processedInputs = new List<InteractionInput>();
         var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // First pass: collect explicit names and check for duplicates
+        // Check for duplicate names
         foreach (var input in inputs)
         {
-            if (!string.IsNullOrWhiteSpace(input.Name))
+            if (usedNames.Contains(input.Name))
             {
-                if (usedNames.Contains(input.Name))
-                {
-                    throw new InvalidOperationException($"Duplicate input name '{input.Name}' found. Input names must be unique.");
-                }
-                usedNames.Add(input.Name);
+                throw new InvalidOperationException($"Duplicate input name '{input.Name}' found. Input names must be unique.");
             }
+            usedNames.Add(input.Name);
+            inputsByName[input.Name] = input;
         }
 
-        // Second pass: create new inputs with generated names where needed
-        for (var i = 0; i < inputs.Count; i++)
-        {
-            var input = inputs[i];
-            string finalName;
-
-            if (!string.IsNullOrWhiteSpace(input.Name))
-            {
-                finalName = input.Name;
-            }
-            else
-            {
-                // Generate a unique name based on the label or index
-                var baseName = GenerateBaseName(input.Label);
-                finalName = baseName;
-                var suffix = 1;
-
-                while (usedNames.Contains(finalName))
-                {
-                    finalName = $"{baseName}_{suffix}";
-                    suffix++;
-                }
-
-                usedNames.Add(finalName);
-
-                input.Name = finalName;
-            }
-
-            processedInputs.Add(input);
-            inputsByName[finalName] = input;
-        }
-
-        _inputs = processedInputs;
+        _inputs = inputs;
         _inputsByName = inputsByName;
-    }
-
-    private static string GenerateBaseName(string label)
-    {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return "Input";
-        }
-
-        // Convert to a valid identifier-like name
-        var chars = label.ToCharArray();
-        var result = new System.Text.StringBuilder();
-
-        for (var i = 0; i < chars.Length; i++)
-        {
-            var c = chars[i];
-            if (char.IsLetterOrDigit(c))
-            {
-                result.Append(c);
-            }
-            else if (result.Length > 0 && result[result.Length - 1] != '_')
-            {
-                result.Append('_');
-            }
-        }
-
-        // Ensure we have a valid name
-        var name = result.ToString().Trim('_');
-        return string.IsNullOrEmpty(name) ? "Input" : name;
     }
 
     /// <summary>

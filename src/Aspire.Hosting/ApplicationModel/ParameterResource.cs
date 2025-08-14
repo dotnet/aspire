@@ -115,6 +115,7 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
 
         var input = new InteractionInput
         {
+            Name = Name,
             InputType = Secret ? InputType.SecretText : InputType.Text,
             Label = Name,
             Description = Description,
