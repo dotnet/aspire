@@ -104,7 +104,6 @@ public sealed class CallbackThrottler
     public void Dispose()
     {
         _cts.Cancel();
-        _cts.Dispose();
         _lock.Dispose();
     }
 }
