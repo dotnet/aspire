@@ -15,6 +15,19 @@ using Semver;
 
 namespace Aspire.Hosting.VersionChecking;
 
+internal interface IPackageVersionProvider
+{
+    SemVersion? GetPackageVersion();
+}
+
+internal sealed class PackageVersionProvider : IPackageVersionProvider
+{
+    public SemVersion? GetPackageVersion()
+    {
+        return PackageUpdateHelpers.GetCurrentPackageVersion();
+    }
+}
+
 internal sealed class VersionCheckService : BackgroundService
 {
     private static readonly TimeSpan s_checkInterval = TimeSpan.FromDays(2);
@@ -34,7 +47,7 @@ internal sealed class VersionCheckService : BackgroundService
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
         IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
-        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider)
+        DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -44,7 +57,7 @@ internal sealed class VersionCheckService : BackgroundService
         _executionContext = executionContext;
         _timeProvider = timeProvider;
 
-        _appHostVersion = PackageUpdateHelpers.GetCurrentPackageVersion();
+        _appHostVersion = packageVersionProvider.GetPackageVersion();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -92,25 +105,18 @@ internal sealed class VersionCheckService : BackgroundService
             }
         }
 
-        SemVersion? latestVersion = null;
+        List<NuGetPackage>? packages = null;
         if (checkForLatestVersion)
         {
             var appHostDirectory = _configuration["AppHost:Directory"]!;
 
             SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
-            var packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
-
-            latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages);
+            packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);
         }
 
-        if (TryGetConfigVersion(KnownLatestVersionKey, out var storedKnownLatestVersion))
-        {
-            if (latestVersion == null)
-            {
-                // Use the known latest version if we can't check for the latest version.
-                latestVersion = storedKnownLatestVersion;
-            }
-        }
+        TryGetConfigVersion(KnownLatestVersionKey, out var storedKnownLatestVersion);
+
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(_appHostVersion, packages ?? [], storedKnownLatestVersion);
 
         if (latestVersion == null || IsVersionGreaterOrEqual(_appHostVersion, latestVersion))
         {
