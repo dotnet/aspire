@@ -6,7 +6,7 @@ import { codespacesLink, directLink } from '../../loc/strings';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { createRpcServer, RpcServerConnectionInfo } from '../../server/RpcServer';
+import { createRpcServer, RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -207,7 +207,7 @@ class TestCliRpcClient implements ICliRpcClient {
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}
-	
+
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}

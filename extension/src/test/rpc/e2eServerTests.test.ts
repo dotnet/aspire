@@ -6,7 +6,7 @@ import * as tls from 'tls';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { getAndActivateExtension } from '../common';
-import { RpcServerConnectionInfo } from '../../server/RpcServer';
+import { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 
 suite('End-to-end RPC server auth tests', () => {
 	vscode.window.showInformationMessage('Starting end-to-end rpc server tests.');

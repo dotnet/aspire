@@ -3,7 +3,7 @@ import { getSupportedDebugAdapters } from "../capabilities";
 import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireExtendedDebugConfiguration } from "../dcp/types";
 import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
-import DcpServer from '../dcp/DcpServer';
+import DcpServer from '../dcp/AspireDcpServer';
 
 export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposable[] {
     const disposables: vscode.Disposable[] = [];

@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 import { extensionContext } from '../extension';
-import DcpServer from '../dcp/DcpServer';
+import DcpServer from '../dcp/AspireDcpServer';
 
 let hasRunGetAspireTerminal = false;
-export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
+export function getAspireTerminal(dcpServer?: DcpServer, spawnProcess?: boolean): vscode.Terminal {
     const terminalName = aspireTerminalName;
 
     const existingTerminal = vscode.window.terminals.find(terminal => terminal.name === terminalName);
@@ -20,7 +20,15 @@ export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
     }
 
     extensionLogOutputChannel.info(`Creating new Aspire terminal`);
+    hasRunGetAspireTerminal = true;
 
+    return vscode.window.createTerminal({
+        name: terminalName,
+        env: createEnvironment(dcpServer)
+    });
+}
+
+export function createEnvironment(dcpServer?: DcpServer): any {
     const env: any = {
         ...process.env,
 
@@ -41,12 +49,7 @@ export function getAspireTerminal(dcpServer?: DcpServer): vscode.Terminal {
         env.DEBUG_SESSION_SERVER_CERTIFICATE = Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64');
     }
 
-    hasRunGetAspireTerminal = true;
-
-    return vscode.window.createTerminal({
-        name: terminalName,
-        env
-    });
+    return env;
 }
 
 export function sendToAspireTerminal(command: string, dcpServer?: DcpServer, showTerminal: boolean = true) {

@@ -6,7 +6,7 @@ import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { startDotNetProgram } from "./languages/dotnet";
-import DcpServer from "../dcp/DcpServer";
+import DcpServer from "../dcp/AspireDcpServer";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -50,10 +50,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       this.sendMessageWithEmoji("⚙️", "Spawning aspire cli process...");
 
       if (message.arguments?.noDebug) {
-        sendToAspireTerminal('aspire run', this.dcpServer);
+        sendToAspireTerminal('aspire run', this.dcpServer, false);
       }
       else {
-        sendToAspireTerminal('aspire run --start-debug-session', this.dcpServer);
+        sendToAspireTerminal('aspire run --start-debug-session', this.dcpServer, false);
       }
 
       this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
