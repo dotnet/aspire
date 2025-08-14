@@ -1547,6 +1547,68 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds an executable command to the resource builder with the specified name, display name, and command string.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder to which the command will be added.</param>
+    /// <param name="name">The unique name of the command.</param>
+    /// <param name="displayName">The display name of the command, shown in the dashboard.</param>
+    /// <param name="command">The command string to be executed.</param>
+    /// <param name="workingDirectory">The working directory in which the command will be executed.</param>
+    /// <param name="commandOptions">Optional settings for the command, such as description and icon.</param>
+    /// <returns>The resource builder, allowing for method chaining.</returns>
+    public static IResourceBuilder<T> WithExecCommand<T>(
+        this IResourceBuilder<T> builder,
+        string name,
+        string displayName,
+        string command,
+        string? workingDirectory = null,
+        CommandOptions? commandOptions = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(displayName);
+
+        return builder.WithAnnotation(new ResourceExecCommandAnnotation(name, displayName, command, workingDirectory));
+    }
+
+    ///// <summary>
+    ///// Adds an executable command to the resource builder with the specified name, display name, and command string.
+    ///// </summary>
+    ///// <typeparam name="T">The type of the resource.</typeparam>
+    ///// <param name="builder">The resource builder to which the command will be added.</param>
+    ///// <param name="name">The unique name of the command.</param>
+    ///// <param name="displayName">The display name of the command, shown in the dashboard.</param>
+    ///// <param name="command">The command string to be executed.</param>
+    ///// <param name="commandOptions">Optional settings for the command, such as description and icon.</param>
+    ///// <returns>The resource builder, allowing for method chaining.</returns>
+    //public static IResourceBuilder<T> WithExecCommand<T>(
+    //    this IResourceBuilder<T> builder,
+    //    string name,
+    //    string displayName,
+    //    string command,
+    //    string? workingDirectory = null,
+    //    CommandOptions? commandOptions = null) where T : ContainerResource
+    //{
+    //    ArgumentNullException.ThrowIfNull(builder);
+    //    ArgumentNullException.ThrowIfNull(name);
+    //    ArgumentNullException.ThrowIfNull(displayName);
+
+    //    Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand = context =>
+    //    {
+    //        var serviceProvider = context.ServiceProvider;
+    //        var containerExecService = serviceProvider.GetRequiredService<IContainerExecService>();
+
+    //        var containerResource = builder.Resource;
+
+    //        var run = containerExecService.StartExecCommand(containerResource);
+    //        return run.CommandResult;
+    //    };
+
+    //    return builder.WithCommand(name, displayName, executeCommand, commandOptions);
+    //}
+
+    /// <summary>
     /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
