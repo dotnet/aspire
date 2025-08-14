@@ -522,6 +522,52 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Equal("Environment name must be at least 3 characters long.", displayedError);
     }
 
+    [Fact]
+    public async Task PublishCommand_MarkdownPromptText_ConvertsToSpectreMarkup()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt with markdown in the activity status text
+        promptBackchannel.AddPrompt("markdown-prompt-1", "Config Value", InputTypes.Text, "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("test-value");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was received
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+
+        // Verify that the prompt text was converted from markdown to Spectre markup
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+        
+        // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):" 
+        // should be converted to Spectre markup with URL instead of text
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
+        Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
+    }
+
     private static TestDotNetCliRunner CreateTestRunnerWithPromptBackchannel(TestPromptBackchannel promptBackchannel)
     {
         var runner = new TestDotNetCliRunner();
@@ -596,7 +642,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                     Id = prompt.PromptId,
                     StatusText = prompt.Inputs.Count > 1
                         ? prompt.Title ?? prompt.Message
-                        : prompt.Inputs[0].Label,
+                        : prompt.Message,
                     CompletionState = CompletionStates.InProgress,
                     StepId = "publish-step",
                     Inputs = inputs
@@ -753,6 +799,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
 
