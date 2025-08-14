@@ -212,6 +212,9 @@ public static class AspireAzureAIInferenceExtensions
         }
 
         var loggerFactory = services.GetService<ILoggerFactory>();
-        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)))
+        {
+            EnableSensitiveData = true
+        };
     }
 }
