@@ -71,7 +71,6 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>9.0.8</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksVersion>9.0.8</MicrosoftExtensionsDiagnosticsHealthChecksVersion>
     <MicrosoftExtensionsFeaturesVersion>9.0.8</MicrosoftExtensionsFeaturesVersion>
-    <MicrosoftExtensionsFileProvidersEmbeddedVersion>9.0.8</MicrosoftExtensionsFileProvidersEmbeddedVersion>
     <MicrosoftAspNetCoreSignalRClientVersion>9.0.8</MicrosoftAspNetCoreSignalRClientVersion>
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsVersion>9.0.8</MicrosoftExtensionsHostingAbstractionsVersion>
