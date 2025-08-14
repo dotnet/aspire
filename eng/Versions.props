@@ -41,11 +41,11 @@
     <MicrosoftDotNetXUnitV3ExtensionsVersion>10.0.0-beta.25351.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
     <MicrosoftDotNetBuildTasksArchivesVersion>10.0.0-beta.25351.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
-    <MicrosoftExtensionsAIVersion>9.7.0</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIPreviewVersion>9.7.0-preview.1.25356.2</MicrosoftExtensionsAIPreviewVersion>
-    <MicrosoftExtensionsHttpResilienceVersion>9.7.0</MicrosoftExtensionsHttpResilienceVersion>
-    <MicrosoftExtensionsDiagnosticsTestingVersion>9.7.0</MicrosoftExtensionsDiagnosticsTestingVersion>
-    <MicrosoftExtensionsTimeProviderTestingVersion>9.7.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <MicrosoftExtensionsAIVersion>9.8.0</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIPreviewVersion>9.8.0-preview.1.25412.6</MicrosoftExtensionsAIPreviewVersion>
+    <MicrosoftExtensionsHttpResilienceVersion>9.8.0</MicrosoftExtensionsHttpResilienceVersion>
+    <MicrosoftExtensionsDiagnosticsTestingVersion>9.8.0</MicrosoftExtensionsDiagnosticsTestingVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>9.8.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
