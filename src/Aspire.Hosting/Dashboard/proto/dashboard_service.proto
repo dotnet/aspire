@@ -345,6 +345,7 @@ message WatchInteractionsResponseUpdate {
     bool show_secondary_button = 6;
     bool show_dismiss = 7;
     bool enable_message_markdown = 8;
+    bool allow_all_link_schemes_in_markdown = 9;
 
     oneof kind {
         InteractionComplete complete = 16;

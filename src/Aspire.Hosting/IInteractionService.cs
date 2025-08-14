@@ -120,6 +120,12 @@ public sealed class InteractionInput
     public bool EnableDescriptionMarkdown { get; init; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the all schemes for linksare allowed in the rendered markdown.
+    /// Setting this to <c>true</c> allows a description to contain links in Markdown with all schemes. Otherwhise only https http mailto are allowed.
+    /// </summary>
+    public bool AllowAllLinkSchemesInMarkdown { get; init; }
+
+    /// <summary>
     /// Gets or sets the type of the input.
     /// </summary>
     public required InputType InputType { get; init; }
