@@ -604,7 +604,6 @@ public class InteractionServiceTests
         Assert.Equal("   ", collection["WhitespaceLabel"].Label);
         Assert.Equal("WhitespaceLabel", collection["WhitespaceLabel"].EffectiveLabel); // Falls back to name
     }
-    }
 
     [Fact]
     public void InteractionInputCollection_AccessByInvalidName_ThrowsKeyNotFoundException()
