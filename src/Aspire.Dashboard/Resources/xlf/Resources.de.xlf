@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ResourceActionCommandsText">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">Befehle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceActionUrlsText">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">URLs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
