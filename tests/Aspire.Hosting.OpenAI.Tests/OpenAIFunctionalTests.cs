@@ -14,6 +14,8 @@ public class OpenAIFunctionalTests
 {
     [Fact]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/0")]
+    // Quarantined due to flakiness. See linked issue for details.
     public async Task DependentResourceWaitsForOpenAIModelResourceWithHealthCheckToBeHealthy()
     {
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutDuration);
