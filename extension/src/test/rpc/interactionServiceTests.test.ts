@@ -3,11 +3,10 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { codespacesLink, directLink } from '../../loc/strings';
-import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import * as terminalUtils from '../../utils/terminal';
+import { createRpcServer, RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -196,16 +195,19 @@ suite('InteractionService endpoints', () => {
 });
 
 type RpcServerTestInfo = {
-	rpcServerInfo: RpcServerInformation;
+	rpcServerInfo: RpcServerConnectionInfo;
 	rpcClient: ICliRpcClient;
 	interactionService: IInteractionService;
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+	getEffectiveAppHostProjectFile(): Promise<string | null> {
+		return Promise.resolve("");
+	}
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}
-	
+
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}
@@ -227,17 +229,17 @@ async function createTestRpcServer(): Promise<RpcServerTestInfo> {
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService();
 
-	const rpcServerInfo = await createRpcServer(
+	const rpcServer = await createRpcServer(
 		() => interactionService,
 		() => rpcClient
 	);
 
-	if (!rpcServerInfo) {
+	if (!rpcServer) {
 		throw new Error('Failed to set up RPC server');
 	}
 
 	return {
-		rpcServerInfo,
+		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
 		interactionService: interactionService
 	};

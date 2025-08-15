@@ -213,7 +213,6 @@
     <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreVersion)" />
     <PackageVersion Update="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksVersion)" />
     <PackageVersion Update="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesVersion)" />
-    <PackageVersion Update="Microsoft.Extensions.FileProviders.Embedded" Version="$(MicrosoftExtensionsFileProvidersEmbeddedVersion)" />
     <PackageVersion Update="Microsoft.AspNetCore.SignalR.Client" Version="$(MicrosoftAspNetCoreSignalRClientVersion)" />
     <!-- Runtime -->
     <PackageVersion Update="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsHostingAbstractionsVersion)" />

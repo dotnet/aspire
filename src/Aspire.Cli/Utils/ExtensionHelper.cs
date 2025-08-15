@@ -9,9 +9,6 @@ namespace Aspire.Cli.Utils;
 
 internal class ExtensionHelper
 {
-    public const string DevKitCapability = "devkit";
-    public const string CSharpCapability = "csharp";
-
     public static bool IsExtensionHost(
         IInteractionService interactionService,
         [NotNullWhen(true)] out IExtensionInteractionService? extensionInteractionService,
@@ -28,4 +25,10 @@ internal class ExtensionHelper
         extensionBackchannel = null;
         return false;
     }
+}
+
+internal static class KnownCapabilities
+{
+    public const string DevKit = "devkit";
+    public const string CSharp = "csharp";
 }

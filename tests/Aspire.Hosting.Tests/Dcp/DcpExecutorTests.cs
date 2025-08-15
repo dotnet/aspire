@@ -1271,6 +1271,87 @@ public class DcpExecutorTests
         Assert.Equal(serviceAddress, serviceProducer.Address);
     }
 
+    [Fact]
+    public async Task PlainExecutable_ExtensionMode_SupportedDebugMode_RunsInIde()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddResource(new TestExecutableResource("test-working-directory"));
+        builder.AddResource(new TestOtherExecutableResource("test-working-directory-2"));
+
+        // Simulate debug session port and extension endpoint (extension mode)
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.ExtensionCapabilities] = "test_executable",
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Equal(2, dcpExes.Count);
+
+        var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
+        Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
+        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
+        var config1 = Assert.Single(launchConfigs1);
+        Assert.Equal(ProjectLaunchMode.Debug, config1.Mode);
+        Assert.Equal("test_executable", config1.Type);
+        Assert.Equal("test-working-directory", config1.ProjectPath);
+
+        var nonDebuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestOtherExecutable");
+        Assert.Equal(ExecutionType.Process, nonDebuggableExe.Spec.ExecutionType);
+        Assert.False(nonDebuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
+    }
+
+    [Fact]
+    public async Task PlainExecutable_NoExtensionMode_RunInProcess()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddResource(new TestExecutableResource("test-working-directory"));
+        builder.AddResource(new TestOtherExecutableResource("test-working-directory-2"));
+
+        // Simulate no extension endpoint (no extension mode)
+        var configDict = new Dictionary<string, string?>
+        {
+            [KnownConfigNames.ExtensionEndpoint] = null
+        };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Equal(2, dcpExes.Count);
+
+        var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
+        Assert.Equal(ExecutionType.Process, debuggableExe.Spec.ExecutionType);
+        Assert.False(debuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
+
+        var nonDebuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestOtherExecutable");
+        Assert.Equal(ExecutionType.Process, nonDebuggableExe.Spec.ExecutionType);
+        Assert.False(nonDebuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
+    }
+
+    private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
+    private sealed class TestOtherExecutableResource(string directory) : ExecutableResource("TestOtherExecutable", "test-other", directory);
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
