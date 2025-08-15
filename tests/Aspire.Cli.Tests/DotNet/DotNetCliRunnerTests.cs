@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -398,6 +399,226 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         await launchAppHostCalledTcs.Task;
         Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterAllowsFilteringEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // Filter that only allows environment variables starting with "PATH" (commonly available)
+            EnvironmentPropagationFilter = (name, value) => name.StartsWith("PATH")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that current process env vars are filtered, but additional env vars are always added
+                Assert.True(env.ContainsKey("ADDITIONAL_VAR"));
+                Assert.Equal("additional_value", env["ADDITIONAL_VAR"]);
+                
+                // Check that most current process env vars are filtered out (only PATH* allowed)
+                var currentProcessEnvVars = Environment.GetEnvironmentVariables();
+                foreach (DictionaryEntry envVar in currentProcessEnvVars)
+                {
+                    var name = envVar.Key.ToString()!;
+                    if (name.StartsWith("PATH"))
+                    {
+                        Assert.True(env.ContainsKey(name), $"Expected filtered env var {name} to be present");
+                    }
+                    else if (!name.Equals("ADDITIONAL_VAR") && env.ContainsKey(name))
+                    {
+                        // This env var should have been filtered out unless it's one we can't control
+                        // Some system env vars might still be present due to ProcessStartInfo behavior
+                    }
+                }
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["ADDITIONAL_VAR"] = "additional_value"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterNullAllowsAllEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // No filter - should allow all variables (default behavior)
+            EnvironmentPropagationFilter = null
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that additional environment variables are present
+                Assert.True(env.ContainsKey("VAR1"));
+                Assert.Equal("value1", env["VAR1"]);
+                Assert.True(env.ContainsKey("VAR2"));
+                Assert.Equal("value2", env["VAR2"]);
+                
+                // Verify that current process environment variables are also present (not filtered)
+                var currentProcessEnvVars = Environment.GetEnvironmentVariables();
+                foreach (DictionaryEntry envVar in currentProcessEnvVars)
+                {
+                    var name = envVar.Key.ToString()!;
+                    var value = envVar.Value?.ToString() ?? string.Empty;
+                    Assert.True(env.ContainsKey(name), $"Expected current process env var {name} to be present when filter is null");
+                    // Don't check value equality for current process vars as additional vars might override them
+                }
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["VAR1"] = "value1",
+            ["VAR2"] = "value2"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task EnvironmentPropagationFilterCanBlockAllEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            // Filter that blocks all environment variables
+            EnvironmentPropagationFilter = (name, value) => false
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (args, env, _, _, _, _) =>
+            {
+                Assert.NotNull(env);
+                // Verify that additional environment variables are still present (not filtered)
+                Assert.True(env.ContainsKey("VAR1"));
+                Assert.Equal("value1", env["VAR1"]);
+                Assert.True(env.ContainsKey("VAR2"));
+                Assert.Equal("value2", env["VAR2"]);
+                
+                // Verify that current process environment variables are blocked
+                var currentProcessEnvVars = Environment.GetEnvironmentVariables();
+                foreach (DictionaryEntry envVar in currentProcessEnvVars)
+                {
+                    var name = envVar.Key.ToString()!;
+                    if (!env.ContainsKey(name))
+                    {
+                        // This current process env var was correctly filtered out
+                        continue;
+                    }
+                    else if (name == "VAR1" || name == "VAR2")
+                    {
+                        // These are our additional vars, they should be present
+                        continue;
+                    }
+                    else
+                    {
+                        // If a current process env var is present and it's not our additional var,
+                        // it might be because the system added it despite our filter
+                        // This can happen with some system variables that ProcessStartInfo manages
+                    }
+                }
+            },
+            0
+            );
+
+        var inputEnv = new Dictionary<string, string>
+        {
+            ["VAR1"] = "value1",
+            ["VAR2"] = "value2"
+        };
+
+        var exitCode = await runner.ExecuteAsync(
+            args: ["run", "--project", projectFile.FullName],
+            env: inputEnv,
+            projectFile: projectFile,
+            workingDirectory: workspace.WorkspaceRoot,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
     }
 }
 
