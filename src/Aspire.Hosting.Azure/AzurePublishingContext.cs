@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
@@ -177,7 +178,7 @@ public sealed class AzurePublishingContext(
         static BicepValue<string> GetOutputs(ModuleImport module, string outputName) =>
             new MemberExpression(new MemberExpression(new IdentifierExpression(module.BicepIdentifier), "outputs"), outputName);
 
-        BicepFormatString EvalExpr(ReferenceExpression expr)
+        FormattableString EvalExpr(ReferenceExpression expr)
         {
             var args = new object[expr.ValueProviders.Count];
 
@@ -186,7 +187,7 @@ public sealed class AzurePublishingContext(
                 args[i] = Eval(expr.ValueProviders[i]);
             }
 
-            return new BicepFormatString(expr.Format, args);
+            return FormattableStringFactory.Create(expr.Format, args);
         }
 
         object Eval(object? value) => value switch
@@ -207,7 +208,7 @@ public sealed class AzurePublishingContext(
                 BicepValue<string> s => s,
                 string s => s,
                 ProvisioningParameter p => p,
-                BicepFormatString fs => BicepFunction2.Interpolate(fs),
+                FormattableString fs => BicepFunction.Interpolate(fs),
                 _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
             };
         }
@@ -246,6 +247,11 @@ public sealed class AzurePublishingContext(
             foreach (var parameter in resource.Parameters)
             {
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
+                if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);
                     continue;

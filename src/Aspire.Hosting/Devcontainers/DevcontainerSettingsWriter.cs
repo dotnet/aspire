@@ -38,7 +38,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
         _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
     }
 
-    public async Task FlushAsync(CancellationToken cancellationToken = default)
+    public virtual async Task FlushAsync(CancellationToken cancellationToken = default)
     {
         await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
 

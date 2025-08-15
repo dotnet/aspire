@@ -91,6 +91,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
+    public void DisplayMarkdown(string markdown)
+    {
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var output = $"[{(isErrorMessage ? "Error" : type ?? "Info")}] {message} (Line: {lineNumber})";

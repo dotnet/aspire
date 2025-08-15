@@ -226,7 +226,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext([], resource, cancellationToken: cancellationToken);
 
             foreach (var c in commandLineArgsCallbackAnnotations)
             {

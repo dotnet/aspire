@@ -127,12 +127,13 @@
                                                     Virtualize="true"
                                                     GenerateHeader="GenerateHeaderOption.Sticky"
                                                     ItemSize="46"
+                                                    OverscanCount="100"
                                                     ItemsProvider="@GetData"
                                                     ResizableColumns="true"
                                                     ResizeColumnOnAllRows="false"
                                                     GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                     RowClass="@(r => GetRowClass(r.Resource))"
-                                                    Loading="_isLoading"
+                                                    Loading="!_loadingTcs.Task.IsCompleted"
                                                     ShowHover="true"
                                                     TGridItem="ResourceGridViewModel"
                                                     ItemKey="@(r => r.Resource.Name)"
@@ -156,7 +157,7 @@
                                                 </span>
                                             </AspireTemplateColumn>
                                             <AspireTemplateColumn ColumnId="@StateColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => ResourceStateViewModel.GetResourceStateTooltip(c.Resource, ColumnsLoc))">
-                                                <StateColumnDisplay Resource="@context.Resource" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
+                                                <StateColumnDisplay Resource="@context.Resource" UnviewedErrorCounts="@_resourceUnviewedErrorCounts" />
                                             </AspireTemplateColumn>
                                             <AspireTemplateColumn ColumnId="@StartTimeColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.Resource.StartTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.Resource.StartTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
                                                 <StartTimeColumnDisplay Resource="@context.Resource" />

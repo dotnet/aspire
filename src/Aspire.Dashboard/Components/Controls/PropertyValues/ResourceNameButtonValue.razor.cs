@@ -19,7 +19,7 @@ public partial class ResourceNameButtonValue
     public required string HighlightText { get; set; }
 
     [Parameter, EditorRequired]
-    public required OtlpApplication Resource { get; set; }
+    public required OtlpResource Resource { get; set; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -36,7 +36,7 @@ public partial class ResourceNameButtonValue
 
         if (DashboardClient.IsEnabled)
         {
-            _resource = DashboardClient.GetResource(Resource.ApplicationKey.ToString());
+            _resource = DashboardClient.GetResource(Resource.ResourceKey.ToString());
             if (_resource != null)
             {
                 _resourceIcon = ResourceIconHelpers.GetIconForResource(_resource, IconSize.Size16, IconVariant.Regular);

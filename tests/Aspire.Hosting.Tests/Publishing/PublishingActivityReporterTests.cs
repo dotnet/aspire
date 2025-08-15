@@ -493,6 +493,46 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
+    public async Task PromptNotificationAsync_EmitsCorrectActivityAndHandlesCompletion()
+    {
+        // Arrange
+        var reporter = new PublishingActivityReporter(_interactionService);
+        var notificationOptions = new NotificationInteractionOptions
+        {
+            Intent = MessageIntent.Information,
+            LinkText = "Learn more",
+            LinkUrl = "https://example.com"
+        };
+
+        // Start a notification interaction
+        var notificationTask = _interactionService.PromptNotificationAsync("Test Notification", "This is a test notification message", notificationOptions);
+
+        // Get the interaction ID from the activity that was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var notificationId = activity.Data.Id;
+
+        // Assert that notification get mapped to confirmation prompts
+        Assert.Equal(PublishingActivityTypes.Prompt, activity.Type);
+        Assert.Equal("This is a test notification message", activity.Data.StatusText);
+        Assert.Equal(CompletionStates.InProgress, activity.Data.CompletionState);
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("Confirm", input.Label);
+        Assert.Equal("Boolean", input.InputType);
+        Assert.True(input.Required);
+
+        // Act - Complete the notification with a true response
+        PublishingPromptInputAnswer[] responses = [new() { Value = "true" }];
+        await reporter.CompleteInteractionAsync(notificationId, responses, CancellationToken.None).DefaultTimeout();
+
+        // The notification task should complete with the user's response
+        var notificationResult = await notificationTask.DefaultTimeout();
+        Assert.False(notificationResult.Canceled);
+        Assert.True(notificationResult.Data);
+    }
+
+    [Fact]
     public async Task CalculateAggregatedState_WithNoTasks_ReturnsCompleted()
     {
         // Arrange

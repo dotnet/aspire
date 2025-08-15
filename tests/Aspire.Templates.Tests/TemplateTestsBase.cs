@@ -163,7 +163,7 @@ public partial class TemplateTestsBase
         }
         catch
         {
-            string screenshotPath = Path.Combine(logPath, "dashboard-fail.png");
+            string screenshotPath = Path.Combine(logPath, $"dashboard-fail-{Guid.NewGuid().ToString()[..8]}.png");
             await dashboardPageWrapper.Page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
             testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
             throw;

@@ -158,7 +158,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 [KnownProperties.Resource.DisplayName] = new ComponentMetadata
                 {
                     Type = typeof(ResourceNameValue),
-                    Parameters = { ["Resource"] = _resource, ["FormatName"] = (ResourceViewModel r) => ResourceViewModel.GetResourceName(r, ResourceByName) }
+                    Parameters = { ["Resource"] = _resource, ["FormatName"] = new Func<ResourceViewModel, string>(FormatName) }
                 },
                 [KnownProperties.Resource.HealthState] = new ComponentMetadata
                 {
@@ -291,6 +291,11 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 _unmaskedItemNames.Add(vm.Name);
             }
         }
+    }
+
+    private string FormatName(ResourceViewModel resource)
+    {
+        return ResourceViewModel.GetResourceName(resource, ResourceByName);
     }
 
     public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)

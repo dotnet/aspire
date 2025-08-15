@@ -10,7 +10,7 @@
 <div class="span-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Application.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Resource.ResourceName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
@@ -110,12 +110,15 @@
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
-                                ShowHover="true">
+                                ShowHover="true"
+                                Multiline="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton OnClick="@(() => OnViewDetailsAsync(context))" Appearance="Appearance.Lightweight" Class="button-hyperlink" IconStart="new Icons.Regular.Size16.GanttChart()">
+                            @OtlpHelpers.ToShortenedId(context.SpanId)
+                        </FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -135,12 +138,15 @@
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
-                                ShowHover="true">
+                                ShowHover="true"
+                                Multiline="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton OnClick="@(() => OnViewDetailsAsync(context))" Appearance="Appearance.Lightweight" Class="button-hyperlink" IconStart="new Icons.Regular.Size16.GanttChart()">
+                            @OtlpHelpers.ToShortenedId(context.SpanId)
+                        </FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -152,10 +158,10 @@
     RenderFragment WriteSpanLink(SpanLinkViewModel context)
     {
         var content = context.Span != null
-            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Applications)
+            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Resources)
             : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
         var color = context.Span != null
-            ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, ViewModel.Applications))
+            ? ColorGenerator.Instance.GetColorHexByKey(OtlpResource.GetResourceName(context.Span.Source, ViewModel.Resources))
             : "transparent";
 
         return @<div>

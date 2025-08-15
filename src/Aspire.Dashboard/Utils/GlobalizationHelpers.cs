@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Aspire.Shared;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -21,13 +22,7 @@ internal static class GlobalizationHelpers
 
     static GlobalizationHelpers()
     {
-        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-        var localizedCultureNames = new string[]
-        {
-            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-        };
-
-        var localizedCultureInfos = localizedCultureNames.Select(CultureInfo.GetCultureInfo).ToList();
+        var localizedCultureInfos = LocaleHelpers.SupportedLocales.Select(CultureInfo.GetCultureInfo).ToList();
 
         AllCultures = GetAllCultures();
 

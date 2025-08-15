@@ -204,12 +204,12 @@
       </trans-unit>
       <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">İptal</target>
         <note />
       </trans-unit>
       <trans-unit id="OpenSpanDialogMessage">
         <source>Waiting for span {0} to load...</source>
-        <target state="new">Waiting for span {0} to load...</target>
+        <target state="translated">Span {0} yükleniyor...</target>
         <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">

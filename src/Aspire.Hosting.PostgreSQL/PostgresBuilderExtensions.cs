@@ -129,10 +129,9 @@ public static class PostgresBuilderExtensions
     /// extension method then the dependent resource will wait until the Postgres database is available.
     /// </para>
     /// <para>
-    /// Note that by default calling <see cref="AddDatabase(IResourceBuilder{PostgresServerResource}, string, string?)"/>
-    /// does not result in the database being created on the Postgres server. It is expected that code within your solution
-    /// will create the database. As a result if <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
-    /// is used with this resource it will wait indefinitely until the database exists.
+    /// Note that calling <see cref="AddDatabase(IResourceBuilder{PostgresServerResource}, string, string?)"/>
+    /// will result in the database being created on the Postgres server when the server becomes ready.
+    /// The database creation happens automatically as part of the resource lifecycle.
     /// </para>
     /// </remarks>
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)

@@ -52,6 +52,7 @@ internal static class KnownProperties
     public static class Project
     {
         public const string Path = "project.path";
+        public const string LaunchProfile = "project.launchProfile";
     }
 
     public static class Parameter

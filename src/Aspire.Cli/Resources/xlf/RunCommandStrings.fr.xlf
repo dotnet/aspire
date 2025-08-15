@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="PromptForDebugging">
         <source>Do you want to start a debugging session?</source>
-        <target state="new">Do you want to start a debugging session?</target>
+        <target state="translated">Souhaitez-vous commencer une session de débogage ?</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

@@ -99,5 +99,11 @@ public static class AspireAppConfigurationExtensions
                 .WithTracing(traceBuilder =>
                     traceBuilder.AddSource(ActivitySourceName));
         }
+
+        if (!settings.DisableHealthChecks)
+        {
+            builder.Services.AddHealthChecks()
+                .AddAzureAppConfiguration(name: connectionName);
+        }
     }
 }

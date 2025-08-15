@@ -35,6 +35,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             .. _resourceProperties,
             new(KnownProperties.Project.Path, loc => loc[nameof(ResourcesDetailsProjectPathProperty)]),
+            new(KnownProperties.Project.LaunchProfile, loc => loc[nameof(ResourcesDetailsProjectLaunchProfileProperty)]),
             new(KnownProperties.Executable.Pid, loc => loc[nameof(ResourcesDetailsExecutableProcessIdProperty)]),
         ];
 
