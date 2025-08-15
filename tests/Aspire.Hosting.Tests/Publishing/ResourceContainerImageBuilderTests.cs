@@ -475,6 +475,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task BuildImageAsync_WithInvalidProject_ReturnsFalseAndThrowsException()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
