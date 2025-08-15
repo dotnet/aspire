@@ -11,7 +11,8 @@ namespace Aspire.Cli.Utils;
 
 internal interface ICliUpdateNotifier
 {
-    Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
+    Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
+    void NotifyIfUpdateAvailable();
 }
 
 internal class CliUpdateNotifier(
@@ -19,49 +20,36 @@ internal class CliUpdateNotifier(
     INuGetPackageCache nuGetPackageCache,
     IInteractionService interactionService) : ICliUpdateNotifier
 {
+    private IEnumerable<Shared.NuGetPackageCli>? _availablePackages;
 
-    public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
+    public async Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
-        try
+        _availablePackages = await nuGetPackageCache.GetCliPackagesAsync(
+            workingDirectory: workingDirectory,
+            prerelease: true,
+            nugetConfigFile: null,
+            cancellationToken: cancellationToken);
+    }
+
+    public void NotifyIfUpdateAvailable()
+    {
+        if (_availablePackages is null)
         {
-            var currentVersion = GetCurrentVersion();
-            if (currentVersion is null)
-            {
-                logger.LogDebug("Unable to determine current CLI version for update check.");
-                return;
-            }
-
-            // Ultimately the package nuget cache invokes dotnet CLI runner
-            // which launches the dotnet package search command. It can take some
-            // time for the wait on this process to be cancelled and for it to unwind
-            // so this change makes it so that we can detect cancellation on this
-            // side and exit gracefully if we didn't already have a cached result.
-            var tcs = new TaskCompletionSource();
-            cancellationToken.Register(() => tcs.TrySetResult());
-
-            var pendingAvailablePackages = nuGetPackageCache.GetCliPackagesAsync(
-                    workingDirectory: workingDirectory,
-                    prerelease: true,
-                    nugetConfigFile: null,
-                    cancellationToken: cancellationToken);
-
-            await Task.WhenAny(tcs.Task, pendingAvailablePackages);
-
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                var availablePackages = await pendingAvailablePackages;
-                var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
-
-                if (newerVersion is not null)
-                {
-                    interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
-                }
-            }
-                    
+            return;
         }
-        catch (Exception ex)
+
+        var currentVersion = GetCurrentVersion();
+        if (currentVersion is null)
         {
-            logger.LogDebug(ex, "Non-fatal error while checking for CLI updates.");
+            logger.LogDebug("Unable to determine current CLI version for update check.");
+            return;
+        }
+
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+
+        if (newerVersion is not null)
+        {
+            interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
         }
     }
 
