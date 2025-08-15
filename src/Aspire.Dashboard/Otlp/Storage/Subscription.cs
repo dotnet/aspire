@@ -9,6 +9,7 @@ namespace Aspire.Dashboard.Otlp.Storage;
 [DebuggerDisplay("Name = {Name}, ResourceKey = {ResourceKey}, SubscriptionId = {SubscriptionId}")]
 public sealed class Subscription : IDisposable
 {
+    private const int StateNone = 0;
     private const int StateDisposed = 1;
 
     private static int s_subscriptionId;
@@ -39,10 +40,12 @@ public sealed class Subscription : IDisposable
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, StateDisposed) is not StateDisposed)
+        if (Interlocked.CompareExchange(ref _disposed, StateDisposed, StateNone) == StateDisposed)
         {
-            _unsubscribe();
-            _callbackThrottler.Dispose();
+            return;
         }
+
+        _unsubscribe();
+        _callbackThrottler.Dispose();
     }
 }
