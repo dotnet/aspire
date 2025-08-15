@@ -277,7 +277,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         // Determine if we're subscribing to "All" resources or a specific resource
         var isAllSelected = PageViewModel.SelectedOption.Id is null && 
-                           ReferenceEquals(PageViewModel.SelectedOption, _allResource);
+                           (ReferenceEquals(PageViewModel.SelectedOption, _allResource) ||
+                            string.Equals(PageViewModel.SelectedOption.Name, _allResource.Name, StringComparison.Ordinal));
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
 
         // Check if subscription needs to change
