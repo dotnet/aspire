@@ -349,7 +349,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         _logsMenuItems.Add(new()
         {
-            IsDisabled = PageViewModel.SelectedResource is null,
+            IsDisabled = PageViewModel.SelectedResource is null && !_isSubscribedToAll,
             OnClick = DownloadLogsAsync,
             Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.DownloadLogs)],
             Icon = new Icons.Regular.Size16.ArrowDownload()
@@ -838,8 +838,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         stream.Seek(0, SeekOrigin.Begin);
 
         using var streamReference = new DotNetStreamReference(stream);
-        var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
-        var fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        string fileName;
+        if (_isSubscribedToAll)
+        {
+            fileName = $"AllResources-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        }
+        else
+        {
+            var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
+            fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        }
 
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
