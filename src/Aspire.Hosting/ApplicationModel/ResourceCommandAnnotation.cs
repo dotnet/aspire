@@ -131,6 +131,11 @@ public static class CommandResults
     public static ExecuteCommandResult Failure(string? errorMessage = null) => new() { Success = false, ErrorMessage = errorMessage };
 
     /// <summary>
+    /// Produces a canceled result.
+    /// </summary>
+    public static ExecuteCommandResult Canceled() => new() { Success = false, Canceled = true };
+
+    /// <summary>
     /// Produces an unsuccessful result from an <see cref="Exception"/>. <see cref="Exception.Message"/> is used as the error message.
     /// </summary>
     /// <param name="exception">The exception to get the error message from.</param>
@@ -146,6 +151,11 @@ public sealed class ExecuteCommandResult
     /// A flag that indicates whether the command was successful.
     /// </summary>
     public required bool Success { get; init; }
+
+    /// <summary>
+    /// A flag that indicates whether the command was canceled by the user.
+    /// </summary>
+    public bool Canceled { get; init; }
 
     /// <summary>
     /// An optional error message that can be set when the command is unsuccessful.
