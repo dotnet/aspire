@@ -278,9 +278,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         // Determine if we're subscribing to "All" resources or a specific resource
         // Both "All" and "None" have Id=null, so we distinguish by name
         var allResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)];
+        var noneResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)];
         var isAllSelected = PageViewModel.SelectedOption.Id is null && 
                            string.Equals(PageViewModel.SelectedOption.Name, allResourceName, StringComparison.Ordinal);
+        var isNoneSelected = PageViewModel.SelectedOption.Id is null && 
+                            string.Equals(PageViewModel.SelectedOption.Name, noneResourceName, StringComparison.Ordinal);
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
+
+        // Debug logging to understand what's happening
+        Logger.LogDebug("OnParametersSetAsync - SelectedOption.Name: '{SelectedName}', AllResourceName: '{AllName}', NoneResourceName: '{NoneName}', IsAllSelected: {IsAll}, IsNoneSelected: {IsNone}", 
+            PageViewModel.SelectedOption.Name, allResourceName, noneResourceName, isAllSelected, isNoneSelected);
 
         // Check if subscription needs to change
         bool needsNewSubscription = false;
@@ -288,11 +295,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         if (isAllSelected && !_isSubscribedToAll)
         {
             // Switching from single resource to "All"
+            Logger.LogDebug("Switching to 'All' mode");
             needsNewSubscription = true;
         }
         else if (!isAllSelected && _isSubscribedToAll)
         {
             // Switching from "All" to single resource
+            Logger.LogDebug("Switching from 'All' mode to single resource or none");
             needsNewSubscription = true;
         }
         else if (!isAllSelected && selectedResourceName is not null)
@@ -300,13 +309,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             // Check if the selected single resource changed
             if (!_consoleLogsSubscriptions.ContainsKey(selectedResourceName))
             {
+                Logger.LogDebug("Switching to different single resource: {ResourceName}", selectedResourceName);
                 needsNewSubscription = true;
             }
         }
         else if (!isAllSelected && selectedResourceName is null)
         {
             // No resource selected
-            needsNewSubscription = !_consoleLogsSubscriptions.IsEmpty;
+            if (!_consoleLogsSubscriptions.IsEmpty)
+            {
+                Logger.LogDebug("Switching to no resource selected");
+                needsNewSubscription = true;
+            }
         }
 
         if (needsNewSubscription)
@@ -485,6 +499,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task SubscribeToAllResourcesAsync()
     {
+        // Ensure dashboard client is available
+        if (!DashboardClient.IsEnabled)
+        {
+            Logger.LogWarning("DashboardClient is not enabled - cannot subscribe to resources for 'All' view.");
+            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         var availableResources = _resourceByName.Values
             .Where(r => !r.IsResourceHidden(_showHiddenResources))
             .ToList();
@@ -499,10 +522,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             return;
         }
 
+        // Set status to indicate we're starting to watch logs
+        PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+        await InvokeAsync(StateHasChanged);
+
         foreach (var resource in availableResources)
         {
             await SubscribeToSingleResourceAsync(resource.Name);
         }
+
+        Logger.LogDebug("Successfully created {SubscriptionCount} subscriptions for 'All' view.", _consoleLogsSubscriptions.Count);
     }
 
     private Task SubscribeToSingleResourceAsync(string resourceName)
@@ -526,8 +555,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }, subscription);
         }
 
-        _consoleLogsSubscriptions.TryAdd(resourceName, subscription);
-        LoadLogsForResource(subscription);
+        // Add the subscription to the dictionary before starting the task
+        if (_consoleLogsSubscriptions.TryAdd(resourceName, subscription))
+        {
+            LoadLogsForResource(subscription);
+            Logger.LogDebug("Started log subscription task for resource {ResourceName}.", resourceName);
+        }
+        else
+        {
+            Logger.LogWarning("Failed to add subscription for resource {ResourceName} - may already exist.", resourceName);
+        }
+        
         return Task.CompletedTask;
     }
 
@@ -646,9 +684,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
             var logSubscription = DashboardClient.SubscribeConsoleLogs(subscription.Name, subscription.CancellationToken);
 
-            // Update status only for single resource subscriptions or when this is the first subscription
-            var shouldUpdateStatus = !_isSubscribedToAll || _consoleLogsSubscriptions.Count == 1;
-            if (shouldUpdateStatus)
+            // For "All" subscriptions, only update status once when starting
+            if (_isSubscribedToAll && _consoleLogsSubscriptions.Count == 1)
+            {
+                PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+                await InvokeAsync(StateHasChanged);
+            }
+            // For single resource subscriptions, always update status
+            else if (!_isSubscribedToAll)
             {
                 PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
                 await InvokeAsync(StateHasChanged);
@@ -719,7 +762,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 {
                     Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", subscription.Name);
 
-                    if (shouldUpdateStatus)
+                    // For single resource subscriptions or first subscription in "All" mode, update status
+                    if (!_isSubscribedToAll)
                     {
                         PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)];
                         await InvokeAsync(StateHasChanged);
@@ -735,7 +779,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 // If the subscription is being canceled then a new one could be starting.
                 // Don't set the status when finishing because overwrite the status from the new subscription.
-                if (!subscription.CancellationToken.IsCancellationRequested && shouldUpdateStatus)
+                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll)
                 {
                     PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
                     await InvokeAsync(StateHasChanged);
