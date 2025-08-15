@@ -85,6 +85,10 @@ When running tests locally or in automated environments, use the quarantine filt
 dotnet test --filter-not-trait "quarantined=true"
 ```
 
+### Testing Pull Request Changes
+
+To test changes from a specific pull request locally, see [dogfooding-pull-requests.md](dogfooding-pull-requests.md) for instructions on installing Aspire CLI and NuGet packages built by that PR's CI run.
+
 ## Integrations (Formerly Components)
 
 Please check the [.NET Aspire integrations contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.
