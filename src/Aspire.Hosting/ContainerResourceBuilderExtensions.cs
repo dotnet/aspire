@@ -910,6 +910,158 @@ public static class ContainerResourceBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds a container label to the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="key">The label key.</param>
+    /// <param name="value">The label value.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add a single label to a container:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabel("com.example.service", "my-service");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabel<T>(this IResourceBuilder<T> builder, string key, string? value) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return builder.WithAnnotation(new ContainerLabelAnnotation(key, value ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Adds multiple container labels to the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="labels">A dictionary of labels to add.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add multiple labels to a container:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabels(new Dictionary&lt;string, string&gt;
+    ///        {
+    ///            ["com.example.service"] = "my-service",
+    ///            ["com.example.environment"] = "staging",
+    ///            ["com.example.owner"] = "team-xyz"
+    ///        });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabels<T>(this IResourceBuilder<T> builder, IDictionary<string, string> labels) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(labels);
+
+        return builder.WithAnnotation(new ContainerLabelCallbackAnnotation(context =>
+        {
+            foreach (var label in labels)
+            {
+                context.Labels[label.Key] = label.Value;
+            }
+        }));
+    }
+
+    /// <summary>
+    /// Adds a container label to the container resource using a callback to generate the label value.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the container label.</param>
+    /// <param name="callback">A callback that allows for deferred execution of a specific container label. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add a single label with a callback-generated value:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabel("instance-id", () => Environment.MachineName);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabel<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerLabelCallbackAnnotation(name, callback));
+    }
+
+    /// <summary>
+    /// Allows for the population of container labels on a resource using a callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many container labels. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add multiple labels with callback-generated values:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabel(context =>
+    ///        {
+    ///            context.Labels["instance-id"] = Environment.MachineName;
+    ///            context.Labels["startup-time"] = DateTime.UtcNow.ToString("O");
+    ///        });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabel<T>(this IResourceBuilder<T> builder, Action<ContainerLabelCallbackContext> callback) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerLabelCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Allows for the population of container labels on a resource using an async callback.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many container labels. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Add multiple labels with async callback-generated values:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("my-service", "nginx:latest")
+    ///        .WithLabel(async context =>
+    ///        {
+    ///            context.Labels["instance-id"] = Environment.MachineName;
+    ///            context.Labels["config-hash"] = await ComputeConfigHashAsync();
+    ///        });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLabel<T>(this IResourceBuilder<T> builder, Func<ContainerLabelCallbackContext, Task> callback) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerLabelCallbackAnnotation(callback));
+    }
 }
 
 internal static class IListExtensions
