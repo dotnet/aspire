@@ -110,7 +110,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>8.0.19</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>8.0.19</MicrosoftExtensionsDiagnosticsHealthChecksLTSVersion>
     <MicrosoftExtensionsFeaturesLTSVersion>8.0.19</MicrosoftExtensionsFeaturesLTSVersion>
-    <MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>9.0.7</MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>
+    <MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>8.0.19</MicrosoftExtensionsFileProvidersEmbeddedLTSVersion>
     <MicrosoftAspNetCoreSignalRClientLTSVersion>8.0.19</MicrosoftAspNetCoreSignalRClientLTSVersion>
     <!-- Runtime -->
     <MicrosoftExtensionsHostingAbstractionsLTSVersion>8.0.1</MicrosoftExtensionsHostingAbstractionsLTSVersion>
