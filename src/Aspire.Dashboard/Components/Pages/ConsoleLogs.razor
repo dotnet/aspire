@@ -26,6 +26,7 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
+                            CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
             <SignalsActionsDisplay HandleClearSignal="@ClearConsoleLogs"
@@ -33,7 +34,9 @@
                                   OnPausedChanged="@OnPausedChanged"
                                   SelectedResource="@PageViewModel.SelectedOption" />
 
-            @if (PageViewModel.SelectedResource is { } selectedResource)
+            @if (PageViewModel.SelectedResource is { } selectedResource && 
+                 PageViewModel.SelectedOption.Id is not null && 
+                 !ReferenceEquals(PageViewModel.SelectedOption, _allResource))
             {
                 if (ViewportInformation.IsDesktop && (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0))
                 {

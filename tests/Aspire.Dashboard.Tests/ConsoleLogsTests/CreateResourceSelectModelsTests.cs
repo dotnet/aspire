@@ -25,10 +25,12 @@ public class CreateResourceSelectModelsTests
 
         var unknownStateText = "unknown-state";
         var selectAResourceText = "select-a-resource";
+        var allResourceText = "all-resources";
         var noSelectionViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = selectAResourceText };
+        var allResourceViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = allResourceText };
 
         // Act
-        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText, false, out var optionToSelect);
+        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, allResourceViewModel, unknownStateText, false, out var optionToSelect);
 
         // Assert
         Assert.NotNull(optionToSelect);
@@ -68,16 +70,22 @@ public class CreateResourceSelectModelsTests
 
         var unknownStateText = "unknown-state";
         var selectAResourceText = "select-a-resource";
+        var allResourceText = "all-resources";
         var noSelectionViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = selectAResourceText };
+        var allResourceViewModel = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = allResourceText };
 
         // Act
-        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, unknownStateText, false, out var optionToSelect);
+        var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, noSelectionViewModel, allResourceViewModel, unknownStateText, false, out var optionToSelect);
 
         // Assert
 
         Assert.Null(optionToSelect);
 
         Assert.Collection(viewModels,
+            entry =>
+            {
+                Assert.Equal(entry, allResourceViewModel);
+            },
             entry =>
             {
                 Assert.Equal(entry, noSelectionViewModel);
