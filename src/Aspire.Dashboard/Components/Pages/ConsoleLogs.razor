@@ -36,8 +36,7 @@
 
             @if (PageViewModel.SelectedResource is { } selectedResource && 
                  PageViewModel.SelectedOption.Id is not null && 
-                 !(ReferenceEquals(PageViewModel.SelectedOption, _allResource) ||
-                   string.Equals(PageViewModel.SelectedOption.Name, _allResource.Name, StringComparison.Ordinal)))
+                 !string.Equals(PageViewModel.SelectedOption.Name, ControlsStringsLoc[nameof(ControlsStrings.LabelAll)], StringComparison.Ordinal))
             {
                 if (ViewportInformation.IsDesktop && (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0))
                 {

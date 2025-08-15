@@ -276,9 +276,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         UpdateMenuButtons();
 
         // Determine if we're subscribing to "All" resources or a specific resource
+        // Both "All" and "None" have Id=null, so we distinguish by name
+        var allResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)];
         var isAllSelected = PageViewModel.SelectedOption.Id is null && 
-                           (ReferenceEquals(PageViewModel.SelectedOption, _allResource) ||
-                            string.Equals(PageViewModel.SelectedOption.Name, _allResource.Name, StringComparison.Ordinal));
+                           string.Equals(PageViewModel.SelectedOption.Name, allResourceName, StringComparison.Ordinal);
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
 
         // Check if subscription needs to change
@@ -489,6 +490,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             .ToList();
 
         Logger.LogDebug("Subscribing to {ResourceCount} resources for 'All' view.", availableResources.Count);
+
+        if (availableResources.Count == 0)
+        {
+            Logger.LogWarning("No resources available to subscribe to for 'All' view.");
+            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
 
         foreach (var resource in availableResources)
         {
