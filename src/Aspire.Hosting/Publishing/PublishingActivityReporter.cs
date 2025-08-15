@@ -285,7 +285,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
             {
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
-                    Label = input.Label,
+                    Label = input.EffectiveLabel,
                     InputType = input.InputType.ToString(),
                     Required = input.Required,
                     Options = input.Options,
