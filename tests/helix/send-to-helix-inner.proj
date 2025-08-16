@@ -58,6 +58,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <HelixCorrelationPayload Include="$(MSBuildThisFileDirectory)..\..\dotnet.config" />
+
     <_TestBlameArguments Include="--hangdump" />
     <_TestBlameArguments Include="--hangdump-type Full" />
     <_TestBlameArguments Include="--hangdump-timeout 20m" />
