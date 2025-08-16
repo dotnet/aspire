@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">Anonim birimler salt okunur olamaz.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">Bağlama işlemlerinde mutlak bir yol belirtilmelidir.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">Bağlama işlemlerinde bir kaynak yolu belirtilmelidir.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="new">Application orchestrator dependency check returned an error: {0}</target>
+        <target state="translated">Uygulama düzenleyicisi bağımlılık denetimi bir hata döndürdü: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
-        <target state="new">Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</target>
+        <target state="translated">Uygulamayı çalıştırmak için Aspire.Hosting.AppHost paketinin daha yeni bir sürümü gereklidir. En az '{0}' sürümüne referans verdiğinizden emin olun.</target>
         <note />
       </trans-unit>
     </body>

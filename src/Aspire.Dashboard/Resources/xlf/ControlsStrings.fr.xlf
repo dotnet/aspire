@@ -434,7 +434,7 @@
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>
-        <target state="new">Select a resource</target>
+        <target state="translated">Sélectionner une ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

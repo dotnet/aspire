@@ -66,7 +66,7 @@ Esempi:
       </trans-unit>
       <trans-unit id="WorkdirArgumentDescription">
         <source>The working directory to execute the command in.</source>
-        <target state="new">The working directory to execute the command in.</target>
+        <target state="translated">La directory di lavoro in cui eseguire il comando.</target>
         <note />
       </trans-unit>
     </body>

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ResourceActionCommandsText">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">Команды</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceActionUrlsText">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">URL-адреса</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
         <source>Launch profile</source>
-        <target>Профиль запуска</target>
+        <target state="translated">Профиль запуска</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
