@@ -5,6 +5,7 @@ namespace Aspire.Tests._1;
 [TestClass]
 public class IntegrationTest1
 {
+    public TestContext TestContext { get; set; }
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
 
     // Instructions:
@@ -20,7 +21,7 @@ public class IntegrationTest1
     // public async Task GetWebResourceRootReturnsOkStatusCode()
     // {
     //     // Arrange
-    //     var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+    //     var cancellationToken = TestContext.CancellationTokenSource.Token;
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
     //     appHost.Services.AddLogging(logging =>
     //     {
@@ -38,9 +39,9 @@ public class IntegrationTest1
     //     await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
     //
     //     // Act
-    //     var httpClient = app.CreateHttpClient("webfrontend");
+    //     using var httpClient = app.CreateHttpClient("webfrontend");
     //     await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-    //     var response = await httpClient.GetAsync("/", cancellationToken);
+    //     using var response = await httpClient.GetAsync("/", cancellationToken);
     //
     //     // Assert
     //     Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
