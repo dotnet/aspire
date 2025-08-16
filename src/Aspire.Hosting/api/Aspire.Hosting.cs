@@ -605,6 +605,12 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WaitForCompletion<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency, int exitCode = 0)
             where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<T> WaitForStart<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency, ApplicationModel.WaitBehavior waitBehavior)
+            where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WaitForStart<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> dependency)
+            where T : ApplicationModel.IResourceWithWaitSupport { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithArgs<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.CommandLineArgsCallbackContext> callback)
             where T : ApplicationModel.IResourceWithArgs { throw null; }
 
@@ -703,6 +709,9 @@ namespace Aspire.Hosting
         [System.Obsolete("This method is obsolete and will be removed in a future version. Use the WithHttpHealthCheck method instead.")]
         public static ApplicationModel.IResourceBuilder<T> WithHttpsHealthCheck<T>(this ApplicationModel.IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null)
             where T : ApplicationModel.IResourceWithEndpoints { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithIconName<T>(this ApplicationModel.IResourceBuilder<T> builder, string iconName, ApplicationModel.IconVariant iconVariant = ApplicationModel.IconVariant.Filled)
+            where T : ApplicationModel.IResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithManifestPublishingCallback<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Publishing.ManifestPublishingContext> callback)
             where T : ApplicationModel.IResource { throw null; }
@@ -859,6 +868,8 @@ namespace Aspire.Hosting.ApplicationModel
 
     public sealed partial class CommandLineArgsCallbackContext
     {
+        public CommandLineArgsCallbackContext(System.Collections.Generic.IList<object> args, IResource resource, System.Threading.CancellationToken cancellationToken = default) { }
+
         public CommandLineArgsCallbackContext(System.Collections.Generic.IList<object> args, System.Threading.CancellationToken cancellationToken = default) { }
 
         public System.Collections.Generic.IList<object> Args { get { throw null; } }
@@ -868,6 +879,8 @@ namespace Aspire.Hosting.ApplicationModel
         public DistributedApplicationExecutionContext ExecutionContext { get { throw null; } init { } }
 
         public Microsoft.Extensions.Logging.ILogger Logger { get { throw null; } init { } }
+
+        public IResource Resource { get { throw null; } }
     }
 
     public partial class CommandOptions
@@ -1108,6 +1121,10 @@ namespace Aspire.Hosting.ApplicationModel
         public System.Collections.Immutable.ImmutableArray<HealthReportSnapshot> HealthReports { get { throw null; } }
 
         public Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? HealthStatus { get { throw null; } }
+
+        public string? IconName { get { throw null; } init { } }
+
+        public IconVariant? IconVariant { get { throw null; } init { } }
 
         public bool IsHidden { get { throw null; } init { } }
 
@@ -2049,6 +2066,16 @@ namespace Aspire.Hosting.ApplicationModel
         public static bool TryGetUrls(this IResource resource, out System.Collections.Generic.IEnumerable<ResourceUrlAnnotation>? urls) { throw null; }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, IconName = {IconName}, IconVariant = {IconVariant}")]
+    public sealed partial class ResourceIconAnnotation : IResourceAnnotation
+    {
+        public ResourceIconAnnotation(string iconName, IconVariant iconVariant = IconVariant.Filled) { }
+
+        public string IconName { get { throw null; } }
+
+        public IconVariant IconVariant { get { throw null; } }
+    }
+
     public partial class ResourceLoggerService
     {
         public void ClearBacklog(string resourceName) { }
@@ -2081,7 +2108,7 @@ namespace Aspire.Hosting.ApplicationModel
     {
         public ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<ResourceNotificationService> logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime hostApplicationLifetime, System.IServiceProvider serviceProvider, ResourceLoggerService resourceLoggerService) { }
 
-        [System.Obsolete("ResourceNotificationService now requires an IServiceProvider and ResourceLoggerService.\r\nUse the constructor that accepts an ILogger<ResourceNotificationService>, IHostApplicationLifetime, IServiceProvider and ResourceLoggerService.\r\nThis constructor will be removed in the next major version of Aspire.")]
+        [System.Obsolete("ResourceNotificationService now requires an IServiceProvider and ResourceLoggerService.\nUse the constructor that accepts an ILogger<ResourceNotificationService>, IHostApplicationLifetime, IServiceProvider and ResourceLoggerService.\nThis constructor will be removed in the next major version of Aspire.")]
         public ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<ResourceNotificationService> logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime hostApplicationLifetime) { }
 
         public void Dispose() { }
@@ -2242,7 +2269,8 @@ namespace Aspire.Hosting.ApplicationModel
     public enum WaitType
     {
         WaitUntilHealthy = 0,
-        WaitForCompletion = 1
+        WaitForCompletion = 1,
+        WaitUntilStarted = 2
     }
 }
 

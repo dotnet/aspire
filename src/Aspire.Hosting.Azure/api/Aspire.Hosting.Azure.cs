@@ -192,9 +192,9 @@ namespace Aspire.Hosting.Azure
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public sealed partial class AzureEnvironmentResource : ApplicationModel.Resource
+    public sealed partial class AzureEnvironmentResource : AzureBicepResource
     {
-        public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!) { }
+        public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!, default, default, default) { }
 
         public ApplicationModel.ParameterResource Location { get { throw null; } set { } }
 
