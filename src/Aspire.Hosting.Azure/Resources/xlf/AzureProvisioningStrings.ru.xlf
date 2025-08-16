@@ -16,6 +16,20 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
         <target state="new">Azure provisioning</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocationAndResourceGroupInputsMessage">
+        <source>Configure the location and resource group for your Azure resources.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
+        <target state="new">Configure the location and resource group for your Azure resources.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="LocationAndResourceGroupInputsTitle">
+        <source>Azure provisioning details</source>
+        <target state="new">Azure provisioning details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
         <target state="new">Location</target>
@@ -54,6 +68,26 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
         <target state="new">Select subscription ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionInputsMessage">
+        <source>Select the Azure subscription to use for provisioning resources.</source>
+        <target state="new">Select the Azure subscription to use for provisioning resources.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionInputsTitle">
+        <source>Azure subscription</source>
+        <target state="new">Azure subscription</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionLabel">
+        <source>Subscription</source>
+        <target state="new">Subscription</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionPlaceholder">
+        <source>Select subscription</source>
+        <target state="new">Select subscription</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">

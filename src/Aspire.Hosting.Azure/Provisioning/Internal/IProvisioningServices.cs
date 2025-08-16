@@ -20,6 +20,11 @@ internal interface IArmClientProvider
     /// Gets the ARM client for Azure resource management.
     /// </summary>
     IArmClient GetArmClient(TokenCredential credential, string subscriptionId);
+
+    /// <summary>
+    /// Gets the ARM client for Azure resource management without a specific subscription.
+    /// </summary>
+    IArmClient GetArmClient(TokenCredential credential);
 }
 
 /// <summary>
@@ -80,6 +85,16 @@ internal interface IArmClient
     /// Gets the default subscription and its matching tenant.
     /// </summary>
     Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available subscriptions for the authenticated user.
+    /// </summary>
+    Task<IList<(string SubscriptionId, string DisplayName)>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available locations for the specified subscription.
+    /// </summary>
+    Task<IList<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
