@@ -12,7 +12,7 @@ See [machine-requirements.md](machine-requirements.md).
 
 ## Using the `dotnet` CLI
 
-In building and testing, never use global `dotnet` copy. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
+In building and testing, never use the global `dotnet` copy. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
 
 ## Run TestShop
 
