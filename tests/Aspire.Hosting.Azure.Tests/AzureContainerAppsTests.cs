@@ -423,10 +423,12 @@ public class AzureContainerAppsTests
 
         var secret = builder.AddParameter("secret", secret: true);
         var kv = builder.AddAzureKeyVault("kv");
+        var existingKv = builder.AddAzureKeyVault("existingKv").PublishAsExisting("existingKvName", "existingRgName");
 
         builder.AddContainer("api", "myimage")
                .WithEnvironment("TOP_SECRET", secret)
-                .WithEnvironment("TOP_SECRET2", kv.Resource.GetSecret("secret"));
+               .WithEnvironment("TOP_SECRET2", kv.GetSecret("secret"))
+               .WithEnvironment("EXISTING_TOP_SECRET", existingKv.GetSecret("secret"));
 
         using var app = builder.Build();
 
@@ -670,8 +672,15 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
 
+        var kvName = builder.AddParameter("kvName");
+        var sharedRg = builder.AddParameter("sharedRg");
+
+        var existingKv = builder.AddAzureKeyVault("existingKv")
+                                .PublishAsExisting(kvName, sharedRg);
+
         builder.AddContainer("api", "image")
-            .WithReference(db);
+            .WithReference(db)
+            .WithEnvironment("SECRET_VALUE", existingKv.GetSecret("secret"));
 
         using var app = builder.Build();
 
