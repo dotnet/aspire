@@ -292,7 +292,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication.1.sln",
+      "path": "AspireApplication.1.slnx",
       "condition": "(hostIdentifier == \"dotnetcli\" || hostIdentifier == \"dotnetcli-preview\")"
     },
     {
