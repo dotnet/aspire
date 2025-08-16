@@ -22,7 +22,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 }
 
 resource deployment1 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'gpt-4'
+  name: 'deployment1'
   properties: {
     model: {
       format: 'OpenAI'
@@ -38,7 +38,7 @@ resource deployment1 'Microsoft.CognitiveServices/accounts/deployments@2024-10-0
 }
 
 resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'Phi-4'
+  name: 'deployment2'
   properties: {
     model: {
       format: 'Microsoft'
@@ -53,6 +53,25 @@ resource deployment2 'Microsoft.CognitiveServices/accounts/deployments@2024-10-0
   parent: foundry
   dependsOn: [
     deployment1
+  ]
+}
+
+resource my_model 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  name: 'my-model'
+  properties: {
+    model: {
+      format: 'Microsoft'
+      name: 'Phi-4'
+      version: '1.0'
+    }
+  }
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1
+  }
+  parent: foundry
+  dependsOn: [
+    deployment2
   ]
 }
 

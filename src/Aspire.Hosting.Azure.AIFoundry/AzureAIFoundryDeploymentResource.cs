@@ -27,7 +27,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public AzureAIFoundryDeploymentResource(string name, string modelName, string modelVersion, string format, AzureAIFoundryResource parent)
         : base(name)
     {
-        DeploymentName = modelName;
+        DeploymentName = name;
         ModelName = modelName;
         ModelVersion = modelVersion;
         Format = format;
@@ -85,5 +85,5 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(DeploymentName);
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Parent};DeploymentId={DeploymentName};Model={ModelName}");
 }
