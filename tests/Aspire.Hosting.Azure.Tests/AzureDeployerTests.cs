@@ -71,41 +71,55 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.Equal("Azure provisioning", messageBarInteraction.Title);
         Assert.Contains("Azure resources that require an Azure Subscription", messageBarInteraction.Message ?? "");
 
-        // Complete the message bar interaction to proceed to inputs dialog
+        // Complete the message bar interaction to proceed to subscription selection
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", inputsInteraction.Title);
-        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+        // Wait for the subscription selection interaction
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+        Assert.True(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
-        // Verify the expected inputs for Azure provisioning
-        Assert.Collection(inputsInteraction.Inputs,
+        // Since the test ARM client provider returns subscriptions, expect a choice input
+        Assert.Single(subscriptionInteraction.Inputs);
+        var subscriptionInput = subscriptionInteraction.Inputs[0];
+        Assert.Equal("Subscription", subscriptionInput.Label);
+        Assert.Equal(InputType.Choice, subscriptionInput.InputType);
+        Assert.True(subscriptionInput.Required);
+        Assert.NotNull(subscriptionInput.Options);
+        Assert.NotEmpty(subscriptionInput.Options!);
+
+        // Complete the subscription interaction with a valid selection
+        subscriptionInput.Value = subscriptionInput.Options![0].Key; // Select first subscription
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the location and resource group interaction
+        var locationResourceGroupInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning details", locationResourceGroupInteraction.Title);
+        Assert.True(locationResourceGroupInteraction.Options!.EnableMessageMarkdown);
+
+        // Verify the expected inputs for location and resource group
+        Assert.Collection(locationResourceGroupInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
-                Assert.True(input.Required);
+                Assert.NotNull(input.Options);
+                Assert.NotEmpty(input.Options!);
             },
             input =>
             {
                 Assert.Equal("Resource group", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.False(input.Required);
+                Assert.NotNull(input.Value); // Should have default value
             });
 
-        // Complete the inputs interaction with valid values
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "test-rg";
+        // Complete the location and resource group interaction with valid values
+        locationResourceGroupInteraction.Inputs[0].Value = locationResourceGroupInteraction.Inputs[0].Options![0].Key; // Select first location
+        locationResourceGroupInteraction.Inputs[1].Value = "test-rg";
 
-        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+        locationResourceGroupInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationResourceGroupInteraction.Inputs));
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));

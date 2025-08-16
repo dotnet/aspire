@@ -173,6 +173,30 @@ internal sealed class TestArmClient : IArmClient
         var tenant = new TestTenantResource();
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
     }
+
+    public Task<IList<(string SubscriptionId, string DisplayName)>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
+    {
+        var subscriptions = new List<(string SubscriptionId, string DisplayName)>
+        {
+            ("12345678-1234-1234-1234-123456789012", "Test Subscription 1"),
+            ("87654321-4321-4321-4321-210987654321", "Test Subscription 2"),
+            ("11111111-2222-3333-4444-555555555555", "Test Subscription 3")
+        };
+        return Task.FromResult<IList<(string SubscriptionId, string DisplayName)>>(subscriptions);
+    }
+
+    public Task<IList<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var locations = new List<(string Name, string DisplayName)>
+        {
+            ("eastus", "East US"),
+            ("westus", "West US"),
+            ("centralus", "Central US"),
+            ("northeurope", "North Europe"),
+            ("westeurope", "West Europe")
+        };
+        return Task.FromResult<IList<(string Name, string DisplayName)>>(locations);
+    }
 }
 
 /// <summary>
@@ -316,6 +340,11 @@ internal sealed class MockResponse(int status) : Response
 internal sealed class TestArmClientProvider : IArmClientProvider
 {
     public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
+    {
+        return new TestArmClient();
+    }
+
+    public IArmClient GetArmClient(TokenCredential credential)
     {
         return new TestArmClient();
     }

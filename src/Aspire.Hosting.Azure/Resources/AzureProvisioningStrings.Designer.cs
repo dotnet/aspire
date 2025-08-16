@@ -153,6 +153,62 @@ namespace Aspire.Hosting.Azure.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Subscription.
+        /// </summary>
+        internal static string SubscriptionLabel {
+            get {
+                return ResourceManager.GetString("SubscriptionLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select subscription.
+        /// </summary>
+        internal static string SubscriptionPlaceholder {
+            get {
+                return ResourceManager.GetString("SubscriptionPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure subscription.
+        /// </summary>
+        internal static string SubscriptionInputsTitle {
+            get {
+                return ResourceManager.GetString("SubscriptionInputsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the Azure subscription to use for provisioning resources..
+        /// </summary>
+        internal static string SubscriptionInputsMessage {
+            get {
+                return ResourceManager.GetString("SubscriptionInputsMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure provisioning details.
+        /// </summary>
+        internal static string LocationAndResourceGroupInputsTitle {
+            get {
+                return ResourceManager.GetString("LocationAndResourceGroupInputsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure the location and resource group for your Azure resources.
+        ///
+        ///To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning)..
+        /// </summary>
+        internal static string LocationAndResourceGroupInputsMessage {
+            get {
+                return ResourceManager.GetString("LocationAndResourceGroupInputsMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource group name must be a valid Azure resource group name..
         /// </summary>
         internal static string ValidationResourceGroupNameInvalid {

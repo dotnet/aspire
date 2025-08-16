@@ -147,6 +147,27 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
   <data name="SubscriptionIdPlaceholder" xml:space="preserve">
     <value>Select subscription ID</value>
   </data>
+  <data name="SubscriptionLabel" xml:space="preserve">
+    <value>Subscription</value>
+  </data>
+  <data name="SubscriptionPlaceholder" xml:space="preserve">
+    <value>Select subscription</value>
+  </data>
+  <data name="SubscriptionInputsTitle" xml:space="preserve">
+    <value>Azure subscription</value>
+  </data>
+  <data name="SubscriptionInputsMessage" xml:space="preserve">
+    <value>Select the Azure subscription to use for provisioning resources.</value>
+  </data>
+  <data name="LocationAndResourceGroupInputsTitle" xml:space="preserve">
+    <value>Azure provisioning details</value>
+  </data>
+  <data name="LocationAndResourceGroupInputsMessage" xml:space="preserve">
+    <value>Configure the location and resource group for your Azure resources.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</value>
+    <comment>Contains markdown</comment>
+  </data>
   <data name="ResourceGroupLabel" xml:space="preserve">
     <value>Resource group</value>
   </data>

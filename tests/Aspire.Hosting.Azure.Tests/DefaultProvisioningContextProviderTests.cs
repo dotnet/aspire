@@ -282,25 +282,37 @@ public class DefaultProvisioningContextProviderTests
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure provisioning", messageBarInteraction.Title);
 
-        // Complete the message bar interaction to proceed to inputs dialog
+        // Complete the message bar interaction to proceed to subscription dialog
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));// Data = true (user clicked Enter Values)
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", inputsInteraction.Title);
-        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+        // Wait for the subscription selection interaction
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+        Assert.True(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
-        Assert.Collection(inputsInteraction.Inputs,
+        Assert.Collection(subscriptionInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Subscription", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
+
+        // Select the first subscription from the test data
+        subscriptionInteraction.Inputs[0].Value = subscriptionInteraction.Inputs[0].Options![0].Key;
+
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the location and resource group interaction
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning details", locationInteraction.Title);
+        Assert.True(locationInteraction.Options!.EnableMessageMarkdown);
+
+        Assert.Collection(locationInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
-                Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
@@ -310,11 +322,10 @@ public class DefaultProvisioningContextProviderTests
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "rg-myrg";
+        locationInteraction.Inputs[0].Value = locationInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        locationInteraction.Inputs[1].Value = "rg-myrg";
 
-        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
 
         // Wait for the create task to complete
         var context = await createTask;
@@ -356,23 +367,28 @@ public class DefaultProvisioningContextProviderTests
 
         // Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        // Complete the message bar interaction to proceed to inputs dialog
+        // Complete the message bar interaction to proceed to subscription dialog
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));// Data = true (user clicked Enter Values)
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "not a guid";
-        inputsInteraction.Inputs[2].Value = "invalid group";
+        // Wait for the subscription selection interaction
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        // Select the first subscription from the test data
+        subscriptionInteraction.Inputs[0].Value = subscriptionInteraction.Inputs[0].Options![0].Key;
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the location and resource group interaction
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        locationInteraction.Inputs[0].Value = locationInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        locationInteraction.Inputs[1].Value = "invalid group";
 
         var context = new InputsDialogValidationContext
         {
             CancellationToken = CancellationToken.None,
             ServiceProvider = new ServiceCollection().BuildServiceProvider(),
-            Inputs = inputsInteraction.Inputs
+            Inputs = locationInteraction.Inputs
         };
 
-        var inputOptions = Assert.IsType<InputsDialogInteractionOptions>(inputsInteraction.Options);
+        var inputOptions = Assert.IsType<InputsDialogInteractionOptions>(locationInteraction.Options);
         Assert.NotNull(inputOptions.ValidationCallback);
         await inputOptions.ValidationCallback(context);
 
