@@ -89,9 +89,20 @@ public static class AzureFunctionsProjectResourceExtensions
 
         resource.HostStorage = storage;
 
-        return builder.AddResource(resource)
+        var functionsBuilder = builder.AddResource(resource)
             .WithAnnotation(new TProject())
-            .WithAnnotation(new AzureFunctionsAnnotation())
+            .WithAnnotation(new AzureFunctionsAnnotation());
+
+        // Add launch profile annotations like regular projects do.
+        // This ensures proper VS integration and port handling.
+        var appHostDefaultLaunchProfileName = builder.Configuration["AppHost:DefaultLaunchProfileName"]
+            ?? builder.Configuration["DOTNET_LAUNCH_PROFILE"];
+        if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
+        {
+            functionsBuilder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
+        }
+
+        return functionsBuilder
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"] = "true";
