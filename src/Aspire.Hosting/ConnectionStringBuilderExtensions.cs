@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -46,6 +47,44 @@ public static class ConnectionStringBuilderExtensions
                           ResourceType = KnownResourceTypes.ConnectionString,
                           State = KnownResourceStates.Waiting,
                           Properties = []
+                      })
+                      .OnInitializeResource(async (r, @evt, ct) =>
+                      {
+                          // Wait for any referenced resources in the connection string.
+                          // We only look at top level resources with the assumption that they are transitive themselves.
+                          var tasks = new List<Task>();
+                          foreach (var referencedResource in r.ConnectionStringExpression.ValueProviders.OfType<IResource>())
+                          {
+                              tasks.Add(evt.Notifications.WaitForResourceHealthyAsync(referencedResource.Name, ct));
+                          }
+
+                          try
+                          {
+                              // Connection string resolution is dependent on parameters being resolved
+                              // We use this to wait for the parameters to be resolved before we can compute the connection string.
+                              await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                              // Publish the update with the connection string value and the state as running.
+                              // This will allow health checks to start running.
+                              await evt.Notifications.PublishUpdateAsync(r, s => s with
+                              {
+                                  State = KnownResourceStates.Running
+                              }).ConfigureAwait(false);
+
+                              // Publish the connection string available event for other resources that may depend on this resource.
+                              await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                                .ConfigureAwait(false);
+                          }
+                          catch (Exception ex)
+                          {
+                              evt.Logger.LogError(ex, "Failed to resolve connection string for resource '{ResourceName}'", r.Name);
+
+                              // If we fail to resolve the connection string, we set the state to failed.
+                              await evt.Notifications.PublishUpdateAsync(r, s => s with
+                              {
+                                  State = KnownResourceStates.FailedToStart
+                              }).ConfigureAwait(false);
+                          }
                       });
     }
 
