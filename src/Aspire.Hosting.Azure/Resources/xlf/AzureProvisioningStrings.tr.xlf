@@ -18,7 +18,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
-        <target state="new">Location</target>
+        <target state="translated">Konum</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationPlaceholder">
@@ -43,12 +43,12 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
-        <target state="new">Resource group</target>
+        <target state="translated">Kaynak grubu</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
-        <target state="new">Subscription ID</target>
+        <target state="translated">Abonelik Kimliği</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdPlaceholder">
