@@ -125,6 +125,7 @@ internal static class InteractionCommands
                        KeyValuePair.Create("fish-pie", "Fish pie"),
                        KeyValuePair.Create("soup", "Soup"),
                        KeyValuePair.Create("beef-stew", "Beef stew"),
+                       KeyValuePair.Create("welsh-pie", "Llanfair­pwllgwyngyll­gogery­chwyrn­drobwll­llan­tysilio­gogo­goch pie"),
                    ]
                };
                var numberOfPeopleInput = new InteractionInput { InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
