@@ -10,6 +10,10 @@ See [machine-requirements.md](machine-requirements.md).
 
 `.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
 
+## Using the `dotnet` CLI
+
+In building and testing, never use global `dotnet` copy. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
+
 ## Run TestShop
 
 This will confirm that you're all set up.
@@ -17,6 +21,7 @@ This will confirm that you're all set up.
 In your shell or in VS Code:
 
 ```shell
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
 dotnet restore playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 dotnet run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 ```
@@ -82,6 +87,7 @@ Flaky tests may be marked as quarantined to prevent them from blocking CI while 
 When running tests locally or in automated environments, use the quarantine filter to exclude known flaky tests:
 
 ```bash
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
 dotnet test --filter-not-trait "quarantined=true"
 ```
 
@@ -103,7 +109,10 @@ To do so simply execute:
 
 This will generate all the packages in the folder `./artifacts/packages/Debug/Shipping`. At this point from your solution folder run:
 
-`dotnet nuget add source my_aspire_folder/artifacts/packages/Debug/Shipping`
+```shell
+# Replace "dotnet" with "./dotnet.sh" or ".\dotnet.cmd", as appropriate
+dotnet nuget add source my_aspire_folder/artifacts/packages/Debug/Shipping
+```
 
 Or edit the `NuGet.config` file and add this line to the `<packageSources>` list:
 
