@@ -37,6 +37,8 @@ internal static class KnownConfigNames
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
 
+    public const string ForwardedHeadersEnabled = "ASPIRE_FORWARDEDHEADERS_ENABLED";
+
     public static class Legacy
     {
         public const string DashboardOtlpGrpcEndpointUrl = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";

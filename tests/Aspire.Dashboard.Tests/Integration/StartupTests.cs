@@ -759,7 +759,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: data =>
             {
-                data["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
+                data[DashboardConfigNames.ForwardedHeaders.ConfigKey] = "true";
             },
             clearLogFilterRules: false);
 

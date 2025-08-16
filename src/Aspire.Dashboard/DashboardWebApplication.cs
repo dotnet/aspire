@@ -232,7 +232,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Add Forwarded Headers support so that the dashboard can be run behind a reverse proxy.
-        if (builder.Configuration.GetBool("ASPNETCORE_FORWARDEDHEADERS_ENABLED") ?? false)
+        // Verify they are enabled by looking at the value of ASPIRE_FORWARDEDHEADERS_ENABLED
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
