@@ -660,9 +660,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (optionToSelect is not null)
         {
-            Debug.Assert(optionToSelect.Id?.InstanceId is not null);
             PageViewModel.SelectedOption = optionToSelect;
-            PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
+            
+            // Only set SelectedResource for specific resource selections, not for "All" option
+            if (optionToSelect.Id?.InstanceId is not null)
+            {
+                PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
+            }
+            else
+            {
+                // "All" option selected - clear specific resource selection
+                PageViewModel.SelectedResource = null;
+            }
         }
     }
 
