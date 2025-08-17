@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Web;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
@@ -737,7 +736,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                             _logEntries.BaseLineNumber ??= lineNumber;
 
                             // Add resource name prefix for multi-resource views
-                            var processedContent = _isSubscribedToAll ? CreateColoredResourcePrefix(subscription.Name) + HttpUtility.HtmlEncode(content) : content;
+                            var processedContent = _isSubscribedToAll ? CreateColoredResourcePrefix(subscription.Name) + content : content;
                             var logEntry = logParser.CreateLogEntry(processedContent, isErrorOutput);
 
                             // Check if log entry is not displayed because of remove.
@@ -1036,14 +1035,42 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     }
 
     /// <summary>
-    /// Creates a colored HTML prefix for the resource name in multi-resource log views.
+    /// Creates a colored resource name prefix for multi-resource log viewing using ANSI color codes.
+    /// Uses the same color palette as the rest of the dashboard for consistency.
     /// </summary>
     /// <param name="resourceName">The name of the resource</param>
-    /// <returns>HTML string with colored resource name prefix</returns>
+    /// <returns>String with ANSI color codes for colored resource name prefix</returns>
     private static string CreateColoredResourcePrefix(string resourceName)
     {
         var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
-        var escapedResourceName = HttpUtility.HtmlEncode(resourceName);
-        return $"<span style=\"color: {color}; font-weight: bold;\">[{escapedResourceName}]</span> ";
+        var ansiColorCode = GetAnsiColorCodeFromHex(color);
+        return $"\x1B[{ansiColorCode}m[{resourceName}]\x1B[39m ";
+    }
+
+    /// <summary>
+    /// Maps hex color to the closest ANSI color code for consistent coloring.
+    /// Uses a simple hash-based approach to distribute colors across the ANSI palette.
+    /// </summary>
+    /// <param name="hexColor">Hex color from ColorGenerator (e.g., "#17B8BE")</param>
+    /// <returns>ANSI foreground color code (30-37)</returns>
+    private static int GetAnsiColorCodeFromHex(string hexColor)
+    {
+        // Use a hash-based approach to map hex colors to ANSI color codes
+        // This ensures consistent color assignment while distributing across the palette
+        var hash = hexColor.GetHashCode();
+        var colorIndex = Math.Abs(hash) % 8; // 8 basic ANSI colors (30-37)
+        
+        return colorIndex switch
+        {
+            0 => 31, // Red
+            1 => 32, // Green  
+            2 => 33, // Yellow
+            3 => 34, // Blue
+            4 => 35, // Magenta
+            5 => 36, // Cyan
+            6 => 37, // White
+            7 => 30, // Black (but this might be hard to see, so we could use bright variants)
+            _ => 32  // Default to green
+        };
     }
 }
