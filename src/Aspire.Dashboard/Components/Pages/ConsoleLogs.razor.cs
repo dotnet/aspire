@@ -5,12 +5,14 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Web;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
@@ -735,7 +737,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                             _logEntries.BaseLineNumber ??= lineNumber;
 
                             // Add resource name prefix for multi-resource views
-                            var processedContent = _isSubscribedToAll ? $"[{subscription.Name}] {content}" : content;
+                            var processedContent = _isSubscribedToAll ? CreateColoredResourcePrefix(subscription.Name) + HttpUtility.HtmlEncode(content) : content;
                             var logEntry = logParser.CreateLogEntry(processedContent, isErrorOutput);
 
                             // Check if log entry is not displayed because of remove.
@@ -1031,5 +1033,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
         ], Logger);
+    }
+
+    /// <summary>
+    /// Creates a colored HTML prefix for the resource name in multi-resource log views.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource</param>
+    /// <returns>HTML string with colored resource name prefix</returns>
+    private static string CreateColoredResourcePrefix(string resourceName)
+    {
+        var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
+        var escapedResourceName = HttpUtility.HtmlEncode(resourceName);
+        return $"<span style=\"color: {color}; font-weight: bold;\">[{escapedResourceName}]</span> ";
     }
 }
