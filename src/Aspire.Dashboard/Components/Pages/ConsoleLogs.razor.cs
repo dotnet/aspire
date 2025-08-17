@@ -109,7 +109,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private readonly object _updateLogsLock = new object();
 
     // UI
-    private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private SelectViewModel<ResourceTypeDetails> _allResource = null!;
     private AspirePageContentLayout? _contentLayout;
     private readonly List<CommandViewModel> _highlightedCommands = new();
@@ -133,9 +132,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         TelemetryContextProvider.Initialize(TelemetryContext);
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _allResource, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
@@ -262,7 +260,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
     {
         Debug.Assert(_resources is not null);
-        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallback: _noSelection);
+        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallback: _allResource);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -276,18 +274,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         UpdateMenuButtons();
 
         // Determine if we're subscribing to "All" resources or a specific resource
-        // Both "All" and "None" have Id=null, so we distinguish by name
         var allResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)];
-        var noneResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)];
         var isAllSelected = PageViewModel.SelectedOption.Id is null && 
                            string.Equals(PageViewModel.SelectedOption.Name, allResourceName, StringComparison.Ordinal);
-        var isNoneSelected = PageViewModel.SelectedOption.Id is null && 
-                            string.Equals(PageViewModel.SelectedOption.Name, noneResourceName, StringComparison.Ordinal);
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
 
         // Debug logging to understand what's happening
-        Logger.LogDebug("OnParametersSetAsync - SelectedOption.Name: '{SelectedName}', AllResourceName: '{AllName}', NoneResourceName: '{NoneName}', IsAllSelected: {IsAll}, IsNoneSelected: {IsNone}", 
-            PageViewModel.SelectedOption.Name, allResourceName, noneResourceName, isAllSelected, isNoneSelected);
+        Logger.LogDebug("OnParametersSetAsync - SelectedOption.Name: '{SelectedName}', AllResourceName: '{AllName}', IsAllSelected: {IsAll}", 
+            PageViewModel.SelectedOption.Name, allResourceName, isAllSelected);
 
         // Check if subscription needs to change
         bool needsNewSubscription = false;
@@ -315,10 +309,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
         else if (!isAllSelected && selectedResourceName is null)
         {
-            // No resource selected
-            if (!_consoleLogsSubscriptions.IsEmpty)
+            // No specific resource selected - switch to All mode
+            if (_isSubscribedToAll != true)
             {
-                Logger.LogDebug("Switching to no resource selected");
+                Logger.LogDebug("No resource selected - switching to 'All' mode");
                 needsNewSubscription = true;
             }
         }
@@ -349,8 +343,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             else
             {
-                // No resource selected
-                _isSubscribedToAll = false;
+                // Default to all resources when no specific resource is selected
+                _isSubscribedToAll = true;
+                await SubscribeToAllResourcesAsync();
             }
         }
 
@@ -392,7 +387,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
                     PageViewModel.SelectedResource = null;
-                    PageViewModel.SelectedOption = _noSelection;
+                    PageViewModel.SelectedOption = _allResource;
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
 
@@ -516,8 +511,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (availableResources.Count == 0)
         {
-            Logger.LogWarning("No resources available to subscribe to for 'All' view.");
-            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            Logger.LogDebug("No resources available to subscribe to for 'All' view - will show empty logs.");
+            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
             await InvokeAsync(StateHasChanged);
             return;
         }
@@ -573,7 +568,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
-        SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
         SelectViewModel<ResourceTypeDetails> allResourceViewModel,
         string resourceUnknownStateText,
         bool showHiddenResources,
@@ -609,14 +603,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
         }
 
-        // If there is one resource then it is automatically selected. Remove None button so there is no way to unselect.
-        // If there are multiple resources, or zero, then none is the default so add it.
-        // Also add "All" option when there are multiple resources.
+        // If there are multiple resources, add "All" option.
+        // If there is one resource then it is automatically selected.
+        // If there are no resources, default to "All" (which will show no logs but is ready for when resources appear).
         if (builder.Count > 1)
         {
             builder.Insert(0, allResourceViewModel);
-            builder.Insert(1, noSelectionViewModel);
-            optionToSelect = null;
+            optionToSelect = allResourceViewModel;
         }
         else if (builder.Count == 1)
         {
@@ -624,8 +617,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
         else
         {
-            builder.Insert(0, noSelectionViewModel);
-            optionToSelect = null;
+            builder.Insert(0, allResourceViewModel);
+            optionToSelect = allResourceViewModel;
         }
 
         return builder.ToImmutableList();
@@ -663,7 +656,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private void UpdateResourcesList()
     {
-        _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, _allResource, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
+        _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _allResource, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
 
         if (optionToSelect is not null)
         {
@@ -851,7 +844,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
-                PageViewModel.SelectedOption = _noSelection;
+                PageViewModel.SelectedOption = _allResource;
                 await HandleSelectedOptionChangedAsync();
             }
 
@@ -990,15 +983,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             else if (TryGetSingleResource() is { } r)
             {
                 // If there is no resource selected and there is only one resource available, select it.
-                viewModel.SelectedOption = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _noSelection);
+                viewModel.SelectedOption = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _allResource);
                 viewModel.SelectedResource = r;
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }
         }
 
-        viewModel.SelectedOption = _noSelection;
+        viewModel.SelectedOption = _allResource;
         viewModel.SelectedResource = null;
-        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
         return Task.CompletedTask;
 
         ResourceViewModel? TryGetSingleResource()
