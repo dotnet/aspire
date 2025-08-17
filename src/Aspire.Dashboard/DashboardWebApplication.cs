@@ -233,7 +233,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Add Forwarded Headers support so that the dashboard can be run behind a reverse proxy.
         // Verify they are enabled by looking at the value of ASPIRE_FORWARDEDHEADERS_ENABLED
-        builder.Configuration.AddEnvironmentVariables(prefix: "ASPIRE_");
         if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -443,6 +442,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 }
             }
         });
+
+        // Use Forwarded Headers middleware if configured.
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
+        {
+            _app.UseForwardedHeaders();
+        }
 
         _app.UseAuthorization();
 

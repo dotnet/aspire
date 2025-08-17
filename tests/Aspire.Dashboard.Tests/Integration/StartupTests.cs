@@ -889,9 +889,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             {
                 app.Use(async (ctx, nxt) =>
                 {
+                    await nxt();
                     Host = ctx.Request.Host.Value;
                     Proto = ctx.Request.Scheme;
-                    await nxt();
                 });
 
                 next(app);
