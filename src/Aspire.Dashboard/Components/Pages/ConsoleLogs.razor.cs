@@ -166,6 +166,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             _noWrapLogs = consoleSettings.NoWrapLogs;
             _showTimestampForAll = consoleSettings.ShowTimestampForAll;
         }
+        else
+        {
+            // First time initialization - ensure timestamps for "All" default to false
+            _showTimestampForAll = false;
+        }
 
         var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
         if (showHiddenResources.Success)
@@ -1056,14 +1061,25 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     /// <summary>
     /// Creates a colored resource name prefix for multi-resource log viewing using ANSI color codes.
     /// Uses the same color palette as the rest of the dashboard for consistency.
+    /// Uses the same naming logic as the resource dropdown for consistency.
     /// </summary>
-    /// <param name="resourceName">The name of the resource</param>
+    /// <param name="resourceInstanceName">The instance name of the resource</param>
     /// <returns>String with ANSI color codes for colored resource name prefix</returns>
-    private static string CreateColoredResourcePrefix(string resourceName)
+    private string CreateColoredResourcePrefix(string resourceInstanceName)
     {
-        var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
-        var ansiColorCode = GetAnsiColorCodeFromHex(color);
-        return $"\x1B[{ansiColorCode}m[{resourceName}]\x1B[39m ";
+        // Get the proper display name using the same logic as the dropdown
+        if (_resourceByName.TryGetValue(resourceInstanceName, out var resource))
+        {
+            var displayName = ResourceViewModel.GetResourceName(resource, _resourceByName, _showHiddenResources);
+            var color = ColorGenerator.Instance.GetColorHexByKey(displayName);
+            var ansiColorCode = GetAnsiColorCodeFromHex(color);
+            return $"\x1B[{ansiColorCode}m[{displayName}]\x1B[39m ";
+        }
+        
+        // Fallback to instance name if resource not found
+        var fallbackColor = ColorGenerator.Instance.GetColorHexByKey(resourceInstanceName);
+        var fallbackAnsiColorCode = GetAnsiColorCodeFromHex(fallbackColor);
+        return $"\x1B[{fallbackAnsiColorCode}m[{resourceInstanceName}]\x1B[39m ";
     }
 
     /// <summary>
