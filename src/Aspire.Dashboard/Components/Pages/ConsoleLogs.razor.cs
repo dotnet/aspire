@@ -143,6 +143,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _allResource, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        
+        // Initialize with "All" mode since that's the default selection
+        _isSubscribedToAll = true;
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
