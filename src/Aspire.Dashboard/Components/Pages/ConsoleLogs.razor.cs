@@ -119,6 +119,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     // State
     private bool _showHiddenResources;
     private bool _showTimestamp;
+    private bool _showTimestampForAll; // User preference for timestamps when "All" is selected
     private bool _isTimestampUtc;
     private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -127,6 +128,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
+
+    /// <summary>
+    /// Determines whether to show timestamps based on current selection and user preferences.
+    /// When "All" is selected, uses separate preference that defaults to false.
+    /// When specific resource is selected, uses the standard timestamp preference.
+    /// </summary>
+    private bool EffectiveShowTimestamp => _isSubscribedToAll ? _showTimestampForAll : _showTimestamp;
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,6 +161,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             _showTimestamp = consoleSettings.ShowTimestamp;
             _isTimestampUtc = consoleSettings.IsTimestampUtc;
             _noWrapLogs = consoleSettings.NoWrapLogs;
+            _showTimestampForAll = consoleSettings.ShowTimestampForAll;
         }
 
         var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
@@ -397,17 +406,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         _logsMenuItems.Add(new()
         {
-            OnClick = () => ToggleTimestampAsync(showTimestamp: !_showTimestamp, isTimestampUtc: _isTimestampUtc),
-            Text = _showTimestamp ? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)] : Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
+            OnClick = () => ToggleTimestampAsync(showTimestamp: !EffectiveShowTimestamp, isTimestampUtc: _isTimestampUtc),
+            Text = EffectiveShowTimestamp ? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampHide)] : Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShow)],
             Icon = new Icons.Regular.Size16.CalendarClock()
         });
 
         _logsMenuItems.Add(new()
         {
-            OnClick = () => ToggleTimestampAsync(showTimestamp: _showTimestamp, isTimestampUtc: !_isTimestampUtc),
+            OnClick = () => ToggleTimestampAsync(showTimestamp: EffectiveShowTimestamp, isTimestampUtc: !_isTimestampUtc),
             Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsTimestampShowUtc)],
             Icon = _isTimestampUtc ? new Icons.Regular.Size16.CheckboxChecked() : new Icons.Regular.Size16.CheckboxUnchecked(),
-            IsDisabled = !_showTimestamp
+            IsDisabled = !EffectiveShowTimestamp
         });
 
         _logsMenuItems.Add(new()
@@ -447,7 +456,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task ToggleTimestampAsync(bool showTimestamp, bool isTimestampUtc)
     {
-        _showTimestamp = showTimestamp;
+        if (_isSubscribedToAll)
+        {
+            _showTimestampForAll = showTimestamp;
+        }
+        else
+        {
+            _showTimestamp = showTimestamp;
+        }
         _isTimestampUtc = isTimestampUtc;
         await UpdateConsoleLogSettingsAsync();
     }
@@ -460,7 +476,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task UpdateConsoleLogSettingsAsync()
     {
-        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
+        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs, _showTimestampForAll));
         UpdateMenuButtons();
         StateHasChanged();
         await this.RefreshIfMobileAsync(_contentLayout);
@@ -977,7 +993,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public record ConsoleLogsPageState(string? SelectedResource);
 
-    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc, bool NoWrapLogs);
+    public record ConsoleLogConsoleSettings(bool ShowTimestamp, bool IsTimestampUtc, bool NoWrapLogs, bool ShowTimestampForAll = false);
 
     public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
@@ -1030,7 +1046,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public void UpdateTelemetryProperties()
     {
         TelemetryContext.UpdateTelemetryProperties([
-            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(_showTimestamp, AspireTelemetryPropertyType.UserSetting))
+            new ComponentTelemetryProperty(TelemetryPropertyKeys.ConsoleLogsShowTimestamp, new AspireTelemetryProperty(EffectiveShowTimestamp, AspireTelemetryPropertyType.UserSetting))
         ], Logger);
     }
 
@@ -1050,15 +1066,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     /// <summary>
     /// Maps hex color to the closest ANSI color code for consistent coloring.
     /// Uses a simple hash-based approach to distribute colors across the ANSI palette.
+    /// Avoids black (30) as it's invisible on black terminal backgrounds.
     /// </summary>
     /// <param name="hexColor">Hex color from ColorGenerator (e.g., "#17B8BE")</param>
-    /// <returns>ANSI foreground color code (30-37)</returns>
+    /// <returns>ANSI foreground color code (31-37)</returns>
     private static int GetAnsiColorCodeFromHex(string hexColor)
     {
         // Use a hash-based approach to map hex colors to ANSI color codes
         // This ensures consistent color assignment while distributing across the palette
         var hash = hexColor.GetHashCode();
-        var colorIndex = Math.Abs(hash) % 8; // 8 basic ANSI colors (30-37)
+        var colorIndex = Math.Abs(hash) % 7; // 7 visible ANSI colors (avoiding black)
         
         return colorIndex switch
         {
@@ -1069,7 +1086,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             4 => 35, // Magenta
             5 => 36, // Cyan
             6 => 37, // White
-            7 => 30, // Black (but this might be hard to see, so we could use bright variants)
             _ => 32  // Default to green
         };
     }
