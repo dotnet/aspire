@@ -4,6 +4,7 @@ import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminate
 import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
 import DcpServer from '../dcp/AspireDcpServer';
+import { removeTrailingNewline } from '../utils/strings';
 
 export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposable[] {
     const disposables: vscode.Disposable[] = [];
@@ -26,13 +27,13 @@ export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposab
                                     session_id: session.configuration.runId,
                                     dcp_id: session.configuration.dcpId,
                                     is_std_err: category === 'stderr',
-                                    log_message: output
+                                    log_message: removeTrailingNewline(output)
                                 };
 
                                 extensionContext.aspireDebugSession.dcpServer.sendNotification(notification);
                             }
                         }
-                        
+
                         // Listen for process event with isRestart (if supported by adapter)
                         if (message.type === 'event' && message.event === 'process') {
                             if (typeof message.body?.systemProcessId !== 'number') {
