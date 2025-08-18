@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
-        <target state="new">Don't wrap log lines</target>
+        <target state="translated">Nie zawijaj wierszy dziennika</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -52,19 +52,14 @@
         <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane między {0} a {1}, liczba odfiltrowanych dzienników: {2}&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Akcje zasobów</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Wybierz zasób</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Ustawienia dzienników konsoli</target>
+        <source>Settings</source>
+        <target state="translated">Ustawienia</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -94,7 +89,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsWrapLogs">
         <source>Wrap log lines</source>
-        <target state="new">Wrap log lines</target>
+        <target state="translated">Zawijaj wiersze dziennika</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

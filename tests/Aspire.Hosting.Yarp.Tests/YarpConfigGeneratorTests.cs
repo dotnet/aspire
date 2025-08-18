@@ -243,6 +243,23 @@ public class YarpConfigGeneratorTests()
     }
 
     [Fact]
+    public void EnsureAllEnvVarsAreStrings()
+    {
+        var variables = new Dictionary<string, object>();
+        var builder = TestDistributedApplicationBuilder.Create();
+
+        YarpEnvConfigGenerator.PopulateEnvVariables(
+            variables,
+            _validRoutes.Select(r => new YarpRoute(r)).ToList(),
+            _validClusters.Select(c => new YarpCluster(c, c.Destinations!.First().Value.Address)).ToList());
+
+        foreach (var variable in variables)
+        {
+            Assert.IsType<string>(variable.Value);
+        }
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task GenerateEnvVariablesConfigurationDockerCompose()
     {

@@ -332,6 +332,11 @@
         <target state="translated">Liczba</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplar">
+        <source>Exemplar</source>
+        <target state="translated">Wzór</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
         <target state="translated">Przykłady</target>
@@ -360,6 +365,11 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">Wartość</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Akcje zasobów</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
@@ -422,9 +432,9 @@
         <target state="translated">Wznów dane przychodzące</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">Wybierz aplikację</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="new">Select a resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">
@@ -566,11 +576,6 @@
         <source>Split vertical</source>
         <target state="translated">Podziel w pionie</target>
         <note />
-      </trans-unit>
-      <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="translated">Łączna liczba: &lt;strong&gt;{0} znalezionych wyników&lt;/strong&gt;</target>
-        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>

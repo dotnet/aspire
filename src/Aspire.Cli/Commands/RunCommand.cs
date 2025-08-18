@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -27,6 +28,8 @@ internal sealed class RunCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly IServiceProvider _serviceProvider;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -36,9 +39,10 @@ internal sealed class RunCommand : BaseCommand
         IAnsiConsole ansiConsole,
         AspireCliTelemetry telemetry,
         IConfiguration configuration,
+        IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier
-        )
+        ICliUpdateNotifier updateNotifier,
+        IServiceProvider serviceProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -48,6 +52,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -56,6 +61,8 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
+        _serviceProvider = serviceProvider;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -70,6 +77,12 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
@@ -99,7 +112,13 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var watch = parseResult.GetValue<bool>("--watch");
+            var startDebugSession = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
+                RunCommandStrings.PromptForDebugging,
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
+
+            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _) && !startDebugSession);
 
             if (!watch)
             {
@@ -109,13 +128,18 @@ internal sealed class RunCommand : BaseCommand
                     StandardErrorCallback = buildOutputCollector.AppendError,
                 };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                if (buildExitCode != 0)
+                // The extension host will build the app host project itself, so we don't need to do it here if host exists.
+                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
+                    || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
+                    }
                 }
             }
 
@@ -130,6 +154,7 @@ internal sealed class RunCommand : BaseCommand
             {
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
+                StartDebugSession = startDebugSession
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -147,7 +172,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync("Connecting to app host...", async () =>
+            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () =>
             {
                 return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
             });
@@ -156,10 +181,17 @@ internal sealed class RunCommand : BaseCommand
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync("Starting dashboard...", async () =>
+            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () =>
             {
                 return await backchannel.GetDashboardUrlsAsync(cancellationToken);
             });
+
+            if (dashboardUrls.DashboardHealthy is false)
+            {
+                _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                return ExitCodeConstants.DashboardFailure;
+            }
 
             _ansiConsole.WriteLine();
 
@@ -192,10 +224,12 @@ internal sealed class RunCommand : BaseCommand
             // than environment variables since it comes from the same backend detection logic
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+            var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
+                                && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
             AppendCtrlCMessage(longestLocalizedLength);
 
-            if (isCodespaces || isRemoteContainers)
+            if (isCodespaces || isRemoteContainers || isSshRemote)
             {
                 bool firstEndpoint = true;
 

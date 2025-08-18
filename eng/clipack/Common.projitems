@@ -3,21 +3,41 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
 
     <ArchiveName>aspire-cli-$(CliRuntime)</ArchiveName>
-    <ArchiveFormat Condition="'$(ArchiveFormat)' == '' and $(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
-    <ArchiveFormat Condition="'$(ArchiveFormat)' == ''">tar.gz</ArchiveFormat>
+    <ArchiveFormat Condition="$(CliRuntime.StartsWith('win-'))">zip</ArchiveFormat>
+    <ArchiveFormat Condition="!$(CliRuntime.StartsWith('win-'))">tar.gz</ArchiveFormat>
 
     <!-- PublishNativeAot is explicitly set to false in the projects for cases where we don't want to AOT at all.
          For the rest, publish native AOT if running on the target platfrom -->
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsWindows()) and $(CliRuntime.StartsWith('win-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsLinux()) and $(CliRuntime.StartsWith('linux-'))">true</PublishNativeAot>
     <PublishNativeAot Condition="'$(PublishNativeAot)' == '' and $([System.OperatingSystem]::IsMacOS()) and $(CliRuntime.StartsWith('osx-'))">true</PublishNativeAot>
+
+    <!-- Run `file` on the native binary and check the output but only on Linux/macOS -->
+    <_CheckFileSignature Condition="'$(PublishNativeAot)' == 'true' and !$([System.OperatingSystem]::IsWindows())">true</_CheckFileSignature>
+
+    <_NativeBinaryPath>$([MSBuild]::NormalizePath($(OutputPath), 'aspire'))</_NativeBinaryPath>
+    <_NativeBinaryPath Condition="$(CliRuntime.StartsWith('win-'))">$(_NativeBinaryPath).exe</_NativeBinaryPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Archives" />
   </ItemGroup>
 
-  <Target Name="PublishToDisk">
+  <Target Name="PublishToDisk"
+          DependsOnTargets="_PublishProject;_ValidateNativeBinaryFileSignatureOnUnix;PrepareOutputPathForPublishToDisk" />
+
+  <Target Name="PrepareOutputPathForPublishToDisk">
+    <!-- TODO: avoid generating the file instead of manually deleting it here -->
+    <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
+
+    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
+    <ItemGroup>
+      <DirectoriesToRemove Include="$(XlfLanguages)" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
+  </Target>
+
+  <Target Name="_PublishProject">
     <ItemGroup>
       <AdditionalProperties Include="RuntimeIdentifier=$(CliRuntime)" />
       <AdditionalProperties Include="PublishDir=$(OutputPath)" />
@@ -49,17 +69,20 @@
         Properties="@(AdditionalProperties)"
         RemoveProperties="OutputPath;TargetFramework" />
 
-    <PropertyGroup>
-      <_OutputBinaryPath>$(OutputPath)/aspire</_OutputBinaryPath>
-    </PropertyGroup>
-
-    <!-- TODO: avoid generating the file instead of manually deleting it here -->
-    <Delete Files="$(OutputPath)\aspire.xml" Condition="Exists('$(OutputPath)\aspire.xml')" />
-
-    <!-- work around https://github.com/dotnet/runtime/issues/116758 by removing the Xliff folders. -->
-    <ItemGroup>
-      <DirectoriesToRemove Include="$(XlfLanguages)" />
-    </ItemGroup>
-    <RemoveDir Directories="$(OutputPath)\%(DirectoriesToRemove.Identity)" />
+    <Error Condition="!Exists('$(_NativeBinaryPath)')" Text="Could not find expected `aspire` binary at $(_NativeBinaryPath)" />
   </Target>
+
+  <Target Name="_ValidateNativeBinaryFileSignatureOnUnix" Condition="'$(_CheckFileSignature)' == 'true'">
+    <Error Condition="$(FileSignatureRegex) == ''" Text="Property %24(FileSignatureRegex) is unset." />
+
+    <Exec Command="file -b $(_NativeBinaryPath)" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_FileCommandOutput" />
+    </Exec>
+
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(_FileCommandOutput)', '$(FileSignatureRegex)'))"
+           Text="`file` signature for `$(CliRuntime)` did not match the expected regex.
+           Got     : $(_FileCommandOutput)
+           vs regex: $(FileSignatureRegex)" />
+  </Target>
+
 </Project>

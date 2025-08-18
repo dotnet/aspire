@@ -187,12 +187,13 @@ internal class ExecResourceManager
     {
         return targetExecResource switch
         {
-            ProjectResource prj => BuildAgainstProjectResource(prj),
+            ProjectResource prj => BuildAgainstResource(prj),
+            ContainerResource container => BuildAgainstResource(container),
             _ => throw new InvalidOperationException($"Target resource {targetExecResource.Name} does not support exec mode.")
         };
     }
 
-    private IResource BuildAgainstProjectResource(ProjectResource project)
+    private IResource BuildAgainstResource(ProjectResource project)
     {
         var projectMetadata = project.GetProjectMetadata();
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? throw new InvalidOperationException("Project path is invalid.");
@@ -226,6 +227,36 @@ internal class ExecResourceManager
         _logger.LogDebug("Exec resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
 
         return executable;
+
+        (string exe, string[] args) ParseCommand()
+        {
+            // cli wraps the command into the string with quotes
+            // to keep the command as a single argument
+            var command = _execOptions.Command;
+            var commandUnwrapped = command.AsSpan(1, command.Length - 2).ToString();
+            Debug.Assert(command[0] == '"' && command[^1] == '"');
+
+            return CommandLineArgsParser.ParseCommand(commandUnwrapped);
+        }
+    }
+
+    private IResource BuildAgainstResource(ContainerResource container)
+    {
+        var (exe, args) = ParseCommand();
+        string execResourceName = container.Name + "-exec";
+        var workingDirectory = _execOptions.WorkingDirectory;
+
+        // we cant resolve dcp name of container resource here - too early in the startup pipeline
+        // it will be resolved later in the Dcp layer
+        var containerExecutable = new ContainerExecutableResource(execResourceName, container, exe, workingDirectory: workingDirectory)
+        {
+            Args = args
+        };
+
+        containerExecutable.Annotations.Add(new WaitAnnotation(container, waitType: WaitType.WaitUntilHealthy));
+
+        _logger.LogDebug("Exec container resource '{ResourceName}' will run command '{Command}' with {ArgsCount} args '{Args}'.", execResourceName, exe, args?.Length ?? 0, string.Join(' ', args ?? []));
+        return containerExecutable;
 
         (string exe, string[] args) ParseCommand()
         {

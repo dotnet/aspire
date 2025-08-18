@@ -17,7 +17,7 @@ public class ResourceOutgoingPeerResolverTests
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null, KnownResourceState? state = null)
     {
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             displayName: displayName,
             state: state,
             urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]);
@@ -334,7 +334,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.ConnectionString,
             properties: properties);
     }
@@ -352,105 +352,41 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.Parameter,
             properties: properties);
     }
 
     [Fact]
-    public void MultipleResourcesMatch_SqlServerAddresses_ReturnsFalse()
-    {
-        // Arrange - Multiple SQL Server resources with same address
-        var resources = new Dictionary<string, ResourceViewModel>
-        {
-            ["sqlserver1"] = CreateResource("sqlserver1", "localhost", 1433),
-            ["sqlserver2"] = CreateResource("sqlserver2", "localhost", 1433)
-        };
-
-        // Act & Assert - Both resources would match "localhost:1433"
-        // so this should return false (ambiguous match)
-        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:1433")], out var name));
-        Assert.Null(name);
-    }
-
-    [Fact]
-    public void MultipleResourcesMatch_RedisAddresses_ReturnsFalse()
-    {
-        // Arrange - Multiple Redis resources with equivalent addresses  
-        var resources = new Dictionary<string, ResourceViewModel>
-        {
-            ["redis-cache"] = CreateResource("redis-cache", "localhost", 6379),
-            ["redis-session"] = CreateResource("redis-session", "localhost", 6379)
-        };
-
-        // Act & Assert - Both resources would match "localhost:6379" 
-        // so this should return false (ambiguous match)
-        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:6379")], out var name));
-        Assert.Null(name);
-    }
-
-    [Fact]
-    public void MultipleResourcesMatch_SqlServerCommaFormat_ReturnsFalse()
-    {
-        // Arrange - Multiple SQL Server resources where comma format would match both
-        var resources = new Dictionary<string, ResourceViewModel>
-        {
-            ["sqldb1"] = CreateResource("sqldb1", "localhost", 1433),
-            ["sqldb2"] = CreateResource("sqldb2", "localhost", 1433)
-        };
-
-        // Act & Assert - SQL Server comma format "localhost,1433" should match both resources
-        // so this should return false (ambiguous match)
-        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost,1433")], out var name));
-        Assert.Null(name);
-    }
-
-    [Fact]  
-    public void MultipleResourcesMatch_MixedPortFormats_ReturnsFalse()
-    {
-        // Arrange - Resources with same logical address but different port formats
-        var resources = new Dictionary<string, ResourceViewModel>
-        {
-            ["db-primary"] = CreateResource("db-primary", "dbserver", 5432),
-            ["db-replica"] = CreateResource("db-replica", "dbserver", 5432)
-        };
-
-        // Act & Assert - Should be ambiguous since both resources have same address
-        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "dbserver"), KeyValuePair.Create("server.port", "5432")], out var name));
-        Assert.Null(name);
-    }
-
-    [Fact]
-    public void MultipleResourcesMatch_AddressTransformation_ReturnsFalse()
-    {
-        // Arrange - Multiple resources with exact same address (not just after transformation)
-        var resources = new Dictionary<string, ResourceViewModel>
-        {
-            ["web-frontend"] = CreateResource("web-frontend", "localhost", 8080),
-            ["web-backend"] = CreateResource("web-backend", "localhost", 8080)
-        };
-
-        // Act & Assert - Both resources have identical cached address "localhost:8080"
-        // so this should return false (ambiguous match)
-        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:8080")], out var name));
-        Assert.Null(name);
-    }
-
-    [Fact]
     public void MultipleResourcesMatch_ViaTransformation_ReturnsFirstMatch()
     {
-        // Arrange - Resources that become ambiguous after address transformation
-        // Note: This test documents current behavior where transformation order matters
+        // Arrange - Resources that match via address transformation
         var resources = new Dictionary<string, ResourceViewModel>
         {
             ["sql-primary"] = CreateResource("sql-primary", "localhost", 1433),
             ["sql-replica"] = CreateResource("sql-replica", "127.0.0.1", 1433)
         };
 
-        // Act & Assert - Due to transformation order, this currently finds sql-replica first
-        // before the transformation that would make sql-primary match as well
+        // Act & Assert - Should return the first match found
         Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "127.0.0.1:1433")], out var name));
         Assert.Equal("sql-replica", name);
+    }
+
+    [Fact]
+    public void MultipleResourcesSameAddress_ReturnsFirstMatch()
+    {
+        // Test to verify that "first one wins" logic is restored
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["database1"] = CreateResource("database1", "localhost", 5432),
+            ["database2"] = CreateResource("database2", "localhost", 5432)
+        };
+
+        // Should return the first match found (verifies regression fix)
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:5432")], out var name));
+        Assert.NotNull(name);
+        // Should match one of the databases (first one found)
+        Assert.Contains(name, new[] { "database1", "database2" });
     }
 
     [Fact]
@@ -476,6 +412,7 @@ public class ResourceOutgoingPeerResolverTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public ResourceViewModel? GetResource(string resourceName) => throw new NotImplementedException();
         public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();

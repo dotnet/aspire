@@ -98,7 +98,7 @@ public static class DockerComposeServiceExtensions
         return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
-            defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
+            defaultValue: null,
             source: parameter
         );
     }

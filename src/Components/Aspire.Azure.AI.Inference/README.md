@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.AI.Inference
 
 ## Usage example
 
-In the _AppHost.cs_ file of your project, call the `AddChatCompletionsClient` extension method to register a `ChatCompletionsClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureChatCompletionsClient` extension method to register a `ChatCompletionsClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddChatCompletionsClient("connectionName");
+builder.AddAzureChatCompletionsClient("connectionName");
 ```
 
 You can then retrieve the `ChatCompletionsClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -102,13 +102,13 @@ The .NET Aspire Azure AI Inference library supports [Microsoft.Extensions.Config
 You can also pass the `Action<ChatCompletionsClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddChatCompletionsClient("connectionName", settings => settings.DisableTracing = true);
+builder.AddAzureChatCompletionsClient("connectionName", settings => settings.DisableTracing = true);
 ```
 
-You can also setup the [AzureAIInferenceClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.inference.AzureAIInferenceClientOptions) using the optional `Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>> configureClientBuilder` parameter of the `AddChatCompletionsClient` method. For example, to set the client ID for this client:
+You can also setup the [AzureAIInferenceClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.inference.AzureAIInferenceClientOptions) using the optional `Action<IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions>> configureClientBuilder` parameter of the `AddAzureChatCompletionsClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddChatCompletionsClient("connectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
+builder.AddAzureChatCompletionsClient("connectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
 ```
 
 This can also be used to add a custom scope for the `TokenCredential` when the specific error message is returned:

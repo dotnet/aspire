@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext

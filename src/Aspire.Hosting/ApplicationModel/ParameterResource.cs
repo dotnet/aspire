@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using Aspire.Hosting.Resources;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -31,6 +34,10 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
+    /// <remarks>
+    /// This property is obsolete. Use <see cref="GetValueAsync(CancellationToken)"/> for async access or pass the <see cref="ParameterResource"/> directly to methods that accept it (e.g., environment variables).
+    /// </remarks>
+    [Obsolete("Use GetValueAsync for async access or pass the ParameterResource directly to methods that accept it (e.g., environment variables).")]
     public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
 
     internal string ValueInternal => _lazyValue.Value;
@@ -86,4 +93,35 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
         // In publish mode, there's no WaitForValueTcs set.
         return ValueInternal;
     }
+
+    /// <summary>
+    /// Gets a description of the parameter resource.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// </summary>
+    public bool EnableDescriptionMarkdown { get; set; }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    internal InteractionInput CreateInput()
+    {
+        if (this.TryGetLastAnnotation<InputGeneratorAnnotation>(out var annotation))
+        {
+            // If the annotation is present, use it to create the input.
+            return annotation.InputGenerator(this);
+        }
+
+        var input = new InteractionInput
+        {
+            InputType = Secret ? InputType.SecretText : InputType.Text,
+            Label = Name,
+            Description = Description,
+            EnableDescriptionMarkdown = EnableDescriptionMarkdown,
+            Placeholder = string.Format(CultureInfo.CurrentCulture, InteractionStrings.ParametersInputsParameterPlaceholder, Name)
+        };
+        return input;
+    }
+#pragma warning restore ASPIREINTERACTION001
 }

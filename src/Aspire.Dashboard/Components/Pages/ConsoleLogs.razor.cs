@@ -259,7 +259,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
     {
         Debug.Assert(_resources is not null);
-        return _resources.GetApplication(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
+        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: false, fallback: _noSelection);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -346,6 +346,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             value =>
             {
                 _showHiddenResources = value;
+                UpdateResourcesList();
+                UpdateMenuButtons();
 
                 if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
@@ -354,7 +356,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
 
-                UpdateMenuButtons();
+                await this.RefreshIfMobileAsync(_contentLayout);
             }));
 
         _logsMenuItems.Add(new()
@@ -425,6 +427,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ConsoleLogConsoleSettings, new ConsoleLogConsoleSettings(_showTimestamp, _isTimestampUtc, _noWrapLogs));
         UpdateMenuButtons();
         StateHasChanged();
+        await this.RefreshIfMobileAsync(_contentLayout);
     }
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
@@ -438,7 +441,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
         SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
         string resourceUnknownStateText,
-        bool showHiddenResources)
+        bool showHiddenResources,
+        out SelectViewModel<ResourceTypeDetails>? optionToSelect)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
@@ -447,37 +451,48 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             .OrderBy(c => c.Value, ResourceViewModelNameComparer.Instance)
             .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
-            string applicationName;
+            string resourceName;
 
             if (grouping.Count() > 1)
             {
-                applicationName = grouping.Key;
+                resourceName = grouping.Key;
 
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, true),
-                    Name = applicationName
+                    Id = ResourceTypeDetails.CreateResourceGrouping(resourceName, true),
+                    Name = resourceName
                 });
             }
             else
             {
-                applicationName = grouping.First().Value.DisplayName;
+                resourceName = grouping.First().Value.DisplayName;
             }
 
             foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r, ResourceViewModelNameComparer.Instance))
             {
-                builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
+                builder.Add(ToOption(resource, grouping.Count() > 1, resourceName));
             }
         }
 
-        builder.Insert(0, noSelectionViewModel);
+        // If there is one resource then it is automatically selected. Remove None button so there is no way to unselect.
+        // If there are multiple resources, or zero, then none is the default so add it.
+        if (builder.Count != 1)
+        {
+            builder.Insert(0, noSelectionViewModel);
+            optionToSelect = null;
+        }
+        else
+        {
+            optionToSelect = builder.Single();
+        }
+
         return builder.ToImmutableList();
 
-        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
+        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string resourceName)
         {
             var id = isReplica
-                ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
+                ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, resourceName)
+                : ResourceTypeDetails.CreateSingleton(resource.Name, resourceName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {
@@ -504,7 +519,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
     }
 
-    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources);
+    private void UpdateResourcesList()
+    {
+        _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)], _showHiddenResources, out var optionToSelect);
+
+        if (optionToSelect is not null)
+        {
+            Debug.Assert(optionToSelect.Id?.InstanceId is not null);
+            PageViewModel.SelectedOption = optionToSelect;
+            PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
+        }
+    }
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
@@ -606,7 +631,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (PageViewModel.SelectedOption.Id is not null &&
             _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedOption.Id.GetApplicationKey().ToString(),
+                PageViewModel.SelectedOption.Id.GetResourceKey().ToString(),
                 out var filterResourceLogsDate))
         {
             // There is a filter for this individual resource.
@@ -700,7 +725,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
     }
 
-    private async Task ClearConsoleLogs(ApplicationKey? key)
+    private async Task ClearConsoleLogs(ResourceKey? key)
     {
         var now = TimeProvider.GetUtcNow().UtcDateTime;
         if (key is null)
@@ -783,7 +808,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             else if (TryGetSingleResource() is { } r)
             {
-                // If there is no app selected and there is only one application available, select it.
+                // If there is no resource selected and there is only one resource available, select it.
+                viewModel.SelectedOption = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _noSelection);
                 viewModel.SelectedResource = r;
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }

@@ -85,16 +85,16 @@ public interface IInteractionService
     Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Prompts the user with a message bar notification.
+    /// Prompts the user with a notification.
     /// </summary>
-    /// <param name="title">The title of the message bar.</param>
-    /// <param name="message">The message to display in the message bar.</param>
-    /// <param name="options">Optional configuration for the message bar interaction.</param>
+    /// <param name="title">The title of the notification.</param>
+    /// <param name="message">The message to display in the notification.</param>
+    /// <param name="options">Optional configuration for the notification interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
     /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -107,6 +107,17 @@ public sealed class InteractionInput
     /// Gets or sets the label for the input.
     /// </summary>
     public required string Label { get; init; }
+
+    /// <summary>
+    /// Gets or sets the description for the input.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// Setting this to <c>true</c> allows a description to contain Markdown elements such as links, text decoration and lists.
+    /// </summary>
+    public bool EnableDescriptionMarkdown { get; init; }
 
     /// <summary>
     /// Gets or sets the type of the input.
@@ -132,6 +143,23 @@ public sealed class InteractionInput
     /// Gets or sets the placeholder text for the input.
     /// </summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>
+    /// gets or sets the maximum length for text inputs.
+    /// </summary>
+    public int? MaxLength
+    {
+        get => field;
+        set
+        {
+            if (value is { } v)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(v, 0);
+            }
+
+            field = value;
+        }
+    }
 
     internal List<string> ValidationErrors { get; } = [];
 }
@@ -235,25 +263,25 @@ public class MessageBoxInteractionOptions : InteractionOptions
 }
 
 /// <summary>
-/// Options for configuring a message bar interaction.
+/// Options for configuring a notification interaction.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class MessageBarInteractionOptions : InteractionOptions
+public class NotificationInteractionOptions : InteractionOptions
 {
-    internal static MessageBarInteractionOptions CreateDefault() => new();
+    internal static NotificationInteractionOptions CreateDefault() => new();
 
     /// <summary>
-    /// Gets or sets the intent of the message bar.
+    /// Gets or sets the intent of the notification.
     /// </summary>
     public MessageIntent? Intent { get; set; }
 
     /// <summary>
-    /// Gets or sets the text for a link in the message bar.
+    /// Gets or sets the text for a link in the notification.
     /// </summary>
     public string? LinkText { get; set; }
 
     /// <summary>
-    /// Gets or sets the URL for the link in the message bar.
+    /// Gets or sets the URL for the link in the notification.
     /// </summary>
     public string? LinkUrl { get; set; }
 }
@@ -314,7 +342,7 @@ public class InteractionOptions
     public bool? ShowSecondaryButton { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether show the dismiss button in the header.
+    /// Gets or sets a value indicating whether show the dismiss button.
     /// </summary>
     public bool? ShowDismiss { get; set; }
 

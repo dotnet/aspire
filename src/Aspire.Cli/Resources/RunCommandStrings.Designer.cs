@@ -9,21 +9,21 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class RunCommandStrings {
-        
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal RunCommandStrings() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Aspire.Cli.Resources {
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         public static System.Globalization.CultureInfo Culture {
             get {
@@ -44,94 +44,112 @@ namespace Aspire.Cli.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         public static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
+
         public static string ProjectArgumentDescription {
             get {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
             }
         }
-        
+
         public static string WatchArgumentDescription {
             get {
                 return ResourceManager.GetString("WatchArgumentDescription", resourceCulture);
             }
         }
-        
+
         public static string IsCompatibleAppHostIsNull {
             get {
                 return ResourceManager.GetString("IsCompatibleAppHostIsNull", resourceCulture);
             }
         }
-        
+
         public static string StartingAppHost {
             get {
                 return ResourceManager.GetString("StartingAppHost", resourceCulture);
             }
         }
-        
+
         public static string StartingDashboard {
             get {
                 return ResourceManager.GetString("StartingDashboard", resourceCulture);
             }
         }
-        
+
         public static string Resource {
             get {
                 return ResourceManager.GetString("Resource", resourceCulture);
             }
         }
-        
+
         public static string Type {
             get {
                 return ResourceManager.GetString("Type", resourceCulture);
             }
         }
-        
+
         public static string State {
             get {
                 return ResourceManager.GetString("State", resourceCulture);
             }
         }
-        
+
         public static string Health {
             get {
                 return ResourceManager.GetString("Health", resourceCulture);
             }
         }
-        
+
         public static string Endpoints {
             get {
                 return ResourceManager.GetString("Endpoints", resourceCulture);
             }
         }
-        
+
         public static string PressCtrlCToStopAppHost {
             get {
                 return ResourceManager.GetString("PressCtrlCToStopAppHost", resourceCulture);
             }
         }
-        
+
         public static string ProjectCouldNotBeRun {
             get {
                 return ResourceManager.GetString("ProjectCouldNotBeRun", resourceCulture);
             }
         }
-        
+
         public static string Dashboard {
             get {
                 return ResourceManager.GetString("Dashboard", resourceCulture);
             }
         }
-        
+
         public static string Logs {
             get {
                 return ResourceManager.GetString("Logs", resourceCulture);
+            }
+        }
+
+        public static string ConnectingToAppHost {
+            get {
+                return ResourceManager.GetString("ConnectingToAppHost", resourceCulture);
+            }
+        }
+
+        public static string DashboardFailedToStart {
+            get {
+                return ResourceManager.GetString("DashboardFailedToStart", resourceCulture);
+            }
+        }
+
+        public static string PromptForDebugging {
+            get {
+                return ResourceManager.GetString("PromptForDebugging", resourceCulture);
             }
         }
     }

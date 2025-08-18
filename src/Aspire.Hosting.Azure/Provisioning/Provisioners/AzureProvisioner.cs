@@ -16,7 +16,7 @@ internal sealed class AzureProvisioner(
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
-    BicepProvisioner bicepProvisioner,
+    IBicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,

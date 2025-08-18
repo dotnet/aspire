@@ -6,6 +6,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -16,7 +19,7 @@ namespace Aspire.Hosting.Azure;
 /// Emits a <c>main.bicep</c> that aggregates all provisionable resources.
 /// </summary>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class AzureEnvironmentResource : Resource
+public sealed class AzureEnvironmentResource : AzureBicepResource
 {
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
@@ -33,6 +36,8 @@ public sealed class AzureEnvironmentResource : Resource
     /// </summary>
     public ParameterResource PrincipalId { get; set; }
 
+    internal AzurePublishingContext? PublishingContext { get; set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
     /// </summary>
@@ -42,9 +47,11 @@ public sealed class AzureEnvironmentResource : Resource
     /// <param name="principalId">The Azure principal ID that will be used to deploy the resources.</param>
     /// <exception cref="ArgumentNullException">Thrown when the name is null or empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the name is invalid.</exception>
-    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
+    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name, templateFile: "main.bicep")
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new DeployingCallbackAnnotation(DeployAsync));
+        Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
 
         Location = location;
         ResourceGroupName = resourceGroupName;
@@ -55,12 +62,28 @@ public sealed class AzureEnvironmentResource : Resource
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
 
-        var azureCtx = new AzurePublishingContext(
+        PublishingContext = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger,
             context.ActivityReporter);
 
-        return azureCtx.WriteModelAsync(context.Model, this);
+        return PublishingContext.WriteModelAsync(context.Model, this);
+    }
+
+    private Task DeployAsync(DeployingContext context)
+    {
+        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
+
+        var azureCtx = new AzureDeployingContext(
+            provisioningContextProvider,
+            userSecretsManager,
+            bicepProvisioner,
+            activityPublisher);
+
+        return azureCtx.DeployModelAsync(this, context.CancellationToken);
     }
 }

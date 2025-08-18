@@ -7,6 +7,7 @@ using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Semver;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
 
@@ -133,14 +134,69 @@ public class VersionCheckServiceTests
         Assert.False(packageFetcher.FetchCalled);
     }
 
+    [Theory]
+    [InlineData("100.0.0", "100.0.0", false)]
+    [InlineData("1.0.0", "100.0.0", true)]
+    [InlineData("1.0.0", "100.0.0-pre1", false)]
+    [InlineData("1.0.0-pre1", "100.0.0-pre1", true)]
+    public async Task ExecuteAsync_InsideLastCheckIntervalHasLastKnownPrerelease_NoFetchAndMaybeDisplayMessage(string currentVersion, string lastKnownVersion, bool displayNotification)
+    {
+        // Arrange
+        var currentDate = new DateTimeOffset(2000, 12, 29, 20, 59, 59, TimeSpan.Zero);
+        var lastCheckDate = currentDate.AddMinutes(-1);
+
+        var timeProvider = new TestTimeProvider { UtcNow = currentDate };
+        var interactionService = new TestInteractionService();
+        var configurationManager = new ConfigurationManager();
+        configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [VersionCheckService.LastCheckDateKey] = lastCheckDate.ToString("o", CultureInfo.InvariantCulture),
+            [VersionCheckService.KnownLatestVersionKey] = lastKnownVersion
+        });
+
+        var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
+        var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
+        var service = CreateVersionCheckService(
+            interactionService: interactionService,
+            packageFetcher: packageFetcher,
+            configuration: configurationManager,
+            timeProvider: timeProvider,
+            packageVersionProvider: new TestPackageVersionProvider(SemVersion.Parse(currentVersion)));
+
+        // Act
+        _ = service.StartAsync(CancellationToken.None);
+
+        if (displayNotification)
+        {
+            var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+            interaction.CompletionTcs.TrySetResult(InteractionResult.Ok(true));
+            await service.ExecuteTask!.DefaultTimeout();
+        }
+        else
+        {
+            await service.ExecuteTask!.DefaultTimeout();
+            interactionService.Interactions.Writer.Complete();
+            Assert.False(interactionService.Interactions.Reader.TryRead(out var _));
+        }
+
+        // Assert
+        Assert.False(packageFetcher.FetchCalled);
+    }
+
     [Fact]
     public async Task ExecuteAsync_OlderVersion_NoMessage()
     {
         // Arrange
         var interactionService = new TestInteractionService();
-        var configurationManager = new ConfigurationManager();
         var packagesTcs = new TaskCompletionSource<List<NuGetPackage>>();
         var packageFetcher = new TestPackageFetcher(packagesTcs.Task);
+
+        var configurationManager = new ConfigurationManager();
+        configurationManager.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [VersionCheckService.KnownLatestVersionKey] = "100.0.0" // ignored
+        });
+
         var service = CreateVersionCheckService(interactionService: interactionService, packageFetcher: packageFetcher, configuration: configurationManager);
 
         // Act
@@ -192,7 +248,8 @@ public class VersionCheckServiceTests
         IPackageFetcher? packageFetcher = null,
         IConfiguration? configuration = null,
         TimeProvider? timeProvider = null,
-        DistributedApplicationOptions? options = null)
+        DistributedApplicationOptions? options = null,
+        IPackageVersionProvider? packageVersionProvider = null)
     {
         return new VersionCheckService(
             interactionService ?? new TestInteractionService(),
@@ -201,7 +258,8 @@ public class VersionCheckServiceTests
             options ?? new DistributedApplicationOptions(),
             packageFetcher ?? new TestPackageFetcher(),
             new DistributedApplicationExecutionContext(new DistributedApplicationOperation()),
-            timeProvider ?? new TestTimeProvider());
+            timeProvider ?? new TestTimeProvider(),
+            packageVersionProvider ?? new TestPackageVersionProvider());
     }
 
     private sealed class TestTimeProvider : TimeProvider
@@ -213,6 +271,21 @@ public class VersionCheckServiceTests
         public override DateTimeOffset GetUtcNow()
         {
             return UtcNow;
+        }
+    }
+
+    private sealed class TestPackageVersionProvider : IPackageVersionProvider
+    {
+        private readonly SemVersion _version;
+
+        public TestPackageVersionProvider(SemVersion? version = null)
+        {
+            _version = version ?? new SemVersion(1, 0, 0);
+        }
+
+        public SemVersion? GetPackageVersion()
+        {
+            return _version;
         }
     }
 

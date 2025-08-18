@@ -61,7 +61,22 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run an Aspire app host to execute a command against the resource..
+        ///   Looks up a localized string similar to The command to execute in the target resource&apos;s context. Commands can be specified directly after options or after a -- separator..
+        /// </summary>
+        internal static string CommandArgumentDescription {
+            get {
+                return ResourceManager.GetString("CommandArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Execute commands in the context of an Aspire application resource. Starts the AppHost, waits for resources to initialize, then runs the specified command in the target resource&apos;s environment. (Preview)
+        ///
+        ///Examples:
+        ///  aspire exec --resource api dotnet build
+        ///  aspire exec --resource api -- dotnet test --logger console
+        ///  aspire exec --start-resource worker pwsh -c &quot;Get-Process&quot;
+        ///    .
         /// </summary>
         internal static string Description {
             get {
@@ -70,7 +85,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to parse command..
+        ///   Looks up a localized string similar to Failed to parse the command. Ensure the command is specified after all options or after the -- separator..
         /// </summary>
         internal static string FailedToParseCommand {
             get {
@@ -79,7 +94,16 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The path to the Aspire app host project file..
+        ///   Looks up a localized string similar to Command is not specified..
+        /// </summary>
+        internal static string NoCommandSpecified {
+            get {
+                return ResourceManager.GetString("NoCommandSpecified", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory..
         /// </summary>
         internal static string ProjectArgumentDescription {
             get {
@@ -88,7 +112,16 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The name of the target resource to start and execute the command against..
+        ///   Looks up a localized string similar to Running exec....
+        /// </summary>
+        internal static string Running {
+            get {
+                return ResourceManager.GetString("Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The name of the target resource to execute the command against. The command will only be executed after the target resource has successfully started and is running..
         /// </summary>
         internal static string StartTargetResourceArgumentDescription {
             get {
@@ -97,7 +130,16 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The name of the target resource to execute the command against..
+        ///   Looks up a localized string similar to Stopping app host....
+        /// </summary>
+        internal static string StoppingAppHost {
+            get {
+                return ResourceManager.GetString("StoppingAppHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The name of the target resource to execute the command against. The command will be executed as soon as the AppHost starts, without waiting for the resource to be ready..
         /// </summary>
         internal static string TargetResourceArgumentDescription {
             get {
@@ -106,11 +148,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Target resource is not specified..
+        ///   Looks up a localized string similar to Target resource is not specified. Use --resource or --start-resource to specify the target..
         /// </summary>
         internal static string TargetResourceNotSpecified {
             get {
                 return ResourceManager.GetString("TargetResourceNotSpecified", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The working directory to execute command in..
+        /// </summary>
+        internal static string WorkdirArgumentDescription {
+            get {
+                return ResourceManager.GetString("WorkdirArgumentDescription", resourceCulture);
             }
         }
     }

@@ -27,11 +27,14 @@ internal static class KnownConfigNames
     public const string WaitForDebuggerTimeout = "ASPIRE_DEBUGGER_TIMEOUT";
     public const string UnixSocketPath = "ASPIRE_BACKCHANNEL_PATH";
     public const string CliProcessId = "ASPIRE_CLI_PID";
+    public const string CliProcessStarted = "ASPIRE_CLI_STARTED";
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
 
-    public const string CliLocaleOverride = "ASPIRE_CLI_LOCALE_OVERRIDE";
+    public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
+    public const string MsBuildTerminalLogger = "MSBUILDTERMINALLOGGER";
+
     public const string ExtensionEndpoint = "ASPIRE_EXTENSION_ENDPOINT";
     public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";

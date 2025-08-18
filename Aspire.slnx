@@ -58,6 +58,7 @@
     <Project Path="src/Aspire.Hosting.MySql/Aspire.Hosting.MySql.csproj" />
     <Project Path="src/Aspire.Hosting.Nats/Aspire.Hosting.Nats.csproj" />
     <Project Path="src/Aspire.Hosting.NodeJs/Aspire.Hosting.NodeJs.csproj" />
+    <Project Path="src/Aspire.Hosting.OpenAI/Aspire.Hosting.OpenAI.csproj" />
     <Project Path="src/Aspire.Hosting.Oracle/Aspire.Hosting.Oracle.csproj" />
     <Project Path="src/Aspire.Hosting.Orleans/Aspire.Hosting.Orleans.csproj" />
     <Project Path="src/Aspire.Hosting.PostgreSQL/Aspire.Hosting.PostgreSQL.csproj" />
@@ -119,6 +120,10 @@
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj" />
   </Folder>
+  <Folder Name="/playground/AzureOpentAIEndToEnd/">
+    <Project Path="playground/AzureOpenAIEndToEnd/AzureOpenAIEndToEnd.AppHost/AzureOpenAIEndToEnd.AppHost.csproj" />
+    <Project Path="playground/AzureOpenAIEndToEnd/AzureOpenAIEndToEnd.WebStory/AzureOpenAIEndToEnd.WebStory.csproj" />
+  </Folder>
   <Folder Name="/playground/AzureSearchEndToEnd/">
     <Project Path="playground/AzureSearchEndToEnd/AzureSearch.ApiService/AzureSearch.ApiService.csproj" />
     <Project Path="playground/AzureSearchEndToEnd/AzureSearch.AppHost/AzureSearch.AppHost.csproj" />
@@ -155,6 +160,9 @@
     <Project Path="playground/DatabaseMigration/DatabaseMigration.ApiService/DatabaseMigration.ApiService.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.MigrationService/DatabaseMigration.MigrationService.csproj" />
+  </Folder>
+  <Folder Name="/playground/deployers/">
+    <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
@@ -389,6 +397,7 @@
     <Project Path="tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.NodeJs.Tests/Aspire.Hosting.NodeJs.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.OpenAI.Tests/Aspire.Hosting.OpenAI.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Python.Tests/Aspire.Hosting.Python.Tests.csproj" />

@@ -655,6 +655,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exemplar.
+        /// </summary>
+        public static string PlotlyChartExemplar {
+            get {
+                return ResourceManager.GetString("PlotlyChartExemplar", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exemplars.
         /// </summary>
         public static string PlotlyChartExemplars {
@@ -705,6 +714,15 @@ namespace Aspire.Dashboard.Resources {
         public static string PropertyGridValueColumnHeader {
             get {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource actions.
+        /// </summary>
+        public static string ResourceActions {
+            get {
+                return ResourceManager.GetString("ResourceActions", resourceCulture);
             }
         }
         
@@ -817,11 +835,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select an application.
+        ///   Looks up a localized string similar to Select a resource.
         /// </summary>
-        public static string SelectAnApplication {
+        public static string SelectAResource {
             get {
-                return ResourceManager.GetString("SelectAnApplication", resourceCulture);
+                return ResourceManager.GetString("SelectAResource", resourceCulture);
             }
         }
         
@@ -1056,15 +1074,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ToggleNesting {
             get {
                 return ResourceManager.GetString("ToggleNesting", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;.
-        /// </summary>
-        public static string TotalItemsFooterText {
-            get {
-                return ResourceManager.GetString("TotalItemsFooterText", resourceCulture);
             }
         }
         

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
+
 namespace Aspire.Dashboard.Telemetry;
 
 /// <summary>
@@ -58,7 +60,8 @@ public sealed class TelemetryLoggerProvider : ILoggerProvider
                         {
                             [TelemetryPropertyKeys.ExceptionType] = new AspireTelemetryProperty(exception.GetType().FullName!),
                             [TelemetryPropertyKeys.ExceptionMessage] = new AspireTelemetryProperty(exception.Message),
-                            [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(exception.StackTrace ?? string.Empty)
+                            [TelemetryPropertyKeys.ExceptionStackTrace] = new AspireTelemetryProperty(exception.StackTrace ?? string.Empty),
+                            [TelemetryPropertyKeys.ExceptionRuntimeVersion] = new AspireTelemetryProperty(VersionHelpers.RuntimeVersion?.ToString() ?? string.Empty),
                         }
                     );
                 }

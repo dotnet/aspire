@@ -15,7 +15,7 @@ public partial class StateColumnDisplay
     public required ResourceViewModel Resource { get; set; }
 
     [Parameter, EditorRequired]
-    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
+    public required Dictionary<ResourceKey, int>? UnviewedErrorCounts { get; set; }
 
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }

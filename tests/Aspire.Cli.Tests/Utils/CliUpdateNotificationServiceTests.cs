@@ -65,7 +65,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        notifier.NotifyIfUpdateAvailable();
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal("9.4.0-preview", suggestedVersion);
@@ -119,7 +120,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        notifier.NotifyIfUpdateAvailable();
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal("9.4.0", suggestedVersion);
@@ -173,7 +175,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        notifier.NotifyIfUpdateAvailable();
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal("9.5.0", suggestedVersion);
@@ -223,7 +226,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var notifier = provider.GetRequiredService<ICliUpdateNotifier>();
 
-        await notifier.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot).WaitAsync(CliTestConstants.DefaultTimeout);
+        await notifier.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        notifier.NotifyIfUpdateAvailable();
     }
 
     [Fact]
@@ -247,7 +251,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         ]);
 
         // Act & Assert (should not throw)
-        await service.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot);
+        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
     }
 
     [Fact]
@@ -265,7 +270,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         var service = provider.GetRequiredService<ICliUpdateNotifier>();
 
         // Act & Assert (should not throw)
-        await service.NotifyIfUpdateAvailableAsync(workspace.WorkspaceRoot);
+        await service.CheckForCliUpdatesAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
     }
 }
 
@@ -286,17 +292,17 @@ internal sealed class TestNuGetPackageCache : INuGetPackageCache
         _cliPackages = packages;
     }
 
-    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<NuGetPackage>());
     }
 
-    public Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    public Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<NuGetPackage>());
     }
 
-    public Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, string? source, CancellationToken cancellationToken)
+    public Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
         return Task.FromResult(_cliPackages);
     }

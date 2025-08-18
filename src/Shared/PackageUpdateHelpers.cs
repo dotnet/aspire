@@ -56,7 +56,7 @@ internal static class PackageUpdateHelpers
         return informationalVersion;
     }
 
-    public static SemVersion? GetNewerVersion(SemVersion currentVersion, IEnumerable<NuGetPackage> availablePackages)
+    public static SemVersion? GetNewerVersion(SemVersion currentVersion, IEnumerable<NuGetPackage> availablePackages, SemVersion? storedVersion = null)
     {
         SemVersion? newestStable = null;
         SemVersion? newestPrerelease = null;
@@ -65,15 +65,13 @@ internal static class PackageUpdateHelpers
         {
             if (SemVersion.TryParse(package.Version, SemVersionStyles.Strict, out var version))
             {
-                if (version.IsPrerelease)
-                {
-                    newestPrerelease = newestPrerelease is null || SemVersion.PrecedenceComparer.Compare(version, newestPrerelease) > 0 ? version : newestPrerelease;
-                }
-                else
-                {
-                    newestStable = newestStable is null || SemVersion.PrecedenceComparer.Compare(version, newestStable) > 0 ? version : newestStable;
-                }
+                ProcessNewVersion(version);
             }
+        }
+
+        if (storedVersion != null)
+        {
+            ProcessNewVersion(storedVersion);
         }
 
         // Apply notification rules
@@ -101,6 +99,18 @@ internal static class PackageUpdateHelpers
         }
 
         return null;
+
+        void ProcessNewVersion(SemVersion version)
+        {
+            if (version.IsPrerelease)
+            {
+                newestPrerelease = newestPrerelease is null || SemVersion.PrecedenceComparer.Compare(version, newestPrerelease) > 0 ? version : newestPrerelease;
+            }
+            else
+            {
+                newestStable = newestStable is null || SemVersion.PrecedenceComparer.Compare(version, newestStable) > 0 ? version : newestStable;
+            }
+        }
     }
 
     public static List<NuGetPackage> ParsePackageSearchResults(string stdout, string? packageId = null)

@@ -36,7 +36,7 @@ public partial class ExemplarsDialog : IDisposable
 
     public async Task OnViewDetailsAsync(ChartExemplar exemplar)
     {
-        var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
+        var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
             traceId: exemplar.TraceId,
             spanId: exemplar.SpanId,
             getSpan: TelemetryRepository.GetSpan,
@@ -54,7 +54,7 @@ public partial class ExemplarsDialog : IDisposable
     private string GetTitle(ChartExemplar exemplar)
     {
         return (exemplar.Span != null)
-            ? SpanWaterfallViewModel.GetTitle(exemplar.Span, Content.Applications)
+            ? SpanWaterfallViewModel.GetTitle(exemplar.Span, Content.Resources)
             : $"{Loc[nameof(Resources.Dialogs.ExemplarsDialogTrace)]}: {OtlpHelpers.ToShortenedId(exemplar.TraceId)}";
     }
 
