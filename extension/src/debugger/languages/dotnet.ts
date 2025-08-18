@@ -66,19 +66,15 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
 
     // C# Dev Kit may not register the build task immediately, so we need to retry until it is available
     const pRetry = (await import('p-retry')).default;
-    await pRetry(async () => {
+    const buildTask = await pRetry(async () => {
         const tasks = await vscode.tasks.fetchTasks();
-        const buildTask = tasks.find(t => t.name?.includes('build'));
+        const buildTask = tasks.find(t => t.source === "dotnet" && t.name?.includes('build'));
         if (!buildTask) {
             throw new Error(noCsharpBuildTask);
         }
-    });
 
-    const tasks = await vscode.tasks.fetchTasks();
-    const buildTask = tasks.find(t => t.name?.includes('build'));
-    if (!buildTask) {
-        return Promise.reject(new Error(noWatchTask));
-    }
+        return buildTask;
+    });
 
     extensionLogOutputChannel.info(`Executing build task: ${buildTask.name} for project: ${projectFile}`);
     await vscode.tasks.executeTask(buildTask);

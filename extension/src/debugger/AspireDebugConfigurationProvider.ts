@@ -65,6 +65,10 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
             config.program = '${workspaceFolder}';
         }
 
+        if (config.program === '') {
+            config.program = folder?.uri.fsPath || '';
+        }
+
         return config;
     }
 }

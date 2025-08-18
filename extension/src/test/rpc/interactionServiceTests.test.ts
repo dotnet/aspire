@@ -201,9 +201,6 @@ type RpcServerTestInfo = {
 };
 
 class TestCliRpcClient implements ICliRpcClient {
-	getEffectiveAppHostProjectFile(): Promise<string | null> {
-		return Promise.resolve("");
-	}
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}

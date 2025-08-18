@@ -42,6 +42,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
     else if (message.command === 'launch') {
       const appHostPath = this.session.configuration.program as string;
+
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", `Launching Aspire debug session using directory ${appHostPath}: attempting to determine effective AppHost...`);
         this.spawnRunCommand(message.arguments?.noDebug ? ['run', '--wait-for-debugger'] : ['run', '--start-debug-session'], appHostPath);
