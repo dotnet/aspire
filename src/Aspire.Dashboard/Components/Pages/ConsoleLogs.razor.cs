@@ -133,7 +133,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _allResource, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedResource = _allResource, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
         {
@@ -249,8 +249,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         void SetSelectedResourceOption(ResourceViewModel resource)
         {
-            PageViewModel.SelectedOption = GetSelectedOption();
-            PageViewModel.SelectedResource = resource;
+            PageViewModel.SelectedResource = GetSelectedOption();
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
             loadingTcs.TrySetResult();
@@ -274,10 +273,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         UpdateMenuButtons();
 
         // Determine if we're subscribing to "All" resources or a specific resource
-        var allResourceName = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)];
-        var isAllSelected = PageViewModel.SelectedOption.Id is null &&
-            string.Equals(PageViewModel.SelectedOption.Name, allResourceName, StringComparison.Ordinal);
-        var selectedResourceName = PageViewModel.SelectedResource?.Name;
+        var isAllSelected = PageViewModel.SelectedResource == _allResource;
+        var selectedResourceName = PageViewModel.SelectedResource.Id?.InstanceId;
 
         // Check if subscription needs to change
         var needsNewSubscription = false;
@@ -344,6 +341,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             IsDivider = true
         });
 
+        var selectedResource = GetSelectedResource();
+
         CommonMenuItems.AddToggleHiddenResourcesMenuItem(
             _logsMenuItems,
             ControlsStringsLoc,
@@ -357,10 +356,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 UpdateResourcesList();
                 UpdateMenuButtons();
 
-                if (!_showHiddenResources && PageViewModel.SelectedResource?.IsResourceHidden(showHiddenResources: false) is true)
+                if (!_showHiddenResources && selectedResource?.IsResourceHidden(showHiddenResources: false) is true)
                 {
-                    PageViewModel.SelectedResource = null;
-                    PageViewModel.SelectedOption = _allResource;
+                    PageViewModel.SelectedResource = _allResource;
                     await this.AfterViewModelChangedAsync(_contentLayout, false);
                 }
 
@@ -389,16 +387,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Icon = _noWrapLogs ? new Icons.Regular.Size16.TextWrap() : new Icons.Regular.Size16.TextWrapOff()
         });
 
-        if (PageViewModel.SelectedResource != null)
+        if (selectedResource != null)
         {
             if (ViewportInformation.IsDesktop)
             {
-                _highlightedCommands.AddRange(PageViewModel.SelectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
+                _highlightedCommands.AddRange(selectedResource.Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(DashboardUIHelpers.MaxHighlightedCommands));
             }
 
             ResourceMenuItems.AddMenuItems(
                 _resourceMenuItems,
-                PageViewModel.SelectedResource,
+                selectedResource,
                 NavigationManager,
                 TelemetryRepository,
                 GetResourceName,
@@ -407,7 +405,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 CommandsLoc,
                 EventCallback.Factory.Create(this, () =>
                 {
-                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: PageViewModel.SelectedResource.Name));
+                    NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(resource: selectedResource.Name));
                     return Task.CompletedTask;
                 }),
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
@@ -415,6 +413,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 showConsoleLogsItem: false,
                 showUrls: true);
         }
+    }
+
+    private ResourceViewModel? GetSelectedResource()
+    {
+        var name = PageViewModel.SelectedResource.Id?.InstanceId;
+        if (name == null)
+        {
+            return null;
+        }
+        _resourceByName.TryGetValue(name, out var resource);
+        return resource;
     }
 
     private async Task ToggleTimestampAsync(bool showTimestamp, bool isTimestampUtc)
@@ -440,7 +449,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task ExecuteResourceCommandAsync(CommandViewModel command)
     {
-        await DashboardCommandExecutor.ExecuteAsync(PageViewModel.SelectedResource!, command, GetResourceName);
+        var selectedResource = GetSelectedResource();
+        if (selectedResource is null)
+        {
+            Logger.LogWarning("No resource selected for command execution.");
+            return;
+        }
+
+        await DashboardCommandExecutor.ExecuteAsync(selectedResource, command, GetResourceName);
     }
 
     private async Task CancelAllSubscriptionsAsync()
@@ -625,18 +641,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (optionToSelect is not null)
         {
-            PageViewModel.SelectedOption = optionToSelect;
-            
-            // Only set SelectedResource for specific resource selections, not for "All" option
-            if (optionToSelect.Id?.InstanceId is not null)
-            {
-                PageViewModel.SelectedResource = _resourceByName[optionToSelect.Id.InstanceId];
-            }
-            else
-            {
-                // "All" option selected - clear specific resource selection
-                PageViewModel.SelectedResource = null;
-            }
+            PageViewModel.SelectedResource = optionToSelect;
         }
     }
 
@@ -764,9 +769,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         DateTime? timestampFilterDate;
 
-        if (PageViewModel.SelectedOption.Id is not null &&
+        if (PageViewModel.SelectedResource.Id is not null &&
             _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedOption.Id.GetResourceKey().ToString(),
+                PageViewModel.SelectedResource.Id.GetResourceKey().ToString(),
                 out var filterResourceLogsDate))
         {
             // There is a filter for this individual resource.
@@ -783,7 +788,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private async Task HandleSelectedOptionChangedAsync()
     {
-        PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
@@ -793,11 +797,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
-
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
-            {
-                PageViewModel.SelectedResource = resource;
-            }
 
             // If we're subscribed to all resources and this is a new resource, subscribe to it
             if (_isSubscribedToAll && !_consoleLogsSubscriptions.ContainsKey(resource.Name) &&
@@ -818,10 +817,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 _ = TaskHelpers.WaitIgnoreCancelAsync(subscription.SubscriptionTask); // Fire and forget
             }
 
-            if (string.Equals(PageViewModel.SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+            if (string.Equals(PageViewModel.SelectedResource.Id?.InstanceId, resource.Name, StringComparisons.ResourceName))
             {
                 // The selected resource was deleted
-                PageViewModel.SelectedOption = _allResource;
+                PageViewModel.SelectedResource = _allResource;
                 await HandleSelectedOptionChangedAsync();
             }
 
@@ -857,18 +856,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         stream.Seek(0, SeekOrigin.Begin);
 
         using var streamReference = new DotNetStreamReference(stream);
-        string fileName;
-        if (_isSubscribedToAll)
-        {
-            fileName = $"AllResources-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
-        }
-        else
-        {
-            var safeDisplayName = string.Join("_", PageViewModel.SelectedResource!.DisplayName.Split(Path.GetInvalidFileNameChars()));
-            fileName = $"{safeDisplayName}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
-        }
+        await JS.InvokeVoidAsync("downloadStreamAsFile", GetFileName(), streamReference);
+    }
 
-        await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamReference);
+    private string GetFileName()
+    {
+        var fileNamePreix = _isSubscribedToAll
+            ? "AllResources"
+            : string.Join("_", PageViewModel.SelectedResource.Id!.InstanceId!.Split(Path.GetInvalidFileNameChars()));
+
+        return $"{fileNamePreix}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
     }
 
     private async Task ClearConsoleLogs(ResourceKey? key)
@@ -933,8 +930,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public class ConsoleLogsViewModel
     {
         public required string Status { get; set; }
-        public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
-        public required ResourceViewModel? SelectedResource { get; set; }
+        public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
     }
 
     public record ConsoleLogsPageState(string? SelectedResource);
@@ -947,22 +943,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             if (ResourceName is not null)
             {
-                viewModel.SelectedOption = GetSelectedOption();
-                viewModel.SelectedResource = viewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[viewModel.SelectedOption.Id.InstanceId];
+                viewModel.SelectedResource = GetSelectedOption();
                 viewModel.Status ??= Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
                 return Task.CompletedTask;
             }
             else if (TryGetSingleResource() is { } r)
             {
                 // If there is no resource selected and there is only one resource available, select it.
-                viewModel.SelectedOption = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _allResource);
-                viewModel.SelectedResource = r;
+                viewModel.SelectedResource = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _allResource);
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }
         }
 
-        viewModel.SelectedOption = _allResource;
-        viewModel.SelectedResource = null;
+        viewModel.SelectedResource = _allResource;
         viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
         return Task.CompletedTask;
 
@@ -980,10 +973,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
     {
-        var selectedResourceName = PageViewModel.SelectedResource is { } selectedResource
-            ? GetResourceName(selectedResource)
-            : null;
-        return new ConsoleLogsPageState(selectedResourceName);
+        var selectedResource = PageViewModel.SelectedResource.Id?.InstanceId;
+        return new ConsoleLogsPageState(selectedResource);
     }
 
     // IComponentWithTelemetry impl
