@@ -890,11 +890,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private string GetFileName()
     {
-        var fileNamePreix = _isSubscribedToAll
+        var fileNamePrefix = _isSubscribedToAll
             ? "AllResources"
             : string.Join("_", PageViewModel.SelectedResource.Id!.InstanceId!.Split(Path.GetInvalidFileNameChars()));
 
-        return $"{fileNamePreix}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
+        return $"{fileNamePrefix}-{TimeProvider.GetLocalNow().ToString("yyyyMMddhhmmss", CultureInfo.InvariantCulture)}.txt";
     }
 
     private async Task ClearConsoleLogs(ResourceKey? key)
