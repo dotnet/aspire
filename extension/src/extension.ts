@@ -100,8 +100,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	vscode.workspace.onDidChangeWorkspaceFolders(async () => {
     extensionLogOutputChannel.info("Workspace folders changed, refreshing debug configurations");
-    // This will trigger VS Code to refresh debug configurations
-    vscode.commands.executeCommand('workbench.action.debug.configure');
 });
 
 	// Return exported API for tests or other extensions
