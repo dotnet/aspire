@@ -2,7 +2,7 @@ using Aspire.Hosting.Azure.Kusto;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var kusto = builder.AddKusto("kusto")
+var kusto = builder.AddAzureKustoCluster("kusto")
     .RunAsEmulator();
 var db = kusto.AddDatabase("testdb");
 
