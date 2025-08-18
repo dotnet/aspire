@@ -545,7 +545,8 @@ public class ExtensionMethodGenerator
         // Group models by publisher
         var modelsByPublisher = models
             .Where(m => m.Annotations?.SystemCatalogData?.Publisher != null &&
-                       m.Annotations?.Name != null)
+                       m.Annotations?.Name != null &&
+                       DateTime.Parse(m.Annotations?.InvisibleUntil!, CultureInfo.InvariantCulture) <= DateTime.UtcNow)
             .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
             .OrderBy(g => g.Key);
 
