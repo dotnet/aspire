@@ -1,5 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
@@ -40,6 +41,10 @@
                                 <span class="log-content">
                                     @{
                                         var hasPrefix = false;
+                                    }
+                                    @if (context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (ShowTimestamp && context.Timestamp is { } timestamp)
                                     {
