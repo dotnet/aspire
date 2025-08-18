@@ -17,6 +17,7 @@ internal interface IInteractionService
     void DisplayError(string errorMessage);
     void DisplayMessage(string emoji, string message);
     void DisplayPlainText(string text);
+    void DisplayMarkdown(string markdown);
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message);
     void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls);

@@ -161,6 +161,9 @@
     <Project Path="playground/DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj" />
     <Project Path="playground/DatabaseMigration/DatabaseMigration.MigrationService/DatabaseMigration.MigrationService.csproj" />
   </Folder>
+  <Folder Name="/playground/deployers/">
+    <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>

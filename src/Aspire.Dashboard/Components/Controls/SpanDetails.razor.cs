@@ -12,6 +12,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -147,7 +148,8 @@ public partial class SpanDetails : IDisposable
                 },
                 [KnownTraceFields.SpanIdField] = new ComponentMetadata
                 {
-                    Type = typeof(SpanIdValue)
+                    Type = typeof(IconValue),
+                    Parameters = { ["Icon"] = new Icons.Regular.Size16.GanttChart() }
                 },
             };
         }

@@ -3,12 +3,13 @@
 
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.NuGet;
 
-internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, INuGetPackageCache nuGetPackageCache, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService) : BackgroundService
+internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> logger, CliExecutionContext executionContext, IFeatures features, IPackagingService packagingService, ICliUpdateNotifier cliUpdateNotifier) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -41,10 +42,8 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
             {
                 try
                 {
-                    await nuGetPackageCache.GetCliPackagesAsync(
+                    await cliUpdateNotifier.CheckForCliUpdatesAsync(
                         workingDirectory: executionContext.WorkingDirectory,
-                        prerelease: true,
-                        nugetConfigFile: null,
                         cancellationToken: stoppingToken
                         );
                 }

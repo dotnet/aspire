@@ -7,7 +7,9 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -28,9 +30,11 @@ internal sealed partial class DefaultProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
+    IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
 {
     private readonly AzureProvisionerOptions _options = options.Value;
+    private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -74,12 +78,12 @@ internal sealed partial class DefaultProvisioningContextProvider(
         while (_options.Location == null || _options.SubscriptionId == null)
         {
             var messageBarResult = await interactionService.PromptNotificationAsync(
-                 "Azure provisioning",
-                 "The model contains Azure resources that require an Azure Subscription.",
+                 AzureProvisioningStrings.NotificationTitle,
+                 AzureProvisioningStrings.NotificationMessage,
                  new NotificationInteractionOptions
                  {
                      Intent = MessageIntent.Warning,
-                     PrimaryButtonText = "Enter values"
+                     PrimaryButtonText = AzureProvisioningStrings.NotificationPrimaryButtonText
                  },
                  cancellationToken)
                  .ConfigureAwait(false);
@@ -94,16 +98,12 @@ internal sealed partial class DefaultProvisioningContextProvider(
             if (messageBarResult.Data)
             {
                 var result = await interactionService.PromptInputsAsync(
-                    "Azure provisioning",
-                    """
-                    The model contains Azure resources that require an Azure Subscription.
-
-                    To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).
-                    """,
+                    AzureProvisioningStrings.InputsTitle,
+                    AzureProvisioningStrings.InputsMessage,
                     [
-                        new InteractionInput { InputType = InputType.Choice, Label = "Location", Placeholder = "Select location", Required = true, Options = [..locations] },
-                        new InteractionInput { InputType = InputType.SecretText, Label = "Subscription ID", Placeholder = "Select subscription ID", Required = true },
-                        new InteractionInput { InputType = InputType.Text, Label = "Resource group", Value = GetDefaultResourceGroupName() },
+                        new InteractionInput { InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
+                        new InteractionInput { InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
+                        new InteractionInput { InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
                     ],
                     new InputsDialogInteractionOptions
                     {
@@ -113,13 +113,13 @@ internal sealed partial class DefaultProvisioningContextProvider(
                             var subscriptionInput = validationContext.Inputs[1];
                             if (!Guid.TryParse(subscriptionInput.Value, out var _))
                             {
-                                validationContext.AddValidationError(subscriptionInput, "Subscription ID must be a valid GUID.");
+                                validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
                             }
 
                             var resourceGroupInput = validationContext.Inputs[2];
                             if (!IsValidResourceGroupName(resourceGroupInput.Value))
                             {
-                                validationContext.AddValidationError(resourceGroupInput, "Resource group name must be a valid Azure resource group name.");
+                                validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
                             }
 
                             return Task.CompletedTask;
@@ -259,6 +259,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
+        var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
                     credential,
@@ -268,7 +269,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets);
+                    userSecrets,
+                    distributedApplicationExecutionContext,
+                    outputPath);
     }
 
     private string GetDefaultResourceGroupName()

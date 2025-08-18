@@ -107,7 +107,7 @@ public class Program
         builder.Services.AddSingleton(BuildCliExecutionContext);
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
-        builder.Services.AddSingleton(BuildProjectLocator);
+        builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
@@ -119,7 +119,7 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-    builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddHostedService<NuGetPackagePrefetcher>();
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
@@ -191,16 +191,6 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
-        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features, packagingService);
-    }
-
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
@@ -211,17 +201,6 @@ public class Program
         };
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
-    }
-
-    private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)
