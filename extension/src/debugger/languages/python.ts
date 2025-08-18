@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from "../../dcp/types";
-import { debugProject } from "../../loc/strings";
+import { debugProject, failedToStartPythonProgram } from "../../loc/strings";
 import { mergeEnvs } from "../../utils/environment";
 import { extensionLogOutputChannel } from "../../utils/logging";
 import { extensionContext } from '../../extension';
@@ -27,7 +27,7 @@ export async function startPythonProgram(file: string, workingDirectory: string,
     }
     catch (error) {
         if (error instanceof Error) {
-            extensionLogOutputChannel.error(`Failed to start Python program: ${error.message}`);
+            extensionLogOutputChannel.error(failedToStartPythonProgram(error.message));
             vscode.window.showErrorMessage(`Failed to start Python program: ${error.message}`);
             return undefined;
         }

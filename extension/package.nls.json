@@ -38,5 +38,18 @@
 	"aspire-vscode.strings.buildSucceeded": "Build succeeded for project {0}. Attempting to locate output dll...",
 	"aspire-vscode.strings.noOutputFromMsbuild": "No output from msbuild",
 	"aspire-vscode.strings.failedToGetTargetPath": "Failed to get TargetPath: {0}",
-	"aspire-vscode.strings.unsupportedResourceType": "Attempted to start unsupported resource type: {0}"
+	"aspire-vscode.strings.unsupportedResourceType": "Attempted to start unsupported resource type: {0}",
+  "aspire-vscode.strings.rpcServerNotInitialized": "RPC Server is not initialized",
+	"aspire-vscode.strings.extensionContextNotInitialized": "Extension context is not initialized",
+	"aspire-vscode.strings.aspireDebugSessionNotInitialized": "Aspire debug session is not initialized",
+	"aspire-vscode.strings.errorRetrievingAppHosts": "Error retrieving app hosts in the current workspace. Debug options may be incomplete.",
+	"aspire-vscode.strings.launchingWithDirectory": "Launching Aspire debug session using directory {0}: attempting to determine effective AppHost...",
+	"aspire-vscode.strings.launchingWithAppHost": "Launching Aspire debug session for AppHost {0}...",
+	"aspire-vscode.strings.disconnectingFromSession": "Disconnecting from Aspire debug session... Child processes will be stopped.",
+	"aspire-vscode.strings.processExitedWithCode": "Process exited with code {0}",
+	"aspire-vscode.strings.failedToStartPythonProgram": "Failed to start Python program: {0}",
+	"aspire-vscode.strings.csharpSupportNotEnabled": "C# support is not enabled in this workspace. This project should have started through the Aspire CLI.",
+	"aspire-vscode.strings.failedToStartProject": "Failed to start project: {0}",
+  "aspire-vscode.strings.dcpServerNotInitialized": "DCP server not initialized - cannot forward debug output",
+  "aspire-vscode.strings.invalidTokenProvided": "Invalid token provided"
 }

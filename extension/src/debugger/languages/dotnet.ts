@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
+import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, csharpSupportNotEnabled, failedToStartProject } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../../utils/environment';
@@ -21,7 +21,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
         }
 
         if (!getSupportedCapabilities().includes('csharp')) {
-            throw new Error('C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
+            throw new Error(csharpSupportNotEnabled);
         }
 
         const config: AspireExtendedDebugConfiguration = {
@@ -44,7 +44,7 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
     }
     catch (error) {
         if (error instanceof Error) {
-            extensionLogOutputChannel.error(`Failed to start project: ${error.message}`);
+            extensionLogOutputChannel.error(failedToStartProject(error.message));
             vscode.window.showErrorMessage(`Failed to start project: ${error.message}`);
             return undefined;
         }

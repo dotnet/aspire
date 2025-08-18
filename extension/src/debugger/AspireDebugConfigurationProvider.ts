@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import path from 'path';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { errorRetrievingAppHosts } from '../loc/strings';
 
 export class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
     async getAppHostCandidates(): Promise<string[]> {
@@ -51,7 +52,7 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
             }
         } catch (error) {
             extensionLogOutputChannel.error(`Error retrieving app hosts: ${error}`);
-            vscode.window.showWarningMessage("Error retrieving app hosts in the current workspace. Debug options may be incomplete.");
+            vscode.window.showWarningMessage(errorRetrievingAppHosts);
         }
 
         return configurations;

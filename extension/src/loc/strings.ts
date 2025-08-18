@@ -9,9 +9,8 @@ nls.config({
 
 const localize = nls.loadMessageBundle();
 
-// Common strings
 export const noCsprojFound = localize('aspire-vscode.strings.noCsprojFound', 'No AppHost found in the current workspace');
-export const errorMessage = (error: any) => localize('aspire-vscode.commands.add.error', 'Error: {0}', error);
+export const errorMessage = (error: any) => localize('aspire-vscode.strings.error', 'Error: {0}', error);
 export const yesLabel = localize('aspire-vscode.strings.yes', 'Yes');
 export const noLabel = localize('aspire-vscode.strings.no', 'No');
 export const directUrl = (url: string) => localize('aspire-vscode.strings.directUrl', 'Direct: {0}', url);
@@ -39,3 +38,16 @@ export const buildSucceeded = (projectFile: string) => localize('aspire-vscode.s
 export const noOutputFromMsbuild = localize('aspire-vscode.strings.noOutputFromMsbuild', 'No output from msbuild');
 export const failedToGetTargetPath = (err: string) => localize('aspire-vscode.strings.failedToGetTargetPath', 'Failed to get TargetPath: {0}', err);
 export const unsupportedResourceType = (type: string) => localize('aspire-vscode.strings.unsupportedResourceType', 'Attempted to start unsupported resource type: {0}', type);
+export const rpcServerNotInitialized = localize('aspire-vscode.strings.rpcServerNotInitialized', 'RPC Server is not initialized');
+export const extensionContextNotInitialized = localize('aspire-vscode.strings.extensionContextNotInitialized', 'Extension context is not initialized');
+export const aspireDebugSessionNotInitialized = localize('aspire-vscode.strings.aspireDebugSessionNotInitialized', 'Aspire debug session is not initialized');
+export const errorRetrievingAppHosts = localize('aspire-vscode.strings.errorRetrievingAppHosts', 'Error retrieving app hosts in the current workspace. Debug options may be incomplete.');
+export const launchingWithDirectory = (appHostPath: string) => localize('aspire-vscode.strings.launchingWithDirectory', 'Launching Aspire debug session using directory {0}: attempting to determine effective AppHost...', appHostPath);
+export const launchingWithAppHost = (appHostPath: string) => localize('aspire-vscode.strings.launchingWithAppHost', 'Launching Aspire debug session for AppHost {0}...', appHostPath);
+export const disconnectingFromSession = localize('aspire-vscode.strings.disconnectingFromSession', 'Disconnecting from Aspire debug session... Child processes will be stopped.');
+export const processExitedWithCode = (code: number | string) => localize('aspire-vscode.strings.processExitedWithCode', 'Process exited with code {0}', code);
+export const failedToStartPythonProgram = (errorMessage: string) => localize('aspire-vscode.strings.failedToStartPythonProgram', 'Failed to start Python program: {0}', errorMessage);
+export const csharpSupportNotEnabled = localize('aspire-vscode.strings.csharpSupportNotEnabled', 'C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
+export const failedToStartProject = (errorMessage: string) => localize('aspire-vscode.strings.failedToStartProject', 'Failed to start project: {0}', errorMessage);
+export const dcpServerNotInitialized = localize('aspire-vscode.strings.dcpServerNotInitialized', 'DCP server not initialized - cannot forward debug output');
+export const invalidTokenProvided = localize('aspire-vscode.strings.invalidTokenProvided', 'Invalid token provided');

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { createMessageConnection, MessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { rpcServerAddressError, rpcServerError } from '../loc/strings';
+import { invalidTokenProvided, rpcServerAddressError, rpcServerError } from '../loc/strings';
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
@@ -46,7 +46,7 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
     function withAuthentication(callback: (...params: any[]) => any) {
         return (...params: any[]) => {
             if (!params || params[0] !== token) {
-                throw new Error('Invalid token provided');
+                throw new Error(invalidTokenProvided);
             }
 
             if (Array.isArray(params)) {

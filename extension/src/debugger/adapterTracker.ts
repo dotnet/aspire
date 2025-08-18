@@ -5,6 +5,7 @@ import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
 import DcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
+import { dcpServerNotInitialized } from '../loc/strings';
 
 export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposable[] {
     const disposables: vscode.Disposable[] = [];
@@ -47,7 +48,7 @@ export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposab
                             }
 
                             if (!dcpServer) {
-                                extensionLogOutputChannel.warn('DCP server not initialized - cannot forward debug output');
+                                extensionLogOutputChannel.warn(dcpServerNotInitialized);
                                 return;
                             }
                             const processNotification: ProcessRestartedNotification = {
