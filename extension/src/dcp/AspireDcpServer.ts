@@ -60,7 +60,8 @@ export default class DcpServer {
             }
 
             app.get("/telemetry/enabled", (req: Request, res: Response) => {
-                res.json({ is_enabled: true });
+                // TODO enable dashboard telemetry
+                res.json({ is_enabled: false });
             });
 
             app.get('/info', (req: Request, res: Response) => {
