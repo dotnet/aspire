@@ -40,7 +40,7 @@ public class KustoFunctionalTests
     [RequiresDocker]
     public async Task KustoEmulator_Starts()
     {
-        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
@@ -57,7 +57,7 @@ public class KustoFunctionalTests
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
             var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoConnection") ?? throw new ArgumentException("Connection string for Kusto is not set in configuration.");
-            KustoConnectionStringBuilder kcsb = new(connectionString);
+            var kcsb = new KustoConnectionStringBuilder(connectionString);
 
             return KustoClientFactory.CreateCslQueryProvider(kcsb);
         });
@@ -88,7 +88,7 @@ public class KustoFunctionalTests
     [RequiresDocker]
     public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
-        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
@@ -109,14 +109,14 @@ public class KustoFunctionalTests
         hb.Services.AddSingleton<ICslQueryProvider>(sp =>
         {
             var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoTestDbConnection") ?? throw new ArgumentException("Connection string for Kusto is not set in configuration.");
-            KustoConnectionStringBuilder kcsb = new(connectionString);
+            var kcsb = new KustoConnectionStringBuilder(connectionString);
 
             return KustoClientFactory.CreateCslQueryProvider(kcsb);
         });
         hb.Services.AddSingleton<ICslAdminProvider>(sp =>
         {
             var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("KustoTestDbConnection") ?? throw new ArgumentException("Connection string for Kusto TestDb is not set in configuration.");
-            KustoConnectionStringBuilder kcsb = new(connectionString);
+            var kcsb = new KustoConnectionStringBuilder(connectionString);
             return KustoClientFactory.CreateCslAdminProvider(kcsb);
         });
 
@@ -166,7 +166,7 @@ public class KustoFunctionalTests
     [RequiresDocker]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
-        using CancellationTokenSource timeout = new(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
         using var temp = new TempDirectory();
 
