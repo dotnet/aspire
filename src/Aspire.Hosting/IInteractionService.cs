@@ -115,10 +115,7 @@ public sealed class InteractionInput
     /// </summary>
     public string? Label { get; init; }
 
-    /// <summary>
-    /// Gets the effective label for the input. Returns the Label if specified, otherwise returns the Name.
-    /// </summary>
-    public string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
+    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
 
     /// <summary>
     /// Gets or sets the description for the input.
