@@ -11,11 +11,11 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// A health check to validate that the Kusto service is available and responsive.
 /// </summary>
-internal sealed class KustoHealthCheck : IHealthCheck
+internal sealed class AzureKustoHealthCheck : IHealthCheck
 {
     private readonly KustoConnectionStringBuilder _kcsb;
 
-    public KustoHealthCheck(KustoConnectionStringBuilder connectionStringBuilder)
+    public AzureKustoHealthCheck(KustoConnectionStringBuilder connectionStringBuilder)
     {
         ArgumentNullException.ThrowIfNull(connectionStringBuilder);
 

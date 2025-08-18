@@ -65,7 +65,7 @@ public class AddAzureKustoTests
 
         Assert.NotNull(httpEndpoint);
         Assert.Equal(port, httpEndpoint.Port);
-        Assert.Equal(KustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
+        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
         Assert.Equal("http", httpEndpoint.UriScheme);
     }
 

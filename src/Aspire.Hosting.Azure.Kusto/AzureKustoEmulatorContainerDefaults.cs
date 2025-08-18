@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// Default values for the Kusto emulator container.
 /// </summary>
-internal static class KustoEmulatorContainerDefaults
+internal static class AzureKustoEmulatorContainerDefaults
 {
     /// <summary>
     /// The default target port for the Kusto emulator container.

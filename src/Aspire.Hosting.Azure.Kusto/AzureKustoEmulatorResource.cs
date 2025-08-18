@@ -8,13 +8,13 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// A resource that represents a Kusto emulator running as a container.
 /// </summary>
-public class KustoEmulatorResource : ContainerResource, IResourceWithConnectionString
+public class AzureKustoEmulatorResource : ContainerResource, IResourceWithConnectionString
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="KustoEmulatorResource"/> class.
+    /// Initializes a new instance of the <see cref="AzureKustoEmulatorResource"/> class.
     /// </summary>
     /// <param name="innerResource">The wrapped Kusto resource.</param>
-    public KustoEmulatorResource(AzureKustoClusterResource innerResource)
+    public AzureKustoEmulatorResource(AzureKustoClusterResource innerResource)
         : base(innerResource?.Name ?? throw new ArgumentNullException(nameof(innerResource)))
     {
         InnerResource = innerResource;

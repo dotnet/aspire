@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// Container image configuration for the Kusto emulator.
 /// </summary>
-internal static class KustoEmulatorContainerImageTags
+internal static class AzureKustoEmulatorContainerImageTags
 {
     /// <summary>
     /// The container registry hosting the Kusto emulator image.

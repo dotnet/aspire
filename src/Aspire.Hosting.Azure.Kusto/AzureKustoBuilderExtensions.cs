@@ -62,7 +62,7 @@ public static class AzureKustoBuilderExtensions
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            .AddKustoHealthCheck(healthCheckKey, _ => kcsb!);
+            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
 
         // Execute any setup now that Kusto is ready
         resourceBuilder.OnResourceReady(async (server, evt, ct) =>
@@ -120,7 +120,7 @@ public static class AzureKustoBuilderExtensions
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            .AddKustoHealthCheck(healthCheckKey, _ => kcsb!);
+            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
 
         return resourceBuilder
             .WithHealthCheck(healthCheckKey);
@@ -130,7 +130,7 @@ public static class AzureKustoBuilderExtensions
     /// Configures the Kusto resource to run as an emulator using the Kustainer container.
     /// </summary>
     /// <remarks>
-    /// This version of the package defaults to the <inheritdoc cref="KustoEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="KustoEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="KustoEmulatorContainerImageTags.Image"/> container image.
+    /// This version of the package defaults to the <inheritdoc cref="AzureKustoEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="AzureKustoEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="AzureKustoEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="httpPort">The host port that the Kusto HTTP endpoint is bound to.</param>
@@ -141,21 +141,21 @@ public static class AzureKustoBuilderExtensions
     public static IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(
         this IResourceBuilder<AzureKustoClusterResource> builder,
         int? httpPort = null,
-        Action<IResourceBuilder<KustoEmulatorResource>>? configureContainer = null)
+        Action<IResourceBuilder<AzureKustoEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var surrogate = new KustoEmulatorResource(builder.Resource);
+        var surrogate = new AzureKustoEmulatorResource(builder.Resource);
         var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
 
         surrogateBuilder
             .WithAnnotation(new EmulatorResourceAnnotation())
-            .WithHttpEndpoint(targetPort: KustoEmulatorContainerDefaults.DefaultTargetPort, port: httpPort, name: "http")
+            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, port: httpPort, name: "http")
             .WithAnnotation(new ContainerImageAnnotation
             {
-                Registry = KustoEmulatorContainerImageTags.Registry,
-                Image = KustoEmulatorContainerImageTags.Image,
-                Tag = KustoEmulatorContainerImageTags.Tag
+                Registry = AzureKustoEmulatorContainerImageTags.Registry,
+                Image = AzureKustoEmulatorContainerImageTags.Image,
+                Tag = AzureKustoEmulatorContainerImageTags.Tag
             })
             .WithEnvironment("ACCEPT_EULA", "Y")
             .WithContainerRuntimeArgs("--memory", "4G");
@@ -181,7 +181,7 @@ public static class AzureKustoBuilderExtensions
         ArgumentNullException.ThrowIfNull(script);
 
         // Store script as an annotation on the resource
-        builder.WithAnnotation(new KustoCreateDatabaseScriptAnnotation(script));
+        builder.WithAnnotation(new AzureKustoCreateDatabaseScriptAnnotation(script));
 
         return builder;
     }
@@ -194,7 +194,7 @@ public static class AzureKustoBuilderExtensions
         };
         crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
 
-        var scriptAnnotation = databaseResource.Annotations.OfType<KustoCreateDatabaseScriptAnnotation>().LastOrDefault();
+        var scriptAnnotation = databaseResource.Annotations.OfType<AzureKustoCreateDatabaseScriptAnnotation>().LastOrDefault();
         var script = scriptAnnotation?.Script ?? $".create database {databaseResource.DatabaseName} volatile;";
 
         var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource.Parent);

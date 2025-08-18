@@ -7,7 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.Kusto;
 
-internal static class KustoHealthCheckBuilderExtensions
+internal static class AzureKustoHealthCheckBuilderExtensions
 {
     /// <summary>
     /// Adds a Kusto health check to the health check builder.
@@ -16,12 +16,12 @@ internal static class KustoHealthCheckBuilderExtensions
     /// <param name="name">The name of the health check.</param>
     /// <param name="connectionStringFactory">The Kusto connection string builder.</param>
     /// <returns>The updated health check builder.</returns>
-    public static IHealthChecksBuilder AddKustoHealthCheck(this IHealthChecksBuilder builder, string name, Func<IServiceProvider, KustoConnectionStringBuilder> connectionStringFactory)
+    public static IHealthChecksBuilder AddAzureKustoHealthCheck(this IHealthChecksBuilder builder, string name, Func<IServiceProvider, KustoConnectionStringBuilder> connectionStringFactory)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(connectionStringFactory);
 
-        var registration = new HealthCheckRegistration(name, sp => new KustoHealthCheck(connectionStringFactory(sp)), failureStatus: default, tags: default, timeout: default);
+        var registration = new HealthCheckRegistration(name, sp => new AzureKustoHealthCheck(connectionStringFactory(sp)), failureStatus: default, tags: default, timeout: default);
         return builder.Add(registration);
     }
 }

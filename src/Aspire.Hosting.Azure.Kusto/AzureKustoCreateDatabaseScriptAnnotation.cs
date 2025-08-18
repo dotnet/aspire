@@ -8,15 +8,15 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// Annotation to store a Kusto database creation script.
 /// </summary>
-internal sealed class KustoCreateDatabaseScriptAnnotation : IResourceAnnotation
+internal sealed class AzureKustoCreateDatabaseScriptAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="KustoCreateDatabaseScriptAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="AzureKustoCreateDatabaseScriptAnnotation"/> class.
     /// </summary>
     /// <param name="script">
     /// The Kusto script to create the database.
     /// </param>
-    public KustoCreateDatabaseScriptAnnotation(string script)
+    public AzureKustoCreateDatabaseScriptAnnotation(string script)
     {
         Script = script;
     }
