@@ -75,7 +75,7 @@ public static class AzureKustoBuilderExtensions
             using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
             foreach (var name in server.Databases.Keys)
             {
-                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is KustoDatabaseResource kustoDatabase)
+                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is AzureKustoDatabaseResource kustoDatabase)
                 {
                     await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
                 }
@@ -94,7 +94,7 @@ public static class AzureKustoBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<KustoDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<AzureKustoDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -103,7 +103,7 @@ public static class AzureKustoBuilderExtensions
         databaseName ??= name;
 
         builder.Resource.AddDatabase(name, databaseName);
-        var kustoDatabase = new KustoDatabaseResource(name, databaseName, builder.Resource);
+        var kustoDatabase = new AzureKustoDatabaseResource(name, databaseName, builder.Resource);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
 
         // Register a health check that will be used to verify database is available
@@ -175,7 +175,7 @@ public static class AzureKustoBuilderExtensions
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<KustoDatabaseResource> WithCreationScript(this IResourceBuilder<KustoDatabaseResource> builder, string script)
+    public static IResourceBuilder<AzureKustoDatabaseResource> WithCreationScript(this IResourceBuilder<AzureKustoDatabaseResource> builder, string script)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
@@ -186,7 +186,7 @@ public static class AzureKustoBuilderExtensions
         return builder;
     }
 
-    private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, KustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, AzureKustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         var crp = new ClientRequestProperties()
         {
