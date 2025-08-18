@@ -786,43 +786,33 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var filter = new HostAndProtocolLoggerFilter();
         var value = enable ? bool.TrueString : bool.FalseString;
         var key = DashboardConfigNames.ForwardedHeaders.ConfigKey;
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                // Explicitly set in config too (mirrors production precedence expectations).
+                data[key] = value;
+            },
+            preConfigureBuilder: builder =>
+            {
+                builder.Services.TryAddEnumerable(
+                    ServiceDescriptor.Transient<IStartupFilter, HostAndProtocolLoggerFilter>(_ => filter));
+            },
+            clearLogFilterRules: false);
 
-        try
-        {
-            Environment.SetEnvironmentVariable(key, value);
+        await app.StartAsync().DefaultTimeout();
 
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    // Explicitly set in config too (mirrors production precedence expectations).
-                    data[key] = value;
-                },
-                preConfigureBuilder: builder =>
-                {
-                    builder.Services.TryAddEnumerable(
-                        ServiceDescriptor.Transient<IStartupFilter, HostAndProtocolLoggerFilter>(_ => filter));
-                },
-                clearLogFilterRules: false);
+        var endpoint = app.FrontendSingleEndPointAccessor().EndPoint; // IPEndPoint
+        var endpointString = endpoint.ToString(); // "host:port"
 
-            await app.StartAsync().DefaultTimeout();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpointString}") };
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Add("X-Forwarded-Host", forwardedHost);
+        request.Headers.Add("X-Forwarded-Proto", forwardedProto);
 
-            var endpoint = app.FrontendSingleEndPointAccessor().EndPoint; // IPEndPoint
-            var endpointString = endpoint.ToString(); // "host:port"
+        var response = await client.SendAsync(request).DefaultTimeout();
+        response.EnsureSuccessStatusCode();
 
-            using var client = new HttpClient { BaseAddress = new Uri($"http://{endpointString}") };
-            var request = new HttpRequestMessage(HttpMethod.Get, "/");
-            request.Headers.Add("X-Forwarded-Host", forwardedHost);
-            request.Headers.Add("X-Forwarded-Proto", forwardedProto);
-
-            var response = await client.SendAsync(request).DefaultTimeout();
-            response.EnsureSuccessStatusCode();
-
-            return (filter.Host, filter.Proto, endpointString);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(key, null);
-        }
+        return (filter.Host, filter.Proto, endpointString);
     }
 
     [Theory]
