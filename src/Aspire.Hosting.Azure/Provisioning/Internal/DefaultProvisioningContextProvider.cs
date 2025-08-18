@@ -33,6 +33,10 @@ internal sealed partial class DefaultProvisioningContextProvider(
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
     IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
 {
+    internal const string LocationName = "Location";
+    internal const string SubscriptionIdName = "SubscriptionId";
+    internal const string ResourceGroupName = "ResourceGroup";
+
     private readonly AzureProvisionerOptions _options = options.Value;
     private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
@@ -101,22 +105,22 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     AzureProvisioningStrings.InputsTitle,
                     AzureProvisioningStrings.InputsMessage,
                     [
-                        new InteractionInput { Name = "Location", InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
-                        new InteractionInput { Name = "SubscriptionId", InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
-                        new InteractionInput { Name = "ResourceGroup", InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
+                        new InteractionInput { Name = LocationName, InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
+                        new InteractionInput { Name = SubscriptionIdName, InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
+                        new InteractionInput { Name = ResourceGroupName, InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
                     ],
                     new InputsDialogInteractionOptions
                     {
                         EnableMessageMarkdown = true,
                         ValidationCallback = static (validationContext) =>
                         {
-                            var subscriptionInput = validationContext.Inputs[1];
+                            var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
                             if (!Guid.TryParse(subscriptionInput.Value, out var _))
                             {
                                 validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
                             }
 
-                            var resourceGroupInput = validationContext.Inputs[2];
+                            var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
                             if (!IsValidResourceGroupName(resourceGroupInput.Value))
                             {
                                 validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
@@ -129,9 +133,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
                 if (!result.Canceled)
                 {
-                    _options.Location = result.Data?[0].Value;
-                    _options.SubscriptionId = result.Data?[1].Value;
-                    _options.ResourceGroup = result.Data?[2].Value;
+                    _options.Location = result.Data[LocationName].Value;
+                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                    _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                     _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
 
                     var azureSection = userSecrets.Prop("Azure");
