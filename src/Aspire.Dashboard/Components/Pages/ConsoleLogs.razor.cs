@@ -180,7 +180,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
-            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+            SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable));
         }
 
         async Task TrackResourceSnapshotsAsync()
@@ -262,6 +262,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallback: _allResource);
     }
 
+    private void SetStatus(ConsoleLogsViewModel viewModel, string statusName)
+    {
+        Logger.LogDebug("Setting status to '{StatusName}'.", statusName);
+        viewModel.Status = Loc[statusName];
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         Logger.LogDebug("Initializing console logs view model.");
@@ -295,7 +301,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             Logger.LogDebug("Subscription change needed. IsAllSelected: {IsAllSelected}, SelectedResource: {SelectedResource}", isAllSelected, selectedResourceName);
 
             // Cancel all existing subscriptions
-            await CancelAllSubscriptionsAsync();
+            CancelAllSubscriptions();
 
             // Clear log entries for new subscription
             Logger.LogDebug("Creating new log entries collection.");
@@ -459,25 +465,49 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         await DashboardCommandExecutor.ExecuteAsync(selectedResource, command, GetResourceName);
     }
 
-    private async Task CancelAllSubscriptionsAsync()
+    private void CancelAllSubscriptions()
     {
-        var subscriptionsToCancel = _consoleLogsSubscriptions.Values.ToList();
-        _consoleLogsSubscriptions.Clear();
-
-        foreach (var subscription in subscriptionsToCancel)
+        if (_consoleLogsSubscriptions.IsEmpty)
         {
-            subscription.Cancel();
+            return;
         }
 
-        // Wait for all subscriptions to finish
-        var tasks = subscriptionsToCancel
-            .Where(s => s.SubscriptionTask is not null)
-            .Select(s => TaskHelpers.WaitIgnoreCancelAsync(s.SubscriptionTask))
-            .ToArray();
+        //Debugger.Launch();
 
-        if (tasks.Length > 0)
+        // Canceling many subscriptions can take multiple seconds.
+        // Don't await canceling subscriptions to avoid blocking the UI.
+        _ = Task.Run(async () =>
         {
-            await Task.WhenAll(tasks);
+            try
+            {
+                await CancelAllSubscriptionsAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error occurred while canceling subscriptions.");
+            }
+        });
+
+        async Task CancelAllSubscriptionsAsync()
+        {
+            var subscriptionsToCancel = _consoleLogsSubscriptions.Values.ToList();
+            _consoleLogsSubscriptions.Clear();
+
+            foreach (var subscription in subscriptionsToCancel)
+            {
+                subscription.Cancel();
+            }
+
+            // Wait for all subscriptions to finish
+            var tasks = subscriptionsToCancel
+                .Where(s => s.SubscriptionTask is not null)
+                .Select(s => TaskHelpers.WaitIgnoreCancelAsync(s.SubscriptionTask))
+                .ToArray();
+
+            if (tasks.Length > 0)
+            {
+                await Task.WhenAll(tasks);
+            }
         }
     }
 
@@ -492,13 +522,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         if (availableResources.Count == 0)
         {
             Logger.LogDebug("No resources available to subscribe to for 'All' view - will show empty logs.");
-            PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
+            SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources));
             await InvokeAsync(StateHasChanged);
             return;
         }
 
         // Set status to indicate we're starting to watch logs
-        PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+        SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
         await InvokeAsync(StateHasChanged);
 
         foreach (var resource in availableResources)
@@ -541,7 +571,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             Logger.LogWarning("Failed to add subscription for resource {ResourceName} - may already exist.", resourceName);
         }
-        
+
         return Task.CompletedTask;
     }
 
@@ -659,13 +689,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             // For "All" subscriptions, only update status once when starting
             if (_isSubscribedToAll && _consoleLogsSubscriptions.Count == 1)
             {
-                PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+                SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
                 await InvokeAsync(StateHasChanged);
             }
             // For single resource subscriptions, always update status
             else if (!_isSubscribedToAll)
             {
-                PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+                SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs));
                 await InvokeAsync(StateHasChanged);
             }
 
@@ -674,20 +704,22 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 lock (_updateLogsLock)
                 {
                     // Only add pause intervals once, not for each resource when subscribing to all
-                    if (!_isSubscribedToAll || _consoleLogsSubscriptions.Count == 1)
+                    //if (!_isSubscribedToAll || _consoleLogsSubscriptions.Count == 1)
                     {
                         var pauseIntervals = PauseManager.ConsoleLogPauseIntervals;
                         Logger.LogDebug("Adding {PauseIntervalsCount} pause intervals on initial logs load.", pauseIntervals.Length);
 
                         foreach (var priorPause in pauseIntervals)
                         {
-                            _logEntries.InsertSorted(LogEntry.CreatePause(priorPause.Start, priorPause.End));
+                            _logEntries.InsertSorted(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End));
                         }
                     }
                 }
 
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 var timestampFilterDate = GetFilteredDateFromRemove();
+
+                var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
 
                 var logParser = new LogParser(ConsoleColor.Black);
                 await foreach (var batch in logSubscription.ConfigureAwait(true))
@@ -704,12 +736,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                             // Set the base line number using the reported line number of the first log line.
                             _logEntries.BaseLineNumber ??= lineNumber;
 
-                            // Add resource name prefix for multi-resource views
-                            var resourceName = _isSubscribedToAll
-                                ? ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources)
-                                : null;
-
-                            var logEntry = logParser.CreateLogEntry(content, isErrorOutput, resourceName);
+                            var logEntry = logParser.CreateLogEntry(content, isErrorOutput, resourcePrefix);
 
                             // Check if log entry is not displayed because of remove.
                             if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
@@ -740,7 +767,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     // For single resource subscriptions or first subscription in "All" mode, update status
                     if (!_isSubscribedToAll)
                     {
-                        PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)];
+                        SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs));
                         await InvokeAsync(StateHasChanged);
                     }
                 }
@@ -756,7 +783,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 // Don't set the status when finishing because overwrite the status from the new subscription.
                 if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll)
                 {
-                    PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
+                    SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs));
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -901,15 +928,25 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 if (isPaused)
                 {
                     Logger.LogDebug("Inserting new pause log entry starting at {StartTimestamp}.", timestamp);
-                    _logEntries.InsertSorted(LogEntry.CreatePause(timestamp));
+                    foreach (var subscription in _consoleLogsSubscriptions.Values)
+                    {
+                        _logEntries.InsertSorted(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp));
+                    }
                 }
                 else
                 {
-                    var pause = _logEntries.GetEntries().Last().Pause;
-                    Debug.Assert(pause is not null);
+                    var entries = _logEntries.GetEntries();
+                    foreach (var subscription in _consoleLogsSubscriptions.Values)
+                    {
+                        var resourcePrefix = GetResourceName(subscription.Resource);
+                        var lastResourceEntry = entries.LastOrDefault(e => e.ResourcePrefix == resourcePrefix);
 
-                    Logger.LogDebug("Updating pause log entry starting at {StartTimestamp} with end of {EndTimestamp}.", pause.StartTime, timestamp);
-                    pause.EndTime = timestamp;
+                        if (lastResourceEntry?.Pause is { } pause)
+                        {
+                            Logger.LogDebug("Updating pause log entry starting at {StartTimestamp} with end of {EndTimestamp}.", pause.StartTime, timestamp);
+                            pause.EndTime = timestamp;
+                        }
+                    }
                 }
             }
         }
@@ -923,7 +960,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         _resourceSubscriptionCts.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
-        await CancelAllSubscriptionsAsync();
+        CancelAllSubscriptions();
         TelemetryContext.Dispose();
     }
 
@@ -956,7 +993,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         viewModel.SelectedResource = _allResource;
-        viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
+        SetStatus(viewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources));
         return Task.CompletedTask;
 
         ResourceViewModel? TryGetSingleResource()

@@ -27,7 +27,13 @@
                         <div class="log-line-row console-line-row">
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
-                                <span class="log-content log-pause">@pause.GetDisplayText(Loc, TimeProvider)</span>
+                                <span class="log-content log-pause">
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
+                                    }
+                                    @pause.GetDisplayText(Loc, TimeProvider)
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -42,7 +48,7 @@
                                     @{
                                         var hasPrefix = false;
                                     }
-                                    @if (context.ResourcePrefix is { } resourcePrefix)
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
                                     {
                                         <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
                                     }

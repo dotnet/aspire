@@ -17,6 +17,7 @@ internal sealed class LogEntries(int maximumEntryCount)
 {
     private readonly List<LogPauseViewModel> _pauseViewModels = [];
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
+    private readonly object _lock = new();
 
     private int? _earliestTimestampIndex;
 
@@ -66,7 +67,7 @@ internal sealed class LogEntries(int maximumEntryCount)
 
         foreach (var pauseVM in _pauseViewModels)
         {
-            if (pauseVM.Contains(logEntry.Timestamp.Value))
+            if (pauseVM.ResourcePrefix == logEntry.ResourcePrefix && pauseVM.Contains(logEntry.Timestamp.Value))
             {
                 pauseVM.FilteredCount += 1;
                 return true;
@@ -82,12 +83,15 @@ internal sealed class LogEntries(int maximumEntryCount)
     /// <param name="logLine"></param>
     public void InsertSorted(LogEntry logLine)
     {
-        Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
+        lock (_lock)
+        {
+            Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
 
-        InsertSortedCore(logLine);
+            InsertSortedCore(logLine);
 
-        // Verify log entry order is correct in debug builds.
-        VerifyLogEntryOrder();
+            // Verify log entry order is correct in debug builds.
+            VerifyLogEntryOrder();
+        }
     }
 
     [Conditional("DEBUG")]
@@ -97,7 +101,7 @@ internal sealed class LogEntries(int maximumEntryCount)
         for (var i = 0; i < _logEntries.Count; i++)
         {
             var entry = _logEntries[i];
-            if (entry.Timestamp is { } timestamp)
+            if (entry.Timestamp is { } timestamp && entry.Type is not LogEntryType.Pause)
             {
                 if (timestamp < lastTimestamp)
                 {
@@ -113,8 +117,8 @@ internal sealed class LogEntries(int maximumEntryCount)
 
     private void InsertSortedCore(LogEntry logEntry)
     {
-        // If there is no timestamp or the entry is a pause then add to the end.
-        if (logEntry.Timestamp == null || logEntry.Type is LogEntryType.Pause)
+        // If there is no timestamp then add to the end.
+        if (logEntry.Timestamp == null)
         {
             InsertAt(_logEntries.Count);
             return;
