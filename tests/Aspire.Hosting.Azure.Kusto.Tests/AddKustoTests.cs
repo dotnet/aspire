@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure.Kusto.Tests;
 public class AddKustoTests
 {
     [Fact]
-    public void AddKusto_ShouldCreateKustoResourceWithCorrectName()
+    public void AddKusto_ShouldCreateAzureKustoClusterResourceWithCorrectName()
     {
         // Arrange
         const string name = "kusto";
@@ -22,7 +22,7 @@ public class AddKustoTests
         Assert.NotNull(resourceBuilder);
         Assert.NotNull(resourceBuilder.Resource);
         Assert.Equal(name, resourceBuilder.Resource.Name);
-        Assert.IsType<KustoServerResource>(resourceBuilder.Resource);
+        Assert.IsType<AzureKustoClusterResource>(resourceBuilder.Resource);
     }
 
     [Theory]
@@ -151,11 +151,11 @@ public class AddKustoTests
     public void RunAsEmulator_WithNullBuilder_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => ((IResourceBuilder<KustoServerResource>)null!).RunAsEmulator());
+        Assert.Throws<ArgumentNullException>(() => ((IResourceBuilder<AzureKustoClusterResource>)null!).RunAsEmulator());
     }
 
     [Fact]
-    public void KustoResource_ShouldImplementIResourceWithConnectionString()
+    public void AzureKustoClusterResource_ShouldImplementIResourceWithConnectionString()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();

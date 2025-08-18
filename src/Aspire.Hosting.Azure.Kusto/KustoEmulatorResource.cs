@@ -14,7 +14,7 @@ public class KustoEmulatorResource : ContainerResource, IResourceWithConnectionS
     /// Initializes a new instance of the <see cref="KustoEmulatorResource"/> class.
     /// </summary>
     /// <param name="innerResource">The wrapped Kusto resource.</param>
-    public KustoEmulatorResource(KustoServerResource innerResource)
+    public KustoEmulatorResource(AzureKustoClusterResource innerResource)
         : base(innerResource?.Name ?? throw new ArgumentNullException(nameof(innerResource)))
     {
         InnerResource = innerResource;
@@ -29,5 +29,5 @@ public class KustoEmulatorResource : ContainerResource, IResourceWithConnectionS
     /// <summary>
     /// Gets the wrapped Kusto resource.
     /// </summary>
-    internal KustoServerResource InnerResource { get; }
+    internal AzureKustoClusterResource InnerResource { get; }
 }

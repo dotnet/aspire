@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// Extension methods for adding Kusto resources to the application model.
 /// </summary>
-public static class KustoResourceBuilderExtensions
+public static class AzureKustoBuilderExtensions
 {
     private static readonly ResiliencePipeline s_pipeline = new ResiliencePipelineBuilder()
         .AddRetry(new()
@@ -31,7 +31,7 @@ public static class KustoResourceBuilderExtensions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When adding a <see cref="KustoServerResource"/> to your application model the resource can then
+    /// When adding a <see cref="AzureKustoClusterResource"/> to your application model the resource can then
     /// be referenced by other resources using the resource name. When the dependent resource is using
     /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
     /// then the dependent resource will wait until the Kusto database is available.
@@ -40,12 +40,12 @@ public static class KustoResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<KustoServerResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name)
+    public static IResourceBuilder<AzureKustoClusterResource> AddKusto(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var resource = new KustoServerResource(name);
+        var resource = new AzureKustoClusterResource(name);
         var resourceBuilder = builder.AddResource(resource);
 
         // Register a health check that will be used to verify Kusto is available
@@ -94,7 +94,7 @@ public static class KustoResourceBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<KustoDatabaseResource> AddDatabase(this IResourceBuilder<KustoServerResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<KustoDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -138,8 +138,8 @@ public static class KustoResourceBuilderExtensions
     /// Optional action to configure the Kusto emulator container.
     /// </param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<KustoServerResource> RunAsEmulator(
-        this IResourceBuilder<KustoServerResource> builder,
+    public static IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(
+        this IResourceBuilder<AzureKustoClusterResource> builder,
         int? httpPort = null,
         Action<IResourceBuilder<KustoEmulatorResource>>? configureContainer = null)
     {

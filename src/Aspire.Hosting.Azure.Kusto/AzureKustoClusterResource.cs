@@ -8,15 +8,15 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// A resource that represents a Kusto cluster.
 /// </summary>
-public class KustoServerResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
+public class AzureKustoClusterResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
 {
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="KustoServerResource"/> class.
+    /// Initializes a new instance of the <see cref="AzureKustoClusterResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    public KustoServerResource(string name)
+    public AzureKustoClusterResource(string name)
         : base(name)
     {
     }
