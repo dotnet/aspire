@@ -126,7 +126,7 @@ public class KustoPublicApiTests
     public void KustoEmulatorResourceShouldThrowWhenInnerResourceIsNull()
     {
         // Act
-        var action = () => new KustoEmulatorResource(null!);
+        var action = () => new AzureKustoEmulatorResource(null!);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -136,7 +136,7 @@ public class KustoPublicApiTests
     public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new KustoEmulatorResource(new AzureKustoClusterResource("test-kusto"));
+        var resource = new AzureKustoEmulatorResource(new AzureKustoClusterResource("test-kusto"));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
