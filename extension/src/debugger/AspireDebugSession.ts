@@ -124,17 +124,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     });
   }
 
-  sendStoppedEvent(reason: string = 'stopped'): void {
-    this.sendEvent({
-      type: 'event',
-      event: 'stopped',
-      body: {
-        reason,
-        threadId: 1
-      }
-    });
-  }
-
   async startAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} in directory: ${workingDirectory} with args: ${args.join(' ')}`);
     const appHostDebugSession = await startDotNetProgram(projectFile, workingDirectory, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null });

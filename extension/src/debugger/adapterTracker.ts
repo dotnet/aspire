@@ -11,7 +11,7 @@ export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposab
     const disposables: vscode.Disposable[] = [];
 
     for (const debugAdapter of getSupportedDebugAdapters()) {
-        vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
+        disposables.push(vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
             createDebugAdapterTracker(session: vscode.DebugSession) {
                 return {
                     onDidSendMessage: message => {
@@ -78,7 +78,7 @@ export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposab
                     }
                 };
             }
-        });
+        }));
     }
 
     return disposables;
