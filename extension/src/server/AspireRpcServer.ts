@@ -15,14 +15,14 @@ export type RpcServerConnectionInfo = {
     cert: string;
 };
 
-interface Connection {
+interface RpcClientConnection {
     stopCli: () => void;
 }
 
 export default class RpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
-    public connections: Connection[] = [];
+    public connections: RpcClientConnection[] = [];
 
     constructor(server: tls.Server, connectionInfo: RpcServerConnectionInfo) {
         this.server = server;
@@ -93,7 +93,7 @@ export function createRpcServer(interactionServiceFactory: (connection: MessageC
                     const interactionService = interactionServiceFactory(connection);
                     addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
 
-                    const clientFunctionality: Connection = {
+                    const clientFunctionality: RpcClientConnection = {
                         stopCli: () => {
                             rpcClient.stopCli();
                         }

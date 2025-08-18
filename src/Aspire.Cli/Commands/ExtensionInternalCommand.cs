@@ -10,9 +10,9 @@ using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class ExtensionCommand : BaseCommand
+internal sealed class ExtensionInternalCommand : BaseCommand
 {
-    public ExtensionCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator) : base("extension", "Hidden command for extension integration", features, updateNotifier)
+    public ExtensionInternalCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator) : base("extension", "Hidden command for extension integration", features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(updateNotifier);
