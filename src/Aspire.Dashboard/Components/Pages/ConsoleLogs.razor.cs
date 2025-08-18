@@ -279,7 +279,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         UpdateMenuButtons();
 
         // Determine if we're subscribing to "All" resources or a specific resource
-        var isAllSelected = PageViewModel.SelectedResource == _allResource;
+        var isAllSelected = IsAllSelected();
         var selectedResourceName = PageViewModel.SelectedResource.Id?.InstanceId;
 
         // Check if subscription needs to change
@@ -326,6 +326,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         UpdateTelemetryProperties();
+    }
+
+    private bool IsAllSelected()
+    {
+        return PageViewModel.SelectedResource == _allResource;
     }
 
     private void UpdateMenuButtons()
@@ -471,8 +476,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             return;
         }
-
-        //Debugger.Launch();
 
         // Canceling many subscriptions can take multiple seconds.
         // Don't await canceling subscriptions to avoid blocking the UI.
@@ -703,16 +706,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             {
                 lock (_updateLogsLock)
                 {
-                    // Only add pause intervals once, not for each resource when subscribing to all
-                    //if (!_isSubscribedToAll || _consoleLogsSubscriptions.Count == 1)
-                    {
-                        var pauseIntervals = PauseManager.ConsoleLogPauseIntervals;
-                        Logger.LogDebug("Adding {PauseIntervalsCount} pause intervals on initial logs load.", pauseIntervals.Length);
+                    var pauseIntervals = PauseManager.ConsoleLogPauseIntervals;
+                    Logger.LogDebug("Adding {PauseIntervalsCount} pause intervals on initial logs load.", pauseIntervals.Length);
 
-                        foreach (var priorPause in pauseIntervals)
-                        {
-                            _logEntries.InsertSorted(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End));
-                        }
+                    foreach (var priorPause in pauseIntervals)
+                    {
+                        _logEntries.InsertSorted(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End));
                     }
                 }
 
@@ -861,24 +860,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         var stream = new MemoryStream();
         using (var writer = new StreamWriter(stream, leaveOpen: true))
         {
-            foreach (var entry in _logEntries.GetEntries())
+            lock (_updateLogsLock)
             {
-                if (entry.Type is LogEntryType.Pause)
+                foreach (var entry in _logEntries.GetEntries())
                 {
-                    continue;
-                }
+                    if (entry.Type is LogEntryType.Pause)
+                    {
+                        continue;
+                    }
 
-                // It's ok to use sync stream methods here because we're writing to a MemoryStream.
-                if (entry.RawContent is not null)
-                {
-                    writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                    // It's ok to use sync stream methods here because we're writing to a MemoryStream.
+                    if (entry.RawContent is not null)
+                    {
+                        writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
+                    }
+                    else
+                    {
+                        writer.WriteLine();
+                    }
                 }
-                else
-                {
-                    writer.WriteLine();
-                }
+                writer.Flush();
             }
-            writer.Flush();
         }
         stream.Seek(0, SeekOrigin.Begin);
 

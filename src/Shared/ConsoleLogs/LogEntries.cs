@@ -17,7 +17,6 @@ internal sealed class LogEntries(int maximumEntryCount)
 {
     private readonly List<LogPauseViewModel> _pauseViewModels = [];
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
-    private readonly object _lock = new();
 
     private int? _earliestTimestampIndex;
 
@@ -83,15 +82,12 @@ internal sealed class LogEntries(int maximumEntryCount)
     /// <param name="logLine"></param>
     public void InsertSorted(LogEntry logLine)
     {
-        lock (_lock)
-        {
-            Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
+        Debug.Assert(logLine.Timestamp == null || logLine.Timestamp.Value.Kind == DateTimeKind.Utc, "Timestamp should always be UTC.");
 
-            InsertSortedCore(logLine);
+        InsertSortedCore(logLine);
 
-            // Verify log entry order is correct in debug builds.
-            VerifyLogEntryOrder();
-        }
+        // Verify log entry order is correct in debug builds.
+        VerifyLogEntryOrder();
     }
 
     [Conditional("DEBUG")]

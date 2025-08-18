@@ -33,9 +33,7 @@
                                   OnPausedChanged="@OnPausedChanged"
                                   SelectedResource="@PageViewModel.SelectedResource" />
 
-            @if (PageViewModel.SelectedResource is { } selectedResource &&
-                 PageViewModel.SelectedResource.Id is not null &&
-                 !string.Equals(PageViewModel.SelectedResource.Name, ControlsStringsLoc[nameof(ControlsStrings.LabelAll)], StringComparison.Ordinal))
+            @if (PageViewModel.SelectedResource is { } selectedResource && !IsAllSelected())
             {
                 if (ViewportInformation.IsDesktop && (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0))
                 {
