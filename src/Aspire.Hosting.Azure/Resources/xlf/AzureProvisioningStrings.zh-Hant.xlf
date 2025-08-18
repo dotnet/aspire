@@ -6,14 +6,14 @@
         <source>The model contains Azure resources that require an Azure Subscription.
 
 To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.
+        <target state="translated">該模型包含需要 Azure 訂用帳戶的 Azure 資源。
 
-To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+若要深入了解，請參閱 [Azure 訂用帳戶文件](https://aka.ms/dotnet/aspire/azure/provisioning)。</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="InputsTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Azure 佈建</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
@@ -23,22 +23,22 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
-        <target state="new">Select location</target>
+        <target state="translated">選取位置</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
         <source>The model contains Azure resources that require an Azure Subscription.</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.</target>
+        <target state="translated">該模型包含需要 Azure 訂用帳戶的 Azure 資源。</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationPrimaryButtonText">
         <source>Enter values</source>
-        <target state="new">Enter values</target>
+        <target state="translated">輸入值</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Azure 佈建</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
@@ -53,17 +53,17 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
-        <target state="new">Select subscription ID</target>
+        <target state="translated">選取訂用帳戶識別碼</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
-        <target state="new">Resource group name must be a valid Azure resource group name.</target>
+        <target state="translated">資源群組名稱必須是有效的 Azure 資源群組名稱。</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
-        <target state="new">Subscription ID must be a valid GUID.</target>
+        <target state="translated">訂閱識別碼必須是有效的 GUID。</target>
         <note />
       </trans-unit>
     </body>
