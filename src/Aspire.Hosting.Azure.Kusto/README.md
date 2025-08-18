@@ -17,7 +17,9 @@ dotnet add package Aspire.Hosting.Azure.Kusto
 Then, in the _AppHost.cs_ file of `AppHost`, add a Kusto resource and consume the connection using the following method:
 
 ```csharp
-var db = builder.AddKusto("kusto").AddDatabase("mydb").RunAsEmulator();
+var db = builder.AddAzureKustoCluster("kusto")
+                .AddDatabase("mydb")
+                .RunAsEmulator();
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(db);

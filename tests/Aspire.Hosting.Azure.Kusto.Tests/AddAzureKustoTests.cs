@@ -6,17 +6,17 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Kusto.Tests;
 
-public class AddKustoTests
+public class AddAzureKustoTests
 {
     [Fact]
-    public void AddKusto_ShouldCreateAzureKustoClusterResourceWithCorrectName()
+    public void AddAzureKustoCluster_ShouldCreateAzureKustoClusterResourceWithCorrectName()
     {
         // Arrange
         const string name = "kusto";
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto(name);
+        var resourceBuilder = builder.AddAzureKustoCluster(name);
 
         // Assert
         Assert.NotNull(resourceBuilder);
@@ -34,7 +34,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             if (!string.IsNullOrEmpty(customTag))
             {
@@ -57,7 +57,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("kusto").RunAsEmulator(httpPort: port);
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(httpPort: port);
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -70,13 +70,13 @@ public class AddKustoTests
     }
 
     [Fact]
-    public void AddKusto_ShouldExcludeFromManifest()
+    public void AddAzureKustoCluster_ShouldExcludeFromManifest()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("kusto");
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto");
 
         // Assert
         var manifestExclusionAnnotation = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().SingleOrDefault();
@@ -91,7 +91,7 @@ public class AddKustoTests
         const string resourceName = "test-kusto";
 
         // Act
-        var resourceBuilder = builder.AddKusto(resourceName).RunAsEmulator();
+        var resourceBuilder = builder.AddAzureKustoCluster(resourceName).RunAsEmulator();
 
         // Assert
         var emulatorAnnotation = resourceBuilder.Resource.Annotations.OfType<EmulatorResourceAnnotation>().SingleOrDefault();
@@ -105,7 +105,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("kusto").RunAsEmulator(configureContainer: builder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: builder =>
         {
             builder.WithAnnotation(new ContainerNameAnnotation() { Name = "custom-kusto-emulator" });
         });
@@ -120,31 +120,31 @@ public class AddKustoTests
     [InlineData("")]
     [InlineData(" ")]
 
-    public void AddKusto_WithInvalidName_ShouldThrowArgumentException(string? invalidName)
+    public void AddAzureKustoCluster_WithInvalidName_ShouldThrowArgumentException(string? invalidName)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => builder.AddKusto(invalidName!));
+        Assert.Throws<ArgumentException>(() => builder.AddAzureKustoCluster(invalidName!));
     }
 
     [Theory]
     [InlineData(null)]
-    public void AddKusto_WithNullName_ShouldThrowArgumentNullException(string? invalidName)
+    public void AddAzureKustoCluster_WithNullName_ShouldThrowArgumentNullException(string? invalidName)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => builder.AddKusto(invalidName!));
+        Assert.Throws<ArgumentNullException>(() => builder.AddAzureKustoCluster(invalidName!));
     }
 
     [Fact]
-    public void AddKusto_WithNullBuilder_ShouldThrowArgumentNullException()
+    public void AddAzureKustoCluster_WithNullBuilder_ShouldThrowArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => ((IDistributedApplicationBuilder)null!).AddKusto("test"));
+        Assert.Throws<ArgumentNullException>(() => ((IDistributedApplicationBuilder)null!).AddAzureKustoCluster("test"));
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("kusto");
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto");
 
         // Assert
         Assert.IsAssignableFrom<IResourceWithConnectionString>(resourceBuilder.Resource);
@@ -174,7 +174,7 @@ public class AddKustoTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var resourceBuilder = builder.AddKusto("test-kusto");
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto");
 
         // Act
         if (runAsEmulator)
@@ -195,7 +195,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             containerBuilder.WithVolume($"{builder.GetVolumePrefix()}-test-kusto-data", "/data", isReadOnly);
         });
@@ -218,7 +218,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             containerBuilder.WithBindMount("./custom-data", "/data", isReadOnly);
         });
@@ -239,7 +239,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             containerBuilder.WithVolume("volume-data", "/data")
                            .WithBindMount("./config", "/app/config", isReadOnly: true);
@@ -270,7 +270,7 @@ public class AddKustoTests
         const string customTag = "custom-tag";
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             containerBuilder.WithImageRegistry(customRegistry).WithImage(customImage).WithImageTag(customTag);
         });
@@ -290,7 +290,7 @@ public class AddKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddKusto("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
         {
             containerBuilder.WithLifetime(ContainerLifetime.Persistent);
         });
@@ -302,14 +302,14 @@ public class AddKustoTests
     }
 
     [Fact]
-    public void AddKusto_ShouldAddHealthCheckAnnotation()
+    public void AddAzureKustoCluster_ShouldAddHealthCheckAnnotation()
     {
         // Arrange
         const string name = "kusto";
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var kustoServer = builder.AddKusto(name);
+        var kustoServer = builder.AddAzureKustoCluster(name);
 
         // Assert
         Assert.Single(kustoServer.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");
@@ -321,7 +321,7 @@ public class AddKustoTests
         // Arrange
         const string name = "db";
         using var builder = TestDistributedApplicationBuilder.Create();
-        var kusto = builder.AddKusto("kusto");
+        var kusto = builder.AddAzureKustoCluster("kusto");
 
         // Act
         var database = kusto.AddDatabase(name);

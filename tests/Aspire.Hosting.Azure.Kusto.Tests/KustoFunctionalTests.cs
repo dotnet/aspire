@@ -44,7 +44,7 @@ public class KustoFunctionalTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
-        var kusto = builder.AddKusto("kusto").RunAsEmulator();
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -93,7 +93,7 @@ public class KustoFunctionalTests
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
-        var kusto = builder.AddKusto("kusto").RunAsEmulator();
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
         var kustoDb = kusto.AddDatabase("TestDb");
 
         var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
@@ -174,7 +174,7 @@ public class KustoFunctionalTests
 
         const string dbName = "TestDb";
         const string dbPath = "/kustodata";
-        var kusto = builder.AddKusto("kusto").RunAsEmulator(configureContainer: container =>
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: container =>
         {
             container.WithBindMount(temp.Path, dbPath);
         });
