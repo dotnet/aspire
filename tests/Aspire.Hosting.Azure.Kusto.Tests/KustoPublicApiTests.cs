@@ -6,10 +6,10 @@ namespace Aspire.Hosting.Azure.Kusto.Tests;
 public class KustoPublicApiTests
 {
     [Fact]
-    public void KustoResourceShouldThrowWhenNameIsNull()
+    public void AzureKustoClusterResourceShouldThrowWhenNameIsNull()
     {
         // Act
-        var action = () => new KustoServerResource(null!);
+        var action = () => new AzureKustoClusterResource(null!);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -18,20 +18,20 @@ public class KustoPublicApiTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void KustoResourceShouldThrowWhenNameIsInvalid(string name)
+    public void AzureKustoClusterResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Act
-        var action = () => new KustoServerResource(name);
+        var action = () => new AzureKustoClusterResource(name);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
     }
 
     [Fact]
-    public void KustoResourceShouldReturnValidReferenceExpression()
+    public void AzureKustoClusterResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new KustoServerResource("test-kusto");
+        var resource = new AzureKustoClusterResource("test-kusto");
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
@@ -44,7 +44,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenNameIsNull()
     {
         // Arrange
-        var parentResource = new KustoServerResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource(null!, "db", parentResource);
@@ -59,7 +59,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new KustoServerResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", name, parentResource);
@@ -72,7 +72,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
     {
         // Arrange
-        var parentResource = new KustoServerResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", null!, parentResource);
@@ -87,7 +87,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenDatabaseNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new KustoServerResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto");
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", name, parentResource);
@@ -100,7 +100,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldThrowWhenKustoParentResourceIsNull()
     {
         // Arrange
-        KustoServerResource kustoParentResource = null!;
+        AzureKustoClusterResource kustoParentResource = null!;
 
         // Act
         var action = () => new KustoDatabaseResource("kusto-db", "db1", kustoParentResource);
@@ -113,7 +113,7 @@ public class KustoPublicApiTests
     public void KustoDatabaseResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new KustoDatabaseResource("kusto-db", "myDatabase", new KustoServerResource("kusto"));
+        var resource = new KustoDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto"));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
@@ -136,7 +136,7 @@ public class KustoPublicApiTests
     public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new KustoEmulatorResource(new KustoServerResource("test-kusto"));
+        var resource = new KustoEmulatorResource(new AzureKustoClusterResource("test-kusto"));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
