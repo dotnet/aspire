@@ -45,6 +45,7 @@ var parameterWithCustomInput = builder.AddParameter("customInput")
     .WithDescription("This parameter only accepts a number.")
     .WithCustomInput(p => new()
     {
+        Name = "ParameterInput",
         InputType = InputType.Number,
         Label = "Custom Input",
         Placeholder = "Enter a number",
