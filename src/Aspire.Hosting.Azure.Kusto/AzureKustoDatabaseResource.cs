@@ -7,17 +7,17 @@ using Kusto.Data;
 namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
-/// Represents a Kusto database resource, which is a child resource of a <see cref="AzureKustoClusterResource"/>.
+/// Represents an Azure Kusto database resource, which is a child resource of a <see cref="AzureKustoClusterResource"/>.
 /// </summary>
-public class KustoDatabaseResource : Resource, IResourceWithParent<AzureKustoClusterResource>, IResourceWithConnectionString
+public class AzureKustoDatabaseResource : Resource, IResourceWithParent<AzureKustoClusterResource>, IResourceWithConnectionString
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="KustoDatabaseResource"/> class.
+    /// Initializes a new instance of the <see cref="AzureKustoDatabaseResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="databaseName">The database name.</param>
     /// <param name="kustoParentResource">The Kusto parent resource associated with this database.</param>
-    public KustoDatabaseResource(string name, string databaseName, AzureKustoClusterResource kustoParentResource)
+    public AzureKustoDatabaseResource(string name, string databaseName, AzureKustoClusterResource kustoParentResource)
         : base(name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databaseName);
