@@ -32,6 +32,7 @@ export function createDebugAdapterTracker(dcpServer: DcpServer): vscode.Disposab
                                 extensionContext.aspireDebugSession.dcpServer.sendNotification(notification);
                             }
                         }
+                        
                         // Listen for process event with isRestart (if supported by adapter)
                         if (message.type === 'event' && message.event === 'process') {
                             if (typeof message.body?.systemProcessId !== 'number') {
