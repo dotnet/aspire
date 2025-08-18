@@ -23,12 +23,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	initializeTelemetry(context);
 
 	const rpcServer = await createRpcServer(
-		connection => new InteractionService(),
+		_ => new InteractionService(),
 		(connection, token: string) => new RpcClient(connection, token)
 	);
-
-	extensionContext.rpcServer = rpcServer;
-	extensionContext.extensionContext = context;
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -46,14 +43,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Initial)
 	);
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
 
-		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+    extensionContext.initialize(rpcServer, context, debugConfigProvider);
 
-	vscode.workspace.onDidChangeWorkspaceFolders(async () => {
-    extensionLogOutputChannel.info("Workspace folders changed, refreshing debug configurations");
-});
-
-	// Return exported API for tests or other extensions
+    // Return exported API for tests or other extensions
 	return {
 		rpcServerInfo: rpcServer.connectionInfo,
 	};
@@ -61,9 +55,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	extensionContext.rpcServer.dispose();
+    extensionContext.debugConfigProvider?.dispose();
     if (extensionContext.hasAspireDebugSession()) {
         extensionContext.aspireDebugSession.dispose();
     }
+
 }
 
 async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {
