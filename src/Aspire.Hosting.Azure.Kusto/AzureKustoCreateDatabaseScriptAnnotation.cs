@@ -18,6 +18,8 @@ internal sealed class AzureKustoCreateDatabaseScriptAnnotation : IResourceAnnota
     /// </param>
     public AzureKustoCreateDatabaseScriptAnnotation(string script)
     {
+        ArgumentNullException.ThrowIfNull(script);
+
         Script = script;
     }
 
