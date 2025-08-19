@@ -293,26 +293,29 @@ public class DefaultProvisioningContextProviderTests
         Assert.Collection(inputsInteraction.Inputs,
             input =>
             {
+                Assert.Equal(DefaultProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
             {
+                Assert.Equal(DefaultProvisioningContextProvider.SubscriptionIdName, input.Name);
                 Assert.Equal("Subscription ID", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
             {
+                Assert.Equal(DefaultProvisioningContextProvider.ResourceGroupName, input.Name);
                 Assert.Equal("Resource group", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "rg-myrg";
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -361,9 +364,9 @@ public class DefaultProvisioningContextProviderTests
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "not a guid";
-        inputsInteraction.Inputs[2].Value = "invalid group";
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.SubscriptionIdName].Value = "not a guid";
+        inputsInteraction.Inputs[DefaultProvisioningContextProvider.ResourceGroupName].Value = "invalid group";
 
         var context = new InputsDialogValidationContext
         {

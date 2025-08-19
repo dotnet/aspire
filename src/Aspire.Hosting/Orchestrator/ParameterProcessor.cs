@@ -151,6 +151,7 @@ internal sealed class ParameterProcessor(
 
                 var saveParameters = new InteractionInput
                 {
+                    Name = "RememberParameters",
                     InputType = InputType.Boolean,
                     Label = InteractionStrings.ParametersInputsRememberLabel
                 };

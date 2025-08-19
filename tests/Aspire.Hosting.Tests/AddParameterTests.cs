@@ -441,6 +441,7 @@ public class AddParameterTests
             .WithDescription("Custom input parameter")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "CustomInput",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = p.Description,
@@ -499,6 +500,7 @@ public class AddParameterTests
             .WithDescription("Custom description")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParameter",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom: " + p.Description,
@@ -543,6 +545,7 @@ public class AddParameterTests
         var parameter = appBuilder.AddParameter("test")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParam",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom description",
