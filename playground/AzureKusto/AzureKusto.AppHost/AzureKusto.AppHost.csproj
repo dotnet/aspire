@@ -16,7 +16,9 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Kusto" />
+  </ItemGroup>
 
+  <ItemGroup>
     <ProjectReference Include="..\AzureKusto.Worker\AzureKusto.Worker.csproj" />
   </ItemGroup>
 
