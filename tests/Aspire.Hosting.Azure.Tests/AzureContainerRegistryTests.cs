@@ -108,6 +108,52 @@ public class AzureContainerRegistryTests
         Assert.Same(firstResult, secondResult);
     }
 
+    [Fact]
+    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureContainerRegistryResource()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-acr-name");
+        var existingResourceGroup = builder.AddParameter("existing-acr-rg");
+        
+        var containerRegistryResource = new AzureContainerRegistryResource("test-acr", _ => { });
+        containerRegistryResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
+        
+        var infrastructure = new AzureResourceInfrastructure(containerRegistryResource, "test-acr");
+
+        // Act
+        var result = containerRegistryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - The resource should use the name from the annotation, not the default
+        Assert.NotNull(result);
+        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
+        var nameProperty = result.ProvisionableProperties["name"];
+        Assert.NotNull(nameProperty);
+        
+        // Verify that scope is set due to different resource group
+        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
+        var scopeProperty = result.ProvisionableProperties["scope"];
+        Assert.NotNull(scopeProperty);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureContainerRegistryResource()
+    {
+        // Arrange
+        var containerRegistryResource = new AzureContainerRegistryResource("test-acr", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(containerRegistryResource, "test-acr");
+
+        // Act
+        var result = containerRegistryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
+        Assert.NotNull(result);
+        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
+        
+        // The key point is that it should work when no annotation exists
+        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";

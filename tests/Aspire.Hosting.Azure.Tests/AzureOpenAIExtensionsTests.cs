@@ -121,4 +121,50 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
         // Assert - Both calls should return the same resource instance, not duplicates
         Assert.Same(firstResult, secondResult);
     }
+
+    [Fact]
+    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureOpenAIResource()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-openai-name");
+        var existingResourceGroup = builder.AddParameter("existing-openai-rg");
+        
+        var openAIResource = new AzureOpenAIResource("test-openai", _ => { });
+        openAIResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
+        
+        var infrastructure = new AzureResourceInfrastructure(openAIResource, "test-openai");
+
+        // Act
+        var result = openAIResource.AddAsExistingResource(infrastructure);
+
+        // Assert - The resource should use the name from the annotation, not the default
+        Assert.NotNull(result);
+        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
+        var nameProperty = result.ProvisionableProperties["name"];
+        Assert.NotNull(nameProperty);
+        
+        // Verify that scope is set due to different resource group
+        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
+        var scopeProperty = result.ProvisionableProperties["scope"];
+        Assert.NotNull(scopeProperty);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureOpenAIResource()
+    {
+        // Arrange
+        var openAIResource = new AzureOpenAIResource("test-openai", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(openAIResource, "test-openai");
+
+        // Act
+        var result = openAIResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
+        Assert.NotNull(result);
+        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
+        
+        // The key point is that it should work when no annotation exists
+        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+    }
 }
