@@ -15,6 +15,8 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 internal sealed class DcpHost
 {
     private const int LoggingSocketConnectionBacklog = 3;
@@ -24,6 +26,7 @@ internal sealed class DcpHost
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
     private readonly IDcpDependencyCheckService _dependencyCheckService;
+    private readonly IInteractionService _interactionService;
     private readonly Locations _locations;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
@@ -41,6 +44,7 @@ internal sealed class DcpHost
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
         IDcpDependencyCheckService dependencyCheckService,
+        IInteractionService interactionService,
         Locations locations,
         DistributedApplicationModel applicationModel)
     {
@@ -48,6 +52,7 @@ internal sealed class DcpHost
         _logger = loggerFactory.CreateLogger<DcpHost>();
         _dcpOptions = dcpOptions.Value;
         _dependencyCheckService = dependencyCheckService;
+        _interactionService = interactionService;
         _locations = locations;
         _applicationModel = applicationModel;
     }
@@ -110,6 +115,9 @@ internal sealed class DcpHost
             if (dcpInfo is not null)
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(_logger, _dcpOptions, dcpInfo, throwIfUnhealthy: requireContainerRuntimeInitialization);
+                
+                // Show UI notification if container runtime is unhealthy
+                TryShowContainerRuntimeNotification(dcpInfo, cancellationToken);
             }
         }
         finally
@@ -366,4 +374,81 @@ internal sealed class DcpHost
             reader.Complete();
         }
     }
+
+    private void TryShowContainerRuntimeNotification(DcpInfo dcpInfo, CancellationToken cancellationToken)
+    {
+        // Check if the interaction service is available (dashboard enabled)
+        if (!_interactionService.IsAvailable)
+        {
+            return;
+        }
+
+        var containerRuntime = _dcpOptions.ContainerRuntime;
+        if (string.IsNullOrEmpty(containerRuntime))
+        {
+            // Default runtime is Docker
+            containerRuntime = "docker";
+        }
+
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+
+        // Only show notification if container runtime is installed but not running
+        // If not installed, that's usually a more fundamental setup issue that would be addressed differently
+        if (installed && !running)
+        {
+            string title = "Container Runtime Unhealthy";
+            string message;
+            string? linkUrl = null;
+
+            if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
+            {
+                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
+                         "Ensure that Docker is running and that the Docker daemon is accessible. " +
+                         "If Resource Saver mode is enabled, containers may not run.";
+                linkUrl = "https://docs.docker.com/desktop/use-desktop/resource-saver/";
+            }
+            else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
+            {
+                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
+                         "Ensure that Podman is running.";
+            }
+            else
+            {
+                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
+                         "Ensure that the container runtime is running.";
+            }
+
+            var options = new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Error,
+                LinkText = linkUrl is not null ? "Learn more" : null,
+                LinkUrl = linkUrl
+            };
+
+            try
+            {
+                // Fire and forget - we don't want to block startup for this notification
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _interactionService.PromptNotificationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't propagate notification errors
+                        _logger.LogDebug(ex, "Failed to show container runtime notification");
+                    }
+                }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't propagate notification errors
+                _logger.LogDebug(ex, "Failed to start container runtime notification task");
+            }
+        }
+    }
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
