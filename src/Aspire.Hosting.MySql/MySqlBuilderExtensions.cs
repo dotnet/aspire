@@ -189,7 +189,7 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
-    /// Configures the password that the MySQL resource is used.
+    /// Configures the password that the MySQL resource uses.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="password">The parameter used to provide the password for the MySQL resource.</param>
