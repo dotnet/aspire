@@ -79,8 +79,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
         if (!TryApplyExistingResourceNameAndScope(
             this,
             infra,
-            store,
-            static (s, v) => s.Name = v))
+            store))
         {
             store.Name = NameOutputReference.AsProvisioningParameter(infra);
         }

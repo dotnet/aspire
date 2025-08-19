@@ -77,8 +77,7 @@ public static class AzureProvisioningResourceExtensions
             if (!AzureProvisioningResource.TryApplyExistingResourceNameAndScope(
                 secretReference.Resource,
                 infrastructure,
-                kv,
-                static (s, v) => s.Name = v))
+                kv))
             {
                 kv.Name = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
             }
