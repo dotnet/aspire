@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class MessageStrings {
@@ -102,6 +102,33 @@ namespace Aspire.Hosting.Resources {
         internal static string DcpVersionCheckTooLowMessage {
             get {
                 return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Launch settings file does not contain &apos;{0}&apos; profile..
+        /// </summary>
+        internal static string LaunchSettingsFileDoesNotContainProfileExceptionMessage {
+            get {
+                return ResourceManager.GetString("LaunchSettingsFileDoesNotContainProfileExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Project does not contain project metadata..
+        /// </summary>
+        internal static string ProjectDoesNotContainMetadataExceptionMessage {
+            get {
+                return ResourceManager.GetString("ProjectDoesNotContainMetadataExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Project file &apos;{0}&apos; was not found..
+        /// </summary>
+        internal static string ProjectFileNotFoundExceptionMessage {
+            get {
+                return ResourceManager.GetString("ProjectFileNotFoundExceptionMessage", resourceCulture);
             }
         }
     }
