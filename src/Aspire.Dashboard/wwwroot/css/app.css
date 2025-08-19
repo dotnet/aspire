@@ -594,6 +594,7 @@ fluent-switch.table-switch::part(label) {
 
     --line-number-color: #848484;
     --timestamp-color: var(--line-number-color);
+    --resource-text-color: #000;
     --console-background-color: var(--console-theme-black);
     --console-background-color-hover: #1D1D1D;
     --console-font-color: var(--console-theme-white);

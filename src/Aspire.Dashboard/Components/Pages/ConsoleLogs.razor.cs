@@ -35,10 +35,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         public required ResourceViewModel Resource { get; init; }
         public Task? SubscriptionTask { get; set; }
+        private long _cancelTimestamp;
 
         public CancellationToken CancellationToken => _cts.Token;
         public int SubscriptionId => _subscriptionId;
-        public void Cancel() => _cts.Cancel();
+        public Task CancelAsync()
+        {
+            _cancelTimestamp = Stopwatch.GetTimestamp();
+            return _cts.CancelAsync();
+        }
+        public TimeSpan GetCancelElapsedTime() => Stopwatch.GetElapsedTime(_cancelTimestamp);
     }
 
     [Inject]
@@ -493,24 +499,28 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         async Task CancelAllSubscriptionsAsync()
         {
+            var startTimestamp = Stopwatch.GetTimestamp();
+
             var subscriptionsToCancel = _consoleLogsSubscriptions.Values.ToList();
             _consoleLogsSubscriptions.Clear();
 
-            foreach (var subscription in subscriptionsToCancel)
+            var cancelTasks = new Task[subscriptionsToCancel.Count];
+            for (var i = 0; i < subscriptionsToCancel.Count; i++)
             {
-                subscription.Cancel();
+                var subscription = subscriptionsToCancel[i];
+                cancelTasks[i] = Task.Run(async () =>
+                {
+                    _ = subscription.CancelAsync();
+                    if (subscription.SubscriptionTask is { } task)
+                    {
+                        await TaskHelpers.WaitIgnoreCancelAsync(task);
+                    }
+                });
             }
 
-            // Wait for all subscriptions to finish
-            var tasks = subscriptionsToCancel
-                .Where(s => s.SubscriptionTask is not null)
-                .Select(s => TaskHelpers.WaitIgnoreCancelAsync(s.SubscriptionTask))
-                .ToArray();
+            await Task.WhenAll(cancelTasks);
 
-            if (tasks.Length > 0)
-            {
-                await Task.WhenAll(tasks);
-            }
+            Logger.LogDebug("Finished canceling {SubscriptionCount} subscriptions. Duration: {Duration}", subscriptionsToCancel.Count, Stopwatch.GetElapsedTime(startTimestamp));
         }
     }
 
@@ -721,8 +731,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 var resourcePrefix = ResourceViewModel.GetResourceName(subscription.Resource, _resourceByName, _showHiddenResources);
 
                 var logParser = new LogParser(ConsoleColor.Black);
-                await foreach (var batch in logSubscription.ConfigureAwait(true))
+                await foreach (var batch in logSubscription.ConfigureAwait(false))
                 {
+                    subscription.CancellationToken.ThrowIfCancellationRequested();
+
                     if (batch.Count is 0)
                     {
                         continue;
@@ -732,6 +744,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     {
                         foreach (var (lineNumber, content, isErrorOutput) in batch)
                         {
+                            subscription.CancellationToken.ThrowIfCancellationRequested();
+
                             // Set the base line number using the reported line number of the first log line.
                             _logEntries.BaseLineNumber ??= lineNumber;
 
@@ -773,8 +787,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             }
             finally
             {
-                Logger.LogDebug("Subscription {SubscriptionId} finished watching logs for resource {ResourceName}.", subscription.SubscriptionId, subscription.Resource.Name);
-
                 // Remove the subscription from tracking
                 _consoleLogsSubscriptions.TryRemove(subscription.Resource.Name, out _);
 
@@ -785,6 +797,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs));
                     await InvokeAsync(StateHasChanged);
                 }
+
+                Logger.LogDebug("Subscription {SubscriptionId} finished watching logs for resource {ResourceName}. Cancel duration: {Duration}", subscription.SubscriptionId, subscription.Resource.Name, subscription.GetCancelElapsedTime());
             }
         });
 
@@ -839,8 +853,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             // Cancel subscription for the deleted resource
             if (_consoleLogsSubscriptions.TryRemove(resource.Name, out var subscription))
             {
-                subscription.Cancel();
-                _ = TaskHelpers.WaitIgnoreCancelAsync(subscription.SubscriptionTask); // Fire and forget
+                // Fire and forget
+                _ = Task.Run(async () =>
+                {
+                    Logger.LogDebug("Canceling subscription for deleted resource {ResourceName}.", resource.Name);
+                    await subscription.CancelAsync();
+                    await TaskHelpers.WaitIgnoreCancelAsync(subscription.SubscriptionTask);
+                });
             }
 
             if (string.Equals(PageViewModel.SelectedResource.Id?.InstanceId, resource.Name, StringComparisons.ResourceName))
@@ -929,9 +948,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             {
                 if (isPaused)
                 {
-                    Logger.LogDebug("Inserting new pause log entry starting at {StartTimestamp}.", timestamp);
                     foreach (var subscription in _consoleLogsSubscriptions.Values)
                     {
+                        Logger.LogDebug("Inserting new pause log entry for {Resource} starting at {StartTimestamp}.", subscription.Resource.Name, timestamp);
                         _logEntries.InsertSorted(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp));
                     }
                 }
@@ -945,7 +964,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                         if (lastResourceEntry?.Pause is { } pause)
                         {
-                            Logger.LogDebug("Updating pause log entry starting at {StartTimestamp} with end of {EndTimestamp}.", pause.StartTime, timestamp);
+                            Logger.LogDebug("Updating pause log entry for {Resource} starting at {StartTimestamp} with end of {EndTimestamp}.", subscription.Resource.Name, pause.StartTime, timestamp);
                             pause.EndTime = timestamp;
                         }
                     }
