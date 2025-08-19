@@ -48,7 +48,15 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
         
         // Create and add new resource if it doesn't exist
         var store = AppConfigurationStore.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

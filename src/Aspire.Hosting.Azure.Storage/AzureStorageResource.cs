@@ -117,7 +117,15 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         
         // Create and add new resource if it doesn't exist
         var account = StorageAccount.FromExisting(bicepIdentifier);
-        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            account))
+        {
+            account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(account);
         return account;
     }
