@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-var mc = new ModelClient();
+using var mc = new ModelClient();
 var allModelsResponse = await mc.GetAllModelsAsync().ConfigureAwait(false);
 
 // Generate C# extension methods for the models
@@ -31,7 +31,7 @@ var options = new JsonSerializerOptions
 Console.WriteLine("\nModel data:");
 Console.WriteLine(JsonSerializer.Serialize(allModelsResponse, options));
 
-public class ModelClient
+public class ModelClient : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly HttpClientHandler _handler;
