@@ -73,6 +73,25 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="AIFoundryModelDescriptor"/>.
+    /// </summary>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="model">The model descriptor.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModelDescriptor model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Version);
+        ArgumentException.ThrowIfNullOrEmpty(model.Format);
+
+        return builder.AddDeployment(name, model.Name, model.Version, model.Format);
+    }
+
+    /// <summary>
     /// Allows setting the properties of an Azure AI Foundry Deployment resource.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>
