@@ -27,9 +27,6 @@ public sealed partial class LogViewer
     [Inject]
     public required ILogger<LogViewer> Logger { get; init; }
 
-    [Inject]
-    public required PauseManager PauseManager { get; init; }
-
     [Parameter]
     public LogEntries? LogEntries { get; set; } = null!;
 
@@ -37,13 +34,13 @@ public sealed partial class LogViewer
     public bool ShowTimestamp { get; set; }
 
     [Parameter]
+    public bool ShowResourcePrefix { get; set; }
+
+    [Parameter]
     public bool IsTimestampUtc { get; set; }
 
     [Parameter]
     public bool NoWrapLogs { get; set; }
-
-    [Parameter]
-    public string? ResourceName { get; set; }
 
     protected override void OnParametersSet()
     {
