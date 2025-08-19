@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
-using Azure.Provisioning.OperationalInsights;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -72,7 +71,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
     }
 
     [Fact]
-    public void WithAzureLogAnalyticsWorkspace_RespectsExistingWorkspaceInDifferentResourceGroup()
+    public async Task WithAzureLogAnalyticsWorkspace_RespectsExistingWorkspaceInDifferentResourceGroup()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -102,22 +101,10 @@ public class AzureContainerAppEnvironmentExtensionsTests
 #pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Assert.Same(logAnalyticsWorkspace.Resource, workspaceRef.Workspace);
 
-        // Act - Generate the bicep infrastructure for the Container App Environment
-        var infrastructure = new AzureResourceInfrastructure(containerAppEnvironment.Resource, containerAppEnvironment.Resource.Name);
-        containerAppEnvironment.Resource.ConfigureInfrastructure(infrastructure);
+        // Act & Assert - Generate bicep and verify using snapshot testing
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(containerAppEnvironment.Resource);
 
-        // Assert - Verify that the Log Analytics Workspace is correctly referenced
-        // The LAW should be added as an existing resource respecting the ExistingAzureResourceAnnotation
-        var lawResource = infrastructure.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single();
-        
-        // Verify that the LAW resource has the correct name property (from the annotation)
-        Assert.True(lawResource.ProvisionableProperties.ContainsKey("name"));
-        var nameProperty = lawResource.ProvisionableProperties["name"];
-        Assert.NotNull(nameProperty);
-        
-        // Verify that scope is set because the LAW is in a different resource group
-        Assert.True(lawResource.ProvisionableProperties.ContainsKey("scope"));
-        var scopeProperty = lawResource.ProvisionableProperties["scope"];
-        Assert.NotNull(scopeProperty);
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
     }
 }
