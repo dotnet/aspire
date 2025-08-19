@@ -18,8 +18,8 @@ var extensionGenerator = new ExtensionMethodGenerator();
 var generatedCode = extensionGenerator.GenerateExtensionMethods("Aspire.Hosting", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
-File.WriteAllText(Path.Combine("..", "GeneratedAzureAIFoundryModelExtensions.cs"), generatedCode);
-Console.WriteLine("Generated extension methods written to GeneratedAzureAIFoundryModelExtensions.cs");
+File.WriteAllText(Path.Combine("..", "AIFoundryModel.cs"), generatedCode);
+Console.WriteLine("Generated extension methods written to AIFoundryModel.cs");
 
 // Also serialize the strongly typed response for output with pretty printing
 var options = new JsonSerializerOptions
@@ -527,59 +527,56 @@ public class ExtensionMethodGenerator
     public string GenerateExtensionMethods(string csNamespace, List<ModelEntity> models)
     {
         var sb = new StringBuilder();
-
         // Add file header
         sb.AppendLine("// Licensed to the .NET Foundation under one or more agreements.");
         sb.AppendLine("// The .NET Foundation licenses this file to you under the MIT license.");
-        sb.AppendLine("using Aspire.Hosting.ApplicationModel;");
         sb.AppendLine("using Aspire.Hosting.Azure;");
         sb.AppendLine();
         sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// Generated extension methods for Azure AI Foundry resources to easily add model deployments.");
+        sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static class GeneratedAzureAIFoundryModelExtensions");
+        sb.AppendLine("public static partial class AIFoundryModel");
         sb.AppendLine("{");
 
-        // Group models by publisher
+        // Group models by publisher (only include models that are visible and have names & publishers)
         var modelsByPublisher = models
             .Where(m => m.Annotations?.SystemCatalogData?.Publisher != null &&
-                       m.Annotations?.Name != null &&
-                       DateTime.Parse(m.Annotations?.InvisibleUntil!, CultureInfo.InvariantCulture) <= DateTime.UtcNow)
+                        m.Annotations?.Name != null &&
+                        IsVisible(m.Annotations?.InvisibleUntil))
             .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
-            .OrderBy(g => g.Key);
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
         foreach (var publisherGroup in modelsByPublisher)
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    // {EscapeXml(publisherGroup.Key)} Models");
+            var publisherClassName = GeneratePublisherClassName(publisherGroup.Key);
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {publisherClassName}");
+            sb.AppendLine("    {");
 
-            foreach (var model in publisherGroup.OrderBy(m => m.Annotations?.Name))
+            foreach (var model in publisherGroup.OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var modelName = model.Annotations?.Name ?? "Unknown";
-                var description = model.Annotations?.SystemCatalogData?.Summary ??
-                                model.Annotations?.Description ??
-                                $"Deployment for {modelName} model";
+                var modelName = model.Annotations!.Name!;
+                var descriptorName = GenerateMethodName(modelName); // Reuse method name logic for descriptor property name
                 var version = GetModelVersion(model);
-                var publisher = model.Annotations?.SystemCatalogData?.Publisher ?? "Unknown";
+                var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
+                var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
 
-                var methodName = GenerateMethodName(modelName);
-
-                sb.AppendLine("    /// <summary>");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Adds a deployment of {EscapeXml(publisher)} {EscapeXml(modelName)} model ({EscapeXml(CleanDescription(description))}).");
-                sb.AppendLine("    /// </summary>");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public static IResourceBuilder<AzureAIFoundryDeploymentResource> Add{methodName}(");
-                sb.AppendLine("        this IResourceBuilder<AzureAIFoundryResource> foundry,");
-                sb.AppendLine("        string deploymentName)");
-                sb.AppendLine("    {");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        return foundry.AddDeployment(deploymentName, \"{EscapeXml(modelName)}\", \"{EscapeXml(version)}\", \"{EscapeXml(publisher)}\");");
-                sb.AppendLine("    }");
+                sb.AppendLine("        /// <summary>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
+                sb.AppendLine("        /// </summary>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModelDescriptor {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
                 sb.AppendLine();
             }
+
+            sb.AppendLine("    }");
+            sb.AppendLine();
         }
 
         sb.AppendLine("}");
-
         return sb.ToString();
     }
 
@@ -663,5 +660,60 @@ public class ExtensionMethodGenerator
             .Replace("\r", " ")
             .Replace("  ", " ")
             .Trim();
+    }
+
+    private static string EscapeStringForCSharp(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"");
+    }
+
+    private static string GeneratePublisherClassName(string publisher)
+    {
+        // Similar logic to GenerateMethodName but keep acronyms in PascalCase style
+        var cleaned = publisher
+            .Replace("-", " ")
+            .Replace(".", " ")
+            .Replace("_", " ");
+
+        var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var sb = new StringBuilder();
+        foreach (var part in parts)
+        {
+            if (part.Length == 0)
+            {
+                continue;
+            }
+            if (part.All(char.IsUpper) && part.Length > 1)
+            {
+                // e.g. AI -> Ai
+                sb.Append(char.ToUpperInvariant(part[0]));
+                // Use span overloads where possible
+                sb.Append(part.AsSpan(1).ToString().ToLowerInvariant()); // Lowercasing requires string
+            }
+            else
+            {
+                sb.Append(char.ToUpperInvariant(part[0]));
+                if (part.Length > 1)
+                {
+                    sb.Append(part.AsSpan(1));
+                }
+            }
+        }
+        return sb.ToString();
+    }
+
+    private static bool IsVisible(string? invisibleUntil)
+    {
+        if (string.IsNullOrWhiteSpace(invisibleUntil))
+        {
+            return true; // No restriction
+        }
+        if (DateTime.TryParse(invisibleUntil, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dt))
+        {
+            return dt <= DateTime.UtcNow;
+        }
+        return true; // If parse fails, be permissive
     }
 }
