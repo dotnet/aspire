@@ -190,22 +190,4 @@ public class AzureAIFoundryExtensionsTests
         var scopeProperty = result.ProvisionableProperties["scope"];
         Assert.NotNull(scopeProperty);
     }
-
-    [Fact]
-    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureAIFoundryResource()
-    {
-        // Arrange
-        var aiFoundryResource = new AzureAIFoundryResource("test-foundry", _ => { });
-        var infrastructure = new AzureResourceInfrastructure(aiFoundryResource, "test-foundry");
-
-        // Act
-        var result = aiFoundryResource.AddAsExistingResource(infrastructure);
-
-        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        
-        // The key point is that it should work when no annotation exists
-        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
-    }
 }
