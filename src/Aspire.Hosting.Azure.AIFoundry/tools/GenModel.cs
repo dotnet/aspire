@@ -14,12 +14,12 @@ var mc = new ModelClient();
 var allModelsResponse = await mc.GetAllModelsAsync().ConfigureAwait(false);
 
 // Generate C# extension methods for the models
-var extensionGenerator = new ExtensionMethodGenerator();
-var generatedCode = extensionGenerator.GenerateExtensionMethods("Aspire.Hosting", allModelsResponse.Entities ?? []);
+var extensionGenerator = new ModelClassGenerator();
+var generatedCode = extensionGenerator.GenerateCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
-File.WriteAllText(Path.Combine("..", "AIFoundryModel.cs"), generatedCode);
-Console.WriteLine("Generated extension methods written to AIFoundryModel.cs");
+File.WriteAllText(Path.Combine("..", "AIFoundryModel.Generated.cs"), generatedCode);
+Console.WriteLine("Generated extension methods written to AIFoundryModel.Generated.cs");
 
 // Also serialize the strongly typed response for output with pretty printing
 var options = new JsonSerializerOptions
@@ -522,22 +522,20 @@ public class ConsolidatedResponse
     public List<ModelEntity>? Entities { get; set; }
 }
 
-public class ExtensionMethodGenerator
+public class ModelClassGenerator
 {
-    public string GenerateExtensionMethods(string csNamespace, List<ModelEntity> models)
+    public string GenerateCode(string csNamespace, List<ModelEntity> models)
     {
         var sb = new StringBuilder();
         // Add file header
         sb.AppendLine("// Licensed to the .NET Foundation under one or more agreements.");
         sb.AppendLine("// The .NET Foundation licenses this file to you under the MIT license.");
-        sb.AppendLine("using Aspire.Hosting.Azure;");
-        sb.AppendLine();
         sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static partial class AIFoundryModel");
+        sb.AppendLine("public partial class AIFoundryModel");
         sb.AppendLine("{");
 
         // Group models by publisher (only include models that are visible and have names & publishers)
@@ -568,7 +566,7 @@ public class ExtensionMethodGenerator
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
                 sb.AppendLine("        /// </summary>");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModelDescriptor {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
                 sb.AppendLine();
             }
 
