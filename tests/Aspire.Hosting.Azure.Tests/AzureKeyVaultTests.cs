@@ -136,10 +136,24 @@ public class AzureKeyVaultTests
             infra.Add(new ProvisioningOutput("secretUri2", typeof(string)) { Value = secret2.Properties.SecretUri });
         });
 
+        var module2 = builder.AddAzureInfrastructure("mymodule2", infra =>
+        {
+            var secret = secretReference.AsKeyVaultSecret(infra);
+            var secret2 = secretReference2.AsKeyVaultSecret(infra);
+
+            infra.Add(new ProvisioningOutput("secretUri1", typeof(string)) { Value = secret.Properties.SecretUri });
+            infra.Add(new ProvisioningOutput("secretUri2", typeof(string)) { Value = secret2.Properties.SecretUri });
+        });
+
+        module2.Resource.Scope = new(existingRg.Resource);
+
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+        var (manifest2, bicep2) = await AzureManifestUtils.GetManifestWithBicep(module2.Resource, skipPreparer: true);
 
         await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep2, "bicep");
     }
 
     [Fact]

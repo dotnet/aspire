@@ -182,7 +182,26 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
         setName(resource, existingResourceName);
 
-        if (existingAnnotation.ResourceGroup is not null)
+        static bool ResourceGroupEquals(object existingResourceGroup, object? infraResourceGroup)
+        {
+            // We're in the resource group being created
+            if (infraResourceGroup is null)
+            {
+                return false;
+            }
+
+            // Compare the resource groups only if they are the same type (string or ParameterResource)
+            if (infraResourceGroup.GetType() == existingResourceGroup.GetType())
+            {
+                return infraResourceGroup.Equals(existingResourceGroup);
+            }
+
+            return false;
+        }
+
+        // Apply resource group scope if the target infrastructure's resource group is different from the existing annotation's resource group
+        if (existingAnnotation.ResourceGroup is not null &&
+           !ResourceGroupEquals(existingAnnotation.ResourceGroup, infra.AspireResource.Scope?.ResourceGroup))
         {
             BicepValue<string> scope = existingAnnotation.ResourceGroup switch
             {
