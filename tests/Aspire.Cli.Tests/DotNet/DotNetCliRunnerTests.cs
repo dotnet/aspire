@@ -442,7 +442,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task RunAsyncPropogationFilterPassesThroughEnvironmentVariables()
+    public async Task RunAsyncPropagationFilterPassesThroughEnvironmentVariables()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
