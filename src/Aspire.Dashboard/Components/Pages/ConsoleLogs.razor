@@ -8,7 +8,7 @@
 
 <PageTitle>
     <ApplicationName
-        AdditionalText="@PageViewModel.SelectedOption.Id?.ReplicaSetName"
+        AdditionalText="@PageViewModel.SelectedResource.Id?.ReplicaSetName"
         ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
@@ -24,16 +24,16 @@
         <ToolbarSection>
             <ResourceSelect Resources="_resources"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
-                            @bind-SelectedResource="PageViewModel.SelectedOption"
+                            @bind-SelectedResource="PageViewModel.SelectedResource"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync"
                             LabelClass="toolbar-left" />
 
             <SignalsActionsDisplay HandleClearSignal="@ClearConsoleLogs"
                                   IsPaused="@PauseManager.ConsoleLogsPaused"
                                   OnPausedChanged="@OnPausedChanged"
-                                  SelectedResource="@PageViewModel.SelectedOption" />
+                                  SelectedResource="@PageViewModel.SelectedResource" />
 
-            @if (PageViewModel.SelectedResource is { } selectedResource)
+            @if (PageViewModel.SelectedResource is { } selectedResource && !IsAllSelected())
             {
                 if (ViewportInformation.IsDesktop && (_highlightedCommands.Count > 0 || _resourceMenuItems.Count > 0))
                 {
@@ -93,9 +93,9 @@
 
         <MobilePageTitleToolbarSection>
             <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">
-                @if (PageViewModel.SelectedOption?.Id is not null)
+                @if (PageViewModel.SelectedResource?.Id is not null)
                 {
-                    @($"{PageViewModel.SelectedOption.Name}: {PageViewModel.Status}")
+                    @($"{PageViewModel.SelectedResource.Name}: {PageViewModel.Status}")
                 }
                 else
                 {
@@ -110,7 +110,7 @@
                 ShowTimestamp="@_showTimestamp"
                 IsTimestampUtc="@_isTimestampUtc"
                 NoWrapLogs="@_noWrapLogs"
-                ResourceName="@PageViewModel.SelectedResource?.Name"/>
+                ShowResourcePrefix="@_isSubscribedToAll"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

@@ -1,5 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Globalization
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using Aspire.Hosting.ConsoleLogs
@@ -26,7 +27,13 @@
                         <div class="log-line-row console-line-row">
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
-                                <span class="log-content log-pause">@pause.GetDisplayText(Loc, TimeProvider)</span>
+                                <span class="log-content log-pause">
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
+                                    }
+                                    @pause.GetDisplayText(Loc, TimeProvider)
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -40,6 +47,10 @@
                                 <span class="log-content">
                                     @{
                                         var hasPrefix = false;
+                                    }
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (ShowTimestamp && context.Timestamp is { } timestamp)
                                     {

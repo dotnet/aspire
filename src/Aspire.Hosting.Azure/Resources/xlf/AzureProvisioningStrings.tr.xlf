@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../AzureProvisioningStrings.resx">
+    <body>
+      <trans-unit id="InputsMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
+        <target state="new">The model contains Azure resources that require an Azure Subscription.
+
+To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="InputsTitle">
+        <source>Azure provisioning</source>
+        <target state="new">Azure provisioning</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationLabel">
+        <source>Location</source>
+        <target state="new">Location</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationPlaceholder">
+        <source>Select location</source>
+        <target state="new">Select location</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationMessage">
+        <source>The model contains Azure resources that require an Azure Subscription.</source>
+        <target state="new">The model contains Azure resources that require an Azure Subscription.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationPrimaryButtonText">
+        <source>Enter values</source>
+        <target state="new">Enter values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotificationTitle">
+        <source>Azure provisioning</source>
+        <target state="new">Azure provisioning</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupLabel">
+        <source>Resource group</source>
+        <target state="new">Resource group</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdLabel">
+        <source>Subscription ID</source>
+        <target state="new">Subscription ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionIdPlaceholder">
+        <source>Select subscription ID</source>
+        <target state="new">Select subscription ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationResourceGroupNameInvalid">
+        <source>Resource group name must be a valid Azure resource group name.</source>
+        <target state="new">Resource group name must be a valid Azure resource group name.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationSubscriptionIdInvalid">
+        <source>Subscription ID must be a valid GUID.</source>
+        <target state="new">Subscription ID must be a valid GUID.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

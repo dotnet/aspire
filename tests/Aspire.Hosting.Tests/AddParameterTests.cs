@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -440,6 +441,7 @@ public class AddParameterTests
             .WithDescription("Custom input parameter")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "CustomInput",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = p.Description,
@@ -466,7 +468,7 @@ public class AddParameterTests
         Assert.Equal(InputType.Text, input.InputType);
         Assert.Equal("test", input.Label);
         Assert.Equal("Test description", input.Description);
-        Assert.Equal("Enter value for test", input.Placeholder);
+        Assert.Equal(string.Format(InteractionStrings.ParametersInputsParameterPlaceholder, "test"), input.Placeholder);
         Assert.False(input.EnableDescriptionMarkdown);
     }
 
@@ -485,7 +487,7 @@ public class AddParameterTests
         Assert.Equal(InputType.SecretText, input.InputType);
         Assert.Equal("secret", input.Label);
         Assert.Equal("Secret description", input.Description);
-        Assert.Equal("Enter value for secret", input.Placeholder);
+        Assert.Equal(string.Format(InteractionStrings.ParametersInputsParameterPlaceholder, "secret"), input.Placeholder);
         Assert.False(input.EnableDescriptionMarkdown);
     }
 
@@ -498,6 +500,7 @@ public class AddParameterTests
             .WithDescription("Custom description")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParameter",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom: " + p.Description,
@@ -542,6 +545,7 @@ public class AddParameterTests
         var parameter = appBuilder.AddParameter("test")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParam",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom description",
