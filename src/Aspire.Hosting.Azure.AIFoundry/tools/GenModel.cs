@@ -688,7 +688,8 @@ public class ModelClassGenerator
                 // e.g. AI -> Ai
                 sb.Append(char.ToUpperInvariant(part[0]));
                 // Use span overloads where possible
-                sb.Append(part.AsSpan(1).ToString().ToLowerInvariant()); // Lowercasing requires string
+                // Use substring for lowercasing efficiently
+                sb.Append(part.Substring(1).ToLowerInvariant());
             }
             else
             {
