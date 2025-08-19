@@ -12,10 +12,12 @@ public sealed class AIFoundryModelDescriptor
     /// The name of the model.
     /// </summary>
     public required string Name { get; init; }
-    /// <summary>``
+
+    /// <summary>
     /// The version of the model.
     /// </summary>
     public required string Version { get; init; }
+
     /// <summary>
     /// The format or provider of the model (e.g., OpenAI, Microsoft, xAi, Deepseek).
     /// </summary>
