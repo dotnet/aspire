@@ -195,11 +195,10 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
         // Check for duplicate names
         foreach (var input in inputs)
         {
-            if (usedNames.Contains(input.Name))
+            if (!usedNames.Add(input.Name))
             {
                 throw new InvalidOperationException($"Duplicate input name '{input.Name}' found. Input names must be unique.");
             }
-            usedNames.Add(input.Name);
             inputsByName[input.Name] = input;
         }
 
