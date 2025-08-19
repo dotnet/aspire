@@ -74,8 +74,7 @@ public class CreateResourceSelectModelsTests
         var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(resourcesByName, allResourceViewModel, unknownStateText, false, out var optionToSelect);
 
         // Assert
-        Assert.NotNull(optionToSelect);
-        Assert.Equal(allResourceViewModel, optionToSelect); // Should be "All" for multiple resources
+        Assert.Null(optionToSelect);
 
         Assert.Collection(viewModels,
             entry =>
@@ -154,22 +153,21 @@ public class CreateResourceSelectModelsTests
 
         // Act
         var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(
-            resourcesByName, 
-            allResourceViewModel, 
-            unknownStateText, 
-            false, 
+            resourcesByName,
+            allResourceViewModel,
+            unknownStateText,
+            false,
             out var optionToSelect);
 
         // Assert
-        Assert.NotNull(optionToSelect); // Should auto-select "All" for multiple resources
-        Assert.Equal(allResourceViewModel, optionToSelect);
-        
+        Assert.Null(optionToSelect); // Shouldn't auto-select for multiple resources
+
         // Expect: "All" then individual resources (no "None")
         Assert.Equal(4, viewModels.Count);
-        
+
         // First item should be "All"
         Assert.Equal(allResourceViewModel, viewModels[0]);
-        
+
         // Remaining items should be the individual resources
         Assert.Equal("App1", viewModels[1].Name);
         Assert.Equal("App2", viewModels[2].Name);
@@ -188,16 +186,15 @@ public class CreateResourceSelectModelsTests
 
         // Act
         var viewModels = Components.Pages.ConsoleLogs.GetConsoleLogResourceSelectViewModels(
-            resourcesByName, 
-            allResourceViewModel, 
-            unknownStateText, 
-            false, 
+            resourcesByName,
+            allResourceViewModel,
+            unknownStateText,
+            false,
             out var optionToSelect);
 
         // Assert
-        Assert.NotNull(optionToSelect); // Should auto-select "All" even with no resources
-        Assert.Equal(allResourceViewModel, optionToSelect);
-        
+        Assert.Null(optionToSelect); // Shouldn't auto-select for no resources
+
         // Expect only "All" option (no "None")
         Assert.Single(viewModels);
         Assert.Equal(allResourceViewModel, viewModels[0]);
