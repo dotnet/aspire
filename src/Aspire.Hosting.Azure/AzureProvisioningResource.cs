@@ -151,18 +151,18 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// </summary>
     /// <param name="aspireResource">The Aspire resource that may have an <see cref="ExistingAzureResourceAnnotation"/>.</param>
     /// <param name="infra">The infrastructure used for converting parameters into provisioning expressions.</param>
-    /// <param name="resource">The <see cref="ProvisionableResource"/> resource to configure.</param>
+    /// <param name="provisionableResource">The <see cref="ProvisionableResource"/> resource to configure.</param>
     /// <returns><see langword="true"/> if an <see cref="ExistingAzureResourceAnnotation"/> was present and applied; otherwise <see langword="false"/>.</returns>
     /// <remarks>
     /// When the annotation includes a resource group, a synthetic <c>scope</c> property is added to the resource's
     /// provisionable properties to correctly scope the existing resource in the generated Bicep.
     /// The caller is responsible for setting a generated name when the method returns <see langword="false"/>.
     /// </remarks>
-    public static bool TryApplyExistingResourceNameAndScope(IAzureResource aspireResource, AzureResourceInfrastructure infra, ProvisionableResource resource)
+    public static bool TryApplyExistingResourceNameAndScope(IAzureResource aspireResource, AzureResourceInfrastructure infra, ProvisionableResource provisionableResource)
     {
         ArgumentNullException.ThrowIfNull(aspireResource);
         ArgumentNullException.ThrowIfNull(infra);
-        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(provisionableResource);
 
         if (!aspireResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation))
         {
@@ -176,8 +176,8 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             _ => throw new NotSupportedException($"Existing resource name type '{existingAnnotation.Name.GetType()}' is not supported.")
         };
 
-        ((IBicepValue)existingResourceName).Self = new BicepValueReference(resource, "Name", ["name"]);
-        resource.ProvisionableProperties["name"] = existingResourceName;
+        ((IBicepValue)existingResourceName).Self = new BicepValueReference(provisionableResource, "Name", ["name"]);
+        provisionableResource.ProvisionableProperties["name"] = existingResourceName;
 
         static bool ResourceGroupEquals(object existingResourceGroup, object? infraResourceGroup)
         {
@@ -211,8 +211,8 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
             var expression = scope.Compile();
             var value = new BicepValue<string>(expression);
-            ((IBicepValue)value).Self = new BicepValueReference(resource, "Scope", ["scope"]);
-            resource.ProvisionableProperties["scope"] = value;
+            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
+            provisionableResource.ProvisionableProperties["scope"] = value;
         }
 
         return true;
