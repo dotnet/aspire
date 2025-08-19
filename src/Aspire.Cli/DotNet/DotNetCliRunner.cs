@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -44,7 +43,9 @@ internal sealed class DotNetCliRunnerInvocationOptions
 
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
-    public Func<string, string, bool>? EnvironmentPropagationFilter { get; set; }
+
+    public Func<string, string?, bool> EnvironmentPropagationFilter { get; set; } = DefaultEnvironmentPropagationFilter;
+    public static Func<string, string?, bool> DefaultEnvironmentPropagationFilter { get; } = (_, _) => false;
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
@@ -215,6 +216,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+
+        // Unless the caller has specifically modified the options to filter
+        // differently, the `dotnet run` commands are invoked with all environment
+        // variables passed through from the outside.
+        if (options.EnvironmentPropagationFilter == DotNetCliRunnerInvocationOptions.DefaultEnvironmentPropagationFilter)
+        {
+            options.EnvironmentPropagationFilter = (_, _) => true;
+        }
 
         string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
 
@@ -440,12 +449,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         };
 
         // First, propagate current process environment variables through the filter
-        foreach (DictionaryEntry envVar in Environment.GetEnvironmentVariables())
+        foreach (var envVar in executionContext.EnvironmentVariables)
         {
-            var name = envVar.Key.ToString()!;
-            var value = envVar.Value?.ToString() ?? string.Empty;
-            
-            if (options.EnvironmentPropagationFilter is null || options.EnvironmentPropagationFilter(name, value))
+            var name = envVar.Key;
+            var value = envVar.Value ?? string.Empty;
+
+            if (options.EnvironmentPropagationFilter(name, value))
             {
                 startInfo.EnvironmentVariables[name] = value;
             }

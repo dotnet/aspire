@@ -26,6 +26,7 @@ using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Packaging;
+using System.Collections;
 
 #if DEBUG
 using OpenTelemetry;
@@ -154,7 +155,15 @@ public class Program
         _ = serviceProvider;
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+
+        var environmentVariables = Environment.GetEnvironmentVariables()
+            .Cast<DictionaryEntry>()
+            .ToDictionary(
+                kvp => kvp.Key.ToString()!,
+                kvp => kvp.Value?.ToString(),
+                StringComparer.OrdinalIgnoreCase);
+
+        return new CliExecutionContext(workingDirectory, hivesDirectory, environmentVariables);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
