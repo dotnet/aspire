@@ -6,64 +6,64 @@
         <source>The model contains Azure resources that require an Azure Subscription.
 
 To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.
+        <target state="translated">모델에는 Azure 구독이 필요한 Azure 리소스가 포함되어 있습니다.
 
-To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+자세한 내용은 [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning)를 참조하세요.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="InputsTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Azure 프로비전</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
-        <target state="new">Location</target>
+        <target state="translated">위치</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
-        <target state="new">Select location</target>
+        <target state="translated">위치 선택</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
         <source>The model contains Azure resources that require an Azure Subscription.</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.</target>
+        <target state="translated">모델에는 Azure 구독이 필요한 Azure 리소스가 포함되어 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationPrimaryButtonText">
         <source>Enter values</source>
-        <target state="new">Enter values</target>
+        <target state="translated">값 입력</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Azure 프로비전</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
-        <target state="new">Resource group</target>
+        <target state="translated">리소스 그룹</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
-        <target state="new">Subscription ID</target>
+        <target state="translated">구독 ID</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
-        <target state="new">Select subscription ID</target>
+        <target state="translated">구독 ID 선택</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
-        <target state="new">Resource group name must be a valid Azure resource group name.</target>
+        <target state="translated">리소스 그룹 이름은 유효한 Azure 리소스 그룹 이름이어야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
-        <target state="new">Subscription ID must be a valid GUID.</target>
+        <target state="translated">구독 ID는 유효한 GUID여야 합니다.</target>
         <note />
       </trans-unit>
     </body>

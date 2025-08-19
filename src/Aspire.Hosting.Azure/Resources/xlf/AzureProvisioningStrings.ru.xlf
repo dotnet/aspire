@@ -6,64 +6,64 @@
         <source>The model contains Azure resources that require an Azure Subscription.
 
 To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.
+        <target state="translated">Модель содержит ресурсы Azure, для которых требуется подписка Azure.
 
-To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+Подробнее см. в [документации по подготовке Azure](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="InputsTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Подготовка Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
-        <target state="new">Location</target>
+        <target state="translated">Расположение</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
-        <target state="new">Select location</target>
+        <target state="translated">Выберите расположение</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
         <source>The model contains Azure resources that require an Azure Subscription.</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.</target>
+        <target state="translated">Модель содержит ресурсы Azure, для которых требуется подписка Azure.</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationPrimaryButtonText">
         <source>Enter values</source>
-        <target state="new">Enter values</target>
+        <target state="translated">Ввести значения</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Подготовка Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
-        <target state="new">Resource group</target>
+        <target state="translated">Группа ресурсов</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
-        <target state="new">Subscription ID</target>
+        <target state="translated">ИД подписки</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
-        <target state="new">Select subscription ID</target>
+        <target state="translated">Выберите ИД подписки</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
-        <target state="new">Resource group name must be a valid Azure resource group name.</target>
+        <target state="translated">Имя группы ресурсов должно быть допустимым именем группы ресурсов Azure.</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
-        <target state="new">Subscription ID must be a valid GUID.</target>
+        <target state="translated">Идентификатор подписки должен быть допустимым GUID.</target>
         <note />
       </trans-unit>
     </body>
