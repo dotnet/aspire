@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.OperationalInsights;
-using System.Linq;
 
 namespace Aspire.Hosting.Azure.Tests;
 
