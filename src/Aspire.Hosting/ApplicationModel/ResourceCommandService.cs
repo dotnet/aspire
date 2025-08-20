@@ -152,6 +152,11 @@ public class ResourceCommandService
                     return result;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                logger.LogDebug("Command '{CommandName}' was canceled.", commandName);
+                return CommandResults.Canceled();
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error executing command '{CommandName}'.", commandName);

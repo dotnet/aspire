@@ -294,6 +294,32 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         Assert.Null(result.ErrorMessage);
     }
 
+    [Fact]
+    public async Task ExecuteCommandAsync_OperationCanceledException_Canceled()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var custom = builder.AddResource(new CustomResource("myResource"));
+        custom.WithCommand(name: "mycommand",
+                displayName: "My command",
+                executeCommand: e =>
+                {
+                    throw new OperationCanceledException("Command was canceled");
+                });
+
+        var app = builder.Build();
+        await app.StartAsync();
+
+        // Act
+        var result = await app.ResourceCommands.ExecuteCommandAsync(custom.Resource, "mycommand");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.Canceled);
+        Assert.Null(result.ErrorMessage);
+    }
+
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport
     {
 
