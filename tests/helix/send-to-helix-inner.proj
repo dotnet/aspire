@@ -58,7 +58,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <HelixCorrelationPayload Include="$(MSBuildThisFileDirectory)..\..\dotnet.config" AsArchive="false" />
+    <HelixCorrelationPayload Include="$(RepoRoot)dotnet.config" AsArchive="false" />
 
     <_TestBlameArguments Include="--hangdump" />
     <_TestBlameArguments Include="--hangdump-type Full" />
