@@ -12,11 +12,12 @@ export interface SpawnProcessOptions {
     env?: EnvVar[];
     workingDirectory?: string;
     dcpServer?: DcpServer;
+    excludeExtensionEnvironment?: boolean;
 }
 
 export function spawnCliProcess(command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
     const envVars = mergeEnvs(process.env, options?.env);
-    const additionalEnv = createEnvironment(options?.dcpServer);
+    const additionalEnv = options?.excludeExtensionEnvironment ? { } : createEnvironment(options?.dcpServer);
     const workingDirectory = options?.workingDirectory ?? process.cwd();
 
     extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);
@@ -24,7 +25,7 @@ export function spawnCliProcess(command: string, args?: string[], options?: Spaw
     const child = spawn(command, args ?? [], {
         cwd: workingDirectory,
         env: { ...envVars, ...additionalEnv },
-        shell: true // Ensures Windows compatibility,
+        shell: false
     });
 
     child.stdout.on("data", (data) => {

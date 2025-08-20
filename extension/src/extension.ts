@@ -55,7 +55,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	extensionContext.rpcServer.dispose();
-    extensionContext.debugConfigProvider?.dispose();
     if (extensionContext.hasAspireDebugSession()) {
         extensionContext.aspireDebugSession.dispose();
     }
