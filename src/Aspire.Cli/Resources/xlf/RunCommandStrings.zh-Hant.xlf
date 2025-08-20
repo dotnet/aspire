@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ExtensionSwitchingToAppHostConsole">
-        <source>Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console.</source>
-        <target state="new">Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console.</target>
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="new">To view AppHost logs in real-time, switch to the AppHost Debug Console.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">

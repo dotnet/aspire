@@ -159,7 +159,7 @@
     <value>Logs</value>
   </data>
   <data name="ExtensionSwitchingToAppHostConsole" xml:space="preserve">
-    <value>Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console.</value>
+    <value>To view AppHost logs in real-time, switch to the AppHost Debug Console.</value>
   </data>
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to app host...</value>
