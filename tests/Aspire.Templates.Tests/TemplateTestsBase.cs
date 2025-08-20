@@ -270,12 +270,7 @@ public partial class TemplateTestsBase
         {
             // Avoid running these cases on PR validation
 
-            if (!OperatingSystem.IsWindows())
-            {
-                // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
-                yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
-            }
-
+            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ项目1"; // sln should have UTF-8 byte order mark
             yield return "aspire_starter.1period then.34letters";
             yield return "aspire-starter & with.1";
 
