@@ -16,6 +16,8 @@ internal interface IExtensionInteractionService : IInteractionService
     void OpenNewProject(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
     Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug);
+    void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
+    void NotifyAppHostStartupCompleted();
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -189,11 +191,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplaySubtleMessage(message);
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
+    public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayDashboardUrlsAsync(dashboardUrls, _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayDashboardUrls(dashboardUrls);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
@@ -243,7 +244,8 @@ internal class ExtensionInteractionService : IExtensionInteractionService
 
     public void LogMessage(LogLevel logLevel, string message)
     {
-        Debug.Assert(_extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken)));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.LogMessageAsync(logLevel, message.RemoveSpectreFormatting(), _cancellationToken));
+        Debug.Assert(result);
     }
 
     public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
@@ -254,5 +256,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
+    }
+
+    public void NotifyAppHostStartupCompleted()
+    {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.NotifyAppHostStartupCompletedAsync(_cancellationToken));
+        Debug.Assert(result);
     }
 }

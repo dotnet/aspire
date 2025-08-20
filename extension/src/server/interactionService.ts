@@ -26,13 +26,14 @@ export interface IInteractionService {
     logMessage: (logLevel: CSLogLevel, message: string) => void;
     launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
+    notifyAppHostStartupCompleted: () => void;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
 
 type DashboardUrls = {
-    baseUrlWithLoginToken: string;
-    codespacesUrlWithLoginToken: string | null;
+    BaseUrlWithLoginToken: string;
+    CodespacesUrlWithLoginToken: string | null;
 };
 
 type ConsoleLine = {
@@ -201,7 +202,7 @@ export class InteractionService implements IInteractionService {
             { title: directLink }
         ];
 
-        if (dashboardUrls.codespacesUrlWithLoginToken) {
+        if (dashboardUrls.CodespacesUrlWithLoginToken) {
             actions.push({ title: codespacesLink });
         }
 
@@ -217,10 +218,10 @@ export class InteractionService implements IInteractionService {
         extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
         if (selected.title === directLink) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.baseUrlWithLoginToken));
+            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
         }
-        else if (selected.title === codespacesLink && dashboardUrls.codespacesUrlWithLoginToken) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.codespacesUrlWithLoginToken));
+        else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
+            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
         }
     }
 
@@ -270,6 +271,10 @@ export class InteractionService implements IInteractionService {
     stopDebugging() {
         this.clearStatusBar();
         extensionContext.aspireDebugSession.dispose();
+    }
+
+    notifyAppHostStartupCompleted() {
+        // TODO
     }
 
     clearStatusBar() {

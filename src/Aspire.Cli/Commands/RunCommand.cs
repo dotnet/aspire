@@ -265,6 +265,13 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
+            if (ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _))
+            {
+                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
+                extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
+                extensionInteractionService.NotifyAppHostStartupCompleted();
+            }
+
             await pendingLogCapture;
             return await pendingRun;
         }

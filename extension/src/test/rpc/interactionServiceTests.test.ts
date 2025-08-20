@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink } from '../../loc/strings';
+import { codespacesLink, directLink, openAspireDashboard } from '../../loc/strings';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
@@ -140,13 +140,13 @@ suite('InteractionService endpoints', () => {
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
 		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
+			BaseUrlWithLoginToken: baseUrl,
+			CodespacesUrlWithLoginToken: codespacesUrl
 		});
 
 		// Check that showInformationMessage was called with the expected arguments
 		const expectedArgs = [
-			'Open Aspire Dashboard',
+			openAspireDashboard,
 			{ title: directLink },
 			{ title: codespacesLink }
 		];
@@ -167,8 +167,8 @@ suite('InteractionService endpoints', () => {
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
 		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
+			BaseUrlWithLoginToken: baseUrl,
+			CodespacesUrlWithLoginToken: codespacesUrl
 		});
 		const outputLines = stub.getCalls().map(call => call.args[0]);
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');

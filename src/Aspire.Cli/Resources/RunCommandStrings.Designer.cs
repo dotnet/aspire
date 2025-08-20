@@ -105,11 +105,11 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Running through the Aspire Extension. Use the Debug Console to view logs..
+        ///   Looks up a localized string similar to Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console..
         /// </summary>
-        public static string ExtensionLogs {
+        public static string ExtensionSwitchingToAppHostConsole {
             get {
-                return ResourceManager.GetString("ExtensionLogs", resourceCulture);
+                return ResourceManager.GetString("ExtensionSwitchingToAppHostConsole", resourceCulture);
             }
         }
         

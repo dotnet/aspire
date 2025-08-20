@@ -27,9 +27,9 @@
         <target state="translated">Pontos de Extremidade</target>
         <note />
       </trans-unit>
-      <trans-unit id="ExtensionLogs">
-        <source>Running through the Aspire Extension. Use the Debug Console to view logs.</source>
-        <target state="new">Running through the Aspire Extension. Use the Debug Console to view logs.</target>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console.</source>
+        <target state="new">Running through the Aspire Extension. Attempting to switch to the AppHost Debug Console.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
