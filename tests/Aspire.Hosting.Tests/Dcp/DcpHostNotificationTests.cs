@@ -76,7 +76,6 @@ public sealed class DcpHostNotificationTests
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
-        // Use ReadAsync with timeout instead of Task.Delay and TryRead
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
@@ -236,7 +235,6 @@ public sealed class DcpHostNotificationTests
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
-        // Use ReadAsync with timeout instead of Task.Delay and TryRead
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
@@ -309,11 +307,8 @@ public sealed class DcpHostNotificationTests
         // Advance time by 10 seconds to trigger the next polling cycle
         timeProvider.Advance(TimeSpan.FromSeconds(10));
 
-        // Give a moment for the background task to process the health check and cancel the notification
-        await Task.Delay(50);
-        
-        // Assert - The notification token should now be cancelled
-        Assert.True(interaction.CancellationToken.IsCancellationRequested);
+        // Assert - The notification should now be cancelled
+        await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken));
     }
 
     private static DistributedApplication CreateAppWithContainers()

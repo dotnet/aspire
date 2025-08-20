@@ -415,9 +415,9 @@ internal sealed class DcpHost
                     {
                         // First, show the notification
                         var notificationTask = _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token);
-                        
-                        // Then poll for container runtime health updates every 10 seconds
-                        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10), _timeProvider);
+
+                        // Then poll for container runtime health updates every 5 seconds
+                        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), _timeProvider);
                         while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
                         {
                             try
