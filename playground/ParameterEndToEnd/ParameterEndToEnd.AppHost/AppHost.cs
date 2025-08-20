@@ -22,7 +22,7 @@ var db = builder.AddSqlServer("sql")
 var insertionrows = builder.AddParameter("insertionrows")
     .WithDescription("The number of rows to insert into the database.");
 
-var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"sql={db};rows={insertionrows}"));
+var cs = builder.AddConnectionString("cs", ReferenceExpression.Create($"sql={db.Resource.Parent.PrimaryEndpoint};rows={insertionrows}"));
 var parameterFromConnectionStringConfig = builder.AddConnectionString("parameterFromConnectionStringConfig");
 
 var throwing = builder.AddParameter("throwing", () => throw new InvalidOperationException("This is a test exception."));
