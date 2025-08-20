@@ -53,28 +53,8 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
-        foreach (var updateStep in updateSteps)
-        {
-            interactionService.DisplaySubtleMessage($"Executing: {updateStep.Description}");
-            await updateStep.Callback();
-        }
-
         if (channel.Type == PackageChannelType.Explicit)
         {
-            // If we are using an explicit channel we may need to update the config
-            // file, however, unlike "aspire new" we can't just place the file in the
-            // output path - we need to find it.
-            var shouldUpdateNuGet = await interactionService.PromptForSelectionAsync(
-                "Update NuGet.config?",
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                s => s,
-                cancellationToken);
-
-            if (shouldUpdateNuGet != TemplatingStrings.Yes)
-            {
-                return;
-            }
-
             var (configPathsExitCode, configPaths) = await runner.GetNuGetConfigPathsAsync(projectFile.Directory!, new(), cancellationToken);
 
             if (configPathsExitCode != 0 || configPaths is null || configPaths.Length == 0)
@@ -82,25 +62,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 throw new ProjectUpdaterException($"Failed to discover NuGet.config files.");
             }
 
-            // If there is only one NuGet.config path that
-            // means it is the global path. In that case we
-            // need to prompt to confirm WHERE to put the NuGet.config
-            // file. This is because the file needs to be placed
-            // somewhere that the builds for projects can find it.
-            //
-            // We are going to take a guess that the current working
-            // directory for the CLI invocation is a reasonable default
-            // location for the NuGet.config file, but we'll prompt the
-            // user with that as the path to confirm that.
-            //
-            // If we have more than one config file then we assume that
-            // the user wants the first one, but we'll prompt later to
-            // confirm.
             var recommendedNuGetConfigFileDirectory = configPaths switch
             {
-                { Length: 1 } => executionContext.WorkingDirectory.FullName,
-                { Length: > 1 } => configPaths[0],
-                _ => throw new ProjectUpdaterException("No NuGet.config files listed.")
+                { Length: 0 } => executionContext.WorkingDirectory.FullName,
+                { Length: >0 } => IsGlobalNuGetConfig(configPaths[0]) ? executionContext.WorkingDirectory.FullName : configPaths[0]
             };
 
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
@@ -114,9 +79,28 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
             using var tempConfig = await TemporaryNuGetConfig.CreateAsync(channel.Mappings!);
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, tempConfig, channel.Mappings);
+        }
 
-            interactionService.DisplaySuccess("Update successful!");
-            return;
+        foreach (var updateStep in updateSteps)
+        {
+            interactionService.DisplaySubtleMessage($"Executing: {updateStep.Description}");
+            await updateStep.Callback();
+        }
+
+        interactionService.DisplaySuccess("Update successful!");
+        return;
+    }
+
+    private static bool IsGlobalNuGetConfig(string path)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+        {
+            return path.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+        }
+        else
+        {
+            var globalNuGetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget");
+            return path.StartsWith(globalNuGetFolder);
         }
     }
 
@@ -262,7 +246,12 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
     {
         _ = context;
-        await runner.AddPackageAsync(projectFile, package.Id, package.Version, package.Source, new(), cancellationToken);
+        var exitCode = await runner.AddPackageAsync(projectFile, package.Id, package.Version, package.Source, new(), cancellationToken);
+
+        if (exitCode != 0)
+        {
+            throw new ProjectUpdaterException($"Failed to update package reference for {package.Id} in project {projectFile.FullName}.");
+        }
     }
 }
 
