@@ -391,26 +391,7 @@ internal sealed class DcpHost
         if (installed && !running)
         {
             string title = "Container Runtime Unhealthy";
-            string message;
-            string? linkUrl = null;
-
-            if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
-            {
-                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
-                         "Ensure that Docker is running and that the Docker daemon is accessible. " +
-                         "If Resource Saver mode is enabled, containers may not run.";
-                linkUrl = "https://docs.docker.com/desktop/use-desktop/resource-saver/";
-            }
-            else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
-            {
-                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
-                         "Ensure that Podman is running.";
-            }
-            else
-            {
-                message = $"Container runtime '{containerRuntime}' was found but appears to be unhealthy. " +
-                         "Ensure that the container runtime is running.";
-            }
+            var (message, linkUrl) = DcpDependencyCheck.BuildContainerRuntimeUnhealthyMessage(containerRuntime);
 
             var options = new NotificationInteractionOptions
             {
