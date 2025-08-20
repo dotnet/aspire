@@ -47,7 +47,7 @@ internal sealed class AzureDeployingContext(
         var dashboardUrl = TryGetDashboardUrl(model);
         if (!string.IsNullOrEmpty(dashboardUrl))
         {
-            await activityReporter.CompletePublishAsync($"Deloyment completed successfully. View Aspire dashboard at {dashboardUrl}", cancellationToken: cancellationToken).ConfigureAwait(false);
+            await activityReporter.CompletePublishAsync($"Deployment completed successfully. View Aspire dashboard at {dashboardUrl}", cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 
