@@ -347,18 +347,22 @@ public class AzureUserAssignedIdentityTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureUserAssignedIdentityResource()
     {
-        // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-identity-name");
         var existingResourceGroup = builder.AddParameter("existing-identity-rg");
-        
+
         var userAssignedIdentity = builder.AddAzureUserAssignedIdentity("test-identity")
             .AsExisting(existingName, existingResourceGroup);
 
-        // Act & Assert - Generate bicep and verify using snapshot testing
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(userAssignedIdentity.Resource);
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = userAssignedIdentity.Resource.AddAsExistingResource(infra);
+        });
 
-        await Verify(bicep, extension: "bicep");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 
     private sealed class TestProject : IProjectMetadata

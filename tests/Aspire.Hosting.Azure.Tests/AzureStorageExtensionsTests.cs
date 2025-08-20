@@ -908,17 +908,21 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureStorageResource()
     {
-        // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-storage-name");
         var existingResourceGroup = builder.AddParameter("existing-storage-rg");
-        
+
         var storage = builder.AddAzureStorage("test-storage")
             .AsExisting(existingName, existingResourceGroup);
 
-        // Act & Assert - Generate bicep and verify using snapshot testing
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = storage.Resource.AddAsExistingResource(infra);
+        });
 
-        await Verify(bicep, extension: "bicep");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

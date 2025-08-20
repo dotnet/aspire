@@ -27,18 +27,22 @@ public class AzureContainerAppEnvironmentExtensionsTests
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureContainerAppEnvironmentResource()
     {
-        // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-env-name");
         var existingResourceGroup = builder.AddParameter("existing-env-rg");
-        
+
         var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("test-container-app-env")
             .AsExisting(existingName, existingResourceGroup);
 
-        // Act & Assert - Generate bicep and verify using snapshot testing
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(containerAppEnvironment.Resource);
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = containerAppEnvironment.Resource.AddAsExistingResource(infra);
+        });
 
-        await Verify(bicep, extension: "bicep");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]

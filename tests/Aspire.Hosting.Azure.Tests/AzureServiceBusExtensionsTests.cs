@@ -857,17 +857,21 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureServiceBusResource()
     {
-        // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-sb-name");
         var existingResourceGroup = builder.AddParameter("existing-sb-rg");
-        
+
         var serviceBus = builder.AddAzureServiceBus("test-servicebus")
             .AsExisting(existingName, existingResourceGroup);
 
-        // Act & Assert - Generate bicep and verify using snapshot testing
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = serviceBus.Resource.AddAsExistingResource(infra);
+        });
 
-        await Verify(bicep, extension: "bicep");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

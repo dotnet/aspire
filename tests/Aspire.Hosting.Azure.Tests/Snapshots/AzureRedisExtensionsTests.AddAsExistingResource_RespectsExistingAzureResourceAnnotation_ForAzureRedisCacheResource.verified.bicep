@@ -3,10 +3,9 @@ param location string = resourceGroup().location
 
 param existing_redis_name string
 
+param existing_redis_rg string
+
 resource test_redis 'Microsoft.Cache/redis@2024-11-01' existing = {
   name: existing_redis_name
+  scope: resourceGroup(existing_redis_rg)
 }
-
-output connectionString string = '${test_redis.properties.hostName},ssl=true'
-
-output name string = existing_redis_name

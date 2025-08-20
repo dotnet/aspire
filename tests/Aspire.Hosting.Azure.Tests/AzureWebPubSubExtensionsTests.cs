@@ -368,18 +368,22 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
     [Fact]
     public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureWebPubSubResource()
     {
-        // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-webpubsub-name");
         var existingResourceGroup = builder.AddParameter("existing-webpubsub-rg");
-        
+
         var webPubSub = builder.AddAzureWebPubSub("test-webpubsub")
             .AsExisting(existingName, existingResourceGroup);
 
-        // Act & Assert - Generate bicep and verify using snapshot testing
-        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(webPubSub.Resource);
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = webPubSub.Resource.AddAsExistingResource(infra);
+        });
 
-        await Verify(bicep, extension: "bicep");
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 
     private sealed class ProjectA : IProjectMetadata
