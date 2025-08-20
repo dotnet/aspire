@@ -90,13 +90,6 @@ internal sealed class DcpHost
                 using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeoutCancellation.CancelAfter(_dcpOptions.ContainerRuntimeInitializationTimeout);
 
-                static bool IsContainerRuntimeHealthy(DcpInfo dcpInfo)
-                {
-                    var installed = dcpInfo.Containers?.Installed ?? false;
-                    var running = dcpInfo.Containers?.Running ?? false;
-                    return installed && running;
-                }
-
                 try
                 {
                     while (dcpInfo is not null && !IsContainerRuntimeHealthy(dcpInfo))
@@ -428,17 +421,27 @@ internal sealed class DcpHost
 
             try
             {
+                // Create a cancellation token source that can be cancelled when runtime becomes healthy
+                var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+                
+                // Start background polling to cancel notification when runtime becomes healthy
+                _ = Task.Run(() => PollForContainerRuntimeHealthAndCancelNotificationAsync(notificationCts), cancellationToken);
+
                 // Fire and forget - we don't want to block startup for this notification
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await _interactionService.PromptNotificationAsync(title, message, options, cancellationToken).ConfigureAwait(false);
+                        await _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         // Log but don't propagate notification errors
                         _logger.LogDebug(ex, "Failed to show container runtime notification");
+                    }
+                    finally
+                    {
+                        notificationCts.Dispose();
                     }
                 }, cancellationToken);
             }
@@ -448,6 +451,55 @@ internal sealed class DcpHost
                 _logger.LogDebug(ex, "Failed to start container runtime notification task");
             }
         }
+    }
+
+    private async Task PollForContainerRuntimeHealthAndCancelNotificationAsync(CancellationTokenSource notificationCts)
+    {
+        try
+        {
+            // Poll every 5 seconds to check if container runtime has become healthy
+            while (!notificationCts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), notificationCts.Token).ConfigureAwait(false);
+                
+                try
+                {
+                    var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
+                    
+                    if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
+                    {
+                        // Container runtime is now healthy, cancel the notification
+                        notificationCts.Cancel();
+                        break;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    // Log but continue polling
+                    _logger.LogDebug(ex, "Error while polling container runtime health for notification");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error in container runtime health polling task");
+        }
+    }
+
+    private static bool IsContainerRuntimeHealthy(DcpInfo dcpInfo)
+    {
+        var installed = dcpInfo.Containers?.Installed ?? false;
+        var running = dcpInfo.Containers?.Running ?? false;
+        return installed && running;
     }
 }
 

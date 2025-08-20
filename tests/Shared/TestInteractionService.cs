@@ -7,7 +7,7 @@ using System.Threading.Channels;
 
 namespace Aspire.Hosting.Tests;
 
-internal sealed record InteractionData(string Title, string? Message, InteractionInputCollection Inputs, InteractionOptions? Options, TaskCompletionSource<object> CompletionTcs);
+internal sealed record InteractionData(string Title, string? Message, InteractionInputCollection Inputs, InteractionOptions? Options, CancellationToken CancellationToken, TaskCompletionSource<object> CompletionTcs);
 
 internal sealed class TestInteractionService : IInteractionService
 {
@@ -32,7 +32,7 @@ internal sealed class TestInteractionService : IInteractionService
 
     public async Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var data = new InteractionData(title, message, new InteractionInputCollection(inputs), options, new TaskCompletionSource<object>());
+        var data = new InteractionData(title, message, new InteractionInputCollection(inputs), options, cancellationToken, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);
         var result = (InteractionResult<InteractionInputCollection>)await data.CompletionTcs.Task;
 
@@ -47,7 +47,7 @@ internal sealed class TestInteractionService : IInteractionService
 
     public async Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var data = new InteractionData(title, message, new InteractionInputCollection([]), options, new TaskCompletionSource<object>());
+        var data = new InteractionData(title, message, new InteractionInputCollection([]), options, cancellationToken, new TaskCompletionSource<object>());
         Interactions.Writer.TryWrite(data);
         return (InteractionResult<bool>)await data.CompletionTcs.Task;
     }
