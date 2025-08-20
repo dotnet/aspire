@@ -5,7 +5,7 @@ import { invalidTokenProvided, rpcServerAddressError, rpcServerError } from '../
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
-import { generateSelfSignedCert, generateToken } from '../utils/security';
+import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
 
@@ -41,7 +41,7 @@ export default class RpcServer {
 
 export function createRpcServer(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<RpcServer> {
     const token = generateToken();
-    const { key, cert } = generateSelfSignedCert();
+    const { key, cert } = createSelfSignedCert();
 
     function withAuthentication(callback: (...params: any[]) => any) {
         return (...params: any[]) => {

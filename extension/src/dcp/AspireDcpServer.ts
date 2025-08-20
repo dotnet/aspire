@@ -1,8 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
+import https from 'https';
 import WebSocket, { WebSocketServer } from 'ws';
 import * as vscode from 'vscode';
-import { generateToken } from '../utils/security';
+import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import { startDotNetProgram } from '../debugger/languages/dotnet';
@@ -13,12 +14,12 @@ import { startPythonProgram } from '../debugger/languages/python';
 export default class DcpServer {
     public readonly info: DcpServerConnectionInfo;
     public readonly app: express.Express;
-    private server: http.Server;
+    private server: https.Server;
     private wss: WebSocketServer;
     private wsBySession: Map<string, WebSocket> = new Map();
     private pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]> = new Map();
 
-    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: http.Server, wss: WebSocketServer, wsBySession: Map<string, WebSocket>, pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
+    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: https.Server, wss: WebSocketServer, wsBySession: Map<string, WebSocket>, pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
         this.info = info;
         this.app = app;
         this.server = server;
@@ -122,7 +123,7 @@ export default class DcpServer {
                 }
 
                 runsBySession.set(runId, processes);
-                res.status(201).set('Location', `${req.protocol}://${req.get('host')}/run_session/${runId}`).end();
+                res.status(201).set('Location', `https://${req.get('host')}/run_session/${runId}`).end();
                 extensionLogOutputChannel.info(`New run session created with ID: ${runId}`);
             });
 
@@ -141,7 +142,9 @@ export default class DcpServer {
                 }
             });
 
-            const server = http.createServer(app);
+
+            const { key, cert, certBase64 } = createSelfSignedCert();
+            const server = https.createServer({ key, cert }, app);
             const wss = new WebSocketServer({ noServer: true });
 
             server.on('upgrade', (request, socket, head) => {
@@ -177,11 +180,11 @@ export default class DcpServer {
             server.listen(0, () => {
                 const addr = server.address();
                 if (typeof addr === 'object' && addr) {
-                    extensionLogOutputChannel.info(`DCP server listening on port ${addr.port} (HTTP)`);
+                    extensionLogOutputChannel.info(`DCP server listening on port ${addr.port} (HTTPS)`);
                     const info: DcpServerConnectionInfo = {
                         address: `localhost:${addr.port}`,
                         token: token,
-                        certificate: ''
+                        certificate: certBase64
                     };
                     resolve(new DcpServer(info, app, server, wss, wsBySession, pendingNotificationQueueByDcpId));
                 } else {

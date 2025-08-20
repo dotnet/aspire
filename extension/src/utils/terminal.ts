@@ -46,7 +46,7 @@ export function createEnvironment(dcpServer?: DcpServer): any {
          // Include DCP server info
         env.DEBUG_SESSION_PORT = dcpServer.info.address;
         env.DEBUG_SESSION_TOKEN = dcpServer.info.token;
-        env.DEBUG_SESSION_SERVER_CERTIFICATE = Buffer.from(dcpServer.info.certificate, 'utf-8').toString('base64');
+        env.DEBUG_SESSION_SERVER_CERTIFICATE = dcpServer.info.certificate;
     }
 
     return env;
