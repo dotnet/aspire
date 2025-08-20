@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents the scope associated with the resource.
 /// </summary>
 /// <param name="resourceGroup">The name of the existing resource group.</param>
-/// <param name="subscription"></param>
+/// <param name="subscription">The subscription identifier associated with the resource group. If null, the default subscription is used.</param>
 public sealed class AzureBicepResourceScope(object resourceGroup, object? subscription = null)
 {
     /// <summary>
