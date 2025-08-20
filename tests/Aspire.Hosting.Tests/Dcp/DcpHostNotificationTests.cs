@@ -375,7 +375,7 @@ public sealed class DcpHostNotificationTests
         timeProvider.Advance(TimeSpan.FromSeconds(10));
 
         // Give a moment for the background task to process the health check and cancel the notification
-        await Task.Delay(100);
+        await Task.Delay(50);
         
         // Assert - The notification token should now be cancelled
         Assert.True(interaction.CancellationToken.IsCancellationRequested);
