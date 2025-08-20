@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.AppConfiguration;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.Primitives;
 
@@ -17,8 +16,7 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString, IResourceWithEndpoints
 {
-    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
-    internal AzureAppConfigurationEmulatorOptions EmulatorOptions { get; } = new AzureAppConfigurationEmulatorOptions();
+    private EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
     /// Gets a value indicating whether the Azure App Configuration resource is running in the local emulator.
@@ -40,7 +38,7 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        IsEmulator
-        ? AzureAppConfigurationEmulatorConnectionString.Create(EmulatorEndpoint)
+        ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};Id=anonymous;Secret=abcdefghijklmnopqrstuvwxyz1234567890;Anonymous=True")
         : ReferenceExpression.Create($"{Endpoint}");
 
     /// <inheritdoc/>
@@ -48,15 +46,15 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if an AppConfigurationStore with the same identifier already exists
         var existingStore = resources.OfType<AppConfigurationStore>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingStore is not null)
         {
             return existingStore;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var store = AppConfigurationStore.FromExisting(bicepIdentifier);
         store.Name = NameOutputReference.AsProvisioningParameter(infra);

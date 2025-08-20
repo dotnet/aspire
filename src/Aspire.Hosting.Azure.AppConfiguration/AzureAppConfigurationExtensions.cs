@@ -179,7 +179,6 @@ public static class AzureAppConfigurationExtensions
     /// <returns>The updated resource builder for further configuration.</returns>
     internal static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string role = "Owner")
     {
-        builder.Resource.ConfigureAnonymousAuthentication(true, role);
         builder.WithEnvironment("Tenant:AnonymousAuthEnabled", "true");
         builder.WithEnvironment("Authentication:Anonymous:AnonymousUserRole", role);
         return builder;
