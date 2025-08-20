@@ -84,6 +84,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+        services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -199,6 +200,15 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         return new AspireCliTelemetry();
+    };
+
+    public Func<IServiceProvider, IProjectUpdater> ProjectUpdaterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        return new ProjectUpdater(logger, runner, interactionService, cache);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
