@@ -45,17 +45,8 @@ public sealed class DcpHostNotificationTests
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Create a temporary file to act as the DCP CLI path
-        var tempCliPath = Path.GetTempFileName();
-        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        try
-        {
-            var loggerFactory = new NullLoggerFactory();
-            var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = tempCliPath });
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
         var dependencyCheckService = new TestDcpDependencyCheckService
         {
             // Container installed but not running - unhealthy state
@@ -95,11 +86,6 @@ public sealed class DcpHostNotificationTests
         Assert.Contains("unhealthy", interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
-        }
-        finally
-        {
-            File.Delete(tempCliPath);
-        }
     }
 
     [Fact]
@@ -109,17 +95,8 @@ public sealed class DcpHostNotificationTests
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Create a temporary file to act as the DCP CLI path
-        var tempCliPath = Path.GetTempFileName();
-        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        try
-        {
-            var loggerFactory = new NullLoggerFactory();
-            var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = tempCliPath });
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
         var dependencyCheckService = new TestDcpDependencyCheckService
         {
             // Container installed and running - healthy state
@@ -164,11 +141,6 @@ public sealed class DcpHostNotificationTests
 
         // Assert - no notification should be shown for healthy runtime
         Assert.False(hasInteraction);
-        }
-        finally
-        {
-            File.Delete(tempCliPath);
-        }
     }
 
     [Fact]
@@ -178,17 +150,8 @@ public sealed class DcpHostNotificationTests
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Create a temporary file to act as the DCP CLI path
-        var tempCliPath = Path.GetTempFileName();
-        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        try
-        {
-            var loggerFactory = new NullLoggerFactory();
-            var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = tempCliPath });
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
         var dependencyCheckService = new TestDcpDependencyCheckService
         {
             // Container installed but not running - unhealthy state
@@ -233,11 +196,6 @@ public sealed class DcpHostNotificationTests
 
         // Assert - no notification should be shown when dashboard is disabled
         Assert.False(hasInteraction);
-        }
-        finally
-        {
-            File.Delete(tempCliPath);
-        }
     }
 
     [Fact]
@@ -247,17 +205,8 @@ public sealed class DcpHostNotificationTests
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Create a temporary file to act as the DCP CLI path
-        var tempCliPath = Path.GetTempFileName();
-        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        try
-        {
-            var loggerFactory = new NullLoggerFactory();
-            var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "podman", CliPath = tempCliPath });
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "podman", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
         var dependencyCheckService = new TestDcpDependencyCheckService
         {
             // Container installed but not running - unhealthy state
@@ -298,11 +247,6 @@ public sealed class DcpHostNotificationTests
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
         Assert.Null(notificationOptions.LinkUrl); // No specific link for Podman
-        }
-        finally
-        {
-            File.Delete(tempCliPath);
-        }
     }
 
     [Fact]
@@ -312,17 +256,8 @@ public sealed class DcpHostNotificationTests
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Create a temporary file to act as the DCP CLI path
-        var tempCliPath = Path.GetTempFileName();
-        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        try
-        {
-            var loggerFactory = new NullLoggerFactory();
-            var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = tempCliPath });
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
         var dependencyCheckService = new TestDcpDependencyCheckService
         {
             // Initially unhealthy
@@ -379,11 +314,6 @@ public sealed class DcpHostNotificationTests
         
         // Assert - The notification token should now be cancelled
         Assert.True(interaction.CancellationToken.IsCancellationRequested);
-        }
-        finally
-        {
-            File.Delete(tempCliPath);
-        }
     }
 
     private static DistributedApplication CreateAppWithContainers()
