@@ -169,14 +169,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
     }
 
-    private static async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
+    private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
     {
-        // TODO: Wire up cliRunner to do dotnet package update
-        _ = projectFile;
-        _ = package;
         _ = context;
-        _ = cancellationToken;
-        await Task.Delay(1000, cancellationToken);
+        await runner.AddPackageAsync(projectFile, package.Id, package.Version, package.Source, new(), cancellationToken);
     }
 }
 
