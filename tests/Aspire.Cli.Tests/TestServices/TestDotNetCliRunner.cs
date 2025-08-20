@@ -15,6 +15,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? CheckHttpCertificateAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool IsAspireHost, string? AspireHostingVersion)>? GetAppHostInformationAsyncCallback { get; set; }
+    public Func<DirectoryInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string[] ConfigPaths)>? GetNuGetConfigPathsAsyncCallback { get; set; }
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
     public Func<string, string, string?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
     public Func<string, string, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
@@ -50,6 +51,13 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
         return GetAppHostInformationAsyncCallback != null
             ? Task.FromResult(GetAppHostInformationAsyncCallback(projectFile, options, cancellationToken))
             : Task.FromResult<(int, bool, string?)>((0, true, informationalVersion));
+    }
+
+    public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return GetNuGetConfigPathsAsyncCallback != null
+            ? Task.FromResult(GetNuGetConfigPathsAsyncCallback(workingDirectory, options, cancellationToken))
+            : Task.FromResult((0, Array.Empty<string>())); // If not overridden, return success with no config paths which will blow up.
     }
 
     public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
