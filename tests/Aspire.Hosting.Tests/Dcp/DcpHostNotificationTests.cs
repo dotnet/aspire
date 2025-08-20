@@ -47,6 +47,11 @@ public sealed class DcpHostNotificationTests
         
         // Create a temporary file to act as the DCP CLI path
         var tempCliPath = Path.GetTempFileName();
+        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         try
         {
             var loggerFactory = new NullLoggerFactory();
@@ -106,6 +111,11 @@ public sealed class DcpHostNotificationTests
         
         // Create a temporary file to act as the DCP CLI path
         var tempCliPath = Path.GetTempFileName();
+        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         try
         {
             var loggerFactory = new NullLoggerFactory();
@@ -170,6 +180,11 @@ public sealed class DcpHostNotificationTests
         
         // Create a temporary file to act as the DCP CLI path
         var tempCliPath = Path.GetTempFileName();
+        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         try
         {
             var loggerFactory = new NullLoggerFactory();
@@ -234,6 +249,11 @@ public sealed class DcpHostNotificationTests
         
         // Create a temporary file to act as the DCP CLI path
         var tempCliPath = Path.GetTempFileName();
+        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         try
         {
             var loggerFactory = new NullLoggerFactory();
@@ -286,14 +306,19 @@ public sealed class DcpHostNotificationTests
     }
 
     [Fact]
-    public async Task DcpHost_WithUnhealthyContainerRuntime_CanStartBackgroundPolling()
+    public async Task DcpHost_WithUnhealthyContainerRuntime_NotificationCancelledWhenRuntimeBecomesHealthy()
     {
-        // Arrange - this test verifies that the background polling task starts
+        // Arrange - this test verifies that the notification is cancelled when runtime becomes healthy
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
         // Create a temporary file to act as the DCP CLI path
         var tempCliPath = Path.GetTempFileName();
+        File.WriteAllText(tempCliPath, "#!/bin/bash\necho 'test'");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(tempCliPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         try
         {
             var loggerFactory = new NullLoggerFactory();
@@ -331,9 +356,29 @@ public sealed class DcpHostNotificationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
         
-        // Assert - Verify notification was shown and contains the proper cancellation token
+        // Assert - Verify notification was shown initially
         Assert.Equal("Container Runtime Unhealthy", interaction.Title);
         Assert.False(interaction.CancellationToken.IsCancellationRequested); // Should not be cancelled yet
+
+        // Simulate container runtime becoming healthy
+        dependencyCheckService.DcpInfoResult = new DcpInfo
+        {
+            Containers = new DcpContainersInfo
+            {
+                Installed = true,
+                Running = true,
+                Error = null
+            }
+        };
+
+        // Advance time by 10 seconds to trigger the next polling cycle
+        timeProvider.Advance(TimeSpan.FromSeconds(10));
+
+        // Give a moment for the background task to process the health check and cancel the notification
+        await Task.Delay(100);
+        
+        // Assert - The notification token should now be cancelled
+        Assert.True(interaction.CancellationToken.IsCancellationRequested);
         }
         finally
         {
