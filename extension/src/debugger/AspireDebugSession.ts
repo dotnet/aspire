@@ -96,15 +96,19 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   spawnRunCommand(args: string[], workingDirectory: string | undefined) {
-    const childProcess = spawnCliProcess(
+    spawnCliProcess(
       'aspire',
       args,
       {
         stdoutCallback: (data) => {
-          this.sendMessageWithEmoji("📜", data, false);
+          for (const line of trimMessage(data)) {
+            this.sendMessage(line);
+          }
         },
         stderrCallback: (data) => {
-          this.sendMessageWithEmoji("❌", data, false);
+          for (const line of trimMessage(data)) {
+            this.sendMessageWithEmoji("❌", line, false);
+          }
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", processExitedWithCode(code ?? '?'));
@@ -122,6 +126,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
       }
     });
+
+    function trimMessage(message: string): string[] {
+      return message
+        .replace('\r\n', '\n')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    }
   }
 
   async startAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {

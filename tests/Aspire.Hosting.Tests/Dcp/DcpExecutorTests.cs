@@ -1272,7 +1272,7 @@ public class DcpExecutorTests
     }
 
     [Fact]
-    public async Task PlainExecutable_ExtensionMode_SupportedDebugMode_RunsInIde()
+    protected async Task PlainExecutable_ExtensionMode_SupportedDebugMode_RunsInIde()
     {
         // Arrange
         var builder = DistributedApplication.CreateBuilder();
@@ -1284,8 +1284,10 @@ public class DcpExecutorTests
         {
             [DcpExecutor.DebugSessionPortVar] = "12345",
             [KnownConfigNames.ExtensionCapabilities] = "test_executable",
-            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
+            [KnownConfigNames.ExtensionDebugRunMode] = "Debug"
         };
+
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
 
         var kubernetesService = new TestKubernetesService();

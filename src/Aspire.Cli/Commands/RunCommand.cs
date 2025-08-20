@@ -182,129 +182,91 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.DashboardFailure;
             }
 
-            if (!isExtensionHost)
+            _ansiConsole.WriteLine();
+            var topGrid = new Grid();
+            topGrid.AddColumn();
+            topGrid.AddColumn();
+
+            var topPadder = new Padder(topGrid, new Padding(3, 0));
+
+            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
+            var logsLocalizedString = RunCommandStrings.Logs;
+            var endpointsLocalizedString = RunCommandStrings.Endpoints;
+
+            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString }
+                .Max(s => s.Length);
+
+            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                _ansiConsole.WriteLine();
-
-                var topGrid = new Grid();
-                topGrid.AddColumn();
-                topGrid.AddColumn();
-
-                var topPadder = new Padder(topGrid, new Padding(3, 0));
-
-                var dashboardsLocalizedString = RunCommandStrings.Dashboard;
-                var logsLocalizedString = RunCommandStrings.Logs;
-                var endpointsLocalizedString = RunCommandStrings.Endpoints;
-
-                var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString }
-                    .Max(s => s.Length);
-
-                topGrid.Columns[0].Width = longestLocalizedLength + 1;
-
-                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
-                {
-                    topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
-                }
-
-                topGrid.AddRow(Text.Empty, Text.Empty);
-                topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-
-                _ansiConsole.Write(topPadder);
-
-                AppendCtrlCMessage(longestLocalizedLength);
-
-                await ProcessEndpointsAsync(o =>
-                {
-                    var (resource, endpoint, firstEndpoint) = o;
-
-                    // When we are appending endpoints we need
-                    // to remove the CTRL-C message that was appended
-                    // previously. So we can write the endpoint.
-                    // We will append the CTRL-C message again after
-                    // writing the endpoint.
-                    ClearLines(2);
-
-                    var endpointsGrid = new Grid();
-                    endpointsGrid.AddColumn();
-                    endpointsGrid.AddColumn();
-                    endpointsGrid.Columns[0].Width = longestLocalizedLength + 1;
-
-                    if (firstEndpoint)
-                    {
-                        endpointsGrid.AddRow(Text.Empty, Text.Empty);
-                    }
-
-                    endpointsGrid.AddRow(
-                        firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                        new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
-                    );
-
-                    var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
-                    _ansiConsole.Write(endpointsPadder);
-
-                    AppendCtrlCMessage(longestLocalizedLength);
-                });
+                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
-            else if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel))
+
+            topGrid.AddRow(Text.Empty, Text.Empty);
+            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
+
+            _ansiConsole.Write(topPadder);
+
+            AppendCtrlCMessage(longestLocalizedLength);
+
+            // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
+            // than environment variables since it comes from the same backend detection logic
+            var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
+            var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+            var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
+                              && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
+
+            if (isCodespaces || isRemoteContainers || isSshRemote)
             {
-                // The extension host is capturing stdout from this process, so we should use Console.WriteLine instead of the interaction service.
-                Console.WriteLine(RunCommandStrings.Dashboard + ": " + dashboardUrls.BaseUrlWithLoginToken);
-                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
-                {
-                    Console.WriteLine(codespacesUrlWithLoginToken);
-                }
+                bool firstEndpoint = true;
 
-                if (await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.CSharp, cancellationToken))
+                try
                 {
-                    Console.WriteLine(RunCommandStrings.Logs + ": " + RunCommandStrings.ExtensionLogs);
-                }
-                else
-                {
-                    Console.WriteLine(RunCommandStrings.Logs + ": " + logFile.FullName);
-                }
+                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                    {
+                        ProcessResourceState(resourceState, (resource, endpoint) =>
+                        {
+                            // When we are appending endpoints we need
+                            // to remove the CTRL-C message that was appended
+                            // previously. So we can write the endpoint.
+                            // We will append the CTRL-C message again after
+                            // writing the endpoint.
+                            ClearLines(2);
 
-                await ProcessEndpointsAsync(o =>
+                            var endpointsGrid = new Grid();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.AddColumn();
+                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
+
+                            if (firstEndpoint)
+                            {
+                                endpointsGrid.AddRow(Text.Empty, Text.Empty);
+                            }
+
+                            endpointsGrid.AddRow(
+                                firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
+                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                            );
+
+                            var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
+                            _ansiConsole.Write(endpointsPadder);
+
+                            AppendCtrlCMessage(longestLocalizedLength);
+                            firstEndpoint = false;
+                        });
+                    }
+                }
+                catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
                 {
-                    var (resource, endpoint, _) = o;
-                    Console.WriteLine($"{resource} has endpoint {endpoint}");
-                });
+                    // Just swallow this exception because this is an orderly shutdown of the backchannel.
+                }
             }
 
             await pendingLogCapture;
             return await pendingRun;
-
-            async Task ProcessEndpointsAsync(Action<(string Resource, string Endpoint, bool FirstEndpoint)> endpointCallback)
-            {
-                 // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
-                // than environment variables since it comes from the same backend detection logic
-                var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
-                var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-                var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
-                                  && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
-
-                if (isCodespaces || isRemoteContainers || isSshRemote)
-                {
-                    bool firstEndpoint = true;
-
-                    try
-                    {
-                        var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-                        await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
-                        {
-                            ProcessResourceState(resourceState, (resource, endpoint) =>
-                            {
-                                endpointCallback((resource, endpoint, firstEndpoint));
-                                firstEndpoint = false;
-                            });
-                        }
-                    }
-                    catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        // Just swallow this exception because this is an orderly shutdown of the backchannel.
-                    }
-                }
-            }
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
@@ -372,9 +334,9 @@ internal sealed class RunCommand : BaseCommand
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
         ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+        ctrlCGrid.Columns[0].Width = longestLocalizedLength;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis});
 
         var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
         _ansiConsole.Write(ctrlCPadder);

@@ -28,11 +28,11 @@ export function spawnCliProcess(command: string, args?: string[], options?: Spaw
     });
 
     child.stdout.on("data", (data) => {
-        options?.stdoutCallback?.(data);
+        options?.stdoutCallback?.(new String(data).toString());
     });
 
     child.stderr.on("data", (data) => {
-        options?.stderrCallback?.(data);
+        options?.stderrCallback?.(new String(data).toString());
     });
 
     child.on("close", (code) => {

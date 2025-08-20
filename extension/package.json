@@ -69,12 +69,6 @@
              "request": "launch",
              "name": "Aspire Default",
              "program": "${workspaceFolder}"
-           },
-           {
-             "type": "aspire",
-             "request": "launch",
-             "name": "Aspire: Launch Default AppHost",
-             "program": "${workspaceFolder}"
            }
          ]
       }
