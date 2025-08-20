@@ -234,49 +234,21 @@ public class AzureRedisExtensionsTests
     }
 
     [Fact]
-    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureRedisCacheResource()
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureRedisCacheResource()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-redis-name");
         var existingResourceGroup = builder.AddParameter("existing-redis-rg");
         
-        var redisResource = new AzureRedisCacheResource("test-redis", _ => { });
-        redisResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
-        
-        var infrastructure = new AzureResourceInfrastructure(redisResource, "test-redis");
+        var redis = builder.AddAzureRedis("test-redis")
+            .AsExisting(existingName, existingResourceGroup);
 
-        // Act
-        var result = redisResource.AddAsExistingResource(infrastructure);
+        // Act & Assert - Generate bicep and verify using snapshot testing
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
-        // Assert - The resource should use the name from the annotation, not the default
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        var nameProperty = result.ProvisionableProperties["name"];
-        Assert.NotNull(nameProperty);
-        
-        // Verify that scope is set due to different resource group
-        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
-        var scopeProperty = result.ProvisionableProperties["scope"];
-        Assert.NotNull(scopeProperty);
-    }
-
-    [Fact]
-    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureRedisCacheResource()
-    {
-        // Arrange
-        var redisResource = new AzureRedisCacheResource("test-redis", _ => { });
-        var infrastructure = new AzureResourceInfrastructure(redisResource, "test-redis");
-
-        // Act
-        var result = redisResource.AddAsExistingResource(infrastructure);
-
-        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        
-        // The key point is that it should work when no annotation exists
-        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+        await Verify(bicep, extension: "bicep")
+            .UseParameters("AzureRedisCacheResource");
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
