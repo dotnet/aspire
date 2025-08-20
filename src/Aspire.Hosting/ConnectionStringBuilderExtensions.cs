@@ -53,9 +53,33 @@ public static class ConnectionStringBuilderExtensions
                           // Wait for any referenced resources in the connection string.
                           // We only look at top level resources with the assumption that they are transitive themselves.
                           var tasks = new List<Task>();
-                          foreach (var referencedResource in r.ConnectionStringExpression.ValueProviders.OfType<IResource>())
+                          var resourceNames = new HashSet<string>(StringComparers.ResourceName);
+
+                          foreach (var value in r.ConnectionStringExpression.ValueProviders)
                           {
-                              tasks.Add(evt.Notifications.WaitForResourceHealthyAsync(referencedResource.Name, ct));
+                              if (value is IResource resource)
+                              {
+                                  resourceNames.Add(resource.Name);
+                              }
+                              else if (value is IValueWithReferences valueWithReferences)
+                              {
+                                  foreach (var innerRef in valueWithReferences.References.OfType<IResource>())
+                                  {
+                                      resourceNames.Add(innerRef.Name);
+                                  }
+                              }
+                          }
+
+                          async Task DoWaitAsync(string resourceName)
+                          {
+                              @evt.Logger.LogInformation("Waiting for resource '{ResourceName}' to be healthy.", resourceName);
+                              await @evt.Notifications.WaitForResourceHealthyAsync(resourceName, ct).ConfigureAwait(false);
+                              @evt.Logger.LogInformation("Resource '{ResourceName}' is healthy.", resourceName);
+                          }
+
+                          foreach (var resourceName in resourceNames)
+                          {
+                              tasks.Add(DoWaitAsync(resourceName));
                           }
 
                           try
