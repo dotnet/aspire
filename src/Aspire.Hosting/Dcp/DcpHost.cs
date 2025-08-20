@@ -28,6 +28,7 @@ internal sealed class DcpHost
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly IInteractionService _interactionService;
     private readonly Locations _locations;
+    private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
 
@@ -46,7 +47,8 @@ internal sealed class DcpHost
         IDcpDependencyCheckService dependencyCheckService,
         IInteractionService interactionService,
         Locations locations,
-        DistributedApplicationModel applicationModel)
+        DistributedApplicationModel applicationModel,
+        TimeProvider timeProvider)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHost>();
@@ -55,6 +57,7 @@ internal sealed class DcpHost
         _interactionService = interactionService;
         _locations = locations;
         _applicationModel = applicationModel;
+        _timeProvider = timeProvider;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -414,7 +417,7 @@ internal sealed class DcpHost
                         var notificationTask = _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token);
                         
                         // Then poll for container runtime health updates every 10 seconds
-                        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+                        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10), _timeProvider);
                         while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
                         {
                             try

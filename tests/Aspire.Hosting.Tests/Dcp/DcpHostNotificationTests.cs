@@ -22,6 +22,7 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService();
         var locations = new Locations();
         var applicationModel = new DistributedApplicationModel(new ResourceCollection());
+        var timeProvider = TimeProvider.System;
 
         // Act & Assert - should not throw
         var dcpHost = new DcpHost(
@@ -30,7 +31,8 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         Assert.NotNull(dcpHost);
     }
@@ -63,6 +65,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
+        var timeProvider = TimeProvider.System;
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -70,16 +73,17 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         // Act
         await dcpHost.StartAsync(CancellationToken.None);
 
-        // Wait a bit for the fire-and-forget notification to complete
-        await Task.Delay(100);
+        // Use ReadAsync with timeout instead of Task.Delay and TryRead
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        Assert.True(interactionService.Interactions.Reader.TryRead(out var interaction));
         Assert.Equal("Container Runtime Unhealthy", interaction.Title);
         Assert.Contains("docker", interaction.Message);
         Assert.Contains("unhealthy", interaction.Message);
@@ -120,6 +124,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
+        var timeProvider = TimeProvider.System;
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -127,16 +132,27 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         // Act
         await dcpHost.StartAsync(CancellationToken.None);
 
-        // Wait a bit to ensure no notification is sent
-        await Task.Delay(100);
+        // Use a short timeout to check that no notification is sent
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var hasInteraction = false;
+        try
+        {
+            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+            hasInteraction = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - no notification should be sent
+        }
 
-        // Assert
-        Assert.False(interactionService.Interactions.Reader.TryRead(out _));
+        // Assert - no notification should be shown for healthy runtime
+        Assert.False(hasInteraction);
         }
         finally
         {
@@ -172,6 +188,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = false }; // Dashboard disabled
         var locations = new Locations();
+        var timeProvider = TimeProvider.System;
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -179,16 +196,27 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         // Act
         await dcpHost.StartAsync(CancellationToken.None);
 
-        // Wait a bit to ensure no notification is sent
-        await Task.Delay(100);
+        // Use a short timeout to check that no notification is sent
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var hasInteraction = false;
+        try
+        {
+            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+            hasInteraction = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - no notification should be sent when dashboard is disabled
+        }
 
         // Assert - no notification should be shown when dashboard is disabled
-        Assert.False(interactionService.Interactions.Reader.TryRead(out _));
+        Assert.False(hasInteraction);
         }
         finally
         {
@@ -224,6 +252,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
+        var timeProvider = TimeProvider.System;
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -231,16 +260,17 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         // Act
         await dcpHost.StartAsync(CancellationToken.None);
 
-        // Wait a bit for the fire-and-forget notification to complete
-        await Task.Delay(100);
+        // Use ReadAsync with timeout instead of Task.Delay and TryRead
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        Assert.True(interactionService.Interactions.Reader.TryRead(out var interaction));
         Assert.Equal("Container Runtime Unhealthy", interaction.Title);
         Assert.Contains("podman", interaction.Message);
         Assert.Contains("Ensure that Podman is running", interaction.Message);
@@ -258,7 +288,6 @@ public sealed class DcpHostNotificationTests
     public async Task DcpHost_WithUnhealthyContainerRuntime_CanStartBackgroundPolling()
     {
         // Arrange - this test verifies that the background polling task starts
-        // We can't easily test the full cancellation in a unit test with the real 10-second polling interval
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
@@ -283,6 +312,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
+        var timeProvider = TimeProvider.System;
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -290,16 +320,17 @@ public sealed class DcpHostNotificationTests
             dependencyCheckService,
             interactionService,
             locations,
-            applicationModel);
+            applicationModel,
+            timeProvider);
 
         // Act
         await dcpHost.StartAsync(CancellationToken.None);
 
-        // Wait for the notification to be shown
-        await Task.Delay(200);
+        // Use ReadAsync with timeout to wait for the notification
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
         
         // Assert - Verify notification was shown and contains the proper cancellation token
-        Assert.True(interactionService.Interactions.Reader.TryRead(out var interaction));
         Assert.Equal("Container Runtime Unhealthy", interaction.Title);
         Assert.False(interaction.CancellationToken.IsCancellationRequested); // Should not be cancelled yet
         }
