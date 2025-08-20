@@ -26,8 +26,8 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.23.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.53.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.3" />
-    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.30.3" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.31.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.31.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.12.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.3.0" />
     <!-- Azure Management SDK for .NET dependencies -->
@@ -108,7 +108,7 @@
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console" Version="0.50.1-preview.0.20" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.41" />
-    <PackageVersion Include="System.IO.Hashing" Version="9.0.7" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.8" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="StreamJsonRpc" Version="2.22.11" />
     <PackageVersion Include="Semver" Version="3.0.0" />
@@ -131,11 +131,11 @@
     <!-- Fuzzing tests dependencies -->
     <PackageVersion Include="SharpFuzz" Version="$(SharpFuzzPackageVersion)" />
     <!-- playground apps dependencies -->
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.2.0" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.2.1" />
     <!-- playground apps dependencies for AzureAppConfiguration -->
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.3.0" />
     <!-- playground apps dependencies for AzureFunctionsEndToEnd -->
