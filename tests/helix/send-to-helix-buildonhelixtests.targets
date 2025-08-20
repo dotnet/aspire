@@ -10,6 +10,9 @@
 
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
+
+    <_HelixUploadPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT</_HelixUploadPath>
+    <_HelixUploadPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%</_HelixUploadPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +25,9 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
 
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(_TestNameEnvVar).trx" />
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixUploadPath)/dotnet.config ./dotnet.config" />
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(_TestNameEnvVar).trx&quot;" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixUploadPath)\dotnet.config&quot; &quot;dotnet.config&quot;" />
   </ItemGroup>
 
   <!-- `dotnet build` + `dotnet test` on helix -->
