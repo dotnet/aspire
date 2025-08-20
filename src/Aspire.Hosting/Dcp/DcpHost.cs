@@ -66,7 +66,7 @@ internal sealed class DcpHost
         EnsureDcpHostRunning();
     }
 
-    private async Task EnsureDcpContainerRuntimeAsync(CancellationToken cancellationToken)
+    internal async Task EnsureDcpContainerRuntimeAsync(CancellationToken cancellationToken)
     {
         // Ensure DCP is installed and has all required dependencies
         var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken: cancellationToken).ConfigureAwait(false);

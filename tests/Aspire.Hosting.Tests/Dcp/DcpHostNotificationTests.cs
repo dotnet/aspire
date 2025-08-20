@@ -74,7 +74,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.StartAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use ReadAsync with timeout instead of Task.Delay and TryRead
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -124,7 +124,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.StartAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -179,7 +179,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.StartAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -234,7 +234,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.StartAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use ReadAsync with timeout instead of Task.Delay and TryRead
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -285,7 +285,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.StartAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use ReadAsync with timeout to wait for the notification
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
