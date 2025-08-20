@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Xml;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
@@ -125,11 +126,39 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        // TODO: Add logic to actually do update.
-        var sdkUpdateStep = new UpdateStep(
-            $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
-            () => Task.CompletedTask);
-        context.UpdateSteps.Enqueue(sdkUpdateStep);
+        if (SemVersion.Parse(latestSdkPackage.Version).ComparePrecedenceTo(SemVersion.Parse(sdkVersionElement.GetString()!)) > 0)
+        {
+            var sdkUpdateStep = new UpdateStep(
+                $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
+                () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
+            context.UpdateSteps.Enqueue(sdkUpdateStep);
+        }
+    }
+
+    private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    {
+        var projectDocument = new XmlDocument();
+        projectDocument.PreserveWhitespace = true;
+        
+        projectDocument.Load(projectFile.FullName);
+
+        var projectNode = projectDocument.SelectSingleNode("/Project");
+        if (projectNode is null)
+        {
+            throw new ProjectUpdaterException($"Could not find root <Project> element in {projectFile.FullName}");
+        }
+
+        var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+        if (sdkNode is null)
+        {
+            throw new ProjectUpdaterException($"Could not find <Sdk Name='Aspire.AppHost.Sdk' /> element in {projectFile.FullName}");
+        }
+        
+        sdkNode.Attributes?["Version"]?.Value = package.Version;
+
+        projectDocument.Save(projectFile.FullName);
+
+        await Task.CompletedTask;
     }
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
