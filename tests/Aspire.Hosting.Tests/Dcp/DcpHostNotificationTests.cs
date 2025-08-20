@@ -258,7 +258,7 @@ public sealed class DcpHostNotificationTests
     public async Task DcpHost_WithUnhealthyContainerRuntime_CanStartBackgroundPolling()
     {
         // Arrange - this test verifies that the background polling task starts
-        // We can't easily test the full cancellation in a unit test with the real 5-second polling interval
+        // We can't easily test the full cancellation in a unit test with the real 10-second polling interval
         using var app = CreateAppWithContainers();
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         

@@ -457,11 +457,10 @@ internal sealed class DcpHost
     {
         try
         {
-            // Poll every 5 seconds to check if container runtime has become healthy
-            while (!notificationCts.Token.IsCancellationRequested)
+            // Poll every 10 seconds to check if container runtime has become healthy
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), notificationCts.Token).ConfigureAwait(false);
-                
                 try
                 {
                     var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
