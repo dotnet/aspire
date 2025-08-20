@@ -16,6 +16,7 @@
     <Project Path="src/Components/Aspire.Azure.Search.Documents/Aspire.Azure.Search.Documents.csproj" />
     <Project Path="src/Components/Aspire.Azure.Security.KeyVault/Aspire.Azure.Security.KeyVault.csproj" />
     <Project Path="src/Components/Aspire.Azure.Storage.Blobs/Aspire.Azure.Storage.Blobs.csproj" />
+    <Project Path="src/Components/Aspire.Azure.Storage.Files.DataLake/Aspire.Azure.Storage.Files.DataLake.csproj" />
     <Project Path="src/Components/Aspire.Azure.Storage.Queues/Aspire.Azure.Storage.Queues.csproj" />
     <Project Path="src/Components/Aspire.Confluent.Kafka/Aspire.Confluent.Kafka.csproj" />
     <Project Path="src/Components/Aspire.Keycloak.Authentication/Aspire.Keycloak.Authentication.csproj" />
@@ -351,6 +352,7 @@
     <Project Path="tests/Aspire.Azure.Search.Documents.Tests/Aspire.Azure.Search.Documents.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Security.KeyVault.Tests/Aspire.Azure.Security.KeyVault.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Blobs.Tests/Aspire.Azure.Storage.Blobs.Tests.csproj" />
+    <Project Path="tests/Aspire.Azure.Storage.Files.DataLake.Tests/Aspire.Azure.Storage.Files.DataLake.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj" />
     <Project Path="tests/Aspire.Components.Common.TestUtilities/Aspire.Components.Common.TestUtilities.csproj" />
     <Project Path="tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj" />
