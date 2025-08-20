@@ -5,9 +5,12 @@ namespace Aspire.Hosting.Azure.AppConfiguration;
 
 internal static class AppConfigurationEmulatorContainerImageTags
 {
+    /// <remarks>mcr.microsoft.com</remarks>
     public const string Registry = "mcr.microsoft.com";
 
+    /// <remarks>azure-app-configuration/app-configuration-emulator</remarks>
     public const string Image = "azure-app-configuration/app-configuration-emulator";
 
+    /// <remarks>1.0.0-preview</remarks>
     public const string Tag = "1.0.0-preview";
 }

@@ -13,15 +13,6 @@ public class AzureAppConfigurationEmulatorResource(AzureAppConfigurationResource
 {
     private readonly AzureAppConfigurationResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 
-    /// <summary>
-    /// Enables anonymous authentication for the Azure App Configuration emulator resource.
-    /// </summary>
-    internal void ConfigureAnonymousAuthentication(bool enabled = true, string role = "Owner")
-    {
-        _innerResource.EmulatorOptions.AnonymousAccessEnabled = enabled;
-        _innerResource.EmulatorOptions.AnonymousUserRole = role;
-    }
-
     /// <inheritdoc/>
     public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;
 }
