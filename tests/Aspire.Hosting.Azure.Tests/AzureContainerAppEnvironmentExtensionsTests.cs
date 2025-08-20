@@ -38,8 +38,7 @@ public class AzureContainerAppEnvironmentExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(containerAppEnvironment.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureContainerAppEnvironmentResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     [Fact]

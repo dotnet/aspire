@@ -36,7 +36,6 @@ public class AzureAppServiceEnvironmentExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appServiceEnvironment.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureAppServiceEnvironmentResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

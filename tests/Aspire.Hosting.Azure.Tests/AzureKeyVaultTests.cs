@@ -370,7 +370,6 @@ public class AzureKeyVaultTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(keyVault.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureKeyVaultResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

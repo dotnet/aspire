@@ -122,8 +122,7 @@ public class AzureContainerRegistryTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(acr.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureContainerRegistryResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     private sealed class Project : IProjectMetadata

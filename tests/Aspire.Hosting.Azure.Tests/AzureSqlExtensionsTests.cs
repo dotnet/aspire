@@ -326,8 +326,7 @@ public class AzureSqlExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(sql.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureSqlServerResource");
+        await Verify(bicep, extension: "bicep");
     }
     
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

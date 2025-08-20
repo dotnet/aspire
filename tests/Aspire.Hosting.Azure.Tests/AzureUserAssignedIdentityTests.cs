@@ -358,8 +358,7 @@ public class AzureUserAssignedIdentityTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(userAssignedIdentity.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureUserAssignedIdentityResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     private sealed class TestProject : IProjectMetadata

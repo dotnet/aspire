@@ -647,7 +647,6 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureEventHubsResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

@@ -125,7 +125,6 @@ public class AzureSearchExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureSearchResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

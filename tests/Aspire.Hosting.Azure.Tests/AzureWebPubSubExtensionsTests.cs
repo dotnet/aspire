@@ -379,8 +379,7 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(webPubSub.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureWebPubSubResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     private sealed class ProjectA : IProjectMetadata

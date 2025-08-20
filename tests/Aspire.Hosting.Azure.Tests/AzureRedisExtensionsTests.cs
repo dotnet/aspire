@@ -247,8 +247,7 @@ public class AzureRedisExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureRedisCacheResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

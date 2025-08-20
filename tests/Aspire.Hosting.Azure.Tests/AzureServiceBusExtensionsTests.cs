@@ -868,7 +868,6 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureServiceBusResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

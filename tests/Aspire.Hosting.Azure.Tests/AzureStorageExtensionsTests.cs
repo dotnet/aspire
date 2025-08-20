@@ -919,7 +919,6 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureStorageResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

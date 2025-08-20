@@ -95,7 +95,6 @@ public class AzureSignalRExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(signalR.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureSignalRResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

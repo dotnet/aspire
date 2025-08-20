@@ -515,7 +515,6 @@ public class AzurePostgresExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(postgres.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzurePostgresFlexibleServerResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

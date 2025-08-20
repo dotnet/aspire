@@ -136,7 +136,6 @@ public class AzureOpenAIExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(openAI.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureOpenAIResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

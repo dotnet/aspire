@@ -58,7 +58,6 @@ public class AzureLogAnalyticsWorkspaceExtensionsTests
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(logAnalyticsWorkspace.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureLogAnalyticsWorkspaceResource");
+        await Verify(bicep, extension: "bicep");
     }
 }

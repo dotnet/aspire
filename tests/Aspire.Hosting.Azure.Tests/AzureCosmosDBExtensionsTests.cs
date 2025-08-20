@@ -579,8 +579,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmosdb.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureCosmosDBResource");
+        await Verify(bicep, extension: "bicep");
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

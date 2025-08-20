@@ -120,7 +120,6 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
         // Act & Assert - Generate bicep and verify using snapshot testing
         var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appConfig.Resource);
 
-        await Verify(bicep, extension: "bicep")
-            .UseParameters("AzureAppConfigurationResource");
+        await Verify(bicep, extension: "bicep");
     }
 }
