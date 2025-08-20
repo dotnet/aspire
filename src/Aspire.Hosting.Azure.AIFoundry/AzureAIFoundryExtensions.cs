@@ -77,7 +77,7 @@ public static class AzureAIFoundryExtensions
     /// </summary>
     /// <param name="builder">The Azure AI Foundry resource builder.</param>
     /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
-    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">AddDeployment(name: "my-deployment", model: AIFoundryModel.OpenAI.Gpt5Mini</code></param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: AIFoundryModel.OpenAI.Gpt5Mini)</code></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <example>
