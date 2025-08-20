@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppConfiguration;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.Primitives;
 
@@ -14,8 +15,16 @@ namespace Aspire.Hosting.Azure;
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureAppConfigurationResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+    IResourceWithConnectionString, IResourceWithEndpoints
 {
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
+    internal AzureAppConfigurationEmulatorOptions EmulatorOptions { get; } = new AzureAppConfigurationEmulatorOptions();
+
+    /// <summary>
+    /// Gets a value indicating whether the Azure App Configuration resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
     /// <summary>
     /// Gets the appConfigEndpoint output reference for the Azure App Configuration resource.
     /// </summary>
@@ -30,7 +39,9 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Endpoint}");
+       IsEmulator
+        ? AzureAppConfigurationEmulatorConnectionString.Create(EmulatorEndpoint)
+        : ReferenceExpression.Create($"{Endpoint}");
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
