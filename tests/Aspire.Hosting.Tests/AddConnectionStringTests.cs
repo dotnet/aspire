@@ -66,4 +66,39 @@ public class AddConnectionStringTests
         Assert.Equal(KnownResourceTypes.ConnectionString, state.ResourceType);
         Assert.Equal(KnownResourceStates.Waiting, state.State?.Text);
     }
+
+    [Fact]
+    public void ConnectionStringResourceAddsWaitAnnotationsForReferencedResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var redis = builder.AddContainer("c", "redis").WithEndpoint(name: "tcp");
+        var key = builder.AddParameter("key", "secretKey", secret: true);
+        var rwl = builder.AddResource(new ResourceWithoutLifetime("rwl"));
+
+        var cs = builder.AddConnectionString("mycs",
+            ReferenceExpression.Create($"Endpoint={redis.GetEndpoint("tcp")};key={key};{rwl}"));
+
+        cs.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations);
+
+        Assert.NotNull(waitAnnotations);
+
+        Assert.Collection(waitAnnotations,
+            wa =>
+            {
+                Assert.Same(redis.Resource, wa.Resource);
+                Assert.Equal(WaitType.WaitUntilHealthy, wa.WaitType);
+            },
+            wa =>
+            {
+                Assert.Same(key.Resource, wa.Resource);
+                Assert.Equal(WaitType.WaitUntilHealthy, wa.WaitType);
+            });
+    }
+
+    private sealed class ResourceWithoutLifetime(string name) : Resource(name), IResourceWithConnectionString, IResourceWithoutLifetime
+    {
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"ResourceWithoutLifetime");
+    }
 }
