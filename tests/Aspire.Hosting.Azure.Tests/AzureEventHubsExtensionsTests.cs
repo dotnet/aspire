@@ -634,48 +634,20 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureEventHubsResource()
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureEventHubsResource()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-eventhubs-name");
         var existingResourceGroup = builder.AddParameter("existing-eventhubs-rg");
         
-        var eventHubsResource = new AzureEventHubsResource("test-eventhubs", _ => { });
-        eventHubsResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
-        
-        var infrastructure = new AzureResourceInfrastructure(eventHubsResource, "test-eventhubs");
+        var eventHubs = builder.AddAzureEventHubs("test-eventhubs")
+            .AsExisting(existingName, existingResourceGroup);
 
-        // Act
-        var result = eventHubsResource.AddAsExistingResource(infrastructure);
+        // Act & Assert - Generate bicep and verify using snapshot testing
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(eventHubs.Resource);
 
-        // Assert - The resource should use the name from the annotation, not the default
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        var nameProperty = result.ProvisionableProperties["name"];
-        Assert.NotNull(nameProperty);
-        
-        // Verify that scope is set due to different resource group
-        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
-        var scopeProperty = result.ProvisionableProperties["scope"];
-        Assert.NotNull(scopeProperty);
-    }
-
-    [Fact]
-    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureEventHubsResource()
-    {
-        // Arrange
-        var eventHubsResource = new AzureEventHubsResource("test-eventhubs", _ => { });
-        var infrastructure = new AzureResourceInfrastructure(eventHubsResource, "test-eventhubs");
-
-        // Act
-        var result = eventHubsResource.AddAsExistingResource(infrastructure);
-
-        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        
-        // The key point is that it should work when no annotation exists
-        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+        await Verify(bicep, extension: "bicep")
+            .UseParameters("AzureEventHubsResource");
     }
 }

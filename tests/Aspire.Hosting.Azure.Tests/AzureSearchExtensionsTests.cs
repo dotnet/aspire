@@ -112,48 +112,20 @@ public class AzureSearchExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureSearchResource()
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureSearchResource()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-search-name");
         var existingResourceGroup = builder.AddParameter("existing-search-rg");
         
-        var searchResource = new AzureSearchResource("test-search", _ => { });
-        searchResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
-        
-        var infrastructure = new AzureResourceInfrastructure(searchResource, "test-search");
+        var search = builder.AddAzureSearch("test-search")
+            .AsExisting(existingName, existingResourceGroup);
 
-        // Act
-        var result = searchResource.AddAsExistingResource(infrastructure);
+        // Act & Assert - Generate bicep and verify using snapshot testing
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(search.Resource);
 
-        // Assert - The resource should use the name from the annotation, not the default
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        var nameProperty = result.ProvisionableProperties["name"];
-        Assert.NotNull(nameProperty);
-        
-        // Verify that scope is set due to different resource group
-        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
-        var scopeProperty = result.ProvisionableProperties["scope"];
-        Assert.NotNull(scopeProperty);
-    }
-
-    [Fact]
-    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureSearchResource()
-    {
-        // Arrange
-        var searchResource = new AzureSearchResource("test-search", _ => { });
-        var infrastructure = new AzureResourceInfrastructure(searchResource, "test-search");
-
-        // Act
-        var result = searchResource.AddAsExistingResource(infrastructure);
-
-        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        
-        // The key point is that it should work when no annotation exists
-        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+        await Verify(bicep, extension: "bicep")
+            .UseParameters("AzureSearchResource");
     }
 }

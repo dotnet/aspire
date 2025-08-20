@@ -107,48 +107,20 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureAppConfigurationResource()
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureAppConfigurationResource()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var existingName = builder.AddParameter("existing-appconfig-name");
         var existingResourceGroup = builder.AddParameter("existing-appconfig-rg");
         
-        var appConfigurationResource = new AzureAppConfigurationResource("test-app-config", _ => { });
-        appConfigurationResource.Annotations.Add(new ExistingAzureResourceAnnotation(existingName.Resource, existingResourceGroup.Resource));
-        
-        var infrastructure = new AzureResourceInfrastructure(appConfigurationResource, "test-app-config");
+        var appConfig = builder.AddAzureAppConfiguration("test-app-config")
+            .AsExisting(existingName, existingResourceGroup);
 
-        // Act
-        var result = appConfigurationResource.AddAsExistingResource(infrastructure);
+        // Act & Assert - Generate bicep and verify using snapshot testing
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appConfig.Resource);
 
-        // Assert - The resource should use the name from the annotation, not the default
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        var nameProperty = result.ProvisionableProperties["name"];
-        Assert.NotNull(nameProperty);
-        
-        // Verify that scope is set due to different resource group
-        Assert.True(result.ProvisionableProperties.ContainsKey("scope"));
-        var scopeProperty = result.ProvisionableProperties["scope"];
-        Assert.NotNull(scopeProperty);
-    }
-
-    [Fact]
-    public void AddAsExistingResource_FallsBackToDefault_WhenNoAnnotation_ForAzureAppConfigurationResource()
-    {
-        // Arrange
-        var appConfigurationResource = new AzureAppConfigurationResource("test-app-config", _ => { });
-        var infrastructure = new AzureResourceInfrastructure(appConfigurationResource, "test-app-config");
-
-        // Act
-        var result = appConfigurationResource.AddAsExistingResource(infrastructure);
-
-        // Assert - Should use default behavior (NameOutputReference.AsProvisioningParameter)
-        Assert.NotNull(result);
-        Assert.True(result.ProvisionableProperties.ContainsKey("name"));
-        
-        // The key point is that it should work when no annotation exists
-        // Scope behavior may vary based on infrastructure setup, so we don't assert on it
+        await Verify(bicep, extension: "bicep")
+            .UseParameters("AzureAppConfigurationResource");
     }
 }
