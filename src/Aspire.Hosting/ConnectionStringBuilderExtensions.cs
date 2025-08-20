@@ -88,6 +88,7 @@ public static class ConnectionStringBuilderExtensions
                  {
                      try
                      {
+                         // This is where waiting happens
                          await @evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(r, @evt.Services), ct).ConfigureAwait(false);
 
                          // Publish the update with the connection string value and the state as running.
