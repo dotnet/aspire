@@ -82,6 +82,11 @@
         <target state="translated">No se pudo analizar la versión de la plantilla desde stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">No se pudieron recuperar los paquetes de plantillas a través de la caché.</target>

@@ -82,6 +82,11 @@
         <target state="translated">Échec de l’analyse de la version du modèle à partir de stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Échec de la récupération des packages de modèles via le cache.</target>

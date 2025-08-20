@@ -82,6 +82,11 @@
         <target state="translated">Nie można przeanalizować wersji szablonu z właściwości StdOut.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nie można pobrać pakietów szablonów za pośrednictwem pamięci podręcznej.</target>

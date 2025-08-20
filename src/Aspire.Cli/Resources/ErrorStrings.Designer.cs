@@ -95,6 +95,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string FailedToRetrieveCachedAllAspirePackages {
+            get {
+                return ResourceManager.GetString("FailedToRetrieveCachedAllAspirePackages", resourceCulture);
+            }
+        }
+        
         public static string FailedToSearchForPackages {
             get {
                 return ResourceManager.GetString("FailedToSearchForPackages", resourceCulture);

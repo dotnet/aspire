@@ -82,6 +82,11 @@
         <target state="translated">stdout からのテンプレート バージョンの解析に失敗しました。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">キャッシュを経由したテンプレート パッケージの取得に失敗しました。</target>
