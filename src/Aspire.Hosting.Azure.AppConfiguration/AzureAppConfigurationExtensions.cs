@@ -86,11 +86,12 @@ public static class AzureAppConfigurationExtensions
                 Tag = AppConfigurationEmulatorContainerImageTags.Tag
             });
 
+        var surrogate = new AzureAppConfigurationEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+        surrogateBuilder.WithAnonymousAccess(role: "Owner"); // enable anonymous access by default
+
         if (configureEmulator != null)
         {
-            var surrogate = new AzureAppConfigurationEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            surrogateBuilder.WithAnonymousAccess(role: "Owner"); // enable anonymous access by default
             configureEmulator(surrogateBuilder);
         }
 
