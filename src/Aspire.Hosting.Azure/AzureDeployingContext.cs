@@ -230,9 +230,7 @@ internal sealed class AzureDeployingContext(
             cancellationToken).ConfigureAwait(false);
 
         var registryName = await registry.Name.GetValueAsync(cancellationToken).ConfigureAwait(false);
-        var loginServer = await registry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-        if (registryName == null || loginServer == null)
+        if (registryName == null)
         {
             throw new InvalidOperationException("Failed to retrieve container registry information.");
         }
@@ -243,10 +241,7 @@ internal sealed class AzureDeployingContext(
             try
             {
                 await AuthenticateToAcr(acrStep, registryName, cancellationToken).ConfigureAwait(false);
-
-                // Load local OCI images and push to ACR
-                await PushImageToAcr(acrStep, resources, loginServer, cancellationToken).ConfigureAwait(false);
-
+                await PushImageToAcr(acrStep, resources, cancellationToken).ConfigureAwait(false);
                 await acrStep.CompleteAsync($"Successfully pushed {resources.Count} images to {registryName}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -303,21 +298,24 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private static async Task PushImageToAcr(IPublishingStep parentStep, IEnumerable<IResource> resources,
-        string loginServer, CancellationToken cancellationToken)
+    private static async Task PushImageToAcr(IPublishingStep parentStep, IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
         foreach (var resource in resources)
         {
             var localImageName = resource.Name.ToLowerInvariant();
-            var targetTag = $"{loginServer}/{resource.Name.ToLowerInvariant()}:latest";
+            IValueProvider cir = new ContainerImageReference(resource);
+            var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
             var pushTask = await parentStep.CreateTaskAsync($"Pushing {resource.Name}", cancellationToken).ConfigureAwait(false);
             await using (pushTask.ConfigureAwait(false))
             {
                 try
                 {
+                    if (targetTag == null)
+                    {
+                        throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
+                    }
                     await TagAndPushImage(localImageName, targetTag, cancellationToken).ConfigureAwait(false);
-
                     await pushTask.CompleteAsync($"Successfully pushed {resource.Name} to {targetTag}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
