@@ -63,7 +63,7 @@ public class AddConnectionStringTests
 
         Assert.False(state.IsHidden);
         Assert.Equal(KnownResourceTypes.ConnectionString, state.ResourceType);
-        Assert.Equal(KnownResourceStates.Waiting, state.State?.Text);
+        Assert.Equal(KnownResourceStates.NotStarted, state.State?.Text);
     }
 
     [Fact]
