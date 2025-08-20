@@ -77,8 +77,19 @@ public static class AzureAIFoundryExtensions
     /// </summary>
     /// <param name="builder">The Azure AI Foundry resource builder.</param>
     /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
-    /// <param name="model">The model descriptor.</param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">AddDeployment(name: "my-deployment", model: AIFoundryModel.OpenAI.Gpt5Mini</code></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a deployment for the OpenAI GTP-5-mini model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// var gpt5mini = aiFoundry.AddDeployment("chat", AIFoundryModel.OpenAI.Gpt5Mini);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
     {
         ArgumentNullException.ThrowIfNull(builder);
