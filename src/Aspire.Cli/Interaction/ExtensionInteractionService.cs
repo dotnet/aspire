@@ -45,8 +45,16 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         {
             while (await _extensionTaskChannel.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
-                var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
-                await taskFunction.Invoke();
+                try
+                {
+                    var taskFunction = await _extensionTaskChannel.Reader.ReadAsync().ConfigureAwait(false);
+                    await taskFunction.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    await Backchannel.DisplayErrorAsync(ex.Message.RemoveSpectreFormatting(), _cancellationToken);
+                    _consoleInteractionService.DisplayError(ex.Message);
+                }
             }
         });
     }

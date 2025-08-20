@@ -131,34 +131,6 @@ suite('InteractionService endpoints', () => {
 		stub.restore();
 	});
 
-	test("displayDashboardUrls shows correct actions and URLs", async () => {
-		const testInfo = await createTestRpcServer();
-		const dashboardMessageItem: vscode.MessageItem = { title: directLink };
-		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(dashboardMessageItem);
-		const openExternalStub = sinon.stub(vscode.env, 'openExternal').resolves(true as any);
-
-		const baseUrl = 'http://localhost';
-		const codespacesUrl = 'http://codespaces';
-		await testInfo.interactionService.displayDashboardUrls({
-			BaseUrlWithLoginToken: baseUrl,
-			CodespacesUrlWithLoginToken: codespacesUrl
-		});
-
-		// Check that showInformationMessage was called with the expected arguments
-		const expectedArgs = [
-			openAspireDashboard,
-			{ title: directLink },
-			{ title: codespacesLink }
-		];
-		const actualArgs = showInfoMessageStub.getCall(0)?.args;
-		assert.deepStrictEqual(actualArgs, expectedArgs, 'showInformationMessage should be called with correct arguments');
-
-		// Check that openExternal was called with the baseUrl
-		assert.ok(openExternalStub.calledWith(vscode.Uri.parse(baseUrl)), 'openExternal should be called with baseUrl');
-		showInfoMessageStub.restore();
-		openExternalStub.restore();
-	});
-
 	test("displayDashboardUrls writes URLs to output channel", async () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();

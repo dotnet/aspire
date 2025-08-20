@@ -235,4 +235,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       }
     });
   }
+
+  notifyAppHostStartupCompleted() {
+    extensionLogOutputChannel.info(`AppHost startup completed and dashboard is running.`);
+  }
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, buildSucceeded, noOutputFromMsbuild, failedToGetTargetPath, csharpSupportNotEnabled, failedToStartProject } from '../../loc/strings';
+import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, csharpSupportNotEnabled, failedToStartProject } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../../utils/environment';
@@ -86,7 +86,6 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
                     reject(new Error(buildFailedWithExitCode(e.exitCode ?? 0)));
                 }
                 else {
-                    vscode.window.showInformationMessage(buildSucceeded(projectFile));
                     return resolve();
                 }
             }

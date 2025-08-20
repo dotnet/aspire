@@ -206,23 +206,24 @@ export class InteractionService implements IInteractionService {
             actions.push({ title: codespacesLink });
         }
 
-        const selected = await vscode.window.showInformationMessage(
+        // Don't await - fire and forget to avoid blocking
+        vscode.window.showInformationMessage(
             openAspireDashboard,
             ...actions
-        );
+        ).then(selected => {
+            if (!selected) {
+                return;
+            }
 
-        if (!selected) {
-            return;
-        }
+            extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
-        extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
-
-        if (selected.title === directLink) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
-        }
-        else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
-        }
+            if (selected.title === directLink) {
+                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+            }
+            else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
+                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+            }
+        });
     }
 
     displayLines(lines: ConsoleLine[]) {
@@ -274,7 +275,7 @@ export class InteractionService implements IInteractionService {
     }
 
     notifyAppHostStartupCompleted() {
-        // TODO
+        extensionContext.aspireDebugSession.notifyAppHostStartupCompleted();
     }
 
     clearStatusBar() {
@@ -304,4 +305,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
     connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, workingDirectory, args, environment, debug)));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
+    connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
 }
