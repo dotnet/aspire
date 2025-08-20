@@ -133,6 +133,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11034")]
     public async Task NewCommandDoesNotPromptForProjectNameIfSpecifiedOnCommandLine()
     {
         var promptedForName = false;
