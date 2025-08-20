@@ -35,13 +35,22 @@ internal sealed class AzureDeployingContext(
         }
 
         // Step 1: Provision main Azure infrastructure (compute environment, resources, container registry)
-        await ProvisionAzureInfrastructure(resource, provisioningContext, cancellationToken).ConfigureAwait(false);
+        if (!await TryProvisionAzureInfrastructure(resource, provisioningContext, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
 
         // Step 2: Build and push container images to ACR
-        await DeployContainerImages(model, cancellationToken).ConfigureAwait(false);
+        if (!await TryDeployContainerImages(model, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
 
         // Step 3: Deploy compute resources to compute environment with images from step 2
-        await DeployComputeResources(model, provisioningContext, cancellationToken).ConfigureAwait(false);
+        if (!await TryDeployComputeResources(model, provisioningContext, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
 
         // Display dashboard URL after successful deployment
         var dashboardUrl = TryGetDashboardUrl(model);
@@ -51,7 +60,7 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private async Task ProvisionAzureInfrastructure(AzureEnvironmentResource resource, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
+    private async Task<bool> TryProvisionAzureInfrastructure(AzureEnvironmentResource resource, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
         var deployingStep = await activityReporter.CreateStepAsync("Deploying to Azure", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
@@ -98,18 +107,19 @@ internal sealed class AzureDeployingContext(
                 };
 
                 await deployingStep.FailAsync(errorMessage, cancellationToken).ConfigureAwait(false);
-                return;
+                return false;
             }
         }
+        return true;
     }
 
-    private async Task DeployContainerImages(DistributedApplicationModel model, CancellationToken cancellationToken)
+    private async Task<bool> TryDeployContainerImages(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         var computeResources = model.GetComputeResources();
 
         if (!computeResources.Any())
         {
-            return;
+            return false;
         }
 
         // Group resources by their deployment target (container registry) since each compute
@@ -134,16 +144,18 @@ internal sealed class AzureDeployingContext(
         {
             await ProcessResourcesForRegistry(registry, resources, cancellationToken).ConfigureAwait(false);
         }
+
+        return true;
     }
 
-    private async Task DeployComputeResources(DistributedApplicationModel model,
+    private async Task<bool> TryDeployComputeResources(DistributedApplicationModel model,
         ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
         var computeResources = model.GetComputeResources();
 
         if (!computeResources.Any())
         {
-            return;
+            return false;
         }
 
         var computeStep = await activityReporter.CreateStepAsync("Deploying compute resources", cancellationToken).ConfigureAwait(false);
@@ -164,6 +176,8 @@ internal sealed class AzureDeployingContext(
                 throw;
             }
         }
+
+        return true;
     }
 
     private async Task DeployComputeResource(IPublishingStep parentStep, IResource computeResource, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
