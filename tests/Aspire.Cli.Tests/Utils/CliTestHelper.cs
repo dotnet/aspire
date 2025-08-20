@@ -208,7 +208,8 @@ internal sealed class CliServiceCollectionTestOptions
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-        return new ProjectUpdater(logger, runner, interactionService, cache);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
