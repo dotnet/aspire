@@ -38,7 +38,7 @@ public partial class StructuredLogDetails : IDisposable
         _contextAttributes.Where(ApplyFilter).AsQueryable();
 
     internal IQueryable<TelemetryPropertyViewModel> FilteredResourceItems =>
-        ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
+        ViewModel.LogEntry.ResourceView.AllProperties().Select(p => new TelemetryPropertyViewModel { Name = p.DisplayName, Key = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";
@@ -112,7 +112,7 @@ public partial class StructuredLogDetails : IDisposable
                 [KnownResourceFields.ServiceNameField] = new ComponentMetadata
                 {
                     Type = typeof(ResourceNameButtonValue),
-                    Parameters = { ["Resource"] = _viewModel.LogEntry.ApplicationView.Application }
+                    Parameters = { ["Resource"] = _viewModel.LogEntry.ResourceView.Resource }
                 },
                 [KnownStructuredLogFields.LevelField] = new ComponentMetadata
                 {

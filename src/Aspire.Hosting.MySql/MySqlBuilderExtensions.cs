@@ -189,6 +189,21 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
+    /// Configures the password that the MySQL resource uses.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the MySQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithPassword(this IResourceBuilder<MySqlServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
     /// </summary>
     /// <remarks>

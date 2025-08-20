@@ -8,6 +8,7 @@
 @inject IStringLocalizer<StructuredLogs> Loc
 
 <GridValue Value="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.ColumnMaximumTextLength)"
+           ValueToVisualize="@LogEntry.Message"
            ValueDescription="@Loc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
            ToolTip="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.TooltipMaximumTextLength)"
            EnableHighlighting="true"

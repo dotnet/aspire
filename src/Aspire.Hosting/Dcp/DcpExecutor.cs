@@ -557,7 +557,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 timestamp = result.Value.Timestamp.UtcDateTime;
             }
 
-            yield return LogEntry.Create(timestamp, resolvedContent, content, isError);
+            yield return LogEntry.Create(timestamp, resolvedContent, content, isError, resourcePrefix: null);
         }
     }
 

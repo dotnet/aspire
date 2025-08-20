@@ -432,9 +432,9 @@
         <target state="translated">繼續傳入資料</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">選取應用程式</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">選取資源</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

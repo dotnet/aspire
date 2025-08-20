@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Testing;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Azure.Provisioning;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -126,6 +128,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton(interactionService);
         builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
+        builder.Services.AddSingleton<IBicepProvisioner, NoOpBicepProvisioner>();
     }
 
     private sealed class NoOpUserSecretsManager : IUserSecretsManager
@@ -133,5 +136,18 @@ public class AzureDeployerTests(ITestOutputHelper output)
         public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
 
         public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class NoOpBicepProvisioner : IBicepProvisioner
+    {
+        public Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

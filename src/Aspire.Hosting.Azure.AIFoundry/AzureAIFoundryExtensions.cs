@@ -73,6 +73,36 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="AIFoundryModel"/>.
+    /// </summary>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: AIFoundryModel.OpenAI.Gpt5Mini)</code></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a deployment for the OpenAI GTP-5-mini model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// var gpt5mini = aiFoundry.AddDeployment("chat", AIFoundryModel.OpenAI.Gpt5Mini);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Version);
+        ArgumentException.ThrowIfNullOrEmpty(model.Format);
+
+        return builder.AddDeployment(name, model.Name, model.Version, model.Format);
+    }
+
+    /// <summary>
     /// Allows setting the properties of an Azure AI Foundry Deployment resource.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>

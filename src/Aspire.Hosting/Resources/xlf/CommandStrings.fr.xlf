@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="RestartDescription">
         <source>Restart resource</source>
-        <target state="new">Restart resource</target>
+        <target state="translated">Redémarrer la ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartName">
         <source>Restart</source>
-        <target state="new">Restart</target>
+        <target state="translated">Redémarrer</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start resource</source>
-        <target state="new">Start resource</target>
+        <target state="translated">Démarrer la ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="StartName">
         <source>Start</source>
-        <target state="new">Start</target>
+        <target state="translated">Démarrer</target>
         <note />
       </trans-unit>
       <trans-unit id="StopDescription">
         <source>Stop resource</source>
-        <target state="new">Stop resource</target>
+        <target state="translated">Arrêter la ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="StopName">
         <source>Stop</source>
-        <target state="new">Stop</target>
+        <target state="translated">Arrêter</target>
         <note />
       </trans-unit>
     </body>

@@ -432,9 +432,9 @@
         <target state="translated">Riprendi i dati in ingresso</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">Seleziona un'applicazione</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">Seleziona una risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">
