@@ -103,7 +103,15 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         // Create and add new resource if it doesn't exist
         // Even though it's a compound resource, we'll only expose the managed environment
         var cae = ContainerAppManagedEnvironment.FromExisting(bicepIdentifier);
-        cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            cae))
+        {
+            cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(cae);
         return cae;
     }
