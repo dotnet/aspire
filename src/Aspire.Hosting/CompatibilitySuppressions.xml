@@ -22,4 +22,25 @@
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0008</DiagnosticId>
+    <Target>T:Aspire.Hosting.ApplicationModel.ParameterResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0008</DiagnosticId>
+    <Target>T:Aspire.Hosting.ConnectionStringResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0008</DiagnosticId>
+    <Target>T:Aspire.Hosting.ExternalServiceResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
