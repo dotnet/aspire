@@ -6,6 +6,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Aspire.Hosting.Resources;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -133,13 +134,13 @@ internal sealed class VersionCheckService : BackgroundService
         }
 
         var result = await _interactionService.PromptNotificationAsync(
-            title: "Update now",
-            message: $"Aspire {latestVersion} is available.",
+            title: InteractionStrings.VersionCheckTitle,
+            message: string.Format(CultureInfo.CurrentCulture, InteractionStrings.VersionCheckMessage, latestVersion),
             options: new NotificationInteractionOptions
             {
-                LinkText = "Upgrade instructions",
+                LinkText = InteractionStrings.VersionCheckLinkText,
                 LinkUrl = "https://aka.ms/dotnet/aspire/update-latest",
-                PrimaryButtonText = "Ignore"
+                PrimaryButtonText = InteractionStrings.VersionCheckPrimaryButtonText
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
