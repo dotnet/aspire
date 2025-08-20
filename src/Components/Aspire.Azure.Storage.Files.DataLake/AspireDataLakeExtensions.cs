@@ -96,7 +96,7 @@ public static partial class AspireDataLakeExtensions
     /// <param name="configureClientBuilder">
     /// An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}" />.
     /// </param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Files:DataLake" section.</remarks>
     /// <exception cref="InvalidOperationException">
     /// Neither <see cref="AzureDataLakeSettings.ConnectionString" /> nor <see cref="AzureDataLakeSettings.ServiceUri" /> is provided.
     /// - or -
@@ -132,7 +132,7 @@ public static partial class AspireDataLakeExtensions
     /// <param name="configureClientBuilder">
     /// An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}" />.
     /// </param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Files:DataLake" section.</remarks>
     /// <exception cref="InvalidOperationException">
     /// Neither <see cref="AzureDataLakeSettings.ConnectionString" /> nor <see cref="AzureDataLakeSettings.ServiceUri" /> is provided.
     /// - or -
