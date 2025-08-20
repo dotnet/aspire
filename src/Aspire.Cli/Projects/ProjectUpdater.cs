@@ -93,7 +93,6 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private Task AnalyzeAppHostAsync(UpdateContext context, CancellationToken cancellationToken)
     {
-        // The AppHost project itself is special because we need to update the SDK.
         var appHostSdkAnalyzeStep = new AnalyzeStep("Analyze App Host SDK", () => AnalyzeAppHostSdkAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostSdkAnalyzeStep);
 
