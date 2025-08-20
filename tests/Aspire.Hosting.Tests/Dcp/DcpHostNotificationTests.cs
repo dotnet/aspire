@@ -5,6 +5,7 @@ using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -22,7 +23,7 @@ public sealed class DcpHostNotificationTests
         var interactionService = new TestInteractionService();
         var locations = new Locations();
         var applicationModel = new DistributedApplicationModel(new ResourceCollection());
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         // Act & Assert - should not throw
         var dcpHost = new DcpHost(
@@ -65,7 +66,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -124,7 +125,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -188,7 +189,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = false }; // Dashboard disabled
         var locations = new Locations();
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -252,7 +253,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
             loggerFactory,
@@ -312,7 +313,7 @@ public sealed class DcpHostNotificationTests
         };
         var interactionService = new TestInteractionService { IsAvailable = true };
         var locations = new Locations();
-        var timeProvider = TimeProvider.System;
+        var timeProvider = new FakeTimeProvider();
 
         var dcpHost = new DcpHost(
             loggerFactory,
