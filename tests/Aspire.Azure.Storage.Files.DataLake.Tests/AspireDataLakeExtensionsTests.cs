@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Storage.Blobs;
 using Azure.Storage.Files.DataLake;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,8 +65,8 @@ public sealed class AspireDataLakeExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed
-            ? host.Services.GetRequiredKeyedService<BlobServiceClient>(ConnectionName)
-            : host.Services.GetRequiredService<BlobServiceClient>();
+            ? host.Services.GetRequiredKeyedService<DataLakeServiceClient>(ConnectionName)
+            : host.Services.GetRequiredService<DataLakeServiceClient>();
 
         Assert.Equal(AccountName, client.AccountName);
     }
@@ -99,8 +98,8 @@ public sealed class AspireDataLakeExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed
-            ? host.Services.GetRequiredKeyedService<BlobServiceClient>(ConnectionName)
-            : host.Services.GetRequiredService<BlobServiceClient>();
+            ? host.Services.GetRequiredKeyedService<DataLakeServiceClient>(ConnectionName)
+            : host.Services.GetRequiredService<DataLakeServiceClient>();
 
         Assert.Equal(AccountName, client.AccountName);
     }
@@ -126,8 +125,8 @@ public sealed class AspireDataLakeExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed
-            ? host.Services.GetRequiredKeyedService<BlobServiceClient>(ConnectionName)
-            : host.Services.GetRequiredService<BlobServiceClient>();
+            ? host.Services.GetRequiredKeyedService<DataLakeServiceClient>(ConnectionName)
+            : host.Services.GetRequiredService<DataLakeServiceClient>();
 
         Assert.Equal(AccountName, client.AccountName);
     }

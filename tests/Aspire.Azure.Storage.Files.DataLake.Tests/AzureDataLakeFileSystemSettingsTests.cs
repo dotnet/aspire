@@ -25,7 +25,7 @@ public sealed class AzureDataLakeFileSystemSettingsTests
     [InlineData("Endpoint=https://example.dfs.core.windows.net;FileSystemName=my-files;ExtraParam=value")]
     [InlineData("endpoint=https://example.dfs.core.windows.net;filesystemname=my-files")]
     [InlineData("ENDPOINT=https://example.dfs.core.windows.net;FILESYSTEMNAME=my-files")]
-    [InlineData("Endpoint=\"https://example.dfs.core.windows.net\";ContainerName=\"my-files\"")]
+    [InlineData("Endpoint=\"https://example.dfs.core.windows.net\";FileSystemName=\"my-files\"")]
     public void ParseConnectionStringWithServiceUri(string connectionString)
     {
         var settings = new AzureDataLakeFileSystemSettings();

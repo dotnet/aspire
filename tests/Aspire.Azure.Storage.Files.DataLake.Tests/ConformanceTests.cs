@@ -19,7 +19,7 @@ public sealed class ConformanceTests : ConformanceTests<DataLakeServiceClient, A
     public const string ServiceUri = "https://aspirestoragetests.dfs.core.windows.net/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
-    protected override string ActivitySourceName => "Azure.Storage.Files.DataLake.DataLakeFileSystemClient";
+    protected override string ActivitySourceName => "Azure.Storage.Files.DataLake.DataLakeServiceClient";
 
     // AzureDataLakeSettings subclassed by AzureDataLakeFileSystemSettings
     protected override bool CheckOptionClassSealed => false;
