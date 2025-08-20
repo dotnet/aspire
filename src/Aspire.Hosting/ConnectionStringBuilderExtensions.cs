@@ -40,76 +40,78 @@ public static class ConnectionStringBuilderExtensions
     public static IResourceBuilder<ConnectionStringResource> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, ReferenceExpression connectionStringExpression)
     {
         var cs = new ConnectionStringResource(name, connectionStringExpression);
-        return builder.AddResource(cs)
-                      .WithReferenceRelationship(connectionStringExpression)
-                      .WithInitialState(new CustomResourceSnapshot
-                      {
-                          ResourceType = KnownResourceTypes.ConnectionString,
-                          State = KnownResourceStates.Waiting,
-                          Properties = []
-                      })
-                      .OnInitializeResource(async (r, @evt, ct) =>
-                      {
-                          // Wait for any referenced resources in the connection string.
-                          // We only look at top level resources with the assumption that they are transitive themselves.
-                          var tasks = new List<Task>();
-                          var resourceNames = new HashSet<string>(StringComparers.ResourceName);
 
-                          foreach (var value in r.ConnectionStringExpression.ValueProviders)
-                          {
-                              if (value is IResource resource)
-                              {
-                                  resourceNames.Add(resource.Name);
-                              }
-                              else if (value is IValueWithReferences valueWithReferences)
-                              {
-                                  foreach (var innerRef in valueWithReferences.References.OfType<IResource>())
-                                  {
-                                      resourceNames.Add(innerRef.Name);
-                                  }
-                              }
-                          }
+        var rb = builder.AddResource(cs);
 
-                          async Task DoWaitAsync(string resourceName)
-                          {
-                              @evt.Logger.LogInformation("Waiting for resource '{ResourceName}' to be healthy.", resourceName);
-                              await @evt.Notifications.WaitForResourceHealthyAsync(resourceName, ct).ConfigureAwait(false);
-                              @evt.Logger.LogInformation("Resource '{ResourceName}' is healthy.", resourceName);
-                          }
+        // Wait for any referenced resources in the connection string.
+        // We only look at top level resources with the assumption that they are transitive themselves.
+        var tasks = new List<Task>();
+        var resourceNames = new HashSet<string>(StringComparers.ResourceName);
 
-                          foreach (var resourceName in resourceNames)
-                          {
-                              tasks.Add(DoWaitAsync(resourceName));
-                          }
+        foreach (var value in cs.ConnectionStringExpression.ValueProviders)
+        {
+            if (value is IResourceWithoutLifetime)
+            {
+                // We cannot wait for resources without a lifetime.
+                continue;
+            }
 
-                          try
-                          {
-                              // Connection string resolution is dependent on parameters being resolved
-                              // We use this to wait for the parameters to be resolved before we can compute the connection string.
-                              await Task.WhenAll(tasks).ConfigureAwait(false);
+            if (value is IResource resource)
+            {
+                if (resourceNames.Add(resource.Name))
+                {
+                    // Wait for the resource.
+                    rb.WithAnnotation(new WaitAnnotation(resource, WaitType.WaitUntilStarted));
+                }
+            }
+            else if (value is IValueWithReferences valueWithReferences)
+            {
+                foreach (var innerRef in valueWithReferences.References.OfType<IResource>())
+                {
+                    if (resourceNames.Add(innerRef.Name))
+                    {
+                        // Wait for the inner resource.
+                        rb.WithAnnotation(new WaitAnnotation(innerRef, WaitType.WaitUntilStarted));
+                    }
+                }
+            }
+        }
 
-                              // Publish the update with the connection string value and the state as running.
-                              // This will allow health checks to start running.
-                              await evt.Notifications.PublishUpdateAsync(r, s => s with
-                              {
-                                  State = KnownResourceStates.Running
-                              }).ConfigureAwait(false);
+        return rb.WithReferenceRelationship(connectionStringExpression)
+                 .WithInitialState(new CustomResourceSnapshot
+                 {
+                     ResourceType = KnownResourceTypes.ConnectionString,
+                     State = KnownResourceStates.NotStarted,
+                     Properties = []
+                 })
+                 .OnInitializeResource(async (r, @evt, ct) =>
+                 {
+                     try
+                     {
+                         await @evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(r, @evt.Services), ct).ConfigureAwait(false);
 
-                              // Publish the connection string available event for other resources that may depend on this resource.
-                              await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
-                                                .ConfigureAwait(false);
-                          }
-                          catch (Exception ex)
-                          {
-                              evt.Logger.LogError(ex, "Failed to resolve connection string for resource '{ResourceName}'", r.Name);
+                         // Publish the update with the connection string value and the state as running.
+                         // This will allow health checks to start running.
+                         await evt.Notifications.PublishUpdateAsync(r, s => s with
+                         {
+                             State = KnownResourceStates.Running
+                         }).ConfigureAwait(false);
 
-                              // If we fail to resolve the connection string, we set the state to failed.
-                              await evt.Notifications.PublishUpdateAsync(r, s => s with
-                              {
-                                  State = KnownResourceStates.FailedToStart
-                              }).ConfigureAwait(false);
-                          }
-                      });
+                         // Publish the connection string available event for other resources that may depend on this resource.
+                         await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                         .ConfigureAwait(false);
+                     }
+                     catch (Exception ex)
+                     {
+                         evt.Logger.LogError(ex, "Failed to resolve connection string for resource '{ResourceName}'", r.Name);
+
+                         // If we fail to resolve the connection string, we set the state to failed.
+                         await evt.Notifications.PublishUpdateAsync(r, s => s with
+                         {
+                             State = KnownResourceStates.FailedToStart
+                         }).ConfigureAwait(false);
+                     }
+                 });
     }
 
     /// <summary>
