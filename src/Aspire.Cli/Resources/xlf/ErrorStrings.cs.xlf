@@ -82,6 +82,11 @@
         <target state="translated">Nepodařilo se analyzovat verzi šablony ze stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nepovedlo se načíst balíčky šablon prostřednictvím mezipaměti.</target>
