@@ -125,17 +125,19 @@ public static class AzureAppConfigurationExtensions
     }
 
     /// <summary>
-    /// Configures anonymous authentication for the Azure App Configuration emulator resource.
+    /// Configures the host port for the Azure App Configuration emulator is exposed on instead of using randomly assigned port.
     /// </summary>
-    /// <param name="builder">The resource builder for the Azure App Configuration emulator.</param>
-    /// <param name="role">The role to assign to the anonymous user. Defaults to "Owner".</param>
-    /// <returns>The updated resource builder for further configuration.</returns>
-    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string role = "Owner")
+    /// <param name="builder">Builder for the Azure App Configuration emulator container</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithHostPort(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, int? port)
     {
-        builder.Resource.ConfigureAnonymousAuthentication(true, role);
-        builder.WithEnvironment("Tenant:AnonymousAuthEnabled","true");
-        builder.WithEnvironment("Authentication:Anonymous:AnonymousUserRole", role);
-        return builder;
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("emulator", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -167,5 +169,19 @@ public static class AzureAppConfigurationExtensions
         where T : IResource
     {
         return builder.WithRoleAssignments(target, AppConfigurationBuiltInRole.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Configures anonymous authentication for the Azure App Configuration emulator resource.
+    /// </summary>
+    /// <param name="builder">The resource builder for the Azure App Configuration emulator.</param>
+    /// <param name="role">The role to assign to the anonymous user. Defaults to "Owner".</param>
+    /// <returns>The updated resource builder for further configuration.</returns>
+    internal static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithAnonymousAccess(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string role = "Owner")
+    {
+        builder.Resource.ConfigureAnonymousAuthentication(true, role);
+        builder.WithEnvironment("Tenant:AnonymousAuthEnabled", "true");
+        builder.WithEnvironment("Authentication:Anonymous:AnonymousUserRole", role);
+        return builder;
     }
 }
