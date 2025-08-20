@@ -61,7 +61,7 @@ public static class ConnectionStringBuilderExtensions
                 if (resourceNames.Add(resource.Name))
                 {
                     // Wait for the resource.
-                    rb.WithAnnotation(new WaitAnnotation(resource, WaitType.WaitUntilHealthy));
+                    rb.WaitForStart(builder.CreateResourceBuilder(resource));
                 }
             }
             else if (value is IValueWithReferences valueWithReferences)
@@ -71,7 +71,7 @@ public static class ConnectionStringBuilderExtensions
                     if (resourceNames.Add(innerRef.Name))
                     {
                         // Wait for the inner resource.
-                        rb.WithAnnotation(new WaitAnnotation(innerRef, WaitType.WaitUntilHealthy));
+                        rb.WaitForStart(builder.CreateResourceBuilder(innerRef));
                     }
                 }
             }

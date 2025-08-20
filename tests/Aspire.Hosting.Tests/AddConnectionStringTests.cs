@@ -87,12 +87,12 @@ public class AddConnectionStringTests
             wa =>
             {
                 Assert.Same(redis.Resource, wa.Resource);
-                Assert.Equal(WaitType.WaitUntilHealthy, wa.WaitType);
+                Assert.Equal(WaitType.WaitUntilStarted, wa.WaitType);
             },
             wa =>
             {
                 Assert.Same(key.Resource, wa.Resource);
-                Assert.Equal(WaitType.WaitUntilHealthy, wa.WaitType);
+                Assert.Equal(WaitType.WaitUntilStarted, wa.WaitType);
             });
     }
 
