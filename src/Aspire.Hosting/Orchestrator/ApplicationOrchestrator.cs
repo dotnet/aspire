@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -59,7 +58,6 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
-        _eventing.Subscribe<InitializeResourceEvent>(OnResourceInitialized);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -212,16 +210,47 @@ internal sealed class ApplicationOrchestrator
                 Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
                 if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
-                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = new EndpointReference(resourceWithEndpoints, endpoint) };
+                    // The allocated endpoint is used for service discovery and is the primary URL displayed to
+                    // the user. In general, if valid for a particular service binding, the allocated endpoint
+                    // will be "localhost" as that's a valid address for the .NET developer certificate. However,
+                    // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
+                    // address.
+                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
+                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
+
                     urls.Add(url);
+
+                    // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
+                        // additional URLs to indicate to the user other ways their service can be reached. If the service
+                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                        // as an additional URL.
+                        var additionalUrl = allocatedEndpoint.BindingMode switch
+                    {
+                        // The allocated address doesn't match the original target host, so include the target host as
+                        // an additional URL.
+                        EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                        // For other single address bindings ("localhost", specific IP), don't include an additional URL.
+                        EndpointBindingMode.SingleAddress => null,
+                        // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
+                        // name as an additional URL.
+                        _ => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                    };
+
+                    if (additionalUrl is not null)
+                    {
+                        urls.Add(additionalUrl);
+                    }
                 }
             }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            // Static URLs added to the resource via WithUrl(string name, string url), i.e. not callback-based
-            urls.AddRange(existingUrls);
         }
 
         // Run the URL callbacks
@@ -237,17 +266,6 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
-        // Clear existing URLs
-        if (existingUrls is not null)
-        {
-            var existing = existingUrls.ToArray();
-            for (var i = existing.Length - 1; i >= 0; i--)
-            {
-                var url = existing[i];
-                resource.Annotations.Remove(url);
-            }
-        }
-
         // Convert relative endpoint URLs to absolute URLs
         foreach (var url in urls)
         {
@@ -256,6 +274,20 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                }
+            }
+        }
+
+        if (resource.TryGetUrls(out var existingUrls))
+        {
+            foreach (var existingUrl in existingUrls)
+            {
+                resource.Annotations.Remove(existingUrl);
+
+                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
+                {
+                    // Add existing URLs back that aren't duplicates
+                    urls.Add(existingUrl);
                 }
             }
         }
@@ -270,69 +302,6 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
-    }
-
-    private Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
-    {
-        var resource = @event.Resource;
-
-        if (resource is ConnectionStringResource connectionStringResource)
-        {
-            InitializeConnectionString(connectionStringResource);
-        }
-
-        void InitializeConnectionString(ConnectionStringResource connectionStringResource)
-        {
-            var logger = _loggerService.GetLogger(resource);
-            var waitFor = new List<Task>();
-
-            var references = connectionStringResource.Annotations.OfType<ResourceRelationshipAnnotation>()
-                .Where(x => x.Type == KnownRelationshipTypes.Reference)
-                .Select(x => x.Resource);
-
-            foreach (var reference in references)
-            {
-                if (reference is IResourceWithEndpoints)
-                {
-                    var tcs = new TaskCompletionSource();
-                    logger.LogInformation("Waiting for endpoints to be allocated for resource {ResourceName}", reference.Name);
-                    _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(reference, (_, _) =>
-                    {
-                        logger.LogInformation("Endpoints allocated for resource {ResourceName}", reference.Name);
-                        tcs.SetResult();
-                        return Task.CompletedTask;
-                    });
-
-                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
-                }
-
-                if (reference is IResourceWithConnectionString)
-                {
-                    var tcs = new TaskCompletionSource();
-                    logger.LogInformation("Waiting for connection string to be available for resource {ResourceName}", reference.Name);
-                    _eventing.Subscribe<ConnectionStringAvailableEvent>(reference, (_, _) =>
-                    {
-                        logger.LogInformation("Connection string is available for resource {ResourceName}", reference.Name);
-                        tcs.SetResult();
-                        return Task.CompletedTask;
-                    });
-
-                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
-                }
-            }
-
-            _ = Task.Run(async () =>
-            {
-                await Task.WhenAll(waitFor).ConfigureAwait(false);
-                await PublishConnectionStringAvailableEvent(connectionStringResource, cancellationToken).ConfigureAwait(false);
-                await _notificationService.PublishUpdateAsync(connectionStringResource, s => s with
-                {
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Info),
-                }).ConfigureAwait(false);
-            }, cancellationToken);
-        }
-
-        return Task.CompletedTask;
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)

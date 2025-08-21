@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsErrorWatchingLogs">
         <source>Error watching logs</source>
-        <target state="new">Error watching logs</target>
+        <target state="translated">觀看記錄時發生錯誤</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -32,6 +32,11 @@
         <target state="translated">未選取任何資源</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="translated">不要自動換行</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">{0} 主控台記錄</target>
@@ -47,19 +52,14 @@
         <target state="translated">&lt;{0} 與 {1} 之間的記錄擷取已暫停，篩選出了 {2} 筆記錄&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">資源動作</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">選取資源</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">主控台記錄設定</target>
+        <source>Settings</source>
+        <target state="translated">設定</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -85,6 +85,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">正在監看記錄...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="translated">自動換行</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

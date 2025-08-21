@@ -124,7 +124,10 @@ public static class AspireOpenAIExtensions
         {
             if (settings.Key is not null)
             {
-                var options = serviceProvider.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+                var options = serviceKey is null ?
+                    serviceProvider.GetRequiredService<IOptions<OpenAIClientOptions>>().Value :
+                    serviceProvider.GetRequiredService<IOptionsMonitor<OpenAIClientOptions>>().Get(serviceKey);
+
                 return new OpenAIClient(new ApiKeyCredential(settings.Key), options);
             }
             else

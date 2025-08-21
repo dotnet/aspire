@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -322,7 +321,9 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PASSWORD1", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Assert.Equal(redis1.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
             },
             (item) =>
             {
@@ -342,7 +343,9 @@ public class AddRedisTests
             (item) =>
             {
                 Assert.Equal("RI_REDIS_PASSWORD2", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Assert.Equal(redis2.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
             },
             (item) =>
             {
@@ -497,7 +500,9 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -542,7 +547,9 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0:{redis1.Resource.PasswordParameter?.Value},myredis2:myredis2:6379:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Theory]

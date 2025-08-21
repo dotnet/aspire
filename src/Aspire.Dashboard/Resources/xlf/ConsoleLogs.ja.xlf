@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsErrorWatchingLogs">
         <source>Error watching logs</source>
-        <target state="new">Error watching logs</target>
+        <target state="translated">ログの監視中にエラーが発生しました</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -32,6 +32,11 @@
         <target state="translated">リソースが選択されていません</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConsoleLogsNoWrapLogs">
+        <source>Don't wrap log lines</source>
+        <target state="translated">ログ行を折り返さない</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
         <target state="translated">{0} のコンソール ログ</target>
@@ -47,19 +52,14 @@
         <target state="translated">&lt;ログ キャプチャが {0} と {1} の間で一時停止されました。{2} 件のログがフィルターで除外されました&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">リソース アクション</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">リソースの選択</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">コンソール ログの設定</target>
+        <source>Settings</source>
+        <target state="translated">設定</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -85,6 +85,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="translated">ログを監視しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConsoleLogsWrapLogs">
+        <source>Wrap log lines</source>
+        <target state="translated">ログ行を折り返す</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

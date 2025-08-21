@@ -21,7 +21,7 @@ public class AzureKeyVaultTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class AzureKeyVaultTests
               .AppendContentAsFile(bicep, "bicep")
               .AppendContentAsFile(kvRolesBicep, "bicep")
               .AppendContentAsFile(kvRolesManifest.ToString(), "json");
-              
+
     }
 
     [Fact]
@@ -111,7 +111,75 @@ public class AzureKeyVaultTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
-              
+
+    }
+
+    [Fact]
+    public async Task ConsumingSecretsFromExistingKeyVaultInAnotherBicepModule_WithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingName = builder.AddParameter("existingKvName");
+        var existingRg = builder.AddParameter("existingRgName");
+        var kv = builder.AddAzureKeyVault("kv").PublishAsExisting(existingName, existingRg);
+
+        var secretReference = kv.Resource.GetSecret("mySecret");
+        var secretReference2 = kv.Resource.GetSecret("mySecret2");
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            var secret = secretReference.AsKeyVaultSecret(infra);
+            var secret2 = secretReference2.AsKeyVaultSecret(infra);
+            _ = secretReference.AsKeyVaultSecret(infra); // idempotent
+
+            infra.Add(new ProvisioningOutput("secretUri1", typeof(string)) { Value = secret.Properties.SecretUri });
+            infra.Add(new ProvisioningOutput("secretUri2", typeof(string)) { Value = secret2.Properties.SecretUri });
+        });
+
+        var module2 = builder.AddAzureInfrastructure("mymodule2", infra =>
+        {
+            var secret = secretReference.AsKeyVaultSecret(infra);
+            var secret2 = secretReference2.AsKeyVaultSecret(infra);
+
+            infra.Add(new ProvisioningOutput("secretUri1", typeof(string)) { Value = secret.Properties.SecretUri });
+            infra.Add(new ProvisioningOutput("secretUri2", typeof(string)) { Value = secret2.Properties.SecretUri });
+        });
+
+        module2.Resource.Scope = new(existingRg.Resource);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+        var (manifest2, bicep2) = await AzureManifestUtils.GetManifestWithBicep(module2.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep")
+              .AppendContentAsFile(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep2, "bicep");
+    }
+
+    [Fact]
+    public async Task ConsumingSecretsFromExistingKeyVaultInAnotherBicepModule_WithLiterals()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var kv = builder.AddAzureKeyVault("kv").PublishAsExisting("literalKvName", "literalRgName");
+
+        var secretReference = kv.Resource.GetSecret("mySecret");
+        var secretReference2 = kv.Resource.GetSecret("mySecret2");
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            var secret = secretReference.AsKeyVaultSecret(infra);
+            var secret2 = secretReference2.AsKeyVaultSecret(infra);
+            _ = secretReference.AsKeyVaultSecret(infra); // idempotent
+
+            infra.Add(new ProvisioningOutput("secretUri1", typeof(string)) { Value = secret.Properties.SecretUri });
+            infra.Add(new ProvisioningOutput("secretUri2", typeof(string)) { Value = secret2.Properties.SecretUri });
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -120,9 +188,9 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var kv = builder.AddAzureKeyVault("myKeyVault");
-        
+
         var secret = kv.GetSecret("mySecret");
-        
+
         Assert.NotNull(secret);
         Assert.Equal("mySecret", secret.SecretName);
         Assert.Same(kv.Resource, secret.Resource);
@@ -135,9 +203,9 @@ public class AzureKeyVaultTests
 
         var secretParam = builder.AddParameter("secretParam", secret: true);
         var kv = builder.AddAzureKeyVault("myKeyVault");
-        
+
         var secretResource = kv.AddSecret("mySecret", secretParam);
-        
+
         Assert.NotNull(secretResource);
         Assert.IsType<AzureKeyVaultSecretResource>(secretResource.Resource);
         Assert.Equal("mySecret", secretResource.Resource.Name);
@@ -175,6 +243,20 @@ public class AzureKeyVaultTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public void KvSecretResources_AreExcludedFromManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var parameter = builder.AddParameter("my-secret-param", secret: true);
+        var kv = builder.AddAzureKeyVault("mykv");
+        var secretResource = kv.AddSecret("my-secret", parameter);
+
+        Assert.True(secretResource.Resource.TryGetAnnotationsOfType<ManifestPublishingCallbackAnnotation>(out var manifestAnnotations));
+        var annotation = Assert.Single(manifestAnnotations);
+        Assert.Equal(ManifestPublishingCallbackAnnotation.Ignore, annotation);
     }
 
     [Fact]
@@ -257,5 +339,41 @@ public class AzureKeyVaultTests
 
         var exception = Assert.Throws<ArgumentException>(() => kv.AddSecret(tooLongSecretName, secretParam));
         Assert.Contains("cannot be longer than 127 characters", exception.Message);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureKeyVaultResource()
+    {
+        // Arrange
+        var keyVaultResource = new AzureKeyVaultResource("test-keyvault", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(keyVaultResource, "test-keyvault");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = keyVaultResource.AddAsExistingResource(infrastructure);
+        var secondResult = keyVaultResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureKeyVaultResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-kv-name");
+        var existingResourceGroup = builder.AddParameter("existing-kv-rg");
+
+        var keyVault = builder.AddAzureKeyVault("test-keyvault")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = keyVault.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

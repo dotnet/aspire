@@ -1,9 +1,15 @@
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -16,18 +22,173 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// <summary>
 /// Default implementation of <see cref="IProvisioningContextProvider"/>.
 /// </summary>
-internal sealed class DefaultProvisioningContextProvider(
+internal sealed partial class DefaultProvisioningContextProvider(
+    IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
     ILogger<DefaultProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
-    ITokenCredentialProvider tokenCredentialProvider) : IProvisioningContextProvider
+    ITokenCredentialProvider tokenCredentialProvider,
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
+    IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
 {
+    internal const string LocationName = "Location";
+    internal const string SubscriptionIdName = "SubscriptionId";
+    internal const string ResourceGroupName = "ResourceGroup";
+
     private readonly AzureProvisionerOptions _options = options.Value;
+    private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
+
+    private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    {
+        if (!interactionService.IsAvailable ||
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
+        {
+            // If the interaction service is not available, or
+            // if both options are already set, we can skip the prompt
+            _provisioningOptionsAvailable.TrySetResult();
+            return;
+        }
+
+        // Start the loop that will allow the user to specify the Azure provisioning options
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+
+                logger.LogDebug("Azure provisioning options have been handled successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                _provisioningOptionsAvailable.SetException(ex);
+            }
+        });
+    }
+
+    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                            .Where(p => p.PropertyType == typeof(AzureLocation))
+                            .Select(p => (AzureLocation)p.GetValue(null)!)
+                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+                            .OrderBy(kvp => kvp.Value)
+                            .ToList();
+
+        while (_options.Location == null || _options.SubscriptionId == null)
+        {
+            var messageBarResult = await interactionService.PromptNotificationAsync(
+                 AzureProvisioningStrings.NotificationTitle,
+                 AzureProvisioningStrings.NotificationMessage,
+                 new NotificationInteractionOptions
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = AzureProvisioningStrings.NotificationPrimaryButtonText
+                 },
+                 cancellationToken)
+                 .ConfigureAwait(false);
+
+            if (messageBarResult.Canceled)
+            {
+                // User canceled the prompt, so we exit the loop
+                _provisioningOptionsAvailable.SetException(new MissingConfigurationException("Azure provisioning options were not provided."));
+                return;
+            }
+
+            if (messageBarResult.Data)
+            {
+                var result = await interactionService.PromptInputsAsync(
+                    AzureProvisioningStrings.InputsTitle,
+                    AzureProvisioningStrings.InputsMessage,
+                    [
+                        new InteractionInput { Name = LocationName, InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
+                        new InteractionInput { Name = SubscriptionIdName, InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
+                        new InteractionInput { Name = ResourceGroupName, InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
+                    ],
+                    new InputsDialogInteractionOptions
+                    {
+                        EnableMessageMarkdown = true,
+                        ValidationCallback = static (validationContext) =>
+                        {
+                            var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
+                            if (!Guid.TryParse(subscriptionInput.Value, out var _))
+                            {
+                                validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
+                            }
+
+                            var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
+                            if (!IsValidResourceGroupName(resourceGroupInput.Value))
+                            {
+                                validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!result.Canceled)
+                {
+                    _options.Location = result.Data[LocationName].Value;
+                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                    _options.ResourceGroup = result.Data[ResourceGroupName].Value;
+                    _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
+
+                    var azureSection = userSecrets.Prop("Azure");
+
+                    // Persist the parameter value to user secrets so they can be reused in the future
+                    azureSection["Location"] = _options.Location;
+                    azureSection["SubscriptionId"] = _options.SubscriptionId;
+                    azureSection["ResourceGroup"] = _options.ResourceGroup;
+
+                    _provisioningOptionsAvailable.SetResult();
+                }
+            }
+        }
+    }
+
+    [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
+    private static partial Regex ResourceGroupValidCharacters();
+
+    private static bool IsValidResourceGroupName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 90)
+        {
+            return false;
+        }
+
+        // Only allow valid characters - letters, digits, underscores, hyphens, periods, and parentheses
+        if (!ResourceGroupValidCharacters().IsMatch(name))
+        {
+            return false;
+        }
+
+        // Must start with a letter
+        if (!char.IsLetter(name[0]))
+        {
+            return false;
+        }
+
+        // Cannot end with a period
+        if (name.EndsWith('.'))
+        {
+            return false;
+        }
+
+        // No consecutive periods
+        return !name.Contains("..");
+    }
 
     public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
+        EnsureProvisioningOptions(userSecrets);
+
+        await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
+
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = tokenCredentialProvider.TokenCredential;
@@ -57,26 +218,8 @@ internal sealed class DefaultProvisioningContextProvider(
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
             // Generate an resource group name since none was provided
-
-            var prefix = "rg-aspire";
-
-            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
-            {
-                prefix = _options.ResourceGroupPrefix;
-            }
-
-            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
-
-            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
-
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
-            if (normalizedApplicationName.Length > maxApplicationNameSize)
-            {
-                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
-            }
-
             // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
+            resourceGroupName = GetDefaultResourceGroupName();
 
             createIfAbsent = true;
 
@@ -120,6 +263,7 @@ internal sealed class DefaultProvisioningContextProvider(
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
+        var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
                     credential,
@@ -129,6 +273,32 @@ internal sealed class DefaultProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets);
+                    userSecrets,
+                    distributedApplicationExecutionContext,
+                    outputPath);
+    }
+
+    private string GetDefaultResourceGroupName()
+    {
+        var prefix = "rg-aspire";
+
+        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+        {
+            prefix = _options.ResourceGroupPrefix;
+        }
+
+        var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+
+        var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
+
+        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
+        if (normalizedApplicationName.Length > maxApplicationNameSize)
+        {
+            normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
+        }
+
+        return distributedApplicationExecutionContext.IsPublishMode
+            ? $"{prefix}-{normalizedApplicationName}"
+            : $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 }

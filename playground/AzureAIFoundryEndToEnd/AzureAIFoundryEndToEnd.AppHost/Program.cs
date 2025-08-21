@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var foundry = builder.AddAzureAIFoundry("foundry")
     .RunAsFoundryLocal()
     ;
 
-var chat = foundry.AddDeployment("chat", "qwen2.5-0.5b", "1", "Microsoft");
+var chat = foundry.AddDeployment("chat", AIFoundryModel.Microsoft.Phi4MiniReasoning);
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

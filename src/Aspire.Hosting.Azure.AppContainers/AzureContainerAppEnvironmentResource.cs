@@ -89,9 +89,29 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a ContainerAppManagedEnvironment with the same identifier already exists
+        var existingCae = resources.OfType<ContainerAppManagedEnvironment>().SingleOrDefault(cae => cae.BicepIdentifier == bicepIdentifier);
+        
+        if (existingCae is not null)
+        {
+            return existingCae;
+        }
+        
+        // Create and add new resource if it doesn't exist
         // Even though it's a compound resource, we'll only expose the managed environment
-        var cae = ContainerAppManagedEnvironment.FromExisting(this.GetBicepIdentifier());
-        cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var cae = ContainerAppManagedEnvironment.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            cae))
+        {
+            cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(cae);
         return cae;
     }

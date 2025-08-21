@@ -2,6 +2,11 @@
     margin-bottom: 1px !important; /* make bottom table row border visible when scrolling */
 }
 
+::deep .trace-row-error,
+::deep .trace-row-error fluent-button[appearance=lightweight]:not(:hover)::part(control) {
+    background-color: var(--log-error);
+}
+
 .trace-id {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;

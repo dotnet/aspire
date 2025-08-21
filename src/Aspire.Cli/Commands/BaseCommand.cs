@@ -23,14 +23,7 @@ internal abstract class BaseCommand : Command
             {
                 try
                 {
-                    var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-
-                    // We use a separate CTS here because we want this check to run even if we've got a cancellation,
-                    // but we'll only wait so long before we get details back about updates
-                    // being available (it should already be in the cache for longer running
-                    // commands and some commands will opt out entirely)
-                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                    await updateNotifier.NotifyIfUpdateAvailableAsync(currentDirectory, cancellationToken: cts.Token);
+                    updateNotifier.NotifyIfUpdateAvailable();
                 }
                 catch
                 {

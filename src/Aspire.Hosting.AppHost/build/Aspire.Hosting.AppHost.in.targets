@@ -47,12 +47,18 @@
 namespace Projects%3B
 
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+/// <summary>
+/// Metadata for the ]]>%(ClassName)<![CDATA[ project.
+/// </summary>
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 #pragma warning restore CS8981
 {
+    /// <summary>
+    /// The path to the ]]>%(ClassName)<![CDATA[ project.
+    /// </summary>
     public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
@@ -89,6 +95,9 @@ namespace Projects%3B
 namespace Projects%3B
 
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+/// <summary>
+/// Metadata for the Aspire Host project.
+/// </summary>
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
@@ -96,6 +105,10 @@ namespace Projects%3B
 #pragma warning restore CS8981
 {
     private ]]>%(ClassName)<![CDATA[() { }
+
+    /// <summary>
+    /// The path to the Aspire Host project.
+    /// </summary>
     public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>

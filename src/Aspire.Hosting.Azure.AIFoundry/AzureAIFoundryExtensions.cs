@@ -33,7 +33,9 @@ public static class AzureAIFoundryExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureAIFoundryResource(name, ConfigureInfrastructure);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
+                CognitiveServicesBuiltInRole.CognitiveServicesUser, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
     }
 
     /// <summary>
@@ -68,6 +70,36 @@ public static class AzureAIFoundryExtensions
         }
 
         return deploymentBuilder;
+    }
+
+    /// <summary>
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="AIFoundryModel"/>.
+    /// </summary>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: AIFoundryModel.OpenAI.Gpt5Mini)</code></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a deployment for the OpenAI GTP-5-mini model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// var gpt5mini = aiFoundry.AddDeployment("chat", AIFoundryModel.OpenAI.Gpt5Mini);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Version);
+        ArgumentException.ThrowIfNullOrEmpty(model.Format);
+
+        return builder.AddDeployment(name, model.Name, model.Version, model.Format);
     }
 
     /// <summary>
@@ -128,6 +160,37 @@ public static class AzureAIFoundryExtensions
         builder.WithHealthCheck(healthCheckKey);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure AI Foundry resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure AI Foundry resource.</param>
+    /// <param name="roles">The built-in Cognitive Services roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
+    /// <example>
+    /// Assigns the CognitiveServicesOpenAIContributor role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(aiFoundry, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor)
+    ///   .WithReference(aiFoundry);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureAIFoundryResource> target,
+        params CognitiveServicesBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, CognitiveServicesBuiltInRole.GetBuiltInRoleName, roles);
     }
 
     private static IResourceBuilder<AzureAIFoundryResource> WithInitializer(this IResourceBuilder<AzureAIFoundryResource> builder)
@@ -295,7 +358,6 @@ public static class AzureAIFoundryExtensions
                 },
                 (infrastructure) => new CognitiveServicesAccount(infrastructure.AspireResource.GetBicepIdentifier())
                 {
-                    Name = Take(Interpolate($"{infrastructure.AspireResource.GetBicepIdentifier()}{GetUniqueString(GetResourceGroup().Id)}"), 64),
                     Kind = "AIServices",
                     Sku = new CognitiveServicesSku()
                     {
@@ -314,13 +376,19 @@ public static class AzureAIFoundryExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-        var inferenceEndpoint = (BicepValue<string>)new IndexExpression(
-            (BicepExpression)cogServicesAccount.Properties.Endpoints!,
-            "AI Foundry API");
         infrastructure.Add(new ProvisioningOutput("aiFoundryApiEndpoint", typeof(string))
         {
-            Value = inferenceEndpoint
+            Value = (BicepValue<string>)new IndexExpression(
+                (BicepExpression)cogServicesAccount.Properties.Endpoints!,
+                "AI Foundry API")
         });
+
+        infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
+        {
+            Value = cogServicesAccount.Properties.Endpoint
+        });
+
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
 
         var resource = (AzureAIFoundryResource)infrastructure.AspireResource;
 

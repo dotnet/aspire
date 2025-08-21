@@ -57,7 +57,9 @@ internal sealed class DashboardServiceData : IDisposable
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands,
                     IsHidden = snapshot.IsHidden,
-                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
+                    IconName = snapshot.IconName,
+                    IconVariant = snapshot.IconVariant
                 };
             }
 
@@ -160,8 +162,8 @@ internal sealed class DashboardServiceData : IDisposable
                 {
                     case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
                         return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
-                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBar:
-                        return new InteractionCompletionState { Complete = true, State = request.MessageBar.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.Notification:
+                        return new InteractionCompletionState { Complete = true, State = request.Notification.Result };
                     case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
                         var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                         var options = (InputsDialogInteractionOptions)interaction.Options;
@@ -179,7 +181,7 @@ internal sealed class DashboardServiceData : IDisposable
                                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
                             }
 
-                            modelInput.SetValue(incomingValue);
+                            modelInput.Value = incomingValue;
                         }
 
                         return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };

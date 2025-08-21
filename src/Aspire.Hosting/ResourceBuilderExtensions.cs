@@ -177,13 +177,18 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(context =>
+            builder.WithEnvironment(async context =>
             {
                 // In publish mode we can't validate the parameter value so we'll just use it without validating.
-                if (!context.ExecutionContext.IsPublishMode && !ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var _, out var message))
+                if (!context.ExecutionContext.IsPublishMode)
                 {
-                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                    var url = await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+                    if (!ExternalServiceResource.UrlIsValidForExternalService(url, out var _, out var message))
+                    {
+                        throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                    }
                 }
+
                 context.EnvironmentVariables[name] = externalService.Resource.UrlParameter;
             });
         }
@@ -528,7 +533,7 @@ public static class ResourceBuilderExtensions
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
-            builder.WithEnvironment(context =>
+            builder.WithEnvironment(async context =>
             {
                 string envVarName;
                 if (context.ExecutionContext.IsPublishMode)
@@ -536,7 +541,7 @@ public static class ResourceBuilderExtensions
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
                     envVarName = $"services__{externalService.Resource.Name}__default__0";
                 }
-                else if (ExternalServiceResource.UrlIsValidForExternalService(externalService.Resource.UrlParameter.Value, out var uri, out var message))
+                else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
                     envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
                 }
@@ -1197,13 +1202,117 @@ public static class ResourceBuilderExtensions
             builder.WaitForCore(parentBuilder, waitBehavior, addRelationship: false);
         }
 
+        if (addRelationship)
+        {
+            builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+        }
+
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running but
+    /// doesn't need to wait for health checks to pass. This can help enable initialization scenarios
+    /// where services need to start before health checks can pass.</para>
+    /// <para>Unlike <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>, this method
+    /// only waits for the dependency resource to enter the Running state and ignores any health check
+    /// annotations associated with the dependency resource.</para>
+    /// <example>
+    /// Start message queue before starting the worker service, but don't wait for health checks.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitForStart(messaging);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WaitForStart<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return WaitForStartCore(builder, dependency, waitBehavior: null, addRelationship: true);
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="waitBehavior">The wait behavior to use.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running but
+    /// doesn't need to wait for health checks to pass. This can help enable initialization scenarios
+    /// where services need to start before health checks can pass.</para>
+    /// <para>Unlike <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource}, WaitBehavior)"/>, this method
+    /// only waits for the dependency resource to enter the Running state and ignores any health check
+    /// annotations associated with the dependency resource.</para>
+    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the
+    /// wait operation. When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified, the wait
+    /// operation will continue to wait until the resource enters the Running state. This is the default
+    /// behavior with the <see cref="WaitForStart{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
+    /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
+    /// <example>
+    /// Start message queue before starting the worker service, but don't wait for health checks.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitForStart(messaging, WaitBehavior.StopOnResourceUnavailable);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WaitForStart<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return WaitForStartCore(builder, dependency, waitBehavior, addRelationship: true);
+    }
+
+    private static IResourceBuilder<T> WaitForStartCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior, bool addRelationship) where T : IResourceWithWaitSupport
+    {
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
+
+        if (dependency.Resource is IResourceWithParent dependencyResourceWithParent)
+        {
+            // If the dependency resource is a child resource we automatically apply
+            // the WaitForStart to the parent resource. This caters for situations where
+            // the child resource itself does not have any health checks setup.
+            var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
+
+            // Waiting for the parent is an internal implementation detail. Don't add a relationship here.
+            builder.WaitForStartCore(parentBuilder, waitBehavior, addRelationship: false);
+        }
+
         // Wait for any referenced resources in the connection string.
         if (dependency.Resource is ConnectionStringResource cs)
         {
             // We only look at top level resources with the assumption that they are transitive themselves.
             foreach (var referencedResource in cs.ConnectionStringExpression.ValueProviders.OfType<IResource>())
             {
-                builder.WaitForCore(builder.ApplicationBuilder.CreateResourceBuilder(referencedResource), waitBehavior, addRelationship: false);
+                builder.WaitForStartCore(builder.ApplicationBuilder.CreateResourceBuilder(referencedResource), waitBehavior, addRelationship: false);
             }
         }
 
@@ -1212,7 +1321,7 @@ public static class ResourceBuilderExtensions
             builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
         }
 
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilStarted) { WaitBehavior = waitBehavior });
     }
 
     /// <summary>
@@ -2093,6 +2202,42 @@ public static class ResourceBuilderExtensions
         IResource parent) where T : IResource
     {
         return builder.WithRelationship(parent, KnownRelationshipTypes.Parent);
+    }
+
+    /// <summary>
+    /// Specifies the icon to use when displaying the resource in the dashboard.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="iconName">The name of the FluentUI icon to use. See https://aka.ms/fluentui-system-icons for available icons.</param>
+    /// <param name="iconVariant">The variant of the icon (Regular or Filled). Defaults to Filled.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a custom FluentUI icon that will be displayed for the resource in the dashboard.
+    /// If no custom icon is specified, the dashboard will use default icons based on the resource type.
+    /// </para>
+    /// <example>
+    /// Set a Redis resource to use the Database icon:
+    /// <code lang="C#">
+    /// var redis = builder.AddContainer("redis", "redis:latest")
+    ///     .WithIconName("Database");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Set a custom service to use a specific icon with Regular variant:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithIconName("CloudArrowUp", IconVariant.Regular);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(iconName);
+
+        return builder.WithAnnotation(new ResourceIconAnnotation(iconName, iconVariant));
     }
 
     /// <summary>

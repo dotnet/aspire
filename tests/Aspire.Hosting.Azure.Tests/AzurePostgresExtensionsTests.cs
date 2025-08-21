@@ -485,4 +485,40 @@ public class AzurePostgresExtensionsTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzurePostgresFlexibleServerResource()
+    {
+        // Arrange
+        var postgresResource = new AzurePostgresFlexibleServerResource("test-postgres", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(postgresResource, "test-postgres");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = postgresResource.AddAsExistingResource(infrastructure);
+        var secondResult = postgresResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzurePostgresFlexibleServerResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-postgres-name");
+        var existingResourceGroup = builder.AddParameter("existing-postgres-rg");
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("test-postgres")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = postgres.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }

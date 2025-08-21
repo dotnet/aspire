@@ -5,6 +5,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
@@ -62,14 +63,14 @@ internal sealed class ParameterProcessor(
     {
         try
         {
-            var value = parameterResource.Value ?? "";
+            var value = parameterResource.ValueInternal ?? "";
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, value, parameterResource.Secret),
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                    State = KnownResourceStates.Running
                 };
             })
             .ConfigureAwait(false);
@@ -86,7 +87,7 @@ internal sealed class ParameterProcessor(
                 _unresolvedParameters.Add(parameterResource);
 
                 loggerService.GetLogger(parameterResource)
-                    .LogWarning(ex, "Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
+                    .LogWarning("Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
             }
             else
             {
@@ -106,8 +107,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     State = new(stateText, KnownResourceStateStyles.Error),
-                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message),
-                    IsHidden = false
+                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
             .ConfigureAwait(false);
@@ -127,15 +127,15 @@ internal sealed class ParameterProcessor(
         while (unresolvedParameters.Count > 0)
         {
             // First we show a notification that there are unresolved parameters.
-            var result = await interactionService.PromptMessageBarAsync(
-                 "Unresolved parameters",
-                 "There are unresolved parameters that need to be set. Please provide values for them.",
-                 new MessageBarInteractionOptions
-                 {
-                     Intent = MessageIntent.Warning,
-                     PrimaryButtonText = "Enter values"
-                 })
-                 .ConfigureAwait(false);
+            var result = await interactionService.PromptNotificationAsync(
+                InteractionStrings.ParametersBarTitle,
+                InteractionStrings.ParametersBarMessage,
+                 new NotificationInteractionOptions
+                {
+                    Intent = MessageIntent.Warning,
+                    PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                })
+                .ConfigureAwait(false);
 
             if (result.Data)
             {
@@ -145,28 +145,24 @@ internal sealed class ParameterProcessor(
                 foreach (var parameter in unresolvedParameters)
                 {
                     // Create an input for each unresolved parameter.
-                    var input = new InteractionInput
-                    {
-                        InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
-                        Label = parameter.Name,
-                        Placeholder = $"Enter value for {parameter.Name}",
-                    };
+                    var input = parameter.CreateInput();
                     resourceInputs.Add((parameter, input));
                 }
 
                 var saveParameters = new InteractionInput
                 {
+                    Name = "RememberParameters",
                     InputType = InputType.Boolean,
-                    Label = "Save to user secrets"
+                    Label = InteractionStrings.ParametersInputsRememberLabel
                 };
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
-                    "Set unresolved parameters",
-                    "Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.",
+                    InteractionStrings.ParametersInputsTitle,
+                    InteractionStrings.ParametersInputsMessage,
                     [.. resourceInputs.Select(i => i.Input), saveParameters],
                     new InputsDialogInteractionOptions
                     {
-                        PrimaryButtonText = "Save",
+                        PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
                         ShowDismiss = true,
                         EnableMessageMarkdown = true,
                     })
@@ -194,10 +190,14 @@ internal sealed class ParameterProcessor(
                             return s with
                             {
                                 Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
-                                State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                                State = KnownResourceStates.Running
                             };
                         })
                         .ConfigureAwait(false);
+
+                        // Log that the parameter has been resolved
+                        loggerService.GetLogger(parameter)
+                            .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
                         // Persist the parameter value to user secrets if requested.
                         if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)

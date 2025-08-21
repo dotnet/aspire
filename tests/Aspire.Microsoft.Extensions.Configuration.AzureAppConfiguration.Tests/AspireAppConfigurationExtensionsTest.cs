@@ -39,7 +39,6 @@ public class AspireAppConfigurationExtensionsTest
     [Fact]
     public void ConnectionNameWinsOverConfiguration()
     {
-        var endpoint = new Uri(ConformanceTests.Endpoint);
         var mockTransport = new MockTransport(CreateResponse("""{}"""));
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -51,14 +50,34 @@ public class AspireAppConfigurationExtensionsTest
             "appConfig",
             settings =>
             {
-                settings.Endpoint = endpoint;
                 settings.Credential = new EmptyTokenCredential();
             },
             options => options.ConfigureClientOptions(clientOptions => clientOptions.Transport = mockTransport));
 
         Assert.NotEmpty(mockTransport.Requests);
         var request = mockTransport.Requests[0];
-        Assert.StartsWith(endpoint.ToString(), request.Uri.ToString());
+        Assert.StartsWith(ConformanceTests.Endpoint, request.Uri.ToString());
+    }
+
+    [Fact]
+    public void ConnectionStringWinsOverEndpoint()
+    {
+        var mockTransport = new MockTransport(CreateResponse("""{}"""));
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddAzureAppConfiguration(
+            "appConfig",
+            settings =>
+            {
+                settings.ConnectionString = $"Endpoint={ConformanceTests.Endpoint};Id=xxxx;Secret=xxxx";
+                settings.Endpoint = new Uri("https://unused.azconfig.io/");
+                settings.Credential = new EmptyTokenCredential();
+            },
+            options => options.ConfigureClientOptions(clientOptions => clientOptions.Transport = mockTransport));
+
+        Assert.NotEmpty(mockTransport.Requests);
+        var request = mockTransport.Requests[0];
+        Assert.StartsWith(ConformanceTests.Endpoint, request.Uri.ToString());
     }
 
     [Fact]

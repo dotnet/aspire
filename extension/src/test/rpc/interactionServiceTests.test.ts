@@ -7,6 +7,7 @@ import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
+import * as terminalUtils from '../../utils/terminal';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -182,22 +183,15 @@ suite('InteractionService endpoints', () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+
 		testInfo.interactionService.displayLines([
-			{ stream: 'stdout', line: 'line1' },
-			{ stream: 'stderr', line: 'line2' }
+			{ Stream: 'stdout', Line: 'line1' },
+			{ Stream: 'stderr', Line: 'line2' }
 		]);
 		assert.ok(showInformationMessageSpy.called);
 		assert.ok(stub.calledWith('line1'));
 		assert.ok(stub.calledWith('line2'));
 		showInformationMessageSpy.restore();
-	});
-
-	test("displayCancellationMessage endpoint", async () => {
-		const testInfo = await createTestRpcServer();
-		const showWarningMessageSpy = sinon.spy(vscode.window, 'showWarningMessage');
-		testInfo.interactionService.displayCancellationMessage('Test cancelled');
-		assert.ok(showWarningMessageSpy.calledWith('Test cancelled'));
-		showWarningMessageSpy.restore();
 	});
 });
 
@@ -208,16 +202,20 @@ type RpcServerTestInfo = {
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+	stopCli(): Promise<void> {
+		return Promise.resolve();
+	}
+	
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}
 
 	validatePromptInputString(input: string): Promise<ValidationResult | null> {
 		if (input === "valid") {
-			return Promise.resolve({ message: `Valid input: ${input}`, successful: true });
+			return Promise.resolve({ Message: `Valid input: ${input}`, Successful: true });
 		}
 		else if (input === "invalid") {
-			return Promise.resolve({ message: `Invalid input: ${input}`, successful: false });
+			return Promise.resolve({ Message: `Invalid input: ${input}`, Successful: false });
 		}
 		else {
 			return Promise.resolve(null);

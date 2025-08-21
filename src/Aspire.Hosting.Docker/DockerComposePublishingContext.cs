@@ -26,7 +26,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityProgressReporter progressReporter,
+    IPublishingActivityReporter activityReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -123,10 +123,10 @@ internal sealed class DockerComposePublishingContext(
         // Build container images for the services that require it
         if (containerImagesToBuild.Count > 0)
         {
-            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, cancellationToken).ConfigureAwait(false);
+            await ImageBuilder.BuildImagesAsync(containerImagesToBuild, options: null, cancellationToken).ConfigureAwait(false);
         }
 
-        var step = await progressReporter.CreateStepAsync(
+        var step = await activityReporter.CreateStepAsync(
             "Writing Docker Compose file.",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -155,7 +155,15 @@ internal sealed class DockerComposePublishingContext(
 
                     foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                     {
-                        var (key, (description, defaultValue, _)) = entry;
+                        var (key, (description, defaultValue, source)) = entry;
+                        
+                        // If the source is a parameter and there's no explicit default value,
+                        // resolve the parameter's default value asynchronously
+                        if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
+                        {
+                            defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        
                         envFile.AddIfMissing(key, defaultValue, description);
                     }
 

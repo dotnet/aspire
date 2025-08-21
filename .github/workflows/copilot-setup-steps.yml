@@ -32,3 +32,22 @@ jobs:
         run:
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
           echo "$PWD/.dotnet/" >> $GITHUB_PATH
+
+      # For MCP servers like nuget's
+      - name: Install .NET 10.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.x
+          dotnet-quality: preview
+
+      # for MCP servers
+      - name: Install .NET 8.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.x
+
+      # Diagnostics in the log
+      - name: dotnet --info
+        run: dotnet --info

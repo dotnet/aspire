@@ -7,7 +7,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.MySql.Tests;
 
@@ -347,5 +346,23 @@ public class AddMySqlTests
 
         Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task VerifyMySqlServerResourceWithPassword()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var mysql = builder.AddMySql("mysql")
+                               .WithPassword(pass)
+                               .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
+        var connectionString = await connectionStringResource.ConnectionStringExpression.GetValueAsync(default);
+        Assert.Equal("Server=localhost;Port=2000;User ID=root;Password=p@ssw0rd1", connectionString);
     }
 }

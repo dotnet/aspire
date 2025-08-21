@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceActionCommandsText">
+        <source>Commands</source>
+        <target state="translated">명령</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
         <target state="translated">콘솔 로그</target>
@@ -20,6 +25,11 @@
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">추적</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionUrlsText">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
@@ -144,12 +154,17 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsParameterValueProperty">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">값</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">프로젝트 경로</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="translated">프로필 시작</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
@@ -251,6 +266,16 @@
         <source>URLs</source>
         <target state="translated">URL</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0}개의 리소스를 표시하는 중&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0}개의 리소스를 표시하는 중&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>

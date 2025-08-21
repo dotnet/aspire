@@ -30,6 +30,7 @@ public class AzureAIFoundryExtensionsTests
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         var deployment = Assert.Single(resource.Deployments);
         Assert.Equal("deployment1", deployment.Name);
+        Assert.Equal("deployment1", deployment.DeploymentName);
         Assert.Equal("gpt-4", deployment.ModelName);
         Assert.Equal("1.0", deployment.ModelVersion);
         Assert.Equal("OpenAI", deployment.Format);
@@ -60,7 +61,7 @@ public class AzureAIFoundryExtensionsTests
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         // The connection string should reference the aiFoundryApiEndpoint output
-        var expected = $"Endpoint={resource.AIFoundryApiEndpoint.ValueExpression};EndpointAIInference={resource.AIFoundryApiEndpoint.ValueExpression}models";
+        var expected = $"Endpoint={resource.Endpoint.ValueExpression};EndpointAIInference={resource.AIFoundryApiEndpoint.ValueExpression}models";
         var connectionString = resource.ConnectionStringExpression.ValueExpression;
         Assert.Equal(expected, connectionString);
     }
@@ -87,7 +88,7 @@ public class AzureAIFoundryExtensionsTests
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        // Wait until it's not in Starting state anymore (started or failed wether the Foundry Local service is setup or not)
+        // Wait until it's not in Starting state anymore (started or failed whether the Foundry Local service is setup or not)
         await rns.WaitForResourceAsync(resource.Name, [KnownResourceStates.FailedToStart, KnownResourceStates.Running], cts.Token);
 
         var foundryManager = app.Services.GetRequiredService<FoundryLocalManager>();
@@ -112,7 +113,7 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
+    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
@@ -120,9 +121,9 @@ public class AzureAIFoundryExtensionsTests
         foundry.RunAsFoundryLocal();
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.Single(resource.Deployments);
-        var connectionString = deployment.Resource.ConnectionStringExpression.ValueExpression;
+        var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
         Assert.Contains("Model=gpt-4", connectionString);
-        Assert.Contains("DeploymentId=gpt-4", connectionString);
+        Assert.Contains("DeploymentId=deployment1", connectionString);
         Assert.Contains("Endpoint=", connectionString);
         Assert.Contains("Key=", connectionString);
     }
@@ -135,9 +136,32 @@ public class AzureAIFoundryExtensionsTests
         var foundry = builder.AddAzureAIFoundry("foundry");
         var deployment1 = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         var deployment2 = foundry.AddDeployment("deployment2", "Phi-4", "1.0", "Microsoft");
+        var deployment3 = foundry.AddDeployment("my-model", "Phi-4", "1.0", "Microsoft");
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(foundry.Resource);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        await Verify(manifest.BicepText, extension: "bicep");
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(model, foundry.Resource);
+
+        var roles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "foundry-roles");
+        var rolesManifest = await AzureManifestUtils.GetManifestWithBicep(model, roles);
+
+        await Verify(manifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(rolesManifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAIFoundryResource()
+    {
+        // Arrange
+        var aiFoundryResource = new AzureAIFoundryResource("test-foundry", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(aiFoundryResource, "test-foundry");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+        var secondResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 }
