@@ -304,8 +304,8 @@ public sealed class DcpHostNotificationTests
             }
         };
 
-        // Advance time by 10 seconds to trigger the next polling cycle
-        timeProvider.Advance(TimeSpan.FromSeconds(10));
+        // Advance time by 5 seconds to trigger the next polling cycle
+        timeProvider.Advance(TimeSpan.FromSeconds(5));
 
         // Assert - The notification should now be cancelled
         await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken));
