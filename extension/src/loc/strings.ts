@@ -50,3 +50,9 @@ export const csharpSupportNotEnabled = localize('aspire-vscode.strings.csharpSup
 export const failedToStartProject = (errorMessage: string) => localize('aspire-vscode.strings.failedToStartProject', 'Failed to start project: {0}', errorMessage);
 export const dcpServerNotInitialized = localize('aspire-vscode.strings.dcpServerNotInitialized', 'DCP server not initialized - cannot forward debug output');
 export const invalidTokenProvided = localize('aspire-vscode.strings.invalidTokenProvided', 'Invalid token provided');
+export const noWorkspaceFolder = localize('aspire-vscode.strings.noWorkspaceFolder', 'No workspace folder found');
+export const aspireConfigExists = localize('aspire-vscode.strings.aspireConfigExists', 'Aspire launch configuration already exists in launch.json');
+export const aspireConfigAdded = localize('aspire-vscode.strings.aspireConfigAdded', 'Aspire launch configuration added to launch.json successfully!');
+export const openLaunchJson = localize('aspire-vscode.strings.openLaunchJson', 'Open launch.json');
+export const failedToConfigureLaunchJson = (error: any) => localize('aspire-vscode.strings.failedToConfigureLaunchJson', 'Failed to configure launch.json: {0}', error);
+export const defaultConfigurationName = localize('extension.debug.defaultConfiguration.name', 'Aspire: Launch Default AppHost');

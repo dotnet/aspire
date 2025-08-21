@@ -67,7 +67,7 @@
            {
              "type": "aspire",
              "request": "launch",
-             "name": "Aspire Default",
+             "name": "%extension.debug.defaultConfiguration.name%",
              "program": "${workspaceFolder}"
            }
          ]
@@ -102,6 +102,11 @@
       {
         "command": "aspire-vscode.deploy",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.configureLaunchJson",
+        "title": "%command.configureLaunchJson%",
         "category": "Aspire"
       }
     ]

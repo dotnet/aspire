@@ -10,6 +10,7 @@
 	"command.publish": "Publish deployment artifacts",
 	"command.config": "Manage configuration settings",
 	"command.deploy": "Deploy app host",
+	"command.configureLaunchJson": "Configure launch.json file",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -49,5 +50,10 @@
 	"aspire-vscode.strings.csharpSupportNotEnabled": "C# support is not enabled in this workspace. This project should have started through the Aspire CLI.",
 	"aspire-vscode.strings.failedToStartProject": "Failed to start project: {0}",
 	"aspire-vscode.strings.dcpServerNotInitialized": "DCP server not initialized - cannot forward debug output",
-	"aspire-vscode.strings.invalidTokenProvided": "Invalid token provided"
+	"aspire-vscode.strings.invalidTokenProvided": "Invalid token provided",
+	"aspire-vscode.strings.noWorkspaceFolder": "No workspace folder found",
+	"aspire-vscode.strings.aspireConfigExists": "Aspire launch configuration already exists in launch.json",
+	"aspire-vscode.strings.aspireConfigAdded": "Aspire launch configuration added to launch.json successfully!",
+	"aspire-vscode.strings.openLaunchJson": "Open launch.json",
+	"aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}"
 }

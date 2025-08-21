@@ -16,6 +16,7 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
+import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
 
 export let extensionContext = new AspireExtensionContext();
 
@@ -36,8 +37,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliConfigCommand = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', configCommand));
 	const cliDeployCommand = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', deployCommand));
 	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
+	const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', configureLaunchJsonCommand));
 
-	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand);
+	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand, configureLaunchJsonCommandRegistration);
 
 	const debugConfigProvider = new AspireDebugConfigurationProvider();
 	context.subscriptions.push(
