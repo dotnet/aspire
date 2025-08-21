@@ -92,4 +92,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
 
         _deployments.Add(deployment);
     }
+
+    internal ReferenceExpression GetConnectionString(string deploymentName) =>
+        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }

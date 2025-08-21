@@ -8,7 +8,7 @@
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{foundry.connectionString};DeploymentId=chat;Model=Phi-4-mini-reasoning"
+      "connectionString": "Endpoint={foundry.outputs.endpoint};EndpointAIInference={foundry.outputs.aiFoundryApiEndpoint}models;DeploymentId=chat;Model=chat"
     },
     "webstory": {
       "type": "project.v0",
