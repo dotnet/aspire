@@ -257,7 +257,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
     {
         _ = context;
-        var exitCode = await runner.AddPackageAsync(projectFile, package.Id, package.Version, package.Source, new(), cancellationToken);
+        var exitCode = await runner.AddPackageAsync(
+            projectFilePath: projectFile,
+            packageName: package.Id,
+            packageVersion: package.Version,
+            nugetSource: null, // When source is null we apped --no-restore.
+            options: new(),
+            cancellationToken: cancellationToken);
 
         if (exitCode != 0)
         {

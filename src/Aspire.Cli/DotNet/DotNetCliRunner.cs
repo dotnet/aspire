@@ -684,7 +684,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             packageVersion
         };
 
-        if (!string.IsNullOrEmpty(nugetSource))
+        if (string.IsNullOrEmpty(nugetSource))
+        {
+            cliArgsList.Add("--no-restore");
+        }
+        else
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
