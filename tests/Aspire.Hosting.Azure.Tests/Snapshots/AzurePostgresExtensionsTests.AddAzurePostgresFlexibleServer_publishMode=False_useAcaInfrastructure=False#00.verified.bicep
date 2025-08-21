@@ -52,3 +52,5 @@ resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleS
 output connectionString string = 'Host=${postgres_data.properties.fullyQualifiedDomainName}'
 
 output name string = postgres_data.name
+
+output hostName string = postgres_data.properties.fullyQualifiedDomainName
