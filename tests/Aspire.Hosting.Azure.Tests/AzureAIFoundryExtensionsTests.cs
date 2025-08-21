@@ -122,7 +122,7 @@ public class AzureAIFoundryExtensionsTests
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.Single(resource.Deployments);
         var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
-        Assert.Contains("Model=gpt-4", connectionString);
+        Assert.Contains("Model=deployment1", connectionString);
         Assert.Contains("DeploymentId=deployment1", connectionString);
         Assert.Contains("Endpoint=", connectionString);
         Assert.Contains("Key=", connectionString);
