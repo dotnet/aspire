@@ -24,7 +24,7 @@ export interface IInteractionService {
     displayCancellationMessage: () => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
+    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
 }
@@ -265,8 +265,8 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        return extensionContext.aspireDebugSession.startAppHost(projectFile, workingDirectory, args, environment, debug);
+    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        return extensionContext.aspireDebugSession.startAppHost(projectFile, args, environment, debug);
     }
 
     stopDebugging() {
@@ -303,7 +303,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, workingDirectory, args, environment, debug)));
+    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
 }

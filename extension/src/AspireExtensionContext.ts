@@ -4,6 +4,7 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { aspireDebugSessionNotInitialized, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
+import { ResourceDebuggerExtension } from './capabilities';
 
 export class AspireExtensionContext {
     private _rpcServer: AspireRpcServer | undefined;
@@ -11,13 +12,15 @@ export class AspireExtensionContext {
     private _extensionContext: vscode.ExtensionContext | undefined;
     private _aspireDebugSession: AspireDebugSession | undefined;
     private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
+    public readonly debuggerExtensions: ResourceDebuggerExtension[];
 
-    constructor() {
+    constructor(debuggerExtensions: ResourceDebuggerExtension[]) {
         this._rpcServer = undefined;
         this._extensionContext = undefined;
         this._aspireDebugSession = undefined;
         this._debugConfigProvider = undefined;
         this._dcpServer = undefined;
+        this.debuggerExtensions = debuggerExtensions;
     }
 
     initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer): void {

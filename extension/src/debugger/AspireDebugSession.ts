@@ -4,27 +4,32 @@ import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
-import { startDotNetProgram } from "./languages/dotnet";
 import AspireDcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { extensionContext } from "../extension";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
+import { ResourceDebuggerExtension } from "../capabilities";
+import { projectDebuggerExtension } from "./languages/dotnet";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
-  public readonly onDidSendMessage = this._onDidSendMessage.event;
   private _messageSeq = 1;
 
-  public readonly session: vscode.DebugSession;
-  public readonly dcpServer: AspireDcpServer;
-  private appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
+  private readonly _session: vscode.DebugSession;
+  private _appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
+
+  private readonly _dcpServer: AspireDcpServer;
+  private readonly _debuggerExtensions: ResourceDebuggerExtension[];
 
   private readonly _disposables: vscode.Disposable[] = [];
 
-  constructor(session: vscode.DebugSession, dcpServer: AspireDcpServer) {
-    this.session = session;
-    this.dcpServer = dcpServer;
+  public readonly onDidSendMessage = this._onDidSendMessage.event;
+
+  constructor(session: vscode.DebugSession, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]) {
+    this._session = session;
+    this._dcpServer = dcpServer;
+    this._debuggerExtensions = debuggerExtensions;
   }
 
   handleMessage(message: any): void {
@@ -41,7 +46,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'launch') {
-      const appHostPath = this.session.configuration.program as string;
+      const appHostPath = this._session.configuration.program as string;
 
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
@@ -54,7 +59,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
       }
 
-      this._disposables.push(...createDebugAdapterTracker(this.dcpServer));
+      this._disposables.push(...createDebugAdapterTracker(this._dcpServer, this._debuggerExtensions));
 
       this.sendEvent({
         type: 'response',
@@ -115,7 +120,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           // if the process failed, we want to stop the debug session
           this.dispose();
         },
-        dcpServer: this.dcpServer,
+        dcpServer: this._dcpServer,
         workingDirectory: workingDirectory
       }
     );
@@ -136,18 +141,19 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  async startAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} in directory: ${workingDirectory} with args: ${args.join(' ')}`);
-    const appHostDebugSession = await startDotNetProgram(projectFile, workingDirectory, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null });
+  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
+    const appHostDebugSessionConfiguration = await projectDebuggerExtension.createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null });
+    const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
     if (!appHostDebugSession) {
       return;
     }
 
-    this.appHostDebugSession = appHostDebugSession;
+    this._appHostDebugSession = appHostDebugSession;
 
     const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
-      if (this.appHostDebugSession && session.id === this.appHostDebugSession.id) {
+      if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
         // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
         this.dispose();
         disposable.dispose();
@@ -185,7 +191,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
 
       extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
-      const started = await vscode.debug.startDebugging(undefined, debugConfig, this.session);
+      const started = await vscode.debug.startDebugging(undefined, debugConfig, this._session);
       if (!started) {
         disposable.dispose();
         resolve(undefined);
@@ -200,7 +206,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   dispose(): void {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
-    vscode.debug.stopDebugging(this.session);
+    vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
   }
 

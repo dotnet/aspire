@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getSupportedDebugAdapters } from "../capabilities";
+import { ResourceDebuggerExtension } from "../capabilities";
 import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireExtendedDebugConfiguration } from "../dcp/types";
 import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
@@ -7,10 +7,10 @@ import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
 import { dcpServerNotInitialized } from '../loc/strings';
 
-export function createDebugAdapterTracker(dcpServer: AspireDcpServer): vscode.Disposable[] {
+export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): vscode.Disposable[] {
     const disposables: vscode.Disposable[] = [];
 
-    for (const debugAdapter of getSupportedDebugAdapters()) {
+    for (const debugAdapter of debuggerExtensions.map(ext => ext.debugAdapter)) {
         disposables.push(vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
             createDebugAdapterTracker(session: vscode.DebugSession) {
                 return {
@@ -31,7 +31,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer): vscode.Di
                                     log_message: removeTrailingNewline(output)
                                 };
 
-                                extensionContext.aspireDebugSession.dcpServer.sendNotification(notification);
+                                dcpServer.sendNotification(notification);
                             }
                         }
 

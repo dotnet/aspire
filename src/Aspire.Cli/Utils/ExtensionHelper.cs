@@ -30,5 +30,5 @@ internal class ExtensionHelper
 internal static class KnownCapabilities
 {
     public const string DevKit = "devkit";
-    public const string CSharp = "csharp";
+    public const string Project = "project";
 }

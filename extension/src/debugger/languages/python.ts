@@ -1,18 +1,24 @@
-import * as vscode from 'vscode';
-import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from "../../dcp/types";
-import { debugProject, failedToStartPythonProgram } from "../../loc/strings";
+import { ResourceDebuggerExtension } from "../../capabilities";
+import { AspireExtendedDebugConfiguration } from "../../dcp/types";
+import { debugProject } from "../../loc/strings";
 import { mergeEnvs } from "../../utils/environment";
-import { extensionLogOutputChannel } from "../../utils/logging";
-import { extensionContext } from '../../extension';
+import path from 'path';
 
-export async function startPythonProgram(file: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
-    try {
+export const pythonDebuggerExtension: ResourceDebuggerExtension = {
+    resourceType: 'python',
+    debugAdapter: 'python',
+    displayName: 'Python',
+    createDebugSessionConfiguration: async (launchConfig, args, env, launchOptions) => {
+        // this is the entrypoint file, ie main.py
+        const projectFile = launchConfig.project_path;
+        const workingDirectory = path.dirname(projectFile);
+
         const config: AspireExtendedDebugConfiguration = {
             type: 'python',
             request: 'launch',
-            name: debugProject('Python Program'),
-            program: file,
-            args: args,
+            name: debugProject(`Python: ${path.basename(projectFile)}`),
+            program: projectFile,
+            args: args.splice(1), // Remove the first argument, the project file
             cwd: workingDirectory,
             env: mergeEnvs(process.env, env),
             justMyCode: false,
@@ -23,13 +29,6 @@ export async function startPythonProgram(file: string, workingDirectory: string,
             console: 'internalConsole'
         };
 
-        return await extensionContext.aspireDebugSession.startAndGetDebugSession(config);
+        return config;
     }
-    catch (error) {
-        if (error instanceof Error) {
-            extensionLogOutputChannel.error(failedToStartPythonProgram(error.message));
-            vscode.window.showErrorMessage(`Failed to start Python program: ${error.message}`);
-            return undefined;
-        }
-    }
-}
+};

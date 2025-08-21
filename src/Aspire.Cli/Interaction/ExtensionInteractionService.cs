@@ -15,7 +15,7 @@ internal interface IExtensionInteractionService : IInteractionService
     IExtensionBackchannel Backchannel { get; }
     void OpenNewProject(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
-    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug);
+    Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug);
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
 }
@@ -256,9 +256,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         Debug.Assert(result);
     }
 
-    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
+    public Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug)
     {
-        return Backchannel.LaunchAppHostAsync(projectFile, workingDirectory, arguments, environment, debug, _cancellationToken);
+        return Backchannel.LaunchAppHostAsync(projectFile, arguments, environment, debug, _cancellationToken);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)

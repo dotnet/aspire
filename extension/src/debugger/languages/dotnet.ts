@@ -1,33 +1,33 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { debugProject, noCsharpBuildTask, noWatchTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, csharpSupportNotEnabled, failedToStartProject } from '../../loc/strings';
+import { debugProject, noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import { mergeEnvs } from '../../utils/environment';
 import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
-import { getSupportedCapabilities } from '../../capabilities';
-import { EnvVar, LaunchOptions, AspireResourceDebugSession, AspireExtendedDebugConfiguration } from '../../dcp/types';
-import { extensionContext } from '../../extension';
+import { ResourceDebuggerExtension } from '../../capabilities';
 
 const execFileAsync = util.promisify(execFile);
 
-export async function startDotNetProgram(projectFile: string, workingDirectory: string, args: string[], env: EnvVar[], launchOptions: LaunchOptions): Promise<AspireResourceDebugSession | undefined> {
-    try {
-        const outputPath = await getDotNetTargetPath(projectFile);
+export const projectDebuggerExtension: ResourceDebuggerExtension = {
+    resourceType: 'project',
+    debugAdapter: 'coreclr',
+    displayName: 'C#',
+    createDebugSessionConfiguration: async (launchConfig, args, env, launchOptions) => {
+        const projectPath = launchConfig.project_path;
+        const workingDirectory = path.dirname(launchConfig.project_path);
+        
+        const outputPath = await getDotNetTargetPath(projectPath);
 
         if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
-            await buildDotNetProject(projectFile);
+            await buildDotNetProject(projectPath);
         }
 
-        if (!getSupportedCapabilities().includes('csharp')) {
-            throw new Error(csharpSupportNotEnabled);
-        }
-
-        const config: AspireExtendedDebugConfiguration = {
+        return {
             type: 'coreclr',
             request: 'launch',
-            name: debugProject(path.basename(projectFile)),
+            name: debugProject(path.basename(projectPath)),
             program: outputPath,
             args: args,
             cwd: workingDirectory,
@@ -39,17 +39,8 @@ export async function startDotNetProgram(projectFile: string, workingDirectory: 
             dcpId: launchOptions.dcpId,
             console: 'internalConsole'
         };
-
-        return await extensionContext.aspireDebugSession.startAndGetDebugSession(config);
     }
-    catch (error) {
-        if (error instanceof Error) {
-            extensionLogOutputChannel.error(failedToStartProject(error.message));
-            vscode.window.showErrorMessage(`Failed to start project: ${error.message}`);
-            return undefined;
-        }
-    }
-}
+};
 
 async function buildDotNetProject(projectFile: string): Promise<void> {
     const csharpDevKit = vscode.extensions.getExtension('ms-dotnettools.csdevkit');

@@ -480,11 +480,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
             if (backchannelCompletionSource is not null
                 && projectFile is not null
-                && await backchannel.HasCapabilityAsync(KnownCapabilities.CSharp, cancellationToken))
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
             {
                 await extensionInteractionService.LaunchAppHostAsync(
                     projectFile.FullName,
-                    startInfo.WorkingDirectory,
                     startInfo.ArgumentList.ToList(),
                     startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
                     options.StartDebugSession);

@@ -1,25 +1,31 @@
 import express, { Request, Response, NextFunction } from 'express';
-import http from 'http';
 import https from 'https';
 import WebSocket, { WebSocketServer } from 'ws';
 import * as vscode from 'vscode';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
-import { startDotNetProgram } from '../debugger/languages/dotnet';
 import path from 'path';
 import { unsupportedResourceType } from '../loc/strings';
-import { startPythonProgram } from '../debugger/languages/python';
+import { ResourceDebuggerExtension } from '../capabilities';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export default class AspireDcpServer {
-    public readonly info: DcpServerConnectionInfo;
-    public readonly app: express.Express;
+    private readonly app: express.Express;
     private server: https.Server;
     private wss: WebSocketServer;
     private wsBySession: Map<string, WebSocket> = new Map();
     private pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]> = new Map();
 
-    private constructor(info: DcpServerConnectionInfo, app: express.Express, server: https.Server, wss: WebSocketServer, wsBySession: Map<string, WebSocket>, pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
+    public readonly info: DcpServerConnectionInfo;
+
+    private constructor(
+        info: DcpServerConnectionInfo,
+        app: express.Express,
+        server: https.Server,
+        wss: WebSocketServer,
+        wsBySession: Map<string, WebSocket>,
+        pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
         this.info = info;
         this.app = app;
         this.server = server;
@@ -28,7 +34,7 @@ export default class AspireDcpServer {
         this.pendingNotificationQueueByDcpId = pendingNotificationQueueByDcpId;
     }
 
-    static async create(): Promise<AspireDcpServer> {
+    static async create(debuggerExtensions: ResourceDebuggerExtension[], getDebugSession: () => AspireDebugSession): Promise<AspireDcpServer> {
         const runsBySession = new Map<string, AspireResourceDebugSession[]>();
         const wsBySession = new Map<string, WebSocket>();
         const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
@@ -79,47 +85,34 @@ export default class AspireDcpServer {
                 const processes: AspireResourceDebugSession[] = [];
 
                 for (const launchConfig of payload.launch_configurations) {
-                    let debugSession: AspireResourceDebugSession | undefined;
-                    if (launchConfig.type === "project") {
-                        debugSession = await startDotNetProgram(
-                            launchConfig.project_path,
-                            path.dirname(launchConfig.project_path),
-                            payload.args ?? [],
-                            payload.env ?? [],
-                            { debug: launchConfig.mode === "Debug", runId, dcpId }
-                        );
-                    }
-                    else if (launchConfig.type === "python") {
-                        debugSession = await startPythonProgram(
-                            payload.args?.[0] ?? launchConfig.project_path,
-                            launchConfig.project_path,
-                            payload.args ?? [],
-                            payload.env ?? [],
-                            { debug: launchConfig.mode === "Debug", runId, dcpId }
-                        );
+                    const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type);
+                    if (foundDebuggerExtension) {
+                        const aspireDebugSession = getDebugSession();
+                        const config = await foundDebuggerExtension.createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, dcpId });
+                        const debugSession = await aspireDebugSession.startAndGetDebugSession(config);
+
+                        if (!debugSession) {
+                            const error: ErrorDetails = {
+                                code: 'DebugSessionFailed',
+                                message: `Failed to start debug session for run ID ${runId}`,
+                                details: []
+                            };
+
+                            extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                            const response: ErrorResponse = { error };
+                            res.status(400).json(response).end();
+                            return;
+                        }
+
+                        processes.push(debugSession);
                     }
                     else {
-                        extensionLogOutputChannel.error(`Unsupported type: ${launchConfig.type} - spawning process as fallback.`);
+                        extensionLogOutputChannel.error(`Unsupported type: ${launchConfig.type}.`);
                         vscode.window.showErrorMessage(unsupportedResourceType(launchConfig.type));
                         throw new Error(unsupportedResourceType(launchConfig.type));
                     }
 
                     extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);
-
-                    if (!debugSession) {
-                        const error: ErrorDetails = {
-                            code: 'DebugSessionFailed',
-                            message: `Failed to start debug session for run ID ${runId}`,
-                            details: []
-                        };
-
-                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
-                        const response: ErrorResponse = { error };
-                        res.status(400).json(response).end();
-                        return;
-                    }
-
-                    processes.push(debugSession);
                 }
 
                 runsBySession.set(runId, processes);

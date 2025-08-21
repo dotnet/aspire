@@ -138,7 +138,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         LogMessageCallback?.Invoke(logLevel, message);
     }
 
-    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
+    public Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug)
     {
         LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;

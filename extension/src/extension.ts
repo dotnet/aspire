@@ -17,8 +17,9 @@ import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
+import { getResourceDebuggerExtensions } from './capabilities';
 
-export let extensionContext = new AspireExtensionContext();
+export let extensionContext = new AspireExtensionContext(getResourceDebuggerExtensions());
 
 export async function activate(context: vscode.ExtensionContext) {
 	extensionLogOutputChannel.info("Activating Aspire extension");
@@ -29,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		(connection, token: string) => new RpcClient(connection, token)
 	);
 
-    const dcpServer = await AspireDcpServer.create();
+    const dcpServer = await AspireDcpServer.create(extensionContext.debuggerExtensions, () => extensionContext.aspireDebugSession);
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -48,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Initial)
 	);
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(dcpServer)));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(dcpServer, extensionContext.debuggerExtensions)));
 
     extensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer);
 
