@@ -263,21 +263,17 @@ internal sealed class AzureDeployingContext(
 
     private static void PropagateOutputsToResources(AzureEnvironmentResource resource)
     {
-        foreach (var outputEntry in resource.Outputs)
+        foreach (var populatedMainOutput in resource.Outputs)
         {
-            var parameterName = outputEntry.Key;
-            var outputValue = outputEntry.Value;
+            var mainOutputName = populatedMainOutput.Key;
+            var mainOutputValue = populatedMainOutput.Value;
 
-            foreach (var kvp in resource.PublishingContext!.OutputLookup)
+            foreach (var hoistedOutput in resource.PublishingContext!.OutputLookup)
             {
-                var outputRef = kvp.Key;
-
-                // Check if this output reference matches our deployed output
-                // The output could be from any of the deployed modules that contributed to the main template
-                var targetParameterName = $"{outputRef.Resource.Name.Replace("-", "_")}_{outputRef.Name}";
-                if (targetParameterName == parameterName)
+                var outputRef = hoistedOutput.Key;
+                if (hoistedOutput.Value.BicepIdentifier == mainOutputName)
                 {
-                    outputRef.Resource.Outputs[outputRef.Name] = outputValue;
+                    outputRef.Resource.Outputs[outputRef.Name] = mainOutputValue;
                 }
             }
         }
@@ -311,6 +307,10 @@ internal sealed class AzureDeployingContext(
     {
         foreach (var resource in resources)
         {
+            if (!resource.RequiresImageBuildAndPush())
+            {
+                continue;
+            }
             var localImageName = resource.Name.ToLowerInvariant();
             IValueProvider cir = new ContainerImageReference(resource);
             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);

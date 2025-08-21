@@ -9,6 +9,8 @@ storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
 storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
 storage.AddQueue("myqueue", queueName: "my-queue");
 
+builder.AddRedis("cache");
+
 builder.AddProject<Projects.Deployers_ApiService>("api-service")
     .WithExternalHttpEndpoints();
 

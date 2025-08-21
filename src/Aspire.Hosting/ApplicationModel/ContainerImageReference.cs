@@ -29,7 +29,7 @@ public class ContainerImageReference(IResource resource) : IManifestExpressionPr
     {
         var deploymentTarget = Resource.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a deployment target.");
         var containerRegistry = deploymentTarget.ContainerRegistry ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry.");
-        var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(default).ConfigureAwait(false);
+        var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
         return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:latest";
     }
 }
