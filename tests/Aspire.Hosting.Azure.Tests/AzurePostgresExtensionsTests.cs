@@ -189,6 +189,16 @@ public class AzurePostgresExtensionsTests
         Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
         Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
+        // Test the new reference properties
+        Assert.NotNull(postgres.Resource.HostName);
+        Assert.Equal("localhost", await postgres.Resource.HostName.GetValueAsync(CancellationToken.None));
+
+        Assert.NotNull(postgres.Resource.UserName);
+        Assert.Equal("user1", await postgres.Resource.UserName.GetValueAsync(CancellationToken.None));
+
+        Assert.NotNull(postgres.Resource.Password);
+        Assert.Equal("p@ssw0rd1", await postgres.Resource.Password.GetValueAsync(CancellationToken.None));
+
         var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db1", db1ConnectionString);
 
