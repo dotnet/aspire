@@ -189,6 +189,13 @@ public class AzurePostgresExtensionsTests
         Assert.True(postgres.Resource.IsContainer(), "The resource should now be a container resource.");
         Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
+        // Test new properties
+        Assert.Equal("localhost", await postgres.Resource.HostName.GetValueAsync(CancellationToken.None));
+        Assert.NotNull(postgres.Resource.UserName);
+        Assert.Equal("user1", await postgres.Resource.UserName!.GetValueAsync(CancellationToken.None));
+        Assert.NotNull(postgres.Resource.Password);
+        Assert.Equal("p@ssw0rd1", await postgres.Resource.Password!.GetValueAsync(CancellationToken.None));
+
         var db1ConnectionString = await db1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None);
         Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1;Database=db1", db1ConnectionString);
 
@@ -520,5 +527,41 @@ public class AzurePostgresExtensionsTests
 
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public void PostgresFlexibleServerWithEntraId_UserNameAndPasswordAreNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        // Create a PostgreSQL flexible server without password auth (uses Entra ID by default)
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-entra");
+        
+        // Verify that UserName and Password properties are null for Entra ID auth
+        Assert.False(postgres.Resource.UsePasswordAuthentication);
+        Assert.Null(postgres.Resource.UserName);
+        Assert.Null(postgres.Resource.Password);
+        
+        // HostName should still be available
+        Assert.NotNull(postgres.Resource.HostName);
+    }
+
+    [Fact]
+    public void PostgresFlexibleServerWithPasswordAuth_UserNameAndPasswordAreNotNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        var user = builder.AddParameter("user", "testuser");
+        var pass = builder.AddParameter("pass", "testpass", secret: true);
+        
+        // Create a PostgreSQL flexible server with password authentication
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-pwd")
+            .WithPasswordAuthentication(user, pass);
+        
+        // Verify that UserName and Password properties are not null for password auth
+        Assert.True(postgres.Resource.UsePasswordAuthentication);
+        Assert.NotNull(postgres.Resource.UserName);
+        Assert.NotNull(postgres.Resource.Password);
+        Assert.NotNull(postgres.Resource.HostName);
     }
 }

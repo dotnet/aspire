@@ -41,6 +41,11 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the "hostName" output reference for the resource.
+    /// </summary>
+    private BicepOutputReference HostNameOutput => new("hostName", this);
+
+    /// <summary>
     /// Gets a value indicating whether the resource uses password authentication.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
@@ -74,6 +79,40 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
             (UsePasswordAuthentication ?
                 ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
                 ReferenceExpression.Create($"{ConnectionStringOutput}"));
+
+    /// <summary>
+    /// Gets the host name for connecting to the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// When running as a container (RunAsContainer), this resolves to the container's allocated host.
+    /// When running in Azure, this resolves to the fully qualified domain name from the bicep template.
+    /// </remarks>
+    public ReferenceExpression HostName =>
+        InnerResource is not null ?
+        ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.Host)}") :
+        ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the user name for connecting to the PostgreSQL server when password authentication is enabled.
+    /// </summary>
+    /// <remarks>
+    /// This property returns a non-null value only when password authentication is configured.
+    /// For Entra ID authentication, this property returns null.
+    /// </remarks>
+    public ReferenceExpression? UserName =>
+        UsePasswordAuthentication && UserNameParameter is not null ? 
+        ReferenceExpression.Create($"{UserNameParameter}") : null;
+
+    /// <summary>
+    /// Gets the password for connecting to the PostgreSQL server when password authentication is enabled.
+    /// </summary>
+    /// <remarks>
+    /// This property returns a non-null value only when password authentication is configured.
+    /// For Entra ID authentication, this property returns null.
+    /// </remarks>
+    public ReferenceExpression? Password =>
+        UsePasswordAuthentication && PasswordParameter is not null ? 
+        ReferenceExpression.Create($"{PasswordParameter}") : null;
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.

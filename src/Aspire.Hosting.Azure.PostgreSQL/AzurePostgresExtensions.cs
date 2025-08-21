@@ -503,6 +503,9 @@ public static class AzurePostgresExtensions
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name });
+
+        // Always add the hostName output for both password and AAD authentication
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = postgres.FullyQualifiedDomainName });
     }
 
     internal static PostgreSqlFlexibleServerActiveDirectoryAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, PostgreSqlFlexibleServer postgres, BicepValue<Guid> principalId, BicepValue<PostgreSqlFlexibleServerPrincipalType> principalType, BicepValue<string> principalName)
