@@ -282,9 +282,10 @@ internal sealed class AzureDeployingContext(
     private static async Task AuthenticateToAcr(IPublishingStep parentStep, string registryName, CancellationToken cancellationToken)
     {
         var loginTask = await parentStep.CreateTaskAsync($"Logging in to container registry", cancellationToken).ConfigureAwait(false);
+        var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
         await using (loginTask.ConfigureAwait(false))
         {
-            var loginSpec = new ProcessSpec("az")
+            var loginSpec = new ProcessSpec(command)
             {
                 Arguments = $"acr login --name {registryName}",
                 ThrowOnNonZeroReturnCode = false
