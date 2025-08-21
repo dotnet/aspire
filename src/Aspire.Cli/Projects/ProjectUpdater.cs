@@ -62,10 +62,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 throw new ProjectUpdaterException($"Failed to discover NuGet.config files.");
             }
 
-            var recommendedNuGetConfigFileDirectory = configPaths switch
+            var configPathDirectories = configPaths.Select(Path.GetDirectoryName).ToArray();
+            var fallbackNuGetConfigDirectory = executionContext.WorkingDirectory.FullName;
+
+            // If there is one or zero config paths we assume that we should use
+            // the fallback (there should always be one, but just for exhaustivenss).
+            // If there is more than one we just make sure that the first on in the list
+            // isn't a global config (on Windows with .NET and VS installed you'll have 3
+            // global config files but the first one should be the NuGet in AppData).
+            // The final rule should never ever be invoked, its just to get around CS8846
+            // which does not evaluate when statements for exhaustiveness.
+            var recommendedNuGetConfigFileDirectory = configPathDirectories switch
             {
-                { Length: 0 } => executionContext.WorkingDirectory.FullName,
-                { Length: >0 } => IsGlobalNuGetConfig(configPaths[0]) ? executionContext.WorkingDirectory.FullName : configPaths[0]
+                { Length: 0 or 1 } => fallbackNuGetConfigDirectory,
+                var p when p.Length > 1 => IsGlobalNuGetConfig(p[0]!) ? fallbackNuGetConfigDirectory : p[0],
+                _ => throw new InvalidOperationException("CS8846 compiler is broken!")
             };
 
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
@@ -171,13 +182,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (SemVersion.Parse(latestSdkPackage.Version).ComparePrecedenceTo(SemVersion.Parse(sdkVersionElement.GetString()!)) > 0)
-        {
-            var sdkUpdateStep = new UpdateStep(
-                $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
-                () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
-            context.UpdateSteps.Enqueue(sdkUpdateStep);
-        }
+        var sdkUpdateStep = new UpdateStep(
+            $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
+            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
+        context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
     private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
@@ -224,23 +232,26 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException("Package reference does not have Identity.");
 
-            if (!packageId.StartsWith("Aspire."))
+            if (!IsUpdatablePackage(packageId))
             {
-                // We only look at Aspire packages here!
                 continue;
             }
 
             var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException("Package reference does not have Version.");
             var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-            if (SemVersion.Parse(latestPackage.Version).ComparePrecedenceTo(SemVersion.Parse(packageVersion)) > 0)
-            {
-                var updateStep = new UpdateStep(
-                    $"Update package {packageId} from {packageVersion} to {latestPackage.Version}",
-                    () => UpdatePackageReferenceInProject(projectFile, latestPackage, context, cancellationToken));
-                context.UpdateSteps.Enqueue(updateStep);
-            }
+            var updateStep = new UpdateStep(
+                $"Update package {packageId} from {packageVersion} to {latestPackage.Version}",
+                () => UpdatePackageReferenceInProject(projectFile, latestPackage, context, cancellationToken));
+            context.UpdateSteps.Enqueue(updateStep);
         }
+    }
+
+    private static bool IsUpdatablePackage(string packageId)
+    {
+        return packageId.StartsWith("Aspire.")
+            || packageId.StartsWith("Microsoft.Extensions.ServiceDiscovery.")
+            || packageId.Equals("Microsoft.Extensions.ServiceDiscovery");
     }
 
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
