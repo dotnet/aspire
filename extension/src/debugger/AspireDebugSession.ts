@@ -5,7 +5,7 @@ import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { startDotNetProgram } from "./languages/dotnet";
-import DcpServer from "../dcp/AspireDcpServer";
+import AspireDcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { extensionContext } from "../extension";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
@@ -16,13 +16,13 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private _messageSeq = 1;
 
   public readonly session: vscode.DebugSession;
-  public readonly dcpServer: DcpServer;
+  public readonly dcpServer: AspireDcpServer;
   private appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
 
   private readonly _disposables: vscode.Disposable[] = [];
 
-  constructor(session: vscode.DebugSession, dcpServer: DcpServer) {
+  constructor(session: vscode.DebugSession, dcpServer: AspireDcpServer) {
     this.session = session;
     this.dcpServer = dcpServer;
   }
@@ -201,7 +201,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   dispose(): void {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
     vscode.debug.stopDebugging(this.session);
-    this.dcpServer.dispose();
     this._disposables.forEach(disposable => disposable.dispose());
   }
 

@@ -2,11 +2,10 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink, openAspireDashboard } from '../../loc/strings';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { createRpcServer, RpcServerConnectionInfo } from '../../server/AspireRpcServer';
+import AspireRpcServer, { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -198,7 +197,7 @@ async function createTestRpcServer(): Promise<RpcServerTestInfo> {
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService();
 
-	const rpcServer = await createRpcServer(
+	const rpcServer = await AspireRpcServer.create(
 		() => interactionService,
 		() => rpcClient
 	);

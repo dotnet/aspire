@@ -11,7 +11,7 @@ import path from 'path';
 import { unsupportedResourceType } from '../loc/strings';
 import { startPythonProgram } from '../debugger/languages/python';
 
-export default class DcpServer {
+export default class AspireDcpServer {
     public readonly info: DcpServerConnectionInfo;
     public readonly app: express.Express;
     private server: https.Server;
@@ -28,7 +28,7 @@ export default class DcpServer {
         this.pendingNotificationQueueByDcpId = pendingNotificationQueueByDcpId;
     }
 
-    static async start(): Promise<DcpServer> {
+    static async create(): Promise<AspireDcpServer> {
         const runsBySession = new Map<string, AspireResourceDebugSession[]>();
         const wsBySession = new Map<string, WebSocket>();
         const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
@@ -157,7 +157,7 @@ export default class DcpServer {
                         const pendingNotifications = pendingNotificationQueueByDcpId.get(dcpId);
                         if (pendingNotifications) {
                             for (const notification of pendingNotifications) {
-                                DcpServer.sendNotificationCore(notification, ws);
+                                AspireDcpServer.sendNotificationCore(notification, ws);
                             }
 
                             pendingNotificationQueueByDcpId.delete(dcpId);
@@ -186,7 +186,7 @@ export default class DcpServer {
                         token: token,
                         certificate: certBase64
                     };
-                    resolve(new DcpServer(info, app, server, wss, wsBySession, pendingNotificationQueueByDcpId));
+                    resolve(new AspireDcpServer(info, app, server, wss, wsBySession, pendingNotificationQueueByDcpId));
                 } else {
                     reject(new Error('Failed to get server address'));
                 }
@@ -205,7 +205,7 @@ export default class DcpServer {
             return;
         }
 
-        DcpServer.sendNotificationCore(notification, ws);
+        AspireDcpServer.sendNotificationCore(notification, ws);
     }
 
     static sendNotificationCore(notification: RunSessionNotification, ws: WebSocket) {
@@ -262,8 +262,4 @@ export default class DcpServer {
 
 export function generateRunId(): string {
     return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
-
-export function createDcpServer(): Promise<DcpServer> {
-    return DcpServer.start();
 }

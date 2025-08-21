@@ -2,7 +2,7 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { EnvVar } from "../../dcp/types";
 import { mergeEnvs } from "../../utils/environment";
 import { createEnvironment } from "../../utils/terminal";
-import DcpServer from "../../dcp/AspireDcpServer";
+import AspireDcpServer from "../../dcp/AspireDcpServer";
 import { extensionLogOutputChannel } from "../../utils/logging";
 
 export interface SpawnProcessOptions {
@@ -11,7 +11,7 @@ export interface SpawnProcessOptions {
     exitCallback?: (code: number | null) => void;
     env?: EnvVar[];
     workingDirectory?: string;
-    dcpServer?: DcpServer;
+    dcpServer?: AspireDcpServer;
     excludeExtensionEnvironment?: boolean;
 }
 

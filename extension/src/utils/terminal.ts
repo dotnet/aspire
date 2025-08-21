@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { aspireTerminalName } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 import { extensionContext } from '../extension';
-import DcpServer from '../dcp/AspireDcpServer';
+import AspireDcpServer from '../dcp/AspireDcpServer';
 
 let hasRunGetAspireTerminal = false;
-export function getAspireTerminal(dcpServer?: DcpServer, spawnProcess?: boolean): vscode.Terminal {
+export function getAspireTerminal(dcpServer?: AspireDcpServer, spawnProcess?: boolean): vscode.Terminal {
     const terminalName = aspireTerminalName;
 
     const existingTerminal = vscode.window.terminals.find(terminal => terminal.name === terminalName);
@@ -28,7 +28,7 @@ export function getAspireTerminal(dcpServer?: DcpServer, spawnProcess?: boolean)
     });
 }
 
-export function createEnvironment(dcpServer?: DcpServer): any {
+export function createEnvironment(dcpServer?: AspireDcpServer): any {
     const env: any = {
         ...process.env,
 
@@ -52,7 +52,7 @@ export function createEnvironment(dcpServer?: DcpServer): any {
     return env;
 }
 
-export function sendToAspireTerminal(command: string, dcpServer?: DcpServer, showTerminal: boolean = true) {
+export function sendToAspireTerminal(command: string, dcpServer?: AspireDcpServer, showTerminal: boolean = true) {
     const terminal = getAspireTerminal(dcpServer);
     extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
     terminal.sendText(command);

@@ -13,8 +13,9 @@ import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
 import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapterDescriptorFactory';
 import { runCommand } from './commands/run';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
-import { createRpcServer } from './server/AspireRpcServer';
 import { AspireExtensionContext } from './AspireExtensionContext';
+import AspireRpcServer from './server/AspireRpcServer';
+import AspireDcpServer from './dcp/AspireDcpServer';
 
 export let extensionContext = new AspireExtensionContext();
 
@@ -22,10 +23,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	extensionLogOutputChannel.info("Activating Aspire extension");
 	initializeTelemetry(context);
 
-	const rpcServer = await createRpcServer(
+	const rpcServer = await AspireRpcServer.create(
 		_ => new InteractionService(),
 		(connection, token: string) => new RpcClient(connection, token)
 	);
+
+    const dcpServer = await AspireDcpServer.create();
 
 	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
 	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
@@ -43,9 +46,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Initial)
 	);
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory()));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(dcpServer)));
 
-    extensionContext.initialize(rpcServer, context, debugConfigProvider);
+    extensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer);
 
     // Return exported API for tests or other extensions
 	return {
@@ -55,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	extensionContext.rpcServer.dispose();
+    extensionContext.dcpServer.dispose();
     if (extensionContext.hasAspireDebugSession()) {
         extensionContext.aspireDebugSession.dispose();
     }
