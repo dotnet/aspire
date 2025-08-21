@@ -17,6 +17,16 @@
         <target state="new">Learn more</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="new">Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="new">Container Runtime Not Installed</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
         <target state="new">Ensure that Podman is running.</target>
