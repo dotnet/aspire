@@ -390,6 +390,24 @@ internal sealed class DcpHost
         var installed = dcpInfo.Containers?.Installed ?? false;
         var running = dcpInfo.Containers?.Running ?? false;
 
+        // Early check: if container runtime is not installed, show notification and return immediately (no polling)
+        if (!installed)
+        {
+            string title = InteractionStrings.ContainerRuntimeNotInstalledTitle;
+            string message = InteractionStrings.ContainerRuntimeNotInstalledMessage;
+
+            var options = new NotificationInteractionOptions
+            {
+                Intent = MessageIntent.Error,
+                LinkText = null,
+                LinkUrl = null
+            };
+
+            // Show notification without polling (non-auto-dismiss)
+            _ = _interactionService.PromptNotificationAsync(title, message, options, cancellationToken);
+            return;
+        }
+
         // Only show notification if container runtime is installed but not running
         // If not installed, that's usually a more fundamental setup issue that would be addressed differently
         if (installed && !running)

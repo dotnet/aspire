@@ -311,6 +311,62 @@ public sealed class DcpHostNotificationTests
         await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken));
     }
 
+    [Fact]
+    public async Task DcpHost_WithContainerRuntimeNotInstalled_ShowsNotificationWithoutPolling()
+    {
+        // Arrange
+        using var app = CreateAppWithContainers();
+        var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        
+        var loggerFactory = new NullLoggerFactory();
+        var dcpOptions = Options.Create(new DcpOptions { ContainerRuntime = "docker", CliPath = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh" });
+        var dependencyCheckService = new TestDcpDependencyCheckService
+        {
+            // Container not installed
+            DcpInfoResult = new DcpInfo
+            {
+                Containers = new DcpContainersInfo
+                {
+                    Installed = false,
+                    Running = false,
+                    Error = "No container runtime found"
+                }
+            }
+        };
+        var interactionService = new TestInteractionService { IsAvailable = true };
+        var locations = new Locations();
+        var timeProvider = new FakeTimeProvider();
+
+        var dcpHost = new DcpHost(
+            loggerFactory,
+            dcpOptions,
+            dependencyCheckService,
+            interactionService,
+            locations,
+            applicationModel,
+            timeProvider);
+
+        // Act
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+
+        // Assert
+        Assert.Equal("Container Runtime Not Installed", interaction.Title);
+        Assert.Contains("no supported container runtime", interaction.Message);
+        Assert.Contains("Docker or Podman", interaction.Message);
+        var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
+        Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
+        Assert.Null(notificationOptions.LinkText);
+        Assert.Null(notificationOptions.LinkUrl);
+
+        // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay
+        // This tests that the function returns immediately and doesn't start the polling task
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        Assert.False(interaction.CancellationToken.IsCancellationRequested);
+    }
+
     private static DistributedApplication CreateAppWithContainers()
     {
         var builder = DistributedApplication.CreateBuilder();

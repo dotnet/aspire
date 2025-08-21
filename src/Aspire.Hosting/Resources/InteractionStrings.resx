@@ -172,4 +172,10 @@
   <data name="ContainerRuntimeLinkText" xml:space="preserve">
     <value>Learn more</value>
   </data>
+  <data name="ContainerRuntimeNotInstalledTitle" xml:space="preserve">
+    <value>Container Runtime Not Installed</value>
+  </data>
+  <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
+    <value>This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources.</value>
+  </data>
 </root>

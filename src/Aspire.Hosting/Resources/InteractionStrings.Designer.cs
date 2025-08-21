@@ -221,5 +221,23 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("ContainerRuntimeLinkText", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container Runtime Not Installed.
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledTitle {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources..
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledMessage", resourceCulture);
+            }
+        }
     }
 }

@@ -17,6 +17,16 @@
         <target state="new">Learn more</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources.</source>
+        <target state="new">This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="new">Container Runtime Not Installed</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
         <target state="new">Ensure that Podman is running.</target>
