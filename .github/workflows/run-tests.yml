@@ -329,8 +329,18 @@ jobs:
           path: |
             **/*.binlog
             testresults/**
+            !testresults/**/*crash.dump
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
+
+      - name: Upload crash dumps
+        id: upload-logs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: crash-dumps-${{ inputs.testShortName }}-${{ inputs.os }}
+          path: testresults/**/*crash.dump
+          if-no-files-found: ignore
 
       - name: Generate test results summary
         if: always()
