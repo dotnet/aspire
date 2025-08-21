@@ -80,7 +80,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// </remarks>
     public ReferenceExpression HostName => 
         InnerResource is not null ?
-            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.Host)}") :
+            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}") :
             ReferenceExpression.Create($"{HostNameOutput}");
 
     /// <summary>

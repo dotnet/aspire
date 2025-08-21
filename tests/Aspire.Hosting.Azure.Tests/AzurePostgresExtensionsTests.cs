@@ -191,7 +191,7 @@ public class AzurePostgresExtensionsTests
 
         // Test the new reference properties
         Assert.NotNull(postgres.Resource.HostName);
-        Assert.Equal("localhost", await postgres.Resource.HostName.GetValueAsync(CancellationToken.None));
+        Assert.Equal("localhost:12455", await postgres.Resource.HostName.GetValueAsync(CancellationToken.None));
 
         Assert.NotNull(postgres.Resource.UserName);
         Assert.Equal("user1", await postgres.Resource.UserName.GetValueAsync(CancellationToken.None));
@@ -319,7 +319,7 @@ public class AzurePostgresExtensionsTests
         
         // Validate the values can be resolved
         var hostValue = await postgres.Resource.HostName.GetValueAsync(CancellationToken.None);
-        Assert.Equal("localhost", hostValue);
+        Assert.Equal("localhost:5432", hostValue);
         
         var userValue = await postgres.Resource.UserName.GetValueAsync(CancellationToken.None);
         Assert.NotNull(userValue);
