@@ -267,6 +267,7 @@ jobs:
           CI: false
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          DOTNET_ROOT: ${{ github.workspace }}/.dotnet
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
           NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
