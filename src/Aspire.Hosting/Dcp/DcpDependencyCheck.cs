@@ -208,22 +208,21 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
     internal static (string message, string? linkUrl) BuildContainerRuntimeUnhealthyMessage(string containerRuntime)
     {
         var messageBuilder = new StringBuilder();
-        messageBuilder.AppendFormat(CultureInfo.InvariantCulture, "Container runtime '{0}' was found but appears to be unhealthy. ", containerRuntime);
+        messageBuilder.AppendFormat(CultureInfo.InvariantCulture, InteractionStrings.ContainerRuntimeUnhealthyMessage, containerRuntime);
         string? linkUrl = null;
 
         if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
         {
-            messageBuilder.Append("Ensure that Docker is running and that the Docker daemon is accessible. ");
-            messageBuilder.Append("If Resource Saver mode is enabled, containers may not run.");
+            messageBuilder.Append(InteractionStrings.ContainerRuntimeDockerAdvice);
             linkUrl = "https://docs.docker.com/desktop/use-desktop/resource-saver/";
         }
         else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
         {
-            messageBuilder.Append("Ensure that Podman is running.");
+            messageBuilder.Append(InteractionStrings.ContainerRuntimePodmanAdvice);
         }
         else
         {
-            messageBuilder.Append("Ensure that the container runtime is running.");
+            messageBuilder.Append(InteractionStrings.ContainerRuntimeGenericAdvice);
         }
 
         return (messageBuilder.ToString(), linkUrl);

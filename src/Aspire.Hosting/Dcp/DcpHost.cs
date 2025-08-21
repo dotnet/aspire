@@ -10,6 +10,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -393,88 +394,80 @@ internal sealed class DcpHost
         // If not installed, that's usually a more fundamental setup issue that would be addressed differently
         if (installed && !running)
         {
-            string title = "Container Runtime Unhealthy";
+            string title = InteractionStrings.ContainerRuntimeUnhealthyTitle;
             var (message, linkUrl) = DcpDependencyCheck.BuildContainerRuntimeUnhealthyMessage(containerRuntime);
 
             var options = new NotificationInteractionOptions
             {
                 Intent = MessageIntent.Error,
-                LinkText = linkUrl is not null ? "Learn more" : null,
+                LinkText = linkUrl is not null ? InteractionStrings.ContainerRuntimeLinkText : null,
                 LinkUrl = linkUrl
             };
 
-            try
+            // Create a cancellation token source that can be cancelled when runtime becomes healthy
+            var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+            
+            // Single background task to show notification and poll for health updates
+            _ = Task.Run(async () =>
             {
-                // Create a cancellation token source that can be cancelled when runtime becomes healthy
-                var notificationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
-                
-                // Single background task to show notification and poll for health updates
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        // First, show the notification
-                        var notificationTask = _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token);
+                    // First, show the notification
+                    var notificationTask = _interactionService.PromptNotificationAsync(title, message, options, notificationCts.Token);
 
-                        // Then poll for container runtime health updates every 5 seconds
-                        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), _timeProvider);
-                        while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
-                        {
-                            try
-                            {
-                                var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
-                                
-                                if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
-                                {
-                                    // Container runtime is now healthy, exit the polling loop
-                                    break;
-                                }
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // Expected when cancellation is requested
-                                break;
-                            }
-                            catch (Exception ex)
-                            {
-                                // Log but continue polling
-                                _logger.LogDebug(ex, "Error while polling container runtime health for notification");
-                            }
-                        }
-                        
-                        // Cancel the notification at the end of the loop
-                        notificationCts.Cancel();
-                        
-                        // Wait for notification task to complete
+                    // Then poll for container runtime health updates every 5 seconds
+                    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5), _timeProvider);
+                    while (await timer.WaitForNextTickAsync(notificationCts.Token).ConfigureAwait(false))
+                    {
                         try
                         {
-                            await notificationTask.ConfigureAwait(false);
+                            var dcpInfo = await _dependencyCheckService.GetDcpInfoAsync(force: true, cancellationToken: notificationCts.Token).ConfigureAwait(false);
+                            
+                            if (dcpInfo is not null && IsContainerRuntimeHealthy(dcpInfo))
+                            {
+                                // Container runtime is now healthy, exit the polling loop
+                                break;
+                            }
                         }
                         catch (OperationCanceledException)
                         {
-                            // Expected when notification is cancelled
+                            // Expected when cancellation is requested
+                            break;
                         }
+                        catch (Exception ex)
+                        {
+                            // Log but continue polling
+                            _logger.LogDebug(ex, "Error while polling container runtime health for notification");
+                        }
+                    }
+                    
+                    // Cancel the notification at the end of the loop
+                    notificationCts.Cancel();
+                    
+                    // Wait for notification task to complete
+                    try
+                    {
+                        await notificationTask.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Expected when cancellation is requested
+                        // Expected when notification is cancelled
                     }
-                    catch (Exception ex)
-                    {
-                        // Log but don't propagate notification errors
-                        _logger.LogDebug(ex, "Failed to show container runtime notification or poll for health");
-                    }
-                    finally
-                    {
-                        notificationCts.Dispose();
-                    }
-                }, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                // Log but don't propagate notification errors
-                _logger.LogDebug(ex, "Failed to start container runtime notification task");
-            }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't propagate notification errors
+                    _logger.LogDebug(ex, "Failed to show container runtime notification or poll for health");
+                }
+                finally
+                {
+                    notificationCts.Dispose();
+                }
+            }, cancellationToken);
         }
     }
 
