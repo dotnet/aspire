@@ -16,11 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
       - name: Generate updated AIFoundry model descriptors
         working-directory: src/Aspire.Hosting.Azure.AIFoundry/tools
         env:
