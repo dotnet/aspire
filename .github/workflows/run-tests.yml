@@ -50,6 +50,8 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     name: ${{ inputs.testShortName }} (${{ inputs.os }})
+    permissions:
+      checks: write
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
