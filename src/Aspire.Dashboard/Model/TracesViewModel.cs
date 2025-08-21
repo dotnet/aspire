@@ -13,7 +13,7 @@ public class TracesViewModel
     private readonly List<TelemetryFilter> _filters = new();
 
     private PagedResult<OtlpTrace>? _traces;
-    private ApplicationKey? _applicationKey;
+    private ResourceKey? _resourceKey;
     private string _filterText = string.Empty;
     private int _startIndex;
     private int _count;
@@ -23,7 +23,7 @@ public class TracesViewModel
         _telemetryRepository = telemetryRepository;
     }
 
-    public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
+    public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public int StartIndex { get => _startIndex; set => SetValue(ref _startIndex, value); }
     public int Count { get => _count; set => SetValue(ref _count, value); }
@@ -81,7 +81,7 @@ public class TracesViewModel
 
             var result = _telemetryRepository.GetTraces(new GetTracesRequest
             {
-                ApplicationKey = ApplicationKey,
+                ResourceKey = ResourceKey,
                 FilterText = FilterText,
                 StartIndex = StartIndex,
                 Count = Count,

@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param env_outputs_azure_container_registry_endpoint string
@@ -13,11 +13,15 @@ param api_containerimage string
 
 param mydb_kv_outputs_name string
 
+param kvName string
+
+param sharedRg string
+
 param api_identity_outputs_id string
 
 param api_identity_outputs_clientid string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
@@ -28,16 +32,26 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-04-01' = {
   parent: webapp
 }
 
-resource mydb_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
 
-resource mydb_kv_outputs_name_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
-  parent: mydb_kv_outputs_name_kv
+  parent: mydb_kv
 }
 
-resource webapp 'Microsoft.Web/sites@2024-04-01' = {
+resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: kvName
+  scope: resourceGroup(sharedRg)
+}
+
+resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'secret'
+  parent: existingKv
+}
+
+resource webapp 'Microsoft.Web/sites@2024-11-01' = {
   name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
@@ -62,7 +76,11 @@ resource webapp 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'ConnectionStrings__mydb'
-          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_outputs_name_kv_connectionstrings__mydb.properties.secretUri})'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+        }
+        {
+          name: 'SECRET_VALUE'
+          value: '@Microsoft.KeyVault(SecretUri=${existingKv_secret.properties.secretUri})'
         }
         {
           name: 'AZURE_CLIENT_ID'

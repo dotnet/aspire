@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -41,6 +42,8 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         // Create EditContext before awaiting. This is required to prevent an await in OnInitializedAsync
         // triggering parameters being set on EditForm before EditContext is created.
         // If that happens then EditForm errors that it requires an EditContext.
@@ -60,8 +63,6 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
                 return;
             }
         }
-
-        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -117,5 +118,5 @@ public partial class Login : IAsyncDisposable, IComponentWithTelemetry
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(DashboardUrls.LoginBasePath);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Login);
 }

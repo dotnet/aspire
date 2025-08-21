@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -13,10 +14,11 @@ using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -1231,6 +1233,44 @@ public class DcpExecutorTests
         Assert.True(tokenSource.IsCancellationRequested);
     }
 
+    [Theory]
+    [InlineData("127.0.0.1", "127.0.0.1")]
+    [InlineData("[::1]", "[::1]")]
+    [InlineData("localhost", "localhost")]
+    [InlineData("0.0.0.0", "localhost")]
+    [InlineData("[::]", "localhost")]
+    [InlineData("machine-name", "localhost")]
+    [InlineData("10.0.0.1", "10.0.0.1")]
+    public async Task ServiceProducerHasCorrectAddress(string bindingAddress, string serviceAddress)
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("CustomName", "container")
+            .WithHttpEndpoint(port: 5000, targetPort: 5000, name: "customendpoint")
+            .WithEndpoint("customendpoint", (endpoint) =>
+            {
+                endpoint.TargetHost = bindingAddress;
+            });
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        var annotations = container.Metadata.EnsureAnnotations();
+        var serviceProducers = JsonSerializer.Deserialize<List<ServiceProducerAnnotation>>(annotations[CustomResource.ServiceProducerAnnotation]);
+        Assert.NotNull(serviceProducers);
+        var serviceProducer = Assert.Single(serviceProducers);
+        Assert.Equal(serviceAddress, serviceProducer.Address);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
@@ -1242,6 +1282,7 @@ public class DcpExecutorTests
 
     private static DcpExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
+        IHostEnvironment? hostEnvironment = null,
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null,
         DcpOptions? dcpOptions = null,
@@ -1268,8 +1309,10 @@ public class DcpExecutorTests
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
+            hostEnvironment ?? new TestHostEnvironment(),
             kubernetesService ?? new TestKubernetesService(),
             configuration,
+            new Hosting.Eventing.DistributedApplicationEventing(),
             new DistributedApplicationOptions(),
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
@@ -1280,6 +1323,14 @@ public class DcpExecutorTests
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents());
+    }
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string ApplicationName { get; set; } = default!;
+        public IFileProvider ContentRootFileProvider { get; set; } = default!;
+        public string ContentRootPath { get; set; } = default!;
+        public string EnvironmentName { get; set; } = default!;
     }
 
     private sealed class TestProject : IProjectMetadata

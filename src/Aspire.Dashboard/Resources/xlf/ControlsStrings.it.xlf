@@ -227,6 +227,11 @@
         <target state="translated">Mostra valore</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="translated">Nascondi risorse nascoste</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(Tutti)</target>
@@ -242,10 +247,10 @@
         <target state="translated">(Nessuno)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LabelUnset">
+      <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
         <target state="translated">(Annulla)</target>
-        <note />
+        <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>
@@ -327,6 +332,11 @@
         <target state="translated">Numero</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplar">
+        <source>Exemplar</source>
+        <target state="translated">Esemplare</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
         <target state="translated">Esemplari</target>
@@ -355,6 +365,11 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">Valore</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">Azioni delle risorse</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
@@ -417,9 +432,14 @@
         <target state="translated">Riprendi i dati in ingresso</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">Seleziona un'applicazione</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">Seleziona una risorsa</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="translated">Mostra risorse nascoste</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
@@ -556,11 +576,6 @@
         <source>Split vertical</source>
         <target state="translated">Dividi in verticale</target>
         <note />
-      </trans-unit>
-      <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;</source>
-        <target state="translated">Totale: &lt;strong&gt;{0} risultati trovati&lt;/strong&gt;</target>
-        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>

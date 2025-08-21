@@ -50,6 +50,17 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
 public sealed class CommandLineArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
 {
+    private readonly IResource? _resource;
+
+    /// <summary>
+    /// Represents a callback context for the list of command-line arguments associated with an executable resource.
+    /// </summary>
+    /// <param name="args"> The list of command-line arguments.</param>
+    /// <param name="resource"> The resource associated with this callback context.</param>
+    /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
+    public CommandLineArgsCallbackContext(IList<object> args, IResource resource, CancellationToken cancellationToken = default)
+        : this(args, cancellationToken) => _resource = resource ?? throw new ArgumentNullException(nameof(resource));
+
     /// <summary>
     /// Gets the list of command-line arguments.
     /// </summary>
@@ -69,4 +80,13 @@ public sealed class CommandLineArgsCallbackContext(IList<object> args, Cancellat
     /// Gets or sets the logger for the distributed application.
     /// </summary>
     public ILogger Logger { get; init; } = NullLogger.Instance;
+
+    /// <summary>
+    /// The resource associated with this callback context.
+    /// </summary>
+    /// <remarks>
+    /// This will be set to the resource in all cases where .NET Aspire invokes the callback.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the EnvironmentCallbackContext was created without a specified resource.</exception>
+    public IResource Resource => _resource ?? throw new InvalidOperationException($"{nameof(Resource)} is not set. This callback context is not associated with a resource.");
 }

@@ -19,7 +19,9 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
         {
             TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
             TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
+            TestSdk.Next => BuildEnvironment.ForNextSdkOnly,
             TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
+            TestSdk.NextSdkAndCurrentRuntime => BuildEnvironment.ForNextSdkAndCurrentRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 

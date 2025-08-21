@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_webpubsub_name": "{existing-webpubsub-name.value}",
+    "existing_webpubsub_rg": "{existing-webpubsub-rg.value}"
+  }
+}

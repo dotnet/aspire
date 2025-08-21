@@ -5,7 +5,7 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.Redis;
 using Testcontainers.Redis;
 using Xunit;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 
 namespace Aspire.StackExchange.Redis.Tests;
 

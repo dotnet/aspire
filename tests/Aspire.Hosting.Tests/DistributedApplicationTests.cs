@@ -23,7 +23,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Xunit;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
 
@@ -112,6 +111,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10086")]
     public async Task StartResourceForcesStart()
     {
         using var testProgram = CreateTestProgram("force-resource-start");
@@ -294,6 +294,94 @@ public class DistributedApplicationTests
 
         await startTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         await app.StopAsync().DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task ExplicitStart_StartPersistentContainer()
+    {
+        foreach (var firstRun in new[] { true, false })
+        {
+            const string testName = "explicit-start-persistent-container";
+            using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+            SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+            var notStartedResourceName = $"{testName}-redis";
+            var dependentResourceName = $"{testName}-serviceb";
+
+            var containerBuilder = AddRedisContainer(testProgram.AppBuilder, notStartedResourceName)
+                .WithContainerName(notStartedResourceName)
+                .WithLifetime(ContainerLifetime.Persistent)
+                .WithEndpoint(port: 6379, targetPort: 6379, name: "tcp", env: "REDIS_PORT")
+                .WithExplicitStart();
+
+            containerBuilder.WithExplicitStart();
+            testProgram.ServiceBBuilder.WaitFor(containerBuilder);
+
+            using var app = testProgram.Build();
+            var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+            var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+            var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
+
+            var startTask = app.StartAsync();
+
+            ResourceEvent? notStartedResourceEvent = null;
+            ResourceEvent? dependentResourceEvent = null;
+            if (firstRun)
+            {
+                // On start, one resource won't be started and the other is waiting on it.
+                notStartedResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+                dependentResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Waiting).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+
+                Assert.Collection(notStartedResourceEvent.Snapshot.Urls, u =>
+                {
+                    Assert.Equal("tcp://localhost:6379", u.Url);
+                    Assert.True(u.IsInactive);
+                });
+                Assert.Collection(dependentResourceEvent.Snapshot.Urls, u =>
+                {
+                    Assert.Equal("http://localhost:5254", u.Url);
+                    Assert.Equal("http", u.Name);
+                    Assert.True(u.IsInactive);
+                });
+
+                // Source should be populated on non-started resources.
+                Assert.Equal(RedisImageSource, notStartedResourceEvent.Snapshot.Properties.Single(p => p.Name == "container.image").Value?.ToString());
+                Assert.Contains("TestProject.ServiceB.csproj", dependentResourceEvent.Snapshot.Properties.Single(p => p.Name == "project.path").Value?.ToString());
+
+                logger.LogInformation("Start explicit start resource.");
+                await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            }
+
+            var runningResourceEvent = await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            Assert.Collection(runningResourceEvent.Snapshot.Urls, u =>
+            {
+                Assert.Equal("tcp://localhost:6379", u.Url);
+            });
+
+            // Dependent resource should now run.
+            var dependentRunningResourceEvent = await rns.WaitForResourceAsync(dependentResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            Assert.Collection(dependentRunningResourceEvent.Snapshot.Urls, u =>
+            {
+                Assert.Equal("http://localhost:5254", u.Url);
+                Assert.Equal("http", u.Name);
+            });
+
+            logger.LogInformation("Stop resource.");
+            await orchestrator.StopResourceAsync(runningResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Exited).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+
+            // Stop the continer if this isn't the first run otherwise it'll stay running
+            if (firstRun)
+            {
+                logger.LogInformation("Start resource again");
+                await orchestrator.StartResourceAsync(runningResourceEvent.ResourceId, CancellationToken.None).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+                await rns.WaitForResourceAsync(notStartedResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            }
+
+            await startTask.DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+            await app.StopAsync().DefaultTimeout(TestConstants.ExtraLongTimeoutTimeSpan);
+        }
     }
 
     [Fact]
@@ -1090,14 +1178,18 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter?.Value}", env.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter?.Value}", otherRedisEnv.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
@@ -1144,14 +1236,18 @@ public class DistributedApplicationTests
 
         var service = Assert.Single(exeList, c => $"{testName}-servicea".Equals(c.AppModelResourceName));
         var env = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redis");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:1234,password={redis.Resource.PasswordParameter!.Value}", env.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var list = await s.ListAsync<Container>().DefaultTimeout();
         var redisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redis-{ReplicaIdRegex}"));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!, e => e.Name == $"ConnectionStrings__{testName}-redisNoPort");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"localhost:6379,password={redisNoPort.Resource.PasswordParameter!.Value}", otherRedisEnv.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         var otherRedisContainer = Assert.Single(list, c => Regex.IsMatch(c.Name(), $"{testName}-redisNoPort-{ReplicaIdRegex}"));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
@@ -1175,6 +1271,40 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout));
         Assert.Equal($"The endpoint 'tcp' for container resource '{testName}-redis' must specify the TargetPort value", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task PersistentNetworkCreatedIfPersistentContainers(bool createPersistentContainer)
+    {
+        const string testName = "persistent-network-if-persistent-containers";
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        if (createPersistentContainer)
+        {
+            builder.AddContainer($"{testName}-persistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+                .WithLifetime(ContainerLifetime.Persistent);
+        }
+
+        builder.AddContainer($"{testName}-nonpersistent", RedisContainerImageTags.Image, RedisContainerImageTags.Tag);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var networks = await s.ListAsync<ContainerNetwork>().DefaultTimeout();
+
+        if (createPersistentContainer)
+        {
+            Assert.Single(networks, n => n.Spec.Persistent == true);
+        }
+        else
+        {
+            Assert.Single(networks, n => n.Spec.Persistent.GetValueOrDefault(false) == false);
+        }
     }
 
     [Fact]

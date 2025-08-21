@@ -42,11 +42,11 @@ public static class ResourceExtensions
     /// <returns><see langword="true"/> if annotations of the specified type were found; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
-        var matchingTypeAnnotations = resource.Annotations.OfType<T>().ToArray();
+        var matchingTypeAnnotations = resource.Annotations.OfType<T>();
 
-        if (matchingTypeAnnotations.Length is not 0)
+        if (matchingTypeAnnotations.Any())
         {
-            result = matchingTypeAnnotations;
+            result = matchingTypeAnnotations.ToArray();
             return true;
         }
         else
@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext
@@ -379,6 +379,13 @@ public static class ResourceExtensions
             }
         }
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the resource is excluded from being published.
+    /// </summary>
+    /// <param name="resource">The resource to determine if it should be excluded from being published.</param>
+    public static bool IsExcludedFromPublish(this IResource resource) =>
+        resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore;
 
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
@@ -672,6 +679,25 @@ public static class ResourceExtensions
             IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
             _ => resource
         };
+
+    /// <summary>
+    /// Returns a single DCP resource name for the specified resource.
+    /// Throws <see cref="InvalidOperationException"/> if the resource has no resolved names or multiple resolved names.
+    /// </summary>
+    internal static string GetResolvedResourceName(this IResource resource)
+    {
+        var names = resource.GetResolvedResourceNames();
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has no resolved names.");
+        }
+        if (names.Length > 1)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple resolved names: {string.Join(", ", names)}.");
+        }
+
+        return names[0];
+    }
 
     /// <summary>
     /// Gets resolved names for the specified resource.

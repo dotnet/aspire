@@ -120,7 +120,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             }
         }
 
-        return new(path, isTempFile && deleteTemporaryFileOnDispose);
+        var targetPath = directory is not null ? Path.Combine(directory, path) : path;
+        return new(targetPath, isTempFile && deleteTemporaryFileOnDispose);
     }
 
     /// <summary>
@@ -255,6 +256,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         /// <summary>
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
+        [Obsolete("KnownParameters.KeyVaultName is deprecated. Use an AzureKeyVaultResource instead.")]
         public static readonly string KeyVaultName = KeyVaultNameConst;
 
         /// <summary>
@@ -265,6 +267,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         /// <summary>
         /// The resource id of the log analytics workspace.
         /// </summary>
+        [Obsolete("KnownParameters.LogAnalyticsWorkspaceId is deprecated. Use an AzureLogAnalyticsWorkspaceResource instead.")]
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>

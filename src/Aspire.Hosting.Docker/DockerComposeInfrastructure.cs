@@ -1,3 +1,4 @@
+#pragma warning disable ASPIRECOMPUTE001
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -25,43 +26,71 @@ internal sealed class DockerComposeInfrastructure(
         // Find Docker Compose environment resources
         var dockerComposeEnvironments = appModel.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
 
-        if (dockerComposeEnvironments.Length > 1)
+        if (dockerComposeEnvironments.Length == 0)
         {
-            throw new NotSupportedException("Multiple Docker Compose environments are not supported.");
-        }
-
-        var environment = dockerComposeEnvironments.FirstOrDefault();
-
-        if (environment == null)
-        {
+            EnsureNoPublishAsDockerComposeServiceAnnotations(appModel);
             return;
         }
 
-        var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
-
-        foreach (var r in appModel.Resources)
+        foreach (var environment in dockerComposeEnvironments)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
+
+            if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
             {
-                continue;
+                // Ensure the dashboard resource is created (even though it's not part of the main application model)
+                var dashboardService = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(dashboard, executionContext, cancellationToken).ConfigureAwait(false);
+
+                dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
+                {
+                    ComputeEnvironment = environment
+                });
             }
 
-            // Skip resources that are not containers or projects
-            if (!r.IsContainer() && r is not ProjectResource)
+            foreach (var r in appModel.GetComputeResources())
             {
-                continue;
+                // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
+                if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
+                {
+                    ConfigureOtlp(r, otlpGrpcEndpoint);
+                }
+
+                // Create a Docker Compose compute resource for the resource
+                var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
+
+                // Add deployment target annotation to the resource
+                r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
+                {
+                    ComputeEnvironment = environment
+                });
             }
+        }
+    }
 
-            // Create a Docker Compose compute resource for the resource
-            var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
-
-            // Add deployment target annotation to the resource
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
+    private static void EnsureNoPublishAsDockerComposeServiceAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
+        {
+            if (r.HasAnnotationOfType<DockerComposeServiceCustomizationAnnotation>())
             {
-                ComputeEnvironment = environment
-            });
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as a Docker Compose service, but there are no '{nameof(DockerComposeEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(DockerComposeEnvironmentExtensions.AddDockerComposeEnvironment)}'.");
+            }
+        }
+    }
+
+    private static void ConfigureOtlp(IResource resource, EndpointReference otlpEndpoint)
+    {
+        // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
+        if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+        {
+            // Configure OTLP environment variables
+            resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+            {
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint;
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                return Task.CompletedTask;
+            }));
         }
     }
 }

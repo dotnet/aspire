@@ -6,8 +6,8 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -531,12 +531,12 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         });
 
         var resourceReadyTcs = new TaskCompletionSource();
-        var dependency = builder.AddResource(new CustomResource("test"));
+        var dependency = builder.AddResource(new CustomResource("test"))
+            .OnResourceReady((_, _, _) => resourceReadyTcs.Task);
+
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitFor(dependency);
-
-        builder.Eventing.Subscribe<ResourceReadyEvent>(dependency.Resource, (e, ct) => resourceReadyTcs.Task);
 
         using var app = builder.Build();
 
@@ -795,6 +795,99 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal(childResource.Resource, relationshipAnnotation.Resource);
         Assert.Equal(KnownRelationshipTypes.WaitFor, relationshipAnnotation.Type);
+    }
+
+    [Fact]
+    public void WaitForStartRegistersCorrectWaitAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var dependency = builder.AddResource(new CustomResource("dependency"));
+        var resource = builder.AddResource(new CustomResource("resource"))
+                              .WaitForStart(dependency);
+
+        Assert.True(resource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
+        var waitAnnotation = Assert.Single(waitAnnotations);
+
+        Assert.Equal(dependency.Resource, waitAnnotation.Resource);
+        Assert.Equal(WaitType.WaitUntilStarted, waitAnnotation.WaitType);
+        Assert.Null(waitAnnotation.WaitBehavior);
+    }
+
+    [Fact]
+    public void WaitForStartWithBehaviorRegistersCorrectWaitAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var dependency = builder.AddResource(new CustomResource("dependency"));
+        var resource = builder.AddResource(new CustomResource("resource"))
+                              .WaitForStart(dependency, WaitBehavior.StopOnResourceUnavailable);
+
+        Assert.True(resource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
+        var waitAnnotation = Assert.Single(waitAnnotations);
+
+        Assert.Equal(dependency.Resource, waitAnnotation.Resource);
+        Assert.Equal(WaitType.WaitUntilStarted, waitAnnotation.WaitType);
+        Assert.Equal(WaitBehavior.StopOnResourceUnavailable, waitAnnotation.WaitBehavior);
+    }
+
+    [Fact]
+    public void WaitForStartCannotWaitForItself()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new CustomResource("test"));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitForStart(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForEx.Message);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WaitForStartOnlyWaitsForRunningState()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        // Add a health check that never becomes healthy
+        var healthyTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("never_healthy", () =>
+        {
+            return healthyTcs.Task;
+        });
+
+        // Create a dependency that we can control manually with a health check that never passes
+        var dependency = builder.AddResource(new CustomResource("test"))
+                                .WithHealthCheck("never_healthy");
+
+        // Create a resource that waits for the dependency to start (but not for health checks)
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WaitForStart(dependency);
+
+        using var app = builder.Build();
+
+        var startupCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        var startTask = app.StartAsync(startupCts.Token);
+
+        // Wait for nginx to enter waiting state
+        var waitingStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Move dependency to Running state (but not healthy)
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Running
+        });
+
+        // Nginx should now start since we only wait for Running state, not health checks
+        var runningStateCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        await app.ResourceNotifications.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
+
+        healthyTcs.TrySetResult(HealthCheckResult.Healthy());
+
+        await startTask;
+
+        await app.StopAsync();
     }
 
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>, IResourceWithWaitSupport

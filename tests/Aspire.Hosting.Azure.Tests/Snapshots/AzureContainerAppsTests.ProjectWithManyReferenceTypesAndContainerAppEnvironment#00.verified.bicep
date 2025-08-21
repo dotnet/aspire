@@ -31,16 +31,16 @@ param cs_connectionstring string
 
 param api_identity_outputs_clientid string
 
-resource pg_kv_outputs_name_kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource pg_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: pg_kv_outputs_name
 }
 
-resource pg_kv_outputs_name_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing = {
+resource pg_kv_connectionstrings__db 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--db'
-  parent: pg_kv_outputs_name_kv
+  parent: pg_kv
 }
 
-resource api 'Microsoft.App/containerApps@2024-03-01' = {
+resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'api'
   location: location
   properties: {
@@ -49,7 +49,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'connectionstrings--db'
           identity: api_identity_outputs_id
-          keyVaultUrl: pg_kv_outputs_name_kv_connectionstrings__db.properties.secretUri
+          keyVaultUrl: pg_kv_connectionstrings__db.properties.secretUri
         }
         {
           name: 'secretval'
@@ -82,6 +82,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           identity: cae_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: cae_outputs_azure_container_apps_environment_id
     template: {

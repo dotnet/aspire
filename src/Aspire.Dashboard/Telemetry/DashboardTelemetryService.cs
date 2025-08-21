@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -11,12 +12,21 @@ public sealed class DashboardTelemetryService
     private readonly ILogger<DashboardTelemetryService> _logger;
     private readonly IDashboardTelemetrySender _telemetrySender;
 
+    // Internal for testing.
+    internal readonly Dictionary<string, AspireTelemetryProperty> _defaultProperties;
+
     public DashboardTelemetryService(
         ILogger<DashboardTelemetryService> logger,
         IDashboardTelemetrySender telemetrySender)
     {
         _logger = logger;
         _telemetrySender = telemetrySender;
+
+        _defaultProperties = new Dictionary<string, AspireTelemetryProperty>
+        {
+            { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
+            { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
+        };
     }
 
     /// <summary>
@@ -62,7 +72,7 @@ public sealed class DashboardTelemetryService
             // Post session property values after initialization, if telemetry has been enabled.
             if (IsTelemetryEnabled)
             {
-                foreach (var (key, value) in GetDefaultProperties())
+                foreach (var (key, value) in _defaultProperties)
                 {
                     PostProperty(key, value);
                 }
@@ -96,7 +106,7 @@ public sealed class DashboardTelemetryService
         _telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
-                startEventProperties,
+                IncludeDefaultProperties(startEventProperties),
                 severity,
                 isOptOutFriendly,
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
@@ -142,7 +152,7 @@ public sealed class DashboardTelemetryService
         _telemetrySender.QueueRequest(context, async (client, propertyGetter) =>
         {
             var scopeSettings = new AspireTelemetryScopeSettings(
-                startEventProperties,
+                IncludeDefaultProperties(startEventProperties),
                 severity,
                 isOptOutFriendly,
                 correlations?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray(),
@@ -192,7 +202,7 @@ public sealed class DashboardTelemetryService
                 eventName,
                 result,
                 resultSummary,
-                properties,
+                IncludeDefaultProperties(properties),
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
             var response = await PostRequestAsync<PostOperationRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostOperation, request).ConfigureAwait(false);
@@ -220,7 +230,7 @@ public sealed class DashboardTelemetryService
                 eventName,
                 result,
                 resultSummary,
-                properties,
+                IncludeDefaultProperties(properties),
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
             var response = await PostRequestAsync<PostOperationRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostUserTask, request).ConfigureAwait(false);
@@ -248,7 +258,7 @@ public sealed class DashboardTelemetryService
                 eventName,
                 description,
                 severity,
-                properties,
+                IncludeDefaultProperties(properties),
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
             var response = await PostRequestAsync<PostFaultRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostFault, request).ConfigureAwait(false);
@@ -277,7 +287,7 @@ public sealed class DashboardTelemetryService
                 eventName,
                 assetId,
                 assetEventVersion,
-                additionalProperties,
+                IncludeDefaultProperties(additionalProperties),
                 correlatedWith?.Select(propertyGetter).Cast<TelemetryEventCorrelation>().ToArray());
 
             var response = await PostRequestAsync<PostAssetRequest, TelemetryEventCorrelation>(client, TelemetryEndpoints.TelemetryPostAsset, request).ConfigureAwait(false);
@@ -341,18 +351,6 @@ public sealed class DashboardTelemetryService
         });
     }
 
-    /// <summary>
-    /// Gets identifying properties for the telemetry session.
-    /// </summary>
-    public Dictionary<string, AspireTelemetryProperty> GetDefaultProperties()
-    {
-        return new Dictionary<string, AspireTelemetryProperty>
-        {
-            { TelemetryPropertyKeys.DashboardVersion, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty) },
-            { TelemetryPropertyKeys.DashboardBuildId, new AspireTelemetryProperty(typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty) },
-        };
-    }
-
     private static async Task<TResponse> PostRequestAsync<TRequest, TResponse>(HttpClient client, string endpoint, TRequest request)
     {
         var httpResponseMessage = await client.PostAsJsonAsync(endpoint, request).ConfigureAwait(false);
@@ -368,6 +366,20 @@ public sealed class DashboardTelemetryService
     private static string GetCompositeEventName(string eventName, string endpoint)
     {
         return $"{endpoint} - ${eventName}";
+    }
+
+    [return: NotNullIfNotNull(nameof(properties))]
+    private Dictionary<string, AspireTelemetryProperty>? IncludeDefaultProperties(Dictionary<string, AspireTelemetryProperty>? properties)
+    {
+        if (properties != null)
+        {
+            foreach (var (key, value) in _defaultProperties)
+            {
+                properties[key] = value;
+            }
+        }
+
+        return properties;
     }
 }
 

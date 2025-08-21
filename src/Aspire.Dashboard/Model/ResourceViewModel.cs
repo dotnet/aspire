@@ -22,6 +22,7 @@ public sealed class ResourceViewModel
 {
     private readonly ImmutableArray<HealthReportViewModel> _healthReports = [];
     private readonly KnownResourceState? _knownState;
+    private Lazy<ImmutableArray<string>>? _cachedAddresses;
 
     public required string Name { get; init; }
     public required string ResourceType { get; init; }
@@ -42,6 +43,46 @@ public sealed class ResourceViewModel
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
     public bool SupportsDetailedTelemetry { get; init; }
+    public string? IconName { get; init; }
+    public IconVariant? IconVariant { get; init; }
+
+    /// <summary>
+    /// Gets the cached addresses for this resource that can be used for peer matching.
+    /// This includes addresses extracted from URLs, connection strings, and parameter values.
+    /// </summary>
+    public ImmutableArray<string> CachedAddresses => (_cachedAddresses ??= new Lazy<ImmutableArray<string>>(ExtractResourceAddresses)).Value;
+
+    private ImmutableArray<string> ExtractResourceAddresses()
+    {
+        var addresses = new List<string>();
+
+        // Extract addresses from URL endpoints
+        foreach (var service in Urls)
+        {
+            var hostAndPort = service.Url.GetComponents(UriComponents.HostAndPort, UriFormat.UriEscaped);
+            addresses.Add(hostAndPort);
+        }
+
+        // Extract addresses from connection strings using comprehensive parsing
+        if (Properties.TryGetValue(KnownProperties.Resource.ConnectionString, out var connectionStringProperty) &&
+            connectionStringProperty.Value.TryConvertToString(out var connectionString) &&
+            ConnectionStringParser.TryDetectHostAndPort(connectionString, out var host, out var port))
+        {
+            var endpoint = port.HasValue ? $"{host}:{port.Value}" : host;
+            addresses.Add(endpoint);
+        }
+
+        // Extract addresses from parameter values (for Parameter resources that contain URLs or host:port values)
+        if (Properties.TryGetValue(KnownProperties.Parameter.Value, out var parameterValueProperty) &&
+            parameterValueProperty.Value.TryConvertToString(out var parameterValue) &&
+            ConnectionStringParser.TryDetectHostAndPort(parameterValue, out var parameterHost, out var parameterPort))
+        {
+            var parameterEndpoint = parameterPort.HasValue ? $"{parameterHost}:{parameterPort.Value}" : parameterHost;
+            addresses.Add(parameterEndpoint);
+        }
+
+        return addresses.ToImmutableArray();
+    }
 
     public required ImmutableArray<HealthReportViewModel> HealthReports
     {
@@ -82,8 +123,12 @@ public sealed class ResourceViewModel
         return null;
     }
 
-    public bool IsResourceHidden()
+    public bool IsResourceHidden(bool showHiddenResources)
     {
+        if (showHiddenResources)
+        {
+            return false;
+        }
         return IsHidden || KnownState is KnownResourceState.Hidden;
     }
 
@@ -103,17 +148,17 @@ public sealed class ResourceViewModel
               ?? Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy;
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources, bool showHiddenResources = false)
     {
         return GetResourceName(resource, allResources.Values);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources, bool showHiddenResources = false)
     {
         var count = 0;
         foreach (var item in allResources)
         {
-            if (item.IsResourceHidden())
+            if (item.IsResourceHidden(showHiddenResources))
             {
                 continue;
             }
@@ -215,14 +260,14 @@ public sealed class CommandViewModel
         };
     }
 
-    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
             KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
             KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
             KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription
+            _ => DisplayDescription is { Length : > 0 } ? DisplayDescription : null
         };
     }
 }
@@ -276,6 +321,9 @@ public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
     string IPropertyGridItem.Name => DisplayName;
     string? IPropertyGridItem.Value => _displayValue.Value;
     object IPropertyGridItem.Key => _key;
+
+    bool IPropertyGridItem.IsValueSensitive => _propertyViewModel.IsValueSensitive;
+    bool IPropertyGridItem.IsValueMasked { get => _propertyViewModel.IsValueMasked; set => _propertyViewModel.IsValueMasked = value; }
 
     public DisplayedResourcePropertyViewModel(ResourcePropertyViewModel propertyViewModel, IStringLocalizer<Resources.Resources> loc, BrowserTimeProvider browserTimeProvider)
     {

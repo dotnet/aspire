@@ -3,7 +3,6 @@
 
 using Aspire.TestUtilities;
 using Aspire.Hosting.Testing;
-using Xunit;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.NodeJs.Tests;

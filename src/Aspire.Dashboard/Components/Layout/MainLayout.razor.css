@@ -1,32 +1,4 @@
 @media (min-width: 768px) {
-    #blazor-error-ui {
-        background: var(--highlight-bg);
-        bottom: 0;
-        box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-        display: none;
-        left: 0;
-        padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-        position: fixed;
-        width: 100%;
-        z-index: 1000;
-        color: var(--error-ui-foreground-color);
-    }
-
-    #blazor-error-ui a {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-
-    #blazor-error-ui .reload {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
     ::deep.layout {
         height: 100vh;
         width: 100vw;
@@ -103,34 +75,6 @@
 }
 
 @media (max-width: 768px) {
-    #blazor-error-ui {
-        background: var(--highlight-bg);
-        bottom: 0;
-        box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-        display: none;
-        left: 0;
-        padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-        position: fixed;
-        width: 100%;
-        z-index: 1000;
-        color: var(--error-ui-foreground-color);
-    }
-
-    #blazor-error-ui a {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-
-    #blazor-error-ui .reload {
-        color: var(--error-ui-accent-foreground-color);
-    }
-
     ::deep.layout {
         height: 100vh;
         width: 100vw;
@@ -249,4 +193,29 @@
 
 ::deep.layout > header > .header-gutters > .header-button-selected:not(:hover)::part(control) {
     background-color: var(--neutral-layer-floating) !important;
+}
+
+#blazor-error-ui {
+    background: var(--highlight-bg);
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    color: var(--error-ui-foreground-color);
+}
+
+#blazor-error-ui a {
+    color: var(--error-ui-accent-foreground-color);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+    text-decoration: none;
 }

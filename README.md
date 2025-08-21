@@ -1,36 +1,51 @@
-# .NET Aspire
+# Aspire
 
 [![Tests](https://github.com/dotnet/aspire/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/dotnet/aspire/actions/workflows/tests.yml)
 [![Build Status](https://dev.azure.com/dnceng-public/public/_apis/build/status%2Fdotnet%2Faspire%2Fdotnet.aspire?branchName=main)](https://dev.azure.com/dnceng-public/public/_build/latest?definitionId=274&branchName=main)
 [![Help Wanted](https://img.shields.io/github/issues/dotnet/aspire/help%20wanted?style=flat&color=%24EC820&label=help%20wanted)](https://github.com/dotnet/aspire/labels/help%20wanted)
 [![Good First Issue](https://img.shields.io/github/issues/dotnet/aspire/good%20first%20issue?style=flat&color=%24EC820&label=good%20first%20issue)](https://github.com/dotnet/aspire/labels/good%20first%20issue)
-[![Discord](https://img.shields.io/discord/732297728826277939?style=flat&logo=discord&logoColor=white&label=Join%20our%20Discord&labelColor=512bd4&color=cyan)](https://discord.com/invite/h87kDAHQgJ)
+[![Discord](https://img.shields.io/discord/1361488941836140614?style=flat&logo=discord&logoColor=white&label=Join%20our%20Discord&labelColor=512bd4&color=cyan)](https://discord.gg/raNPcaaSj8)
 
-## What is .NET Aspire?
+## What is Aspire?
 
-.NET Aspire is an opinionated, cloud ready stack for building observable, production ready, distributed applications. .NET Aspire is delivered through a collection of NuGet packages that handle specific cloud-native concerns. Cloud-native apps often consist of small, interconnected pieces or microservices rather than a single, monolithic code base. Cloud-native apps generally consume a large number of services, such as databases, messaging, and caching.
+Aspire provides tools, templates, and packages for building observable, production-ready distributed apps. At the center is the app model—a code-first, single source of truth that defines your app's services, resources, and connections.
 
-.NET Aspire helps with:
+Aspire gives you a unified toolchain: launch and debug your entire app locally with one command, then deploy anywhere—Kubernetes, the cloud, or your own servers—using the same composition.
 
-[Orchestration](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#orchestration): .NET Aspire provides features for running and connecting multi-project applications and their dependencies.
+## Useful links
 
-[Integrations](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#net-aspire-integrations): .NET Aspire integrations are NuGet packages for commonly used services, such as Redis or Postgres, with standardized interfaces ensuring they connect consistently and seamlessly with your app.
+- [Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [Aspire samples repository](https://github.com/dotnet/aspire-samples)
+- [Dogfooding pull requests](docs/dogfooding-pull-requests.md) - Test changes from specific pull requests locally
 
-[Tooling](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview?#project-templates-and-tooling): .NET Aspire comes with project templates and tooling experiences for Visual Studio and the dotnet CLI which help you create and interact with .NET Aspire apps.
+## Getting started
 
-To learn more, read the full [.NET Aspire overview and documentation](https://learn.microsoft.com/dotnet/aspire/). Samples are available in the [.NET Aspire samples repository](https://github.com/dotnet/aspire-samples). You can find the [eShop sample here](https://github.com/dotnet/eshop) and the [Azure version here](https://github.com/Azure-Samples/eShopOnAzure).
+### Install the Aspire CLI
+
+To install the latest released version of the Aspire CLI:
+
+On Windows:
+
+```powershell
+iex "& { $(irm https://aspire.dev/install.ps1) }"
+```
+
+On Linux or macOS:
+
+```sh
+curl -sSL https://aspire.dev/install.sh | bash
+```
+
+> [!NOTE]
+> If you want to use the latest daily builds instead of the released version, follow the instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md).
 
 ## What is in this repo?
 
-The .NET Aspire application host, dashboard, service discovery infrastructure, and all .NET Aspire integrations. It also contains the project templates.
-
-## Using latest daily builds
-
-Follow instructions in [docs/using-latest-daily.md](docs/using-latest-daily.md) to get started using .NET Aspire with the latest daily build.
+The Aspire application host, dashboard, service discovery infrastructure, and all Aspire integrations. It also contains the project templates.
 
 ## How can I contribute?
 
-We welcome contributions! Many people all over the world have helped make .NET better.
+We welcome contributions! Many people all over the world have helped make Aspire better.
 
 Follow instructions in [docs/contributing.md](docs/contributing.md) for working in the code in the repository.
 
@@ -40,7 +55,7 @@ Security issues and bugs should be reported privately, via email, to the Microso
 
 Also see info about related [Microsoft .NET Core and ASP.NET Core Bug Bounty Program](https://www.microsoft.com/msrc/bounty-dot-net-core).
 
-### Note on containers used by .NET Aspire resource and client integrations
+### Note on containers used by Aspire resource and client integrations
 
 The .NET team cannot evaluate the underlying third-party containers for which we have API support for suitability for specific customer requirements.
 
@@ -48,7 +63,7 @@ You should evaluate whichever containers you chose to compose and automate with 
 
 ## .NET Foundation
 
-.NET Aspire is a [.NET Foundation](https://www.dotnetfoundation.org/projects) project.
+Aspire is a [.NET Foundation](https://www.dotnetfoundation.org/projects) project.
 
 There are many .NET related projects on GitHub.
 

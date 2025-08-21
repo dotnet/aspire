@@ -351,24 +351,10 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             return Task.FromResult<string?>(value);
         };
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
-                               {
-                                 "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "keyVaultName": "{{{kvName}}.outputs.name}"
-                                 }
-                               }
-                               """;
-        var m = manifest.ManifestNode.ToString();
-        output.WriteLine(m);
-
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -469,25 +455,10 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             return Task.FromResult<string?>(value);
         };
 
-        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
 
-        var expectedManifest = $$"""
-                               {
-                                 "type": "azure.bicep.v0",
-                                 "connectionString": "{{{kvName}}.secrets.connectionstrings--cosmos}",
-                                 "path": "cosmos.module.bicep",
-                                 "params": {
-                                   "keyVaultName": "{{{kvName}}.outputs.name}"
-                                 }
-                               }
-                               """;
-
-        var m = manifest.ManifestNode.ToString();
-
-        output.WriteLine(m);
-        Assert.Equal(expectedManifest, m);
-
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(
@@ -541,7 +512,80 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("cosmos", cosmos.Resource.Name);
         Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
     }
-    
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaPublishMode_WithDefaultAzureSku()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .WithDefaultAzureSku();
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void RunAsPreviewEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+#pragma warning disable ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureCosmosDBResource()
+    {
+        // Arrange
+        var cosmosDBResource = new AzureCosmosDBResource("test-cosmosdb", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(cosmosDBResource, "test-cosmosdb");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+        var secondResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureCosmosDBResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-cosmosdb-name");
+        var existingResourceGroup = builder.AddParameter("existing-cosmosdb-rg");
+
+        var cosmosdb = builder.AddAzureCosmosDB("test-cosmosdb")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = cosmosdb.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

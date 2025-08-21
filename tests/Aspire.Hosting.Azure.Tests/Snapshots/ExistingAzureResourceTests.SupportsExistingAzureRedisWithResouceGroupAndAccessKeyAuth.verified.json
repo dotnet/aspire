@@ -3,7 +3,7 @@
   "connectionString": "{redis-kv.secrets.connectionstrings--redis}",
   "path": "redis.module.bicep",
   "params": {
-    "keyVaultName": "{redis-kv.outputs.name}"
+    "redis_kv_outputs_name": "{redis-kv.outputs.name}"
   },
   "scope": {
     "resourceGroup": "existingResourceGroupName"

@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Azure.Cosmos;
 
 namespace Aspire.Hosting.Azure;
 
@@ -24,7 +25,7 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// <param name="parent">The parent Azure Cosmos DB database resource.</param>
     public AzureCosmosDBContainerResource(string name, string containerName, IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(name)
     {
-        ContainerName = ThrowIfNullOrEmpty(containerName);
+        ArgumentException.ThrowIfNullOrEmpty(containerName);
         ArgumentNullException.ThrowIfNull(partitionKeyPaths);
         var partitionKeyPathsArray = partitionKeyPaths.ToArray();
         if (partitionKeyPathsArray.Length == 0)
@@ -35,8 +36,8 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
         {
             throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(partitionKeyPaths));
         }
+        ContainerProperties = new ContainerProperties(containerName, partitionKeyPathsArray);
 
-        PartitionKeyPaths = partitionKeyPathsArray;
         Parent = parent ?? throw new ArgumentNullException(nameof(parent));
     }
 
@@ -47,29 +48,57 @@ public class AzureCosmosDBContainerResource : Resource, IResourceWithParent<Azur
     /// <param name="containerName">The container name.</param>
     /// <param name="partitionKeyPath">The partition key path.</param>
     /// <param name="parent">The parent Azure Cosmos DB database resource.</param>
-    [Obsolete("Use the overload that supports the hierarchical partition keys instead.")]
-    public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent)
-        : this(name, containerName, [partitionKeyPath], parent) { }
+    public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent) : base(name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(containerName);
+        ArgumentException.ThrowIfNullOrEmpty(partitionKeyPath);
+        ContainerProperties = new ContainerProperties(containerName, partitionKeyPath);
+        Parent = parent ?? throw new ArgumentNullException(nameof(parent));
+    }
+
+    /// <summary>
+    /// Gets the container properties for this azure cosmos db container resource.
+    /// </summary>
+    public ContainerProperties ContainerProperties { get; private init; }
 
     /// <summary>
     /// Gets or sets the container name.
     /// </summary>
-    public string ContainerName { get; set; }
+    public string ContainerName
+    {
+        get => ContainerProperties.Id;
+        set => ContainerProperties.Id = ThrowIfNullOrEmpty(value);
+    }
 
     /// <summary>
     /// Gets or sets the partition key path.
     /// </summary>
-    [Obsolete($"Use {nameof(PartitionKeyPaths)} instead.")]
     public string PartitionKeyPath
     {
-        get => PartitionKeyPaths[0];
-        set => PartitionKeyPaths = [ThrowIfNullOrEmpty(value)];
+        get => ContainerProperties.PartitionKeyPath;
+        set => ContainerProperties.PartitionKeyPath = ThrowIfNullOrEmpty(value);
     }
 
     /// <summary>
     /// Gets or sets the hierarchical partition keys.
     /// </summary>
-    public IReadOnlyList<string> PartitionKeyPaths { get; private set; }
+    public IReadOnlyList<string> PartitionKeyPaths
+    {
+        get => ContainerProperties.PartitionKeyPaths;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Count == 0)
+            {
+                throw new ArgumentException("At least one partition key path should be provided.", nameof(value));
+            }
+            if (value.Any(string.IsNullOrEmpty))
+            {
+                throw new ArgumentException("Partition key paths cannot contain null or empty strings.", nameof(value));
+            }
+            ContainerProperties.PartitionKeyPaths = value;
+        }
+    }
 
     /// <summary>
     /// Gets the parent Azure Cosmos DB database resource.

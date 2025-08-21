@@ -11,4 +11,6 @@ public class MyDb1Context(DbContextOptions<MyDb1Context> options) : DbContext(op
 public class Entry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    public long Version { get; set; } = 1;
 }

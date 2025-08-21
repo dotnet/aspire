@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.TestUtilities;
-using EmptyFiles;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -12,13 +11,6 @@ sealed class TestModuleInitializer
     [ModuleInitializer]
     internal static void Setup()
     {
-        FileExtensions.AddTextExtension("bicep");
-        FileExtensions.AddTextExtension("json");
-        FileExtensions.AddTextExtension("yaml");
-        FileExtensions.AddTextExtension("yml");
-        FileExtensions.AddTextExtension("dockerfile");
-        FileExtensions.AddTextExtension("env");
-
         // Set the directory for all Verify calls in test projects
         var target = PlatformDetection.IsRunningOnHelix
             ? Path.Combine(Environment.GetEnvironmentVariable("HELIX_CORRELATION_PAYLOAD")!, "Snapshots")

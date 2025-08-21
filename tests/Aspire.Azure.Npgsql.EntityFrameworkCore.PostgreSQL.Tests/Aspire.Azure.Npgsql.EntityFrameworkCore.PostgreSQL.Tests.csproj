@@ -16,7 +16,7 @@
     <None Include="$(RepoRoot)src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.PostgreSQL" />

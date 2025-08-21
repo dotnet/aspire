@@ -66,15 +66,22 @@ public static class AzureProvisioningResourceExtensions
 
         var resources = infrastructure.GetProvisionableResources();
 
-        var parameter = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
-        var kvName = Infrastructure.NormalizeBicepIdentifier($"{parameter.BicepIdentifier}_kv");
+        var kvName = secretReference.Resource.GetBicepIdentifier();
 
         var kv = resources.OfType<KeyVaultService>().SingleOrDefault(kv => kv.BicepIdentifier == kvName);
 
         if (kv is null)
         {
             kv = KeyVaultService.FromExisting(kvName);
-            kv.Name = parameter;
+
+            if (!AzureProvisioningResource.TryApplyExistingResourceNameAndScope(
+                secretReference.Resource,
+                infrastructure,
+                kv))
+            {
+                kv.Name = secretReference.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
+            }
+
             infrastructure.Add(kv);
         }
 
@@ -274,7 +281,7 @@ public static class AzureProvisioningResourceExtensions
         {
             parameterName = parameterName[1..];
         }
-        return parameterName;
+        return Infrastructure.NormalizeBicepIdentifier(parameterName);
     }
 }
 

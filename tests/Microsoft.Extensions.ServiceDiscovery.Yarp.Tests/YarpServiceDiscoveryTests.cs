@@ -6,10 +6,11 @@ using Microsoft.Extensions.Hosting;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
 using System.Net;
-using DnsClient;
-using DnsClient.Protocol;
+using System.Net.Sockets;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Yarp.Tests;
 
@@ -231,7 +232,10 @@ public class YarpServiceDiscoveryTests
     [Fact]
     public async Task ServiceDiscoveryDestinationResolverTests_Dns()
     {
+        DnsResolver resolver = new DnsResolver(TimeProvider.System, NullLogger<DnsResolver>.Instance);
+
         await using var services = new ServiceCollection()
+            .AddSingleton<IDnsResolver>(resolver)
             .AddServiceDiscoveryCore()
             .AddDnsServiceEndpointProvider()
             .BuildServiceProvider();
@@ -265,32 +269,22 @@ public class YarpServiceDiscoveryTests
     [Fact]
     public async Task ServiceDiscoveryDestinationResolverTests_DnsSrv()
     {
-        var dnsClientMock = new FakeDnsClient
+        var dnsClientMock = new FakeDnsResolver
         {
-            QueryAsyncFunc = (query, queryType, queryClass, cancellationToken) =>
+            ResolveServiceAsyncFunc = (name, cancellationToken) =>
             {
-                var response = new FakeDnsQueryResponse
-                {
-                    Answers = new List<DnsResourceRecord>
-                    {
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 66, 8888, DnsString.Parse("srv-a")),
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 9999, DnsString.Parse("srv-b")),
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 7777, DnsString.Parse("srv-c"))
-                    },
-                    Additionals = new List<DnsResourceRecord>
-                    {
-                        new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
-                        new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                        new ARecord(new ResourceRecordInfo("srv-c", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Loopback),
-                    }
-                };
+                ServiceResult[] response = [
+                    new ServiceResult(DateTime.UtcNow.AddSeconds(60), 99, 66, 8888, "srv-a", [new AddressResult(DateTime.UtcNow.AddSeconds(64), IPAddress.Parse("10.10.10.10"))]),
+                    new ServiceResult(DateTime.UtcNow.AddSeconds(60), 99, 62, 9999, "srv-b", [new AddressResult(DateTime.UtcNow.AddSeconds(64), IPAddress.IPv6Loopback)]),
+                    new ServiceResult(DateTime.UtcNow.AddSeconds(60), 99, 62, 7777, "srv-c", [new AddressResult(DateTime.UtcNow.AddSeconds(64), IPAddress.Loopback)])
+                ];
 
-                return Task.FromResult<IDnsQueryResponse>(response);
+                return ValueTask.FromResult(response);
             }
         };
 
         await using var services = new ServiceCollection()
-            .AddSingleton<IDnsQuery>(dnsClientMock)
+            .AddSingleton<IDnsResolver>(dnsClientMock)
             .AddServiceDiscoveryCore()
             .AddDnsSrvServiceEndpointProvider(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
@@ -313,56 +307,17 @@ public class YarpServiceDiscoveryTests
             a => Assert.Equal("https://127.0.0.1:7777/", a));
     }
 
-    private sealed class FakeDnsClient : IDnsQuery
+    private sealed class FakeDnsResolver : IDnsResolver
     {
-        public Func<string, QueryType, QueryClass, CancellationToken, Task<IDnsQueryResponse>>? QueryAsyncFunc { get; set; }
+        public Func<string, AddressFamily, CancellationToken, ValueTask<AddressResult[]>>? ResolveIPAddressesAsyncFunc { get; set; }
+        public ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, AddressFamily addressFamily, CancellationToken cancellationToken = default) => ResolveIPAddressesAsyncFunc!.Invoke(name, addressFamily, cancellationToken);
 
-        public IDnsQueryResponse Query(string query, QueryType queryType, QueryClass queryClass = QueryClass.IN) => throw new NotImplementedException();
-        public IDnsQueryResponse Query(DnsQuestion question) => throw new NotImplementedException();
-        public IDnsQueryResponse Query(DnsQuestion question, DnsQueryAndServerOptions queryOptions) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryAsync(string query, QueryType queryType, QueryClass queryClass = QueryClass.IN, CancellationToken cancellationToken = default)
-            => QueryAsyncFunc!(query, queryType, queryClass, cancellationToken);
-        public Task<IDnsQueryResponse> QueryAsync(DnsQuestion question, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryAsync(DnsQuestion question, DnsQueryAndServerOptions queryOptions, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryCache(DnsQuestion question) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryCache(string query, QueryType queryType, QueryClass queryClass = QueryClass.IN) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryReverse(IPAddress ipAddress) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryReverse(IPAddress ipAddress, DnsQueryAndServerOptions queryOptions) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryReverseAsync(IPAddress ipAddress, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryReverseAsync(IPAddress ipAddress, DnsQueryAndServerOptions queryOptions, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServer(IReadOnlyCollection<NameServer> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServer(IReadOnlyCollection<NameServer> servers, DnsQuestion question) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServer(IReadOnlyCollection<NameServer> servers, DnsQuestion question, DnsQueryOptions queryOptions) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServer(IReadOnlyCollection<IPEndPoint> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServer(IReadOnlyCollection<IPAddress> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerAsync(IReadOnlyCollection<NameServer> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerAsync(IReadOnlyCollection<NameServer> servers, DnsQuestion question, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerAsync(IReadOnlyCollection<NameServer> servers, DnsQuestion question, DnsQueryOptions queryOptions, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerAsync(IReadOnlyCollection<IPAddress> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerAsync(IReadOnlyCollection<IPEndPoint> servers, string query, QueryType queryType, QueryClass queryClass = QueryClass.IN, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServerReverse(IReadOnlyCollection<IPAddress> servers, IPAddress ipAddress) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServerReverse(IReadOnlyCollection<IPEndPoint> servers, IPAddress ipAddress) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServerReverse(IReadOnlyCollection<NameServer> servers, IPAddress ipAddress) => throw new NotImplementedException();
-        public IDnsQueryResponse QueryServerReverse(IReadOnlyCollection<NameServer> servers, IPAddress ipAddress, DnsQueryOptions queryOptions) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerReverseAsync(IReadOnlyCollection<IPAddress> servers, IPAddress ipAddress, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerReverseAsync(IReadOnlyCollection<IPEndPoint> servers, IPAddress ipAddress, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerReverseAsync(IReadOnlyCollection<NameServer> servers, IPAddress ipAddress, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<IDnsQueryResponse> QueryServerReverseAsync(IReadOnlyCollection<NameServer> servers, IPAddress ipAddress, DnsQueryOptions queryOptions, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    }
+        public Func<string, CancellationToken, ValueTask<AddressResult[]>>? ResolveIPAddressesAsyncFunc2 { get; set; }
 
-    private sealed class FakeDnsQueryResponse : IDnsQueryResponse
-    {
-        public IReadOnlyList<DnsQuestion>? Questions { get; set; }
-        public IReadOnlyList<DnsResourceRecord>? Additionals { get; set; }
-        public IEnumerable<DnsResourceRecord>? AllRecords { get; set; }
-        public IReadOnlyList<DnsResourceRecord>? Answers { get; set; }
-        public IReadOnlyList<DnsResourceRecord>? Authorities { get; set; }
-        public string? AuditTrail { get; set; }
-        public string? ErrorMessage { get; set; }
-        public bool HasError { get; set; }
-        public DnsResponseHeader? Header { get; set; }
-        public int MessageSize { get; set; }
-        public NameServer? NameServer { get; set; }
-        public DnsQuerySettings? Settings { get; set; }
+        public ValueTask<AddressResult[]> ResolveIPAddressesAsync(string name, CancellationToken cancellationToken = default) => ResolveIPAddressesAsyncFunc2!.Invoke(name, cancellationToken);
+
+        public Func<string, CancellationToken, ValueTask<ServiceResult[]>>? ResolveServiceAsyncFunc { get; set; }
+
+        public ValueTask<ServiceResult[]> ResolveServiceAsync(string name, CancellationToken cancellationToken = default) => ResolveServiceAsyncFunc!.Invoke(name, cancellationToken);
     }
 }

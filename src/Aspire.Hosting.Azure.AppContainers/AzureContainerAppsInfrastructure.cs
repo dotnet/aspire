@@ -27,81 +27,45 @@ internal sealed class AzureContainerAppsInfrastructure(
             return;
         }
 
-        // TODO: We need to support direct association between a compute resource and the container app environment.
-        // Right now we support a single container app environment as the one we want to use and we'll fall back to
-        // azd based environment if we don't have one.
-
         var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
-        if (caes.Length > 1)
+        if (caes.Length == 0)
         {
-            throw new NotSupportedException("Multiple container app environments are not supported.");
-        }
-
-        var environment = caes.FirstOrDefault();
-
-        if (environment is null)
-        {
+            EnsureNoPublishAsAcaAnnotations(appModel);
             return;
         }
 
-        var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
-            logger,
-            executionContext,
-            environment);
-
-        foreach (var r in appModel.Resources)
+        foreach (var environment in caes)
         {
-            if (r.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+            var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
+                logger,
+                executionContext,
+                environment);
+
+            foreach (var r in appModel.GetComputeResources())
             {
-                continue;
-            }
+                var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
 
-            if (!r.IsContainer() && r is not ProjectResource)
-            {
-                continue;
-            }
-
-            var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
-
-            // Capture information about the container registry used by the
-            // container app environment in the deployment target information
-            // associated with each compute resource that needs an image
-            r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
-            {
-                ContainerRegistry = environment,
-                ComputeEnvironment = environment
-            });
-        }
-
-        static void SetKnownParameterValue(AzureBicepResource r, string key, Func<AzureBicepResource, object> factory)
-        {
-            if (r.Parameters.TryGetValue(key, out var existingValue) && existingValue is null)
-            {
-                var value = factory(r);
-
-                r.Parameters[key] = value;
+                // Capture information about the container registry used by the
+                // container app environment in the deployment target information
+                // associated with each compute resource that needs an image
+                r.Annotations.Add(new DeploymentTargetAnnotation(containerApp)
+                {
+                    ContainerRegistry = environment,
+                    ComputeEnvironment = environment
+                });
             }
         }
+    }
 
-        // Resolve the known parameters for the container app environment
-        foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
+    private static void EnsureNoPublishAsAcaAnnotations(DistributedApplicationModel appModel)
+    {
+        foreach (var r in appModel.GetComputeResources())
         {
-            // HACK: This forces parameters to be resolved for any AzureProvisioningResource
-            r.GetBicepTemplateFile();
-
-            // This will throw an exception if there's no value specified, in this new mode, we don't no longer support
-            // automagic secret key vault references.
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.KeyVaultName, _ => throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly."));
-
-            // Set the known parameters for the container app environment
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalId, _ => environment.PrincipalId);
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalType, _ => "ServicePrincipal");
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.PrincipalName, _ => environment.PrincipalName);
-            SetKnownParameterValue(r, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, _ => environment.LogAnalyticsWorkspaceId);
-
-            SetKnownParameterValue(r, "containerAppEnvironmentId", _ => environment.ContainerAppEnvironmentId);
-            SetKnownParameterValue(r, "containerAppEnvironmentName", _ => environment.ContainerAppEnvironmentName);
+            if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>())
+            {
+                throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.");
+            }
         }
     }
 }

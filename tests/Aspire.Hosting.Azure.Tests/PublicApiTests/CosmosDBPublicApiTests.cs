@@ -21,9 +21,7 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
-#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -63,9 +61,7 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
-#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -105,12 +101,12 @@ public class CosmosDBPublicApiTests
         var partitionKeyPath = isNull ? null! : string.Empty;
         var parent = new AzureCosmosDBDatabaseResource("database", "cosmos-db", resource.Resource);
 
-#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
-#pragma warning restore CS0618 // Type or member is obsolete
 
-        var exception = Assert.Throws<ArgumentException>(action);
-        Assert.Equal("partitionKeyPaths", exception.ParamName);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(partitionKeyPath), exception.ParamName);
     }
 
     [Fact]
@@ -171,9 +167,7 @@ public class CosmosDBPublicApiTests
         const string partitionKeyPath = "data";
         AzureCosmosDBDatabaseResource parent = null!;
 
-#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => new AzureCosmosDBContainerResource(name, containerName, partitionKeyPath, parent);
-#pragma warning restore CS0618 // Type or member is obsolete
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(parent), exception.ParamName);

@@ -63,6 +63,7 @@ public static class AzureWebPubSubExtensions
 
                     var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
                     {
+                        IsLocalAuthDisabled = true,
                         Sku = new BillingInfoSku()
                         {
                             Name = skuParameter,

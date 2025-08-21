@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <!-- Enable System.GC.DynamicAdaptationMode to get a GC that dynamically adapts to the application's memory use. -->
     <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
@@ -32,9 +32,8 @@
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
 
-    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
-      <Access>Internal</Access>
-      <Link>ResourceService\resource_service.proto</Link>
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\dashboard_service.proto">
+      <Link>ServiceClient\dashboard_service.proto</Link>
     </Protobuf>
   </ItemGroup>
 
@@ -44,6 +43,7 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
@@ -58,6 +58,7 @@
   <ItemGroup>
     <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
+    <Using Include="Aspire.Dashboard.ServiceClient" />
   </ItemGroup>
 
   <ItemGroup>
@@ -245,6 +246,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
@@ -264,7 +266,8 @@
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
-    <Compile Include="..\Shared\KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

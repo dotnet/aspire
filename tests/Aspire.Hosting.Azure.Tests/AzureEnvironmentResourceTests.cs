@@ -72,7 +72,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         Assert.True(File.Exists(mainBicepPath));
         var mainBicep = File.ReadAllText(mainBicepPath);
 
-        await Verify(mainBicep, "bicep");            
+        await Verify(mainBicep, "bicep");
 
         tempDir.Delete(recursive: true);
     }
@@ -181,6 +181,42 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         public string ProjectPath => "another-path";
 
         public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    [Fact]
+    public async Task AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
+    {
+        // Arrange
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
+            publisher: "default",
+            outputPath: tempDir.Path);
+
+        // Add an Azure storage resource that will be included
+        var includedStorage = builder.AddAzureStorage("included-storage");
+
+        // Add an Azure storage resource that will be excluded
+        var excludedStorage = builder.AddAzureStorage("excluded-storage")
+            .ExcludeFromManifest(); // This should be ignored during publishing
+
+        // Act
+        using var app = builder.Build();
+        app.Run();
+
+        // Assert - Verify the generated bicep files
+        var mainBicepPath = Path.Combine(tempDir.Path, "main.bicep");
+        Assert.True(File.Exists(mainBicepPath));
+        var mainBicep = File.ReadAllText(mainBicepPath);
+
+        // Check if included-storage bicep file was generated
+        var includedStorageBicepPath = Path.Combine(tempDir.Path, "included-storage", "included-storage.bicep");
+        Assert.True(File.Exists(includedStorageBicepPath), "Included storage should have a bicep file generated");
+
+        // Verify that excluded-storage bicep file was NOT generated
+        var excludedStorageBicepPath = Path.Combine(tempDir.Path, "excluded-storage", "excluded-storage.bicep");
+        Assert.False(File.Exists(excludedStorageBicepPath), "Excluded storage should not have a bicep file generated");
+
+        await Verify(mainBicep, "bicep");
     }
 
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters

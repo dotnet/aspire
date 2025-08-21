@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzureFunctionsEndToEnd.Functions;
 
-public class MyAzureBlobTrigger(ILogger<MyAzureBlobTrigger> logger, BlobContainerClient containerClient)
+public class MyAzureBlobTrigger(BlobContainerClient containerClient, ILogger<MyAzureBlobTrigger> logger)
 {
     [Function(nameof(MyAzureBlobTrigger))]
     [BlobOutput("test-files/{name}.txt", Connection = "blob")]

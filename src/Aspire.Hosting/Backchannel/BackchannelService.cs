@@ -11,7 +11,13 @@ using StreamJsonRpc;
 
 namespace Aspire.Hosting.Cli;
 
-internal sealed class BackchannelService(ILogger<BackchannelService> logger, IConfiguration configuration, AppHostRpcTarget appHostRpcTarget, IDistributedApplicationEventing eventing, IServiceProvider serviceProvider) : BackgroundService
+internal sealed class BackchannelService(
+    ILogger<BackchannelService> logger,
+    IConfiguration configuration,
+    AppHostRpcTarget appHostRpcTarget,
+    IDistributedApplicationEventing eventing,
+    IServiceProvider serviceProvider)
+    : BackgroundService
 {
     private JsonRpc? _rpc;
     
@@ -61,8 +67,6 @@ internal sealed class BackchannelService(ILogger<BackchannelService> logger, ICo
                 backchannelConnectedEvent,
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
-
-            logger.LogDebug("Accepted backchannel connection from {RemoteEndPoint}", clientSocket.RemoteEndPoint);
         }
         catch (TaskCanceledException ex)
         {

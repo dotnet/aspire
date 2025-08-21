@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureApplicationInsightsExtensionsTests
 {
     [Fact]
-    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameterInPublishMode()
+    public async Task AddApplicationInsightsWithoutExplicitLawGetsGeneratedLaw()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -24,20 +24,10 @@ public class AzureApplicationInsightsExtensionsTests
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
-        var expectedManifest = """
-           {
-             "type": "azure.bicep.v0",
-             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-             "path": "appInsights.module.bicep",
-             "params": {
-               "logAnalyticsWorkspaceId": ""
-             }
-           }
-           """;
-        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+        var (appInsightsManifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
 
-        await Verify(appInsightsManifest.BicepText, extension: "bicep");
+        await Verify(bicep, extension: "bicep")
+              .AppendContentAsFile(appInsightsManifest.ToString(), "json");
     }
 
     [Fact]
@@ -84,21 +74,11 @@ public class AzureApplicationInsightsExtensionsTests
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
-        var expectedManifest = """
-           {
-             "type": "azure.bicep.v0",
-             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-             "path": "appInsights.module.bicep",
-             "params": {
-               "logAnalyticsWorkspaceId": "{mylaw.outputs.logAnalyticsWorkspaceId}"
-             }
-           }
-           """;
-        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+        var (appInsightsManifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
 
-        await Verify(appInsightsManifest.BicepText, extension: "bicep");            
-    }
+        await Verify(bicep, extension: "bicep")
+              .AppendContentAsFile(appInsightsManifest.ToString(), "json");
+      }
 
     [Fact]
     public async Task WithReferenceAppInsightsSetsEnvironmentVariable()
@@ -116,6 +96,38 @@ public class AzureApplicationInsightsExtensionsTests
 
         Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
         Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
+    }
+
+    [Fact]
+    public async Task WithLogAnalyticsWorkspaceId_UsesProvidedWorkspaceId_VerifyBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Doesn't need to be ACA but this is a more real scenario
+        var env = builder.AddAzureContainerAppEnvironment("aca");
+
+        var appInsights = builder.AddAzureApplicationInsights("appInsights")
+                                 .WithLogAnalyticsWorkspace(env.GetOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID"));
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+    }
+
+    [Fact]
+    public async Task WithLogAnalyticsWorkspace_UsesWorkspaceResourceId_VerifyBicep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var law = builder.AddAzureLogAnalyticsWorkspace("law");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
+        appInsights.WithLogAnalyticsWorkspace(law);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(appInsights.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
     }
 
     private sealed class ProjectA : IProjectMetadata

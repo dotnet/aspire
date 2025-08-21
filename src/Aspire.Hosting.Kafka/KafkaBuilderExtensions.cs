@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Confluent.Kafka;
 using HealthChecks.Kafka;
@@ -109,19 +110,16 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
-            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(kafkaUi, (e, ct) =>
             {
                 var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
 
                 int i = 0;
                 foreach (var kafkaResource in kafkaResources)
                 {
-                    if (kafkaResource.InternalEndpoint.IsAllocated)
-                    {
-                        var endpoint = kafkaResource.InternalEndpoint;
-                        int index = i;
-                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
-                    }
+                    var endpoint = kafkaResource.InternalEndpoint;
+                    int index = i;
+                    kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
 
                     i++;
                 }
@@ -217,7 +215,7 @@ public static class KafkaBuilderExtensions
         var advertisedListeners = context.ExecutionContext.IsRunMode
             // In run mode, PLAINTEXT_INTERNAL assumes kafka is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
-            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{resource.Name}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
+            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Port.ToString(CultureInfo.InvariantCulture)},PLAINTEXT_INTERNAL://{resource.Name}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
             : ReferenceExpression.Create($"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.HostAndPort)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;

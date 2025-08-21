@@ -14,7 +14,7 @@ public class StorageBlobsPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "blobs";
 
-        var action = () => builder.AddAzureBlobClient(connectionName);
+        var action = () => builder.AddAzureBlobServiceClient(connectionName);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -28,7 +28,7 @@ public class StorageBlobsPublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddAzureBlobClient(connectionName);
+        var action = () => builder.AddAzureBlobServiceClient(connectionName);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -42,7 +42,7 @@ public class StorageBlobsPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "blobs";
 
-        var action = () => builder.AddKeyedAzureBlobClient(name);
+        var action = () => builder.AddKeyedAzureBlobServiceClient(name);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -56,7 +56,7 @@ public class StorageBlobsPublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureBlobClient(name);
+        var action = () => builder.AddKeyedAzureBlobServiceClient(name);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

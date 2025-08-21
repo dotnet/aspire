@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -230,6 +231,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             });
         }
 
+        // Add Forwarded Headers support so that the dashboard can be run behind a reverse proxy.
+        // Verify they are enabled by looking at the value of ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
+        {
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+
+                // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
+                // being enabled by explicit configuration.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+        }
+
         // Data from the server.
         builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
@@ -426,6 +442,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 }
             }
         });
+
+        // Use Forwarded Headers middleware if configured.
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
+        {
+            _app.UseForwardedHeaders();
+        }
 
         _app.UseAuthorization();
 

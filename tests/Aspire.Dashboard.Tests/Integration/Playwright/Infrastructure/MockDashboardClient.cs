@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
 
@@ -10,7 +11,7 @@ namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 public sealed class MockDashboardClient : IDashboardClient
 {
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
-        appName: "TestResource",
+        resourceName: "TestResource",
         resourceType: KnownResourceTypes.Project,
         properties: new[]
         {
@@ -48,5 +49,20 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         await Task.CompletedTask;
         yield return [];
+    }
+
+    public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        throw new NotImplementedException();
     }
 }

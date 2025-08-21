@@ -9,7 +9,6 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
-using Xunit;
 
 namespace Aspire.Hosting.Backchannel;
 
@@ -47,41 +46,6 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
         
         using var stream = new NetworkStream(socket, true);
         using var rpc = JsonRpc.Attach(stream);
-
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
-    }
-
-    [Fact]
-    public async Task CanRespondToPingAsync()
-    {
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
-        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
-
-        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
-        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
-            backchannelReadyTaskCompletionSource.SetResult(e);
-            return Task.CompletedTask;
-        });
-
-        using var app = builder.Build();
-
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
-
-        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
-
-        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
-
-        using var stream = new NetworkStream(socket, true);
-        using var rpc = JsonRpc.Attach(stream);
-
-        var timestampOut = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var timestampIn = await rpc.InvokeWithCancellationAsync<long>(
-            "PingAsync",
-            [timestampOut]).WaitAsync(TimeSpan.FromSeconds(60));
-
-        Assert.Equal(timestampOut, timestampIn);
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }

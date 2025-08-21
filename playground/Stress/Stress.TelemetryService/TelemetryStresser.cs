@@ -73,9 +73,11 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
                 }
         };
 
-        logger.LogDebug("Exporting metrics");
         var response = await client.ExportAsync(request, headers: metadata, cancellationToken: cancellationToken);
-        logger.LogDebug($"Export complete. Rejected count: {response.PartialSuccess?.RejectedDataPoints ?? 0}");
+        if (response.PartialSuccess is { RejectedDataPoints: > 0 } result)
+        {
+            logger.LogDebug($"Export complete. Rejected count: {result.RejectedDataPoints}");
+        }
     }
 
     public static Resource CreateResource(string? name = null, string? instanceId = null)

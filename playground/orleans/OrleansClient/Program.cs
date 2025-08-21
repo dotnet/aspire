@@ -3,7 +3,7 @@ using OrleansContracts;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddKeyedAzureTableClient("clustering");
+builder.AddKeyedAzureTableServiceClient("clustering");
 builder.UseOrleansClient();
 
 var app = builder.Build();

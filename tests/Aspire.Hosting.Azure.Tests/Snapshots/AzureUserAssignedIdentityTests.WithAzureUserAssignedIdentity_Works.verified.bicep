@@ -15,7 +15,7 @@ param myidentity_outputs_id string
 
 param myidentity_outputs_clientid string
 
-resource myapp 'Microsoft.App/containerApps@2024-03-01' = {
+resource myapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'myapp'
   location: location
   properties: {
@@ -27,6 +27,11 @@ resource myapp 'Microsoft.App/containerApps@2024-03-01' = {
           identity: cae_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      runtime: {
+        dotnet: {
+          autoConfigureDataProtection: true
+        }
+      }
     }
     environmentId: cae_outputs_azure_container_apps_environment_id
     template: {

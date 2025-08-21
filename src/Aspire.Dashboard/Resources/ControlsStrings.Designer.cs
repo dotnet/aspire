@@ -185,7 +185,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ChartContainerOverflowTitle", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to Show count.
@@ -467,6 +466,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hide hidden resources.
+        /// </summary>
+        public static string HideHiddenResources {
+            get {
+                return ResourceManager.GetString("HideHiddenResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (All).
         /// </summary>
         public static string LabelAll {
@@ -496,9 +504,9 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to (Unset).
         /// </summary>
-        public static string LabelUnset {
+        public static string LabelValueUnset {
             get {
-                return ResourceManager.GetString("LabelUnset", resourceCulture);
+                return ResourceManager.GetString("LabelValueUnset", resourceCulture);
             }
         }
         
@@ -546,7 +554,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricTableNoMetricsFound", resourceCulture);
             }
         }
-
         
         /// <summary>
         ///   Looks up a localized string similar to Only show value updates.
@@ -648,6 +655,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exemplar.
+        /// </summary>
+        public static string PlotlyChartExemplar {
+            get {
+                return ResourceManager.GetString("PlotlyChartExemplar", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exemplars.
         /// </summary>
         public static string PlotlyChartExemplars {
@@ -698,6 +714,15 @@ namespace Aspire.Dashboard.Resources {
         public static string PropertyGridValueColumnHeader {
             get {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource actions.
+        /// </summary>
+        public static string ResourceActions {
+            get {
+                return ResourceManager.GetString("ResourceActions", resourceCulture);
             }
         }
         
@@ -810,11 +835,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select an application.
+        ///   Looks up a localized string similar to Select a resource.
         /// </summary>
-        public static string SelectAnApplication {
+        public static string SelectAResource {
             get {
-                return ResourceManager.GetString("SelectAnApplication", resourceCulture);
+                return ResourceManager.GetString("SelectAResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show hidden resources.
+        /// </summary>
+        public static string ShowHiddenResources {
+            get {
+                return ResourceManager.GetString("ShowHiddenResources", resourceCulture);
             }
         }
         
@@ -934,9 +968,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnHeader", resourceCulture);
             }
         }
-
-
-
         
         /// <summary>
         ///   Looks up a localized string similar to Context.
@@ -1045,16 +1076,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ToggleNesting", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Total: &lt;strong&gt;{0} result(s) found&lt;/strong&gt;.
-        /// </summary>
-        public static string TotalItemsFooterText {
-            get {
-                return ResourceManager.GetString("TotalItemsFooterText", resourceCulture);
-            }
-        }
-
         
         /// <summary>
         ///   Looks up a localized string similar to View.

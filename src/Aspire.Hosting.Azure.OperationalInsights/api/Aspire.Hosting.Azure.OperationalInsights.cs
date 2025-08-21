@@ -16,10 +16,22 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial class AzureLogAnalyticsWorkspaceReferenceAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AzureLogAnalyticsWorkspaceReferenceAnnotation(AzureLogAnalyticsWorkspaceResource workspace) { }
+
+        public AzureLogAnalyticsWorkspaceResource Workspace { get { throw null; } }
+    }
+
     public partial class AzureLogAnalyticsWorkspaceResource : AzureProvisioningResource
     {
         public AzureLogAnalyticsWorkspaceResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public BicepOutputReference WorkspaceId { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }

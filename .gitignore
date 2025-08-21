@@ -151,3 +151,10 @@ playground/**/publish/
 
 # Verify
 *.received.*
+
+#Aspire CLI
+.aspire/
+
+# Release notes automation output
+tools/ReleaseNotes/analysis-output/
+tools/ReleaseNotes/release-notes-*.md
