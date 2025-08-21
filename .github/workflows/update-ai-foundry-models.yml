@@ -1,6 +1,10 @@
 name: Update AI Foundry Models
 
 on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
   workflow_dispatch:
   schedule:
     - cron: '0 5 * * *' # Daily at 05:00 UTC
