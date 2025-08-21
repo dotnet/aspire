@@ -177,7 +177,22 @@ public static class AspireAzureAIInferenceExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(builder, services, deploymentId));
+            services => CreateInnerChatClient(builder, services, deploymentId, configureChatClient: null));
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="deploymentId"></param>
+    /// <param name="configureChatClient"></param>
+    /// <returns></returns>
+    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentId, Action<OpenTelemetryChatClient>? configureChatClient)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.HostBuilder.Services.AddChatClient(
+            services => CreateInnerChatClient(builder, services, deploymentId, configureChatClient: configureChatClient));
     }
 
     /// <summary>
@@ -198,7 +213,7 @@ public static class AspireAzureAIInferenceExtensions
             services => CreateInnerChatClient(builder, services, deploymentId));
     }
 
-    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentId)
+    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentId, Action<OpenTelemetryChatClient>? configureChatClient = null)
     {
         var chatCompletionsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
                         services.GetRequiredService<ChatCompletionsClient>() :
@@ -212,6 +227,9 @@ public static class AspireAzureAIInferenceExtensions
         }
 
         var loggerFactory = services.GetService<ILoggerFactory>();
-        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+        var openTelemetryChatClient = new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+
+        configureChatClient?.Invoke(openTelemetryChatClient);
+        return openTelemetryChatClient;
     }
 }

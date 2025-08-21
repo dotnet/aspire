@@ -18,6 +18,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <PackageReference Include="AspNetCore.HealthChecks.ApplicationStatus" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
 
     <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
     <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />

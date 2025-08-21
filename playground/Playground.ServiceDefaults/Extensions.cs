@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -71,6 +72,11 @@ public static class Extensions
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
+
+        builder.Services.AddOpenTelemetry().UseAzureMonitor(o =>
+        {
+            o.ConnectionString = "InstrumentationKey=12ca7138-0269-4c23-87eb-01065c672200;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=515d870a-3d1b-47ac-87c1-6ede2571a839";
+        });
 
         // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
         //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))

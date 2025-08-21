@@ -1,5 +1,6 @@
-@page "/"
+﻿@page "/"
 @using Microsoft.Extensions.AI
+@using System.Diagnostics
 @inject IChatClient chatClient
 @inject ILogger<Home> logger
 
@@ -24,6 +25,9 @@
 
     private async Task GenerateNextParagraph()
     {
+        var activity = Activity.Current;
+        Activity.Current = null;
+
         if (chatMessages.Count > 1)
         {
             chatMessages.Add(new ChatMessage(ChatRole.User, "Write the next sentence in the story."));
@@ -31,6 +35,8 @@
 
         var response = await chatClient.GetResponseAsync(chatMessages);
         chatMessages.AddMessages(response);
+
+        Activity.Current = activity;
     }
 
     protected override async Task OnInitializedAsync()

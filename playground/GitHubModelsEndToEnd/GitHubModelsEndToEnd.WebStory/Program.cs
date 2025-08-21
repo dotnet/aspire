@@ -3,12 +3,14 @@
 
 using GitHubModelsEndToEnd.WebStory.Components;
 
+AppContext.SetSwitch("Azure.Experimental.TraceGenAIMessageContent", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 builder.AddAzureChatCompletionsClient("chat")
-       .AddChatClient();
+       .AddChatClient(deploymentId: null, configureChatClient: c => c.EnableSensitiveData = true);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
