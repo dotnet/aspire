@@ -90,6 +90,10 @@ export default class AspireRpcServer {
                             return getSupportedCapabilities(debuggerExtensions);
                         }));
 
+                        connection.onRequest('ping', withAuthentication(async () => {
+                            return 'pong';
+                        }));
+
                         const rpcClient = rpcClientFactory(connectionInfo, connection, token);
                         const interactionService = interactionServiceFactory(connection);
                         addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);

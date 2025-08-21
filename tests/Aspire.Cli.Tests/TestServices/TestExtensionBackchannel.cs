@@ -37,7 +37,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<IEnumerable<DisplayLineState>, Task>? DisplayLinesAsyncCallback { get; set; }
 
     public TaskCompletionSource? DisplayDashboardUrlsAsyncCalled { get; set; }
-    public Func<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken), Task>? DisplayDashboardUrlsAsyncCallback { get; set; }
+    public Func<DashboardUrlsState, Task>? DisplayDashboardUrlsAsyncCallback { get; set; }
 
     public TaskCompletionSource? ShowStatusAsyncCalled { get; set; }
     public Func<string?, Task>? ShowStatusAsyncCallback { get; set; }
@@ -64,6 +64,8 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? LaunchAppHostAsyncCalled { get; set; }
     public Func<string, List<string>, List<EnvVar>, bool, Task>? LaunchAppHostAsyncCallback { get; set; }
+
+    public TaskCompletionSource? NotifyAppHostStartupCompletedAsyncCalled { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -120,7 +122,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return DisplayLinesAsyncCallback?.Invoke(lines) ?? Task.CompletedTask;
     }
 
-    public Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
+    public Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken)
     {
         DisplayDashboardUrlsAsyncCalled?.SetResult();
         return DisplayDashboardUrlsAsyncCallback?.Invoke(dashboardUrls) ?? Task.CompletedTask;
@@ -198,5 +200,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return LaunchAppHostAsyncCallback != null
             ? LaunchAppHostAsyncCallback.Invoke(projectPath, arguments, envVars, debug)
             : Task.CompletedTask;
+    }
+
+    public Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken)
+    {
+        NotifyAppHostStartupCompletedAsyncCalled?.SetResult();
+        return Task.CompletedTask;
     }
 }
