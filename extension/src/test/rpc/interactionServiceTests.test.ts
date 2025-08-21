@@ -6,6 +6,7 @@ import { IInteractionService, InteractionService } from '../../server/interactio
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
 import AspireRpcServer, { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
+import { AspireDebugSession } from '../../debugger/AspireDebugSession';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -193,13 +194,19 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 }
 
-async function createTestRpcServer(): Promise<RpcServerTestInfo> {
+async function createTestRpcServer(hasAspireDebugSession?: () => boolean, getAspireDebugSession?: () => AspireDebugSession): Promise<RpcServerTestInfo> {
+    hasAspireDebugSession ??= () => false;
+    getAspireDebugSession ??= () => {
+        throw new Error();
+    };
+    
 	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService();
+	const interactionService = new InteractionService(hasAspireDebugSession, getAspireDebugSession);
 
 	const rpcServer = await AspireRpcServer.create(
 		() => interactionService,
-		() => rpcClient
+		() => rpcClient,
+        []
 	);
 
 	if (!rpcServer) {

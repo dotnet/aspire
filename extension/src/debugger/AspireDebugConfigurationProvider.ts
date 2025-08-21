@@ -3,8 +3,15 @@ import path from 'path';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { errorRetrievingAppHosts } from '../loc/strings';
 import { spawnCliProcess } from './languages/cli';
+import AspireRpcServer, { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 
 export class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+    private _rpcServerConnectionInfo: RpcServerConnectionInfo;
+
+    constructor(rpcServer: AspireRpcServer) {
+        this._rpcServerConnectionInfo = rpcServer.connectionInfo;
+    }
+
     async provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration[]> {
         if (folder === undefined) {
             return [];
@@ -51,7 +58,7 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
                 const stdout: string[] = [];
                 const stderr: string[] = [];
 
-                spawnCliProcess('aspire', ['extension', 'get-apphosts', '--directory', workspaceFolder], {
+                spawnCliProcess(this._rpcServerConnectionInfo, 'aspire', ['extension', 'get-apphosts', '--directory', workspaceFolder], {
                     excludeExtensionEnvironment: true,
                     stdoutCallback: (data) => stdout.push(data),
                     stderrCallback: (data) => stderr.push(data),

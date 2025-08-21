@@ -6,10 +6,10 @@ import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } 
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
-import { extensionContext } from "../extension";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
 import { ResourceDebuggerExtension } from "../capabilities";
 import { projectDebuggerExtension } from "./languages/dotnet";
+import AspireRpcServer from "../server/AspireRpcServer";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -19,6 +19,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private _appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
 
+  private readonly _rpcServer: AspireRpcServer;
   private readonly _dcpServer: AspireDcpServer;
   private readonly _debuggerExtensions: ResourceDebuggerExtension[];
 
@@ -26,8 +27,9 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
 
-  constructor(session: vscode.DebugSession, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]) {
+  constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]) {
     this._session = session;
+    this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
     this._debuggerExtensions = debuggerExtensions;
   }
@@ -102,6 +104,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   spawnRunCommand(args: string[], workingDirectory: string | undefined) {
     spawnCliProcess(
+      this._rpcServer.connectionInfo,
       'aspire',
       args,
       {
@@ -120,14 +123,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           // if the process failed, we want to stop the debug session
           this.dispose();
         },
-        dcpServer: this._dcpServer,
+        dcpServerConnectionInfo: this._dcpServer.connectionInfo,
         workingDirectory: workingDirectory
       }
     );
 
     this._disposables.push({
       dispose: () => {
-        extensionContext.rpcServer.requestStopCli();
+        this._rpcServer.requestStopCli();
         extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
       }
     });

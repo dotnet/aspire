@@ -1,21 +1,25 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from './AspireDebugSession';
-import { extensionContext } from '../extension';
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { ResourceDebuggerExtension } from '../capabilities';
+import AspireRpcServer from '../server/AspireRpcServer';
 
 export class AspireDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+  private readonly _rpcServer: AspireRpcServer;
   private readonly _dcpServer: AspireDcpServer;
   private readonly _debuggerExtensions: ResourceDebuggerExtension[];
+  private readonly _setAspireDebugSession: (session: AspireDebugSession) => void;
 
-  constructor(dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]) {
+  constructor(rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[], setAspireDebugSession: (session: AspireDebugSession) => void) {
+    this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
     this._debuggerExtensions = debuggerExtensions;
+    this._setAspireDebugSession = setAspireDebugSession;
   }
 
   async createDebugAdapterDescriptor(session: vscode.DebugSession,  executable: vscode.DebugAdapterExecutable | undefined): Promise<vscode.DebugAdapterDescriptor> {
-    const aspireDebugSession = new AspireDebugSession(session, this._dcpServer, this._debuggerExtensions);
-    extensionContext.aspireDebugSession = aspireDebugSession;
+    const aspireDebugSession = new AspireDebugSession(session, this._rpcServer, this._dcpServer, this._debuggerExtensions);
+    this._setAspireDebugSession(aspireDebugSession);
     return new vscode.DebugAdapterInlineImplementation(aspireDebugSession);
   }
 }

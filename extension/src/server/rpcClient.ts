@@ -1,6 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
 import { getAspireTerminal } from '../utils/terminal';
+import { RpcServerConnectionInfo } from './AspireRpcServer';
 
 export interface ICliRpcClient {
     getCliVersion(): Promise<string>;
@@ -14,11 +15,13 @@ export type ValidationResult = {
 };
 
 export class RpcClient implements ICliRpcClient {
+    private _rpcServerConnectionInfo: RpcServerConnectionInfo;
     private _messageConnection: MessageConnection;
     private _token: string;
     private _connectionClosed: boolean;
 
-    constructor(messageConnection: MessageConnection, token: string) {
+    constructor(rpcServerConnectionInfo: RpcServerConnectionInfo, messageConnection: MessageConnection, token: string) {
+        this._rpcServerConnectionInfo = rpcServerConnectionInfo;
         this._messageConnection = messageConnection;
         this._token = token;
         this._connectionClosed = false;
@@ -56,7 +59,7 @@ export class RpcClient implements ICliRpcClient {
         if (this._connectionClosed) {
             // If connection is already closed for some reason, we cannot send a request
             // Instead, dispose of the terminal directly.
-            getAspireTerminal().dispose();
+            getAspireTerminal(this._rpcServerConnectionInfo).dispose();
         } else {
             await this._messageConnection.sendRequest('stopCli', this._token);
         }

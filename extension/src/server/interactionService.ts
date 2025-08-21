@@ -6,7 +6,7 @@ import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { EnvVar } from '../dcp/types';
-import { extensionContext } from '../extension';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -42,7 +42,15 @@ type ConsoleLine = {
 };
 
 export class InteractionService implements IInteractionService {
+    private _hasAspireDebugSession: () => boolean;
+    private _getAspireDebugSession: () => AspireDebugSession;
+
     private _statusBarItem: vscode.StatusBarItem | undefined;
+
+    constructor(hasAspireDebugSession: () => boolean, getAspireDebugSession: () => AspireDebugSession) {
+        this._hasAspireDebugSession = hasAspireDebugSession;
+        this._getAspireDebugSession = getAspireDebugSession;
+    }
 
     showStatus(statusText: string | null) {
         extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
@@ -55,8 +63,8 @@ export class InteractionService implements IInteractionService {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
 
-            if (extensionContext.hasAspireDebugSession()) {
-                extensionContext.aspireDebugSession.sendMessage(formatText(statusText));
+            if (this._hasAspireDebugSession()) {
+                this._getAspireDebugSession().sendMessage(formatText(statusText));
             }
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
@@ -266,16 +274,16 @@ export class InteractionService implements IInteractionService {
     }
 
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        return extensionContext.aspireDebugSession.startAppHost(projectFile, args, environment, debug);
+        return this._getAspireDebugSession().startAppHost(projectFile, args, environment, debug);
     }
 
     stopDebugging() {
         this.clearStatusBar();
-        extensionContext.aspireDebugSession.dispose();
+        this._getAspireDebugSession().dispose();
     }
 
     notifyAppHostStartupCompleted() {
-        extensionContext.aspireDebugSession.notifyAppHostStartupCompleted();
+        this._getAspireDebugSession().notifyAppHostStartupCompleted();
     }
 
     clearStatusBar() {

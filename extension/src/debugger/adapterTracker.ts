@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { ResourceDebuggerExtension } from "../capabilities";
 import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireExtendedDebugConfiguration } from "../dcp/types";
-import { extensionContext } from "../extension";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';

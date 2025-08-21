@@ -7,7 +7,7 @@ import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { getSupportedCapabilities } from '../capabilities';
+import { getSupportedCapabilities, ResourceDebuggerExtension } from '../capabilities';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -38,7 +38,7 @@ export default class AspireRpcServer {
         this.connections.forEach(connection => connection.stopCli());
     }
 
-    static create(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (connection: MessageConnection, token: string) => ICliRpcClient): Promise<AspireRpcServer> {
+    static create(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string) => ICliRpcClient, debuggerExtensions: ResourceDebuggerExtension[]): Promise<AspireRpcServer> {
         const token = generateToken();
         const { key, cert } = createSelfSignedCert();
 
@@ -71,11 +71,13 @@ export default class AspireRpcServer {
                     const fullAddress = `localhost:${addressInfo.port}`;
                     extensionLogOutputChannel.info(`RPC server listening on ${fullAddress}`);
 
-                    const rpcServer = new AspireRpcServer(server, {
+                    const connectionInfo: RpcServerConnectionInfo = {
                         token: token,
                         address: fullAddress,
                         cert: cert
-                    });
+                    };
+
+                    const rpcServer = new AspireRpcServer(server, connectionInfo);
 
                     server.on('secureConnection', (socket) => {
                         extensionLogOutputChannel.info('Client connected to RPC server');
@@ -85,10 +87,10 @@ export default class AspireRpcServer {
                         );
 
                         connection.onRequest('getCapabilities', withAuthentication(async () => {
-                            return getSupportedCapabilities();
+                            return getSupportedCapabilities(debuggerExtensions);
                         }));
 
-                        const rpcClient = rpcClientFactory(connection, token);
+                        const rpcClient = rpcClientFactory(connectionInfo, connection, token);
                         const interactionService = interactionServiceFactory(connection);
                         addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
 

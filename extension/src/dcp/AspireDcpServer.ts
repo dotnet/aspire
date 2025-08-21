@@ -17,7 +17,7 @@ export default class AspireDcpServer {
     private wsBySession: Map<string, WebSocket> = new Map();
     private pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]> = new Map();
 
-    public readonly info: DcpServerConnectionInfo;
+    public readonly connectionInfo: DcpServerConnectionInfo;
 
     private constructor(
         info: DcpServerConnectionInfo,
@@ -26,7 +26,7 @@ export default class AspireDcpServer {
         wss: WebSocketServer,
         wsBySession: Map<string, WebSocket>,
         pendingNotificationQueueByDcpId: Map<string, RunSessionNotification[]>) {
-        this.info = info;
+        this.connectionInfo = info;
         this.app = app;
         this.server = server;
         this.wss = wss;

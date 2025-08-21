@@ -12,22 +12,22 @@ export class AspireExtensionContext {
     private _extensionContext: vscode.ExtensionContext | undefined;
     private _aspireDebugSession: AspireDebugSession | undefined;
     private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
-    public readonly debuggerExtensions: ResourceDebuggerExtension[];
+    private  _debuggerExtensions: ResourceDebuggerExtension[] | undefined;
 
-    constructor(debuggerExtensions: ResourceDebuggerExtension[]) {
+    constructor() {
         this._rpcServer = undefined;
         this._extensionContext = undefined;
         this._aspireDebugSession = undefined;
         this._debugConfigProvider = undefined;
         this._dcpServer = undefined;
-        this.debuggerExtensions = debuggerExtensions;
     }
 
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
+        this._debuggerExtensions = debuggerExtensions;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -49,6 +49,10 @@ export class AspireExtensionContext {
             throw new Error(extensionContextNotInitialized);
         }
         return this._extensionContext;
+    }
+
+    get debuggerExtensions(): ResourceDebuggerExtension[] | undefined {
+        return this._debuggerExtensions;
     }
 
     hasAspireDebugSession(): boolean {

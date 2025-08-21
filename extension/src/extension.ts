@@ -14,44 +14,49 @@ import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapt
 import { runCommand } from './commands/run';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
 import { AspireExtensionContext } from './AspireExtensionContext';
-import AspireRpcServer from './server/AspireRpcServer';
+import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
 import { getResourceDebuggerExtensions } from './capabilities';
+import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
 
-export let extensionContext = new AspireExtensionContext(getResourceDebuggerExtensions());
+let aspireExtensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
 	extensionLogOutputChannel.info("Activating Aspire extension");
 	initializeTelemetry(context);
 
+    const debuggerExtensions = getResourceDebuggerExtensions();
+
 	const rpcServer = await AspireRpcServer.create(
-		_ => new InteractionService(),
-		(connection, token: string) => new RpcClient(connection, token)
+		_ => new InteractionService(() => aspireExtensionContext.hasAspireDebugSession(), () => aspireExtensionContext.aspireDebugSession),
+		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection, token: string) => new RpcClient(rpcServerConnectionInfo, connection, token),
+        debuggerExtensions
 	);
 
-    const dcpServer = await AspireDcpServer.create(extensionContext.debuggerExtensions, () => extensionContext.aspireDebugSession);
+    const dcpServer = await AspireDcpServer.create(debuggerExtensions, () => aspireExtensionContext.aspireDebugSession);
 
-	const cliRunCommand = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', runCommand));
-	const cliAddCommand = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', addCommand));
-	const cliNewCommand = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', newCommand));
-	const cliConfigCommand = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', configCommand));
-	const cliDeployCommand = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', deployCommand));
-	const cliPublishCommand = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', publishCommand));
-	const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', configureLaunchJsonCommand));
+	const cliRunCommandRegistration = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', rpcServer.connectionInfo, runCommand));
+	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', rpcServer.connectionInfo, addCommand));
+	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', rpcServer.connectionInfo, newCommand));
+	const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', rpcServer.connectionInfo, configCommand));
+	const cliDeployCommandRegistration = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', rpcServer.connectionInfo, deployCommand));
+	const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', rpcServer.connectionInfo, publishCommand));
+	const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', rpcServer.connectionInfo, configureLaunchJsonCommand));
 
-	context.subscriptions.push(cliRunCommand, cliAddCommand, cliNewCommand, cliConfigCommand, cliDeployCommand, cliPublishCommand, configureLaunchJsonCommandRegistration);
+	context.subscriptions.push(cliRunCommandRegistration, cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, configureLaunchJsonCommandRegistration);
 
-	const debugConfigProvider = new AspireDebugConfigurationProvider();
+	const debugConfigProvider = new AspireDebugConfigurationProvider(rpcServer);
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
 	);
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Initial)
 	);
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(dcpServer, extensionContext.debuggerExtensions)));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(rpcServer, dcpServer, debuggerExtensions, session => {
+        aspireExtensionContext.aspireDebugSession = session;
+    })));
 
-    extensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer);
+    aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer, debuggerExtensions);
 
     // Return exported API for tests or other extensions
 	return {
@@ -60,18 +65,18 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	extensionContext.rpcServer.dispose();
-    extensionContext.dcpServer.dispose();
-    if (extensionContext.hasAspireDebugSession()) {
-        extensionContext.aspireDebugSession.dispose();
+	aspireExtensionContext.rpcServer.dispose();
+    aspireExtensionContext.dcpServer.dispose();
+    if (aspireExtensionContext.hasAspireDebugSession()) {
+        aspireExtensionContext.aspireDebugSession.dispose();
     }
 
 }
 
-async function tryExecuteCommand(commandName: string, command: () => Promise<void>): Promise<void> {
+async function tryExecuteCommand(commandName: string, rpcServerConnectionInfo: RpcServerConnectionInfo, command: (rpcServerConnectionInfo: RpcServerConnectionInfo) => Promise<void>): Promise<void> {
 	try {
 		sendTelemetryEvent(`${commandName}.invoked`);
-		await command();
+		await command(rpcServerConnectionInfo);
 	}
 	catch (error) {
 		vscode.window.showErrorMessage(errorMessage(error));

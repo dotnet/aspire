@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { projectDebuggerExtension } from './debugger/languages/dotnet';
 import { pythonDebuggerExtension } from './debugger/languages/python';
-import { extensionContext } from './extension';
 import { AspireExtendedDebugConfiguration, EnvVar, LaunchConfiguration, LaunchOptions } from './dcp/types';
 
 export interface ResourceDebuggerExtension {
@@ -43,14 +42,14 @@ function isPythonInstalled() {
     return isExtensionInstalled("ms-python.python");
 }
 
-export function getSupportedCapabilities(): string[] {
+export function getSupportedCapabilities(debuggerExtensions: ResourceDebuggerExtension[]): string[] {
     const capabilities = ['prompting', 'baseline.v1'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");
     }
 
-    extensionContext.debuggerExtensions.forEach(extension => {
+    debuggerExtensions.forEach(extension => {
         capabilities.push(...extension.resourceType);
     });
 
