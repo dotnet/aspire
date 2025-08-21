@@ -144,6 +144,10 @@ function Get-PackagesPath {
 if ($Configuration) {
   Write-Log "Building and packing NuGet packages [-c $Configuration] with versionsuffix '$VersionSuffix'"
   & $buildScript -r -b --pack -c $Configuration "/p:VersionSuffix=$VersionSuffix"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Err "Build failed for configuration $Configuration."
+    exit 1
+  }
   $pkgDir = Get-PackagesPath -Config $Configuration
   if (-not (Test-Path -LiteralPath $pkgDir)) {
     Write-Err "Could not find packages path $pkgDir for CONFIG=$Configuration"
@@ -152,23 +156,14 @@ if ($Configuration) {
 }
 else {
   Write-Log "Building and packing NuGet packages [-c Release] with versionsuffix '$VersionSuffix'"
-  $releaseOk = $true
-  try {
-    & $buildScript -r -b --pack -c Release "/p:VersionSuffix=$VersionSuffix"
+  & $buildScript -r -b --pack -c Release "/p:VersionSuffix=$VersionSuffix"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Err "Build failed for configuration Release."
+    exit 1
   }
-  catch {
-    $releaseOk = $false
-  }
-  if ($releaseOk) {
-    $pkgDir = Get-PackagesPath -Config 'Release'
-  }
-  else {
-    Write-Warn 'Release build/pack failed; trying Debug'
-    & $buildScript -r -b --pack -c Debug "/p:VersionSuffix=$VersionSuffix"
-    $pkgDir = Get-PackagesPath -Config 'Debug'
-  }
+  $pkgDir = Get-PackagesPath -Config 'Release'
   if (-not (Test-Path -LiteralPath $pkgDir)) {
-    Write-Err "Could not find packages path in $RepoRoot/artifacts/packages for Release or Debug"
+    Write-Err "Could not find packages path $pkgDir for CONFIG=Release"
     exit 1
   }
 }
