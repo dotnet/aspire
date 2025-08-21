@@ -4,7 +4,7 @@ description: Learn what's new in .NET Aspire 9.5.
 ms.date: 08/21/2025
 ---
 
-## What's new in .NET Aspire 9.5
+# What's new in .NET Aspire 9.5
 
 📢 .NET Aspire 9.5 is the next minor version release of .NET Aspire. It supports:
 
@@ -114,7 +114,7 @@ Extended markdown coverage in CLI prompts/output including code fences, emphasis
 
 ### 🧵 Improved cancellation & CTRL-C UX
 
-- CTRL‑C guidance message
+- CTRL-C guidance message
 - Fix for stall on interrupt
 
 ## 🔌 Remote & debugging experience
