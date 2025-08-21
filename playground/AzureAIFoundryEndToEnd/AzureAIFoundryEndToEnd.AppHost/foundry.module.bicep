@@ -22,7 +22,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 }
 
 resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'qwen2.5-0.5b'
+  name: 'chat'
   properties: {
     model: {
       format: 'Microsoft'
