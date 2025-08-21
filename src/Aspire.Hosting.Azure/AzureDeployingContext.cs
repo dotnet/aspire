@@ -263,18 +263,11 @@ internal sealed class AzureDeployingContext(
 
     private static void PropagateOutputsToResources(AzureEnvironmentResource resource)
     {
-        foreach (var populatedMainOutput in resource.Outputs)
+        foreach (var (populatedMainOutputName, populatedMainOutputValue) in resource.Outputs)
         {
-            var mainOutputName = populatedMainOutput.Key;
-            var mainOutputValue = populatedMainOutput.Value;
-
-            foreach (var hoistedOutput in resource.PublishingContext!.OutputLookup)
+            if (resource.PublishingContext!.ReverseOutputLookup.TryGetValue(populatedMainOutputName, out var outputRef))
             {
-                var outputRef = hoistedOutput.Key;
-                if (hoistedOutput.Value.BicepIdentifier == mainOutputName)
-                {
-                    outputRef.Resource.Outputs[outputRef.Name] = mainOutputValue;
-                }
+                outputRef.Resource.Outputs[outputRef.Name] = populatedMainOutputValue;
             }
         }
     }
