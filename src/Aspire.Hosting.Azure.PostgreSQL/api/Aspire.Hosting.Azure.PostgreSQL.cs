@@ -53,16 +53,10 @@ namespace Aspire.Hosting.Azure
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
-        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
-
         public BicepOutputReference NameOutputReference { get { throw null; } }
-
-        public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
-
-        public ApplicationModel.ReferenceExpression? UserName { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
