@@ -121,12 +121,12 @@ internal class NuGetConfigMerger
             // Create a lookup of patterns to new sources from the mappings
             var patternToNewSource = mappings.ToDictionary(m => m.PackageFilter, m => m.Source, StringComparer.OrdinalIgnoreCase);
             
-            // Track sources that are no longer needed
+            // Track sources that still have packages after remapping
             var sourcesInUse = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            
+            // First pass: Remove patterns that need to be remapped and track what needs to be added
+            var patternsToAdd = new List<(string pattern, string newSource)>();
             var packageSourceElements = packageSourceMapping.Elements("packageSource").ToArray();
-
-            // Collect all patterns that need to be moved
-            var allPatternsToMove = new List<(string pattern, string newSource)>();
 
             foreach (var packageSourceElement in packageSourceElements)
             {
@@ -151,14 +151,9 @@ internal class NuGetConfigMerger
                     if (patternToNewSource.TryGetValue(pattern, out var newSource) && 
                         !string.Equals(sourceKey, newSource, StringComparison.OrdinalIgnoreCase))
                     {
-                        // Remove this pattern from current source and collect for adding to new source
+                        // This pattern needs to be moved to the new source
                         elementsToRemove.Add(packageElement);
-                        allPatternsToMove.Add((pattern, newSource));
-                    }
-                    else
-                    {
-                        // This pattern stays with the current source
-                        sourcesInUse.Add(sourceKey);
+                        patternsToAdd.Add((pattern, newSource));
                     }
                 }
 
@@ -168,24 +163,23 @@ internal class NuGetConfigMerger
                     element.Remove();
                 }
 
-                // If this source still has packages, mark it as in use
+                // If this source still has packages after removal, mark it as in use
                 if (packageSourceElement.Elements("package").Any())
                 {
                     sourcesInUse.Add(sourceKey);
                 }
             }
 
-            // Group all patterns to move by their target source and add them
-            var patternsBySource = allPatternsToMove.GroupBy(x => x.newSource, StringComparer.OrdinalIgnoreCase);
+            // Second pass: Group patterns by source and add them all to the same packageSource element
+            var patternsBySource = patternsToAdd.GroupBy(x => x.newSource, StringComparer.OrdinalIgnoreCase);
             
             foreach (var sourceGroup in patternsBySource)
             {
                 var newSource = sourceGroup.Key;
-                var patterns = sourceGroup.Select(x => x.pattern).ToArray();
                 
-                // Find existing packageSource element for this source
-                var targetSourceElement = packageSourceElements.FirstOrDefault(ps => 
-                    string.Equals((string?)ps.Attribute("key"), newSource, StringComparison.OrdinalIgnoreCase));
+                // Find or create the packageSource element for this source
+                var targetSourceElement = packageSourceMapping.Elements("packageSource")
+                    .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), newSource, StringComparison.OrdinalIgnoreCase));
                 
                 if (targetSourceElement is null)
                 {
@@ -196,17 +190,25 @@ internal class NuGetConfigMerger
                 }
 
                 // Add all patterns for this source
-                foreach (var pattern in patterns)
+                foreach (var (pattern, _) in sourceGroup)
                 {
-                    var packageElement = new XElement("package");
-                    packageElement.SetAttributeValue("pattern", pattern);
-                    targetSourceElement.Add(packageElement);
+                    // Check if this pattern already exists in the target source
+                    var existingPattern = targetSourceElement.Elements("package")
+                        .FirstOrDefault(p => string.Equals((string?)p.Attribute("pattern"), pattern, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (existingPattern is null)
+                    {
+                        // Add the package pattern to the target source
+                        var packageElement = new XElement("package");
+                        packageElement.SetAttributeValue("pattern", pattern);
+                        targetSourceElement.Add(packageElement);
+                    }
                 }
                 
                 sourcesInUse.Add(newSource);
             }
 
-            // Remove empty packageSource elements and their corresponding sources from packageSources
+            // Third pass: Remove empty packageSource elements and their corresponding sources from packageSources
             var emptyPackageSourceElements = packageSourceMapping.Elements("packageSource")
                 .Where(ps => !ps.Elements("package").Any())
                 .ToArray();
@@ -224,6 +226,30 @@ internal class NuGetConfigMerger
                                               string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
                     sourceToRemove?.Remove();
                 }
+            }
+        }
+        else if (mappings.Length > 0)
+        {
+            // Create package source mapping section if it doesn't exist
+            packageSourceMapping = new XElement("packageSourceMapping");
+            configuration.Add(packageSourceMapping);
+
+            // Group patterns by their target source and add them
+            var patternsBySource = mappings.GroupBy(m => m.Source, StringComparer.OrdinalIgnoreCase);
+            
+            foreach (var sourceGroup in patternsBySource)
+            {
+                var packageSource = new XElement("packageSource");
+                packageSource.SetAttributeValue("key", sourceGroup.Key);
+                
+                foreach (var mapping in sourceGroup)
+                {
+                    var packageElement = new XElement("package");
+                    packageElement.SetAttributeValue("pattern", mapping.PackageFilter);
+                    packageSource.Add(packageElement);
+                }
+                
+                packageSourceMapping.Add(packageSource);
             }
         }
 
