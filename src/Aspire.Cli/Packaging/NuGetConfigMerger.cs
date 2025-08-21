@@ -24,8 +24,10 @@ internal class NuGetConfigMerger
             return;
         }
 
-        // Ensure the target directory exists
-        Directory.CreateDirectory(targetDirectory.FullName);
+        if (!targetDirectory.Exists)
+        {
+            targetDirectory.Create();
+        }
 
         // Locate an existing NuGet.config in the target directory using a case-insensitive search
         var nugetConfigFile = TryFindNuGetConfigInDirectory(targetDirectory);
