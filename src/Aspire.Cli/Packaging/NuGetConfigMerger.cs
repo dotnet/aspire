@@ -104,11 +104,6 @@ internal class NuGetConfigMerger
             .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
             .ToArray();
 
-        if (missingSources.Length == 0)
-        {
-            return;
-        }
-
         // Add missing sources
         foreach (var source in missingSources)
         {
@@ -119,6 +114,119 @@ internal class NuGetConfigMerger
             packageSources.Add(add);
         }
 
+        // Handle package source mappings
+        var packageSourceMapping = configuration.Element("packageSourceMapping");
+        if (packageSourceMapping is not null)
+        {
+            // Create a lookup of patterns to new sources from the mappings
+            var patternToNewSource = mappings.ToDictionary(m => m.PackageFilter, m => m.Source, StringComparer.OrdinalIgnoreCase);
+            
+            // Track sources that are no longer needed
+            var sourcesInUse = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var packageSourceElements = packageSourceMapping.Elements("packageSource").ToArray();
+
+            // Collect all patterns that need to be moved
+            var allPatternsToMove = new List<(string pattern, string newSource)>();
+
+            foreach (var packageSourceElement in packageSourceElements)
+            {
+                var sourceKey = (string?)packageSourceElement.Attribute("key");
+                if (string.IsNullOrEmpty(sourceKey))
+                {
+                    continue;
+                }
+
+                var packageElements = packageSourceElement.Elements("package").ToArray();
+                var elementsToRemove = new List<XElement>();
+
+                foreach (var packageElement in packageElements)
+                {
+                    var pattern = (string?)packageElement.Attribute("pattern");
+                    if (string.IsNullOrEmpty(pattern))
+                    {
+                        continue;
+                    }
+
+                    // Check if this pattern needs to be remapped to a new source
+                    if (patternToNewSource.TryGetValue(pattern, out var newSource) && 
+                        !string.Equals(sourceKey, newSource, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Remove this pattern from current source and collect for adding to new source
+                        elementsToRemove.Add(packageElement);
+                        allPatternsToMove.Add((pattern, newSource));
+                    }
+                    else
+                    {
+                        // This pattern stays with the current source
+                        sourcesInUse.Add(sourceKey);
+                    }
+                }
+
+                // Remove patterns that need to be moved
+                foreach (var element in elementsToRemove)
+                {
+                    element.Remove();
+                }
+
+                // If this source still has packages, mark it as in use
+                if (packageSourceElement.Elements("package").Any())
+                {
+                    sourcesInUse.Add(sourceKey);
+                }
+            }
+
+            // Group all patterns to move by their target source and add them
+            var patternsBySource = allPatternsToMove.GroupBy(x => x.newSource, StringComparer.OrdinalIgnoreCase);
+            
+            foreach (var sourceGroup in patternsBySource)
+            {
+                var newSource = sourceGroup.Key;
+                var patterns = sourceGroup.Select(x => x.pattern).ToArray();
+                
+                // Find existing packageSource element for this source
+                var targetSourceElement = packageSourceElements.FirstOrDefault(ps => 
+                    string.Equals((string?)ps.Attribute("key"), newSource, StringComparison.OrdinalIgnoreCase));
+                
+                if (targetSourceElement is null)
+                {
+                    // Create new packageSource element for this source
+                    targetSourceElement = new XElement("packageSource");
+                    targetSourceElement.SetAttributeValue("key", newSource);
+                    packageSourceMapping.Add(targetSourceElement);
+                }
+
+                // Add all patterns for this source
+                foreach (var pattern in patterns)
+                {
+                    var packageElement = new XElement("package");
+                    packageElement.SetAttributeValue("pattern", pattern);
+                    targetSourceElement.Add(packageElement);
+                }
+                
+                sourcesInUse.Add(newSource);
+            }
+
+            // Remove empty packageSource elements and their corresponding sources from packageSources
+            var emptyPackageSourceElements = packageSourceMapping.Elements("packageSource")
+                .Where(ps => !ps.Elements("package").Any())
+                .ToArray();
+
+            foreach (var emptyElement in emptyPackageSourceElements)
+            {
+                var sourceKey = (string?)emptyElement.Attribute("key");
+                emptyElement.Remove();
+
+                // Remove the corresponding source from packageSources if it's not in use elsewhere
+                if (!string.IsNullOrEmpty(sourceKey) && !sourcesInUse.Contains(sourceKey))
+                {
+                    var sourceToRemove = packageSources.Elements("add")
+                        .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                    sourceToRemove?.Remove();
+                }
+            }
+        }
+
         // Save the updated document
         await using (var writeStream = nugetConfigFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
         {
@@ -127,11 +235,12 @@ internal class NuGetConfigMerger
     }
 
     /// <summary>
-    /// Checks if any sources from the mappings are missing from the existing NuGet.config.
+    /// Checks if any sources from the mappings are missing from the existing NuGet.config
+    /// or if package source mappings need to be updated.
     /// </summary>
     /// <param name="targetDirectory">The directory to check for NuGet.config.</param>
     /// <param name="mappings">The package mappings to check against.</param>
-    /// <returns>True if sources are missing, false if all sources are present or no NuGet.config exists.</returns>
+    /// <returns>True if sources are missing or mappings need updates, false if all sources and mappings are correctly configured.</returns>
     public static bool HasMissingSources(DirectoryInfo targetDirectory, PackageMapping[] mappings)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
@@ -174,7 +283,49 @@ internal class NuGetConfigMerger
                 .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
                 .ToArray();
 
-            return missingSources.Length > 0;
+            // Check if any sources are missing
+            if (missingSources.Length > 0)
+            {
+                return true;
+            }
+
+            // Check if package source mappings need to be updated
+            var packageSourceMapping = doc.Root?.Element("packageSourceMapping");
+            if (packageSourceMapping is not null)
+            {
+                // Create a lookup of patterns to required sources from the mappings
+                var patternToRequiredSource = mappings.ToDictionary(m => m.PackageFilter, m => m.Source, StringComparer.OrdinalIgnoreCase);
+
+                // Check if any patterns are mapped to the wrong source
+                var packageSourceElements = packageSourceMapping.Elements("packageSource");
+                foreach (var packageSourceElement in packageSourceElements)
+                {
+                    var sourceKey = (string?)packageSourceElement.Attribute("key");
+                    if (string.IsNullOrEmpty(sourceKey))
+                    {
+                        continue;
+                    }
+
+                    var packageElements = packageSourceElement.Elements("package");
+                    foreach (var packageElement in packageElements)
+                    {
+                        var pattern = (string?)packageElement.Attribute("pattern");
+                        if (string.IsNullOrEmpty(pattern))
+                        {
+                            continue;
+                        }
+
+                        // Check if this pattern should be mapped to a different source
+                        if (patternToRequiredSource.TryGetValue(pattern, out var requiredSource) &&
+                            !string.Equals(sourceKey, requiredSource, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true; // This pattern needs to be remapped
+                        }
+                    }
+                }
+            }
+
+            return false; // All sources and mappings are correctly configured
         }
         catch
         {
