@@ -91,6 +91,9 @@ jobs:
         with:
           global-json-file: ${{ github.workspace }}/global.json
 
+      - name: dotnet info
+        run: dotnet --info
+
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
