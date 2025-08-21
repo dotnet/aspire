@@ -24,6 +24,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.1" />
+    <PackageVersion Include="Azure.Storage.Files.DataLake" Version="12.22.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.52.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.30.3" />
