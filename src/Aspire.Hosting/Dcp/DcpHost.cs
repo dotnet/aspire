@@ -399,8 +399,8 @@ internal sealed class DcpHost
             var options = new NotificationInteractionOptions
             {
                 Intent = MessageIntent.Error,
-                LinkText = null,
-                LinkUrl = null
+                LinkText = InteractionStrings.ContainerRuntimeLinkText,
+                LinkUrl = "https://aka.ms/dotnet/aspire/containers"
             };
 
             // Show notification without polling (non-auto-dismiss)

@@ -232,7 +232,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources..
+        ///   Looks up a localized string similar to Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
         /// </summary>
         internal static string ContainerRuntimeNotInstalledMessage {
             get {

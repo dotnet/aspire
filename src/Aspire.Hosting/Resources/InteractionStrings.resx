@@ -176,6 +176,6 @@
     <value>Container Runtime Not Installed</value>
   </data>
   <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
-    <value>This application defines container resources, but no supported container runtime (Docker or Podman) was detected. Install a container runtime to enable these resources.</value>
+    <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
   </data>
 </root>

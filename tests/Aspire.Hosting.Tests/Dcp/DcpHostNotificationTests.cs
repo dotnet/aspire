@@ -354,12 +354,12 @@ public sealed class DcpHostNotificationTests
 
         // Assert
         Assert.Equal("Container Runtime Not Installed", interaction.Title);
-        Assert.Contains("no supported container runtime", interaction.Message);
-        Assert.Contains("Docker or Podman", interaction.Message);
+        Assert.Contains("Container runtime could not be found", interaction.Message);
+        Assert.Contains("https://aka.ms/dotnet/aspire/containers", interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
-        Assert.Null(notificationOptions.LinkText);
-        Assert.Null(notificationOptions.LinkUrl);
+        Assert.Equal("Learn more", notificationOptions.LinkText);
+        Assert.Equal("https://aka.ms/dotnet/aspire/containers", notificationOptions.LinkUrl);
 
         // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay
         // This tests that the function returns immediately and doesn't start the polling task
