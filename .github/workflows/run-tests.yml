@@ -343,7 +343,7 @@ jobs:
           }
 
       - name: Post test results to GitHub Check
-        if: always() && github.event_name == 'pull_request' && env.GITHUB_TOKEN != ''
+        if: always() && github.event_name == 'pull_request'
         env:
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

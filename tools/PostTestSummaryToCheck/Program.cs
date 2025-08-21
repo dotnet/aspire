@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Aspire.TestTools;
 
@@ -69,19 +70,77 @@ rootCommand.SetAction(result =>
         return;
     }
 
-    // Generate test summary using existing tool
+    // Generate test summary for all tests (successful and failed)
     var summaryBuilder = new StringBuilder();
+    var hasAnyTests = false;
+    
     foreach (var trxFile in trxFiles)
     {
-        TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, summaryBuilder, url);
+        try
+        {
+            var testRun = TrxReader.DeserializeTrxFile(trxFile);
+            if (testRun?.ResultSummary?.Counters is null)
+            {
+                Console.WriteLine($"Warning: Could not read test results from {trxFile}");
+                continue;
+            }
+
+            hasAnyTests = true;
+            var counters = testRun.ResultSummary.Counters;
+            var title = GetTestTitle(Path.GetFileName(trxFile));
+            
+            if (!string.IsNullOrEmpty(url))
+            {
+                title = $"{title} (<a href=\"{url}\">Logs</a>)";
+            }
+
+            summaryBuilder.AppendLine(CultureInfo.InvariantCulture, $"### {title}");
+            summaryBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
+            summaryBuilder.AppendLine("|--------|--------|---------|-------|");
+            summaryBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {counters.Passed} | {counters.Failed} | {counters.NotExecuted} | {counters.Total} |");
+            summaryBuilder.AppendLine();
+
+            // Add detailed failure information if there are failures
+            if (counters.Failed > 0 && testRun.Results?.UnitTestResults is not null)
+            {
+                var failedTests = testRun.Results.UnitTestResults.Where(r => r.Outcome == "Failed");
+                foreach (var failedTest in failedTests)
+                {
+                    summaryBuilder.AppendLine("<div>");
+                    summaryBuilder.AppendLine(CultureInfo.InvariantCulture, $"    <details><summary>🔴 <b>{failedTest.TestName}</b></summary>");
+                    summaryBuilder.AppendLine();
+                    summaryBuilder.AppendLine();
+                    summaryBuilder.AppendLine("```yml");
+                    
+                    var errorMessage = failedTest.Output?.ErrorInfoString ?? "Test failed";
+                    
+                    summaryBuilder.AppendLine(errorMessage);
+                    
+                    summaryBuilder.AppendLine("```");
+                    summaryBuilder.AppendLine();
+                    summaryBuilder.AppendLine("</div>");
+                }
+            }
+            else if (counters.Failed == 0)
+            {
+                summaryBuilder.AppendLine("✅ All tests passed!");
+            }
+            
+            summaryBuilder.AppendLine();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not process TRX file {trxFile}: {ex.Message}");
+        }
+    }
+
+    if (!hasAnyTests)
+    {
+        Console.WriteLine("No test results found to process");
+        return;
     }
 
     var summaryContent = summaryBuilder.ToString();
-    if (string.IsNullOrWhiteSpace(summaryContent))
-    {
-        Console.WriteLine("No test summary generated");
-        return;
-    }
 
     // Determine if there are test failures
     var hasFailures = false;
@@ -168,3 +227,18 @@ rootCommand.SetAction(result =>
 });
 
 return rootCommand.Parse(args).Invoke();
+
+static string GetTestTitle(string fileName)
+{
+    // Extract test name from filename, e.g., "Seq.trx" -> "Seq"
+    var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+    
+    // Remove common suffixes to get clean test name
+    var cleanName = nameWithoutExtension
+        .Replace(".Tests", "")
+        .Replace("Aspire.", "")
+        .Replace("_net8.0_x64", "")
+        .Replace("_net10.0_x64", "");
+        
+    return cleanName;
+}
