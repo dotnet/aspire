@@ -243,12 +243,7 @@ internal sealed class AzureDeployingContext(
             },
             cancellationToken).ConfigureAwait(false);
 
-        var registryName = await registry.Name.GetValueAsync(cancellationToken).ConfigureAwait(false);
-        if (registryName == null)
-        {
-            throw new InvalidOperationException("Failed to retrieve container registry information.");
-        }
-
+        var registryName = await registry.Name.GetValueAsync(cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException("Failed to retrieve container registry information.");
         var acrStep = await activityReporter.CreateStepAsync($"Pushing images to {registryName}", cancellationToken).ConfigureAwait(false);
         await using (acrStep.ConfigureAwait(false))
         {
@@ -363,20 +358,16 @@ internal sealed class AzureDeployingContext(
 
     private static string TryGetComputeResourceEndpoint(IResource computeResource, IAzureComputeEnvironmentResource azureComputeEnv)
     {
-        try
+        // Check if the compute environment has the default domain output (for Azure Container Apps)
+        // We could add a reference to AzureContainerAppEnvironmentResource here so we can resolve
+        // the `ContainerAppDomain` property but we use a string-based lookup here to avoid adding
+        // explicit references to a compute environment type
+        if (azureComputeEnv is AzureProvisioningResource provisioningResource &&
+            provisioningResource.Outputs.TryGetValue("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
         {
-            // Check if the compute environment has the default domain output (for Azure Container Apps)
-            // We could add a reference to AzureContainerAppEnvironmentResource here so we can resolve
-            // the `ContainerAppDomain` property but we use a string-based lookup here to avoid adding
-            // explicit references to a compute environment type
-            if (azureComputeEnv is AzureProvisioningResource provisioningResource &&
-                provisioningResource.Outputs.TryGetValue("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
-            {
-                var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
-                return $" to {endpoint}";
-            }
+            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
+            return $" to {endpoint}";
         }
-        catch { }
 
         return string.Empty;
     }
@@ -386,23 +377,19 @@ internal sealed class AzureDeployingContext(
     // need to expand this to support dashboards across compute environments.
     private static string? TryGetDashboardUrl(DistributedApplicationModel model)
     {
-        try
+        foreach (var resource in model.Resources)
         {
-            foreach (var resource in model.Resources)
+            if (resource is IAzureComputeEnvironmentResource &&
+                resource is AzureBicepResource environmentBicepResource)
             {
-                if (resource is IAzureComputeEnvironmentResource &&
-                    resource is AzureBicepResource environmentBicepResource)
+                // If the resource is a compute environment, we can use its properties
+                // to construct the dashboard URL.
+                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
                 {
-                    // If the resource is a compute environment, we can use its properties
-                    // to construct the dashboard URL.
-                    if (environmentBicepResource.Outputs.TryGetValue($"AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
-                    {
-                        return $"https://aspire-dashboard.ext.{domainValue}";
-                    }
+                    return $"https://aspire-dashboard.ext.{domainValue}";
                 }
             }
         }
-        catch { }
 
         return null;
     }
