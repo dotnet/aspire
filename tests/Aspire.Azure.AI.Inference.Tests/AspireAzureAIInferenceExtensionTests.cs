@@ -138,4 +138,43 @@ public class AspireAzureAIInferenceExtensionTests
         Assert.NotNull(metadata);
         Assert.Equal("other", metadata?.DefaultModelId);
     }
+
+    [Theory]
+    [InlineData("Deployment")]
+    [InlineData("DeploymentId")]
+    [InlineData("Model")]
+    public void ChatCompletionsClientSettings_AcceptsSingleDeploymentKey(string keyName)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var connectionString = $"Endpoint=https://fakeendpoint;Key=fakekey;{keyName}=testdeployment";
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
+        ]);
+        
+        builder.AddAzureChatCompletionsClient("inference");
+        
+        using var host = builder.Build();
+        var client = host.Services.GetService<ChatCompletionsClient>();
+        
+        Assert.NotNull(client);
+    }
+
+    [Theory]
+    [InlineData("Deployment", "DeploymentId")]
+    [InlineData("Deployment", "Model")]
+    [InlineData("DeploymentId", "Model")]
+    public void ChatCompletionsClientSettings_RejectsMultipleDeploymentKeys(string key1, string key2)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var connectionString = $"Endpoint=https://fakeendpoint;Key=fakekey;{key1}=value1;{key2}=value2";
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
+        ]);
+        
+        // The exception should be thrown during this call
+        var ex = Assert.Throws<ArgumentException>(() => builder.AddAzureChatCompletionsClient("inference"));
+        Assert.Contains("multiple deployment/model keys", ex.Message);
+        Assert.Contains(key1, ex.Message);
+        Assert.Contains(key2, ex.Message);
+    }
 }

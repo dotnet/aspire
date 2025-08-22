@@ -92,9 +92,12 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// <param name="connectionString">The connection string containing configuration values.</param>
     /// <remarks>
     /// The connection string can contain the following keys:
-    /// - DeploymentId: The ID of the AI model
+    /// - Deployment: The deployment name (preferred)
+    /// - DeploymentId: The deployment ID (legacy, for backward compatibility)
+    /// - Model: The model name (used by GitHub Models)
     /// - Endpoint: The service endpoint URI
     /// - Key: The API key for authentication
+    /// Note: Only one of Deployment, DeploymentId, or Model should be specified.
     /// </remarks>
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
@@ -103,9 +106,38 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue("DeploymentId", out var modelId))
+        // Check for deployment/model keys and ensure only one is provided
+        var deploymentKeys = new List<string>();
+        if (connectionBuilder.ContainsKey("Deployment"))
         {
-            DeploymentId = modelId.ToString();
+            deploymentKeys.Add("Deployment");
+        }
+        if (connectionBuilder.ContainsKey("DeploymentId"))
+        {
+            deploymentKeys.Add("DeploymentId");
+        }
+        if (connectionBuilder.ContainsKey("Model"))
+        {
+            deploymentKeys.Add("Model");
+        }
+
+        if (deploymentKeys.Count > 1)
+        {
+            throw new ArgumentException($"The connection string contains multiple deployment/model keys: {string.Join(", ", deploymentKeys)}. Only one of 'Deployment', 'DeploymentId', or 'Model' should be specified.");
+        }
+
+        // Set DeploymentId based on priority: Deployment > DeploymentId > Model
+        if (connectionBuilder.TryGetValue("Deployment", out var deployment))
+        {
+            DeploymentId = deployment.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("DeploymentId", out var deploymentId))
+        {
+            DeploymentId = deploymentId.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("Model", out var model))
+        {
+            DeploymentId = model.ToString();
         }
 
         // Use the EndpointAIInference key if available, otherwise fallback to Endpoint.
