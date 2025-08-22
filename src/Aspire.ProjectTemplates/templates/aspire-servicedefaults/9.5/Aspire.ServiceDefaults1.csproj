@@ -12,11 +12,11 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="!!REPLACE_WITH_OTEL_LTS_VERSION!!" />
-    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Extensions.Hosting" Version="!!REPLACE_WITH_OTEL_LTS_VERSION!!" />
-    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.AspNetCore" Version="!!REPLACE_WITH_OTEL_LTS_VERSION!!" />
-    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.Http" Version="!!REPLACE_WITH_OTEL_LTS_VERSION!!" />
-    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.Runtime" Version="!!REPLACE_WITH_OTEL_LTS_VERSION!!" />
+    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
+    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Extensions.Hosting" Version="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
+    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.AspNetCore" Version="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
+    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.Http" Version="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
+    <PackageReference Condition=" '$(Framework)' == 'net8.0' " Include="OpenTelemetry.Instrumentation.Runtime" Version="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!" />
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Extensions.Hosting" Version="!!REPLACE_WITH_OTEL_HOSTING_VERSION!!" />
     <PackageReference Condition=" '$(Framework)' != 'net8.0' " Include="OpenTelemetry.Instrumentation.AspNetCore" Version="!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!" />

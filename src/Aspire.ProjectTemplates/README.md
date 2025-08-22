@@ -38,7 +38,7 @@ For each template:
                                     .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
                                     .Replace('!!REPLACE_WITH_ASPNETCORE_10_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet10)')
                                     .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
-                                    .Replace('!!REPLACE_WITH_OTEL_LTS_VERSION!!', '$(OpenTelemetryLTSVersion)')
+                                    .Replace('!!REPLACE_WITH_OTEL_NET8_VERSION!!', '$(OpenTelemetryNet8Version)')
                                     .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')
                                     .Replace('!!REPLACE_WITH_OTEL_HOSTING_VERSION!!', '$(OpenTelemetryInstrumentationExtensionsHostingVersion)')
                                     .Replace('!!REPLACE_WITH_OTEL_ASPNETCORE_VERSION!!', '$(OpenTelemetryInstrumentationAspNetCoreVersion)')
