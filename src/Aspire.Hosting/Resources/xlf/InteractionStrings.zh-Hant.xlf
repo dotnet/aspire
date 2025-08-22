@@ -4,42 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">確定 Docker 正在執行，且 Docker Daemon 可供存取。如果啟用資源節省模式，容器可能無法執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">請確保容器執行階段正在執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">深入了解</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledMessage">
         <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="new">Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</target>
+        <target state="translated">找不到容器執行階段。如需支援之容器執行階段的詳細資訊，請參閱 https://aka.ms/dotnet/aspire/containers。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
         <source>Container Runtime Not Installed</source>
-        <target state="new">Container Runtime Not Installed</target>
+        <target state="translated">未安裝容器執行階段</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">確認 Podman 正在執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">找到了容器執行階段 '{0}'，但似乎狀況不良。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">容器執行階段狀況不良</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
