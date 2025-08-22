@@ -360,58 +360,16 @@ jobs:
           }
 
       - name: Post test results to GitHub Check
-        # Only post a Check when there are failures. The helper will also no-op on success.
-        if: always() && github.event_name == 'pull_request'
-        env:
-          CI: false
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $testResultsDir = "${{ github.workspace }}/testresults"
-          $summaryFile = Join-Path $testResultsDir "summary.md"
-
-          # Only create a check when there are failures; the summary file is only created when failures exist
-          if (-not (Test-Path $summaryFile)) {
-            Write-Host "No summary file found at $summaryFile. Likely no failures. Skipping Check creation."
-            exit 0
-
-          # Discover the current workflow run's check suite id so the check appears under CI, not Markdownlint
-          $ownerRepo = "${{ github.repository }}"
-          $runId = "${{ github.run_id }}"
-          $apiUrl = "https://api.github.com/repos/$ownerRepo/actions/runs/$runId/check-suites"
-          $checkSuiteId = gh api $apiUrl --jq ".check_suites[0].id" 2>$null
-
-          $fullCheckName = "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})"
-          $sha = "${{ github.event.pull_request.head.sha || github.sha }}"
-          $detailsUrl = "${{ steps.upload-logs.outputs.artifact-url }}"
-          $summaryContent = Get-Content -Path $summaryFile -Raw -Encoding UTF8
-
-          # Build the request body
-          $body = @{
-            name = $fullCheckName
-            head_sha = $sha
-            status = "completed"
-            conclusion = "failure" # Summary exists only when failures were detected
-            output = @{
-              title = "$fullCheckName Test Results"
-              summary = $summaryContent
-            }
-          }
-
-          if (-not [string]::IsNullOrWhiteSpace($detailsUrl)) {
-            $body["details_url"] = $detailsUrl
-          }
-
-          if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) {
-            $body["check_suite_id"] = $checkSuiteId
-          }
-
-          $json = $body | ConvertTo-Json -Depth 10
-          $endpoint = "repos/$ownerRepo/check-runs"
-          $headers = @(
-            'Accept=application/vnd.github+json',
-            'X-GitHub-Api-Version=2022-11-28'
-          )
-
-          $json | gh api --method POST $endpoint --input - @($headers | ForEach-Object { '-H'; $_ })
-              'X-GitHub-Api-Version=2022-11-28'
+        # Only post a Check when there are failures (summary.md created only when failures exist) and on PRs
+        if: always() && github.event_name == 'pull_request' && hashFiles('testresults/summary.md') != ''
+        uses: ./.github/actions/publish-check
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})
+          title: ${{ format('Test Results - {0} ({1})', inputs.testShortName, inputs.os) }}
+          head_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          details_url: ${{ steps.upload-logs.outputs.artifact-url }}
+          conclusion: failure
+          summary_file: ${{ github.workspace }}/testresults/summary.md
+          # Optional: can pass an explicit suite id if available; otherwise the action discovers it
+          discover_check_suite: true

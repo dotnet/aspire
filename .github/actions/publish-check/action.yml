@@ -1,0 +1,145 @@
+name: "Publish GitHub Check"
+description: "Publish a GitHub Check run from a file or inline text with optional check suite association"
+author: ".NET Aspire"
+
+inputs:
+  github_token:
+    description: "GitHub token with 'checks: write' permission"
+    required: true
+  check_name:
+    description: "Name of the check run"
+    required: true
+  title:
+    description: "Title shown in the check output"
+    required: false
+  head_sha:
+    description: "The SHA of the commit to associate the check with. Defaults to GITHUB_SHA."
+    required: false
+  owner_repo:
+    description: "Owner/Repo in the form 'owner/repo'. Defaults to current repository."
+    required: false
+  status:
+    description: "Check run status (queued, in_progress, completed). Defaults to 'completed'."
+    required: false
+    default: completed
+  conclusion:
+    description: "Conclusion for a completed check (success, failure, neutral, cancelled, timed_out, action_required, skipped, stale)."
+    required: false
+  details_url:
+    description: "URL for more details about the check."
+    required: false
+  summary_file:
+    description: "Path to a file containing the markdown summary."
+    required: false
+  summary_text:
+    description: "Inline markdown summary text. If provided, takes precedence over summary_file."
+    required: false
+  check_suite_id:
+    description: "Optional check suite ID to associate the check with."
+    required: false
+  discover_check_suite:
+    description: "If true and check_suite_id not provided, attempt to discover current Actions check suite ID for this run."
+    required: false
+    default: "true"
+  workflow_run_id:
+    description: "Workflow run ID to use when discovering the check suite ID. Defaults to current run id."
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Publish Check
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_OWNER_REPO: ${{ inputs.owner_repo }}
+        INPUT_HEAD_SHA: ${{ inputs.head_sha }}
+        INPUT_CHECK_NAME: ${{ inputs.check_name }}
+        INPUT_TITLE: ${{ inputs.title }}
+        INPUT_STATUS: ${{ inputs.status }}
+        INPUT_CONCLUSION: ${{ inputs.conclusion }}
+        INPUT_DETAILS_URL: ${{ inputs.details_url }}
+        INPUT_SUMMARY_FILE: ${{ inputs.summary_file }}
+        INPUT_SUMMARY_TEXT: ${{ inputs.summary_text }}
+        INPUT_CHECK_SUITE_ID: ${{ inputs.check_suite_id }}
+        INPUT_DISCOVER_CHECK_SUITE: ${{ inputs.discover_check_suite }}
+        INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow_run_id }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $ownerRepo = $env:INPUT_OWNER_REPO
+        if ([string]::IsNullOrWhiteSpace($ownerRepo)) {
+          $ownerRepo = '${{ github.repository }}'
+        }
+
+        $headSha = $env:INPUT_HEAD_SHA
+        if ([string]::IsNullOrWhiteSpace($headSha)) {
+          $headSha = "$env:GITHUB_SHA"
+        }
+
+        $checkName = $env:INPUT_CHECK_NAME
+        if ([string]::IsNullOrWhiteSpace($checkName)) {
+          Write-Error 'check_name input is required.'
+        }
+
+        $title = $env:INPUT_TITLE
+        if ([string]::IsNullOrWhiteSpace($title)) {
+          $title = $checkName
+        }
+
+        # Summary content precedence: inline > file > empty
+        $summaryText = ''
+        $inline = $env:INPUT_SUMMARY_TEXT
+        if (-not [string]::IsNullOrWhiteSpace($inline)) {
+          $summaryText = $inline
+        } elseif (-not [string]::IsNullOrWhiteSpace($env:INPUT_SUMMARY_FILE)) {
+          $summaryPath = $env:INPUT_SUMMARY_FILE
+          if (Test-Path $summaryPath) {
+            $summaryText = Get-Content -Path $summaryPath -Raw -Encoding UTF8
+          } else {
+            Write-Host "Summary file not found at $summaryPath. Proceeding with empty summary."
+          }
+        }
+
+        $status = $env:INPUT_STATUS
+        if ([string]::IsNullOrWhiteSpace($status)) { $status = 'completed' }
+        $conclusion = $env:INPUT_CONCLUSION
+
+        # Optional details URL
+        $detailsUrl = $env:INPUT_DETAILS_URL
+
+        # Optionally discover the check suite id for the current workflow run
+        $checkSuiteId = $env:INPUT_CHECK_SUITE_ID
+        $discover = $env:INPUT_DISCOVER_CHECK_SUITE
+        if ([string]::IsNullOrWhiteSpace($checkSuiteId) -and $discover -eq 'true') {
+          $runId = $env:INPUT_WORKFLOW_RUN_ID
+          if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "$env:GITHUB_RUN_ID" }
+          $endpoint = "repos/$ownerRepo/actions/runs/$runId/check-suites"
+          try {
+            $checkSuiteId = gh api $endpoint --jq ".check_suites[0].id" 2>$null
+          } catch {
+            Write-Host "Failed to discover check suite id for run $runId. Continuing without explicit suite id."
+          }
+        }
+
+        # Build request body
+        $body = @{
+          name = $checkName
+          head_sha = $headSha
+          status = $status
+          output = @{ title = $title; summary = $summaryText }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($conclusion)) { $body["conclusion"] = $conclusion }
+        if (-not [string]::IsNullOrWhiteSpace($detailsUrl)) { $body["details_url"] = $detailsUrl }
+        if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $body["check_suite_id"] = $checkSuiteId }
+
+        $json = $body | ConvertTo-Json -Depth 10
+        $postEndpoint = "repos/$ownerRepo/check-runs"
+        $headers = @(
+          'Accept=application/vnd.github+json',
+          'X-GitHub-Api-Version=2022-11-28'
+        )
+
+        Write-Host "Creating check run '$checkName' for $ownerRepo@$headSha"
+        $json | gh api --method POST $postEndpoint --input - @($headers | ForEach-Object { '-H'; $_ })
