@@ -49,7 +49,7 @@ jobs:
   test:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
-    name: ${{ inputs.testShortName }} (${{ inputs.os }})
+    name: ${{ inputs.testShortName }}
     permissions:
       checks: write
     env:
