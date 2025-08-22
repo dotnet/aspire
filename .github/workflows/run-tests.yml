@@ -355,7 +355,8 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/testresults") {
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+              # Also persist the summary to a file so it can be reused by the Check posting step
+              & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}" -o "${{ github.workspace }}/testresults/summary.md"
           }
 
       - name: Post test results to GitHub Check
@@ -366,15 +367,51 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          if (Test-Path "${{ github.workspace }}/testresults") {
-            # Discover the current workflow run's check suite id so the check appears under CI, not Markdownlint
-            $ownerRepo = "${{ github.repository }}"
-            $runId = "${{ github.run_id }}"
-            $apiUrl = "https://api.github.com/repos/$ownerRepo/actions/runs/$runId/check-suites"
-            $response = gh api $apiUrl --jq ".check_suites[0].id" 2>$null
-            if (-not $response) { $response = "" }
+          $testResultsDir = "${{ github.workspace }}/testresults"
+          $summaryFile = Join-Path $testResultsDir "summary.md"
 
-            $checkSuiteArg = if ([string]::IsNullOrWhiteSpace($response)) { "" } else { "--check-suite-id $response" }
+          # Only create a check when there are failures; the summary file is only created when failures exist
+          if (-not (Test-Path $summaryFile)) {
+            Write-Host "No summary file found at $summaryFile. Likely no failures. Skipping Check creation."
+            exit 0
 
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- "${{ github.workspace }}/testresults" --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" --repo "${{ github.repository }}" --sha "${{ github.event.pull_request.head.sha || github.sha }}" --url "${{ steps.upload-logs.outputs.artifact-url }}" $checkSuiteArg
+          # Discover the current workflow run's check suite id so the check appears under CI, not Markdownlint
+          $ownerRepo = "${{ github.repository }}"
+          $runId = "${{ github.run_id }}"
+          $apiUrl = "https://api.github.com/repos/$ownerRepo/actions/runs/$runId/check-suites"
+          $checkSuiteId = gh api $apiUrl --jq ".check_suites[0].id" 2>$null
+
+          $fullCheckName = "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})"
+          $sha = "${{ github.event.pull_request.head.sha || github.sha }}"
+          $detailsUrl = "${{ steps.upload-logs.outputs.artifact-url }}"
+          $summaryContent = Get-Content -Path $summaryFile -Raw -Encoding UTF8
+
+          # Build the request body
+          $body = @{
+            name = $fullCheckName
+            head_sha = $sha
+            status = "completed"
+            conclusion = "failure" # Summary exists only when failures were detected
+            output = @{
+              title = "$fullCheckName Test Results"
+              summary = $summaryContent
+            }
           }
+
+          if (-not [string]::IsNullOrWhiteSpace($detailsUrl)) {
+            $body["details_url"] = $detailsUrl
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) {
+            $body["check_suite_id"] = $checkSuiteId
+          }
+
+          $json = $body | ConvertTo-Json -Depth 10
+          $endpoint = "repos/$ownerRepo/check-runs"
+          $headers = @(
+            'Accept=application/vnd.github+json',
+            'X-GitHub-Api-Version=2022-11-28'
+          )
+
+          $json | gh api --method POST $endpoint --input - @($headers | ForEach-Object { '-H'; $_ })
+              'X-GitHub-Api-Version=2022-11-28'
