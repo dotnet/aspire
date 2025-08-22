@@ -50,7 +50,7 @@ extends:
           - task: CopyFiles@2
               displayName: Gather build output
               inputs:
-                SourceFolder: '$(System.DefaultWorkingDirectory)/artifacts/marvel'
+                SourceFolder: '$(Build.SourcesDirectory)/artifacts/marvel'
                 Contents: '**'
                 TargetFolder: '$(Build.ArtifactStagingDirectory)/artifacts/marvel'
 ```
