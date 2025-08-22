@@ -15,6 +15,7 @@ var checkNameOption = new Option<string>("--check-name") { Description = "Name f
 var repoOption = new Option<string>("--repo") { Description = "Repository in owner/repo format" };
 var shaOption = new Option<string>("--sha") { Description = "Commit SHA" };
 var urlOption = new Option<string>("--url") { Description = "URL for artifact logs" };
+var checkSuiteIdOption = new Option<long?>("--check-suite-id") { Description = "Check suite ID to associate the check with (ensures it shows under the current workflow)" };
 
 var rootCommand = new RootCommand
 {
@@ -22,7 +23,8 @@ var rootCommand = new RootCommand
     checkNameOption,
     repoOption,
     shaOption,
-    urlOption
+    urlOption,
+    checkSuiteIdOption
 };
 
 rootCommand.SetAction(result =>
@@ -32,6 +34,7 @@ rootCommand.SetAction(result =>
     var repo = result.GetValue<string>(repoOption);
     var sha = result.GetValue<string>(shaOption);
     var url = result.GetValue<string>(urlOption);
+    var checkSuiteId = result.GetValue<long?>(checkSuiteIdOption);
 
     if (string.IsNullOrEmpty(testResultsPath))
     {
@@ -73,7 +76,7 @@ rootCommand.SetAction(result =>
     // Generate test summary for all tests (successful and failed)
     var summaryBuilder = new StringBuilder();
     var hasAnyTests = false;
-    
+
     foreach (var trxFile in trxFiles)
     {
         try
@@ -88,7 +91,7 @@ rootCommand.SetAction(result =>
             hasAnyTests = true;
             var counters = testRun.ResultSummary.Counters;
             var title = GetTestTitle(Path.GetFileName(trxFile));
-            
+
             if (!string.IsNullOrEmpty(url))
             {
                 title = $"{title} (<a href=\"{url}\">Logs</a>)";
@@ -111,11 +114,11 @@ rootCommand.SetAction(result =>
                     summaryBuilder.AppendLine();
                     summaryBuilder.AppendLine();
                     summaryBuilder.AppendLine("```yml");
-                    
+
                     var errorMessage = failedTest.Output?.ErrorInfoString ?? "Test failed";
-                    
+
                     summaryBuilder.AppendLine(errorMessage);
-                    
+
                     summaryBuilder.AppendLine("```");
                     summaryBuilder.AppendLine();
                     summaryBuilder.AppendLine("</div>");
@@ -125,7 +128,7 @@ rootCommand.SetAction(result =>
             {
                 summaryBuilder.AppendLine("✅ All tests passed!");
             }
-            
+
             summaryBuilder.AppendLine();
         }
         catch (Exception ex)
@@ -149,7 +152,8 @@ rootCommand.SetAction(result =>
         try
         {
             var testRun = TrxReader.DeserializeTrxFile(trxFile);
-            if (testRun?.ResultSummary?.Counters?.Failed > 0)
+            var counters = testRun?.ResultSummary?.Counters;
+            if (counters is not null && (counters.Failed > 0 || counters.Error > 0))
             {
                 hasFailures = true;
                 break;
@@ -163,7 +167,14 @@ rootCommand.SetAction(result =>
         }
     }
 
-    var conclusion = hasFailures ? "failure" : "success";
+    // If there are no failures, do not create a Check at all (silent success)
+    if (!hasFailures)
+    {
+        Console.WriteLine("No test failures detected. Skipping GitHub Check creation.");
+        return;
+    }
+
+    var conclusion = "failure"; // Only posting checks on failure per policy
     var fullCheckName = $"CHECKTEST {checkName}";
 
     Console.WriteLine($"Creating GitHub Check: {fullCheckName}");
@@ -178,12 +189,12 @@ rootCommand.SetAction(result =>
         File.WriteAllText(summaryFile, summaryContent, Encoding.UTF8);
 
         // Create the check using gh api
-        var process = new Process
+    var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "gh",
-                Arguments = $"api --method POST " +
+        Arguments = $"api --method POST " +
                           $"-H \"Accept: application/vnd.github+json\" " +
                           $"-H \"X-GitHub-Api-Version: 2022-11-28\" " +
                           $"--verbose " +
@@ -193,7 +204,8 @@ rootCommand.SetAction(result =>
                           $"-f \"status=completed\" " +
                           $"-f \"conclusion={conclusion}\" " +
                           $"-f \"output[title]={fullCheckName} Test Results\" " +
-                          $"-F \"output[summary]=@{summaryFile}\"",
+              $"-F \"output[summary]=@{summaryFile}\"" +
+              (checkSuiteId is long id ? $" -f \"check_suite_id={id}\"" : string.Empty),
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
@@ -204,7 +216,7 @@ rootCommand.SetAction(result =>
         var outputTask = process.StandardOutput.ReadToEndAsync();
         var errorTask = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
-        
+
         var output = outputTask.Result;
         var error = errorTask.Result;
 
@@ -232,13 +244,13 @@ static string GetTestTitle(string fileName)
 {
     // Extract test name from filename, e.g., "Seq.trx" -> "Seq"
     var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-    
+
     // Remove common suffixes to get clean test name
     var cleanName = nameWithoutExtension
         .Replace(".Tests", "")
         .Replace("Aspire.", "")
         .Replace("_net8.0_x64", "")
         .Replace("_net10.0_x64", "");
-        
+
     return cleanName;
 }

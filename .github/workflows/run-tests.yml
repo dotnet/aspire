@@ -359,6 +359,7 @@ jobs:
           }
 
       - name: Post test results to GitHub Check
+        # Only post a Check when there are failures. The helper will also no-op on success.
         if: always() && github.event_name == 'pull_request'
         env:
           CI: false
@@ -366,5 +367,14 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/testresults") {
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- "${{ github.workspace }}/testresults" --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" --repo "${{ github.repository }}" --sha "${{ github.event.pull_request.head.sha || github.sha }}" --url "${{ steps.upload-logs.outputs.artifact-url }}"
+            # Discover the current workflow run's check suite id so the check appears under CI, not Markdownlint
+            $ownerRepo = "${{ github.repository }}"
+            $runId = "${{ github.run_id }}"
+            $apiUrl = "https://api.github.com/repos/$ownerRepo/actions/runs/$runId/check-suites"
+            $response = gh api $apiUrl --jq ".check_suites[0].id" 2>$null
+            if (-not $response) { $response = "" }
+
+            $checkSuiteArg = if ([string]::IsNullOrWhiteSpace($response)) { "" } else { "--check-suite-id $response" }
+
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- "${{ github.workspace }}/testresults" --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" --repo "${{ github.repository }}" --sha "${{ github.event.pull_request.head.sha || github.sha }}" --url "${{ steps.upload-logs.outputs.artifact-url }}" $checkSuiteArg
           }
