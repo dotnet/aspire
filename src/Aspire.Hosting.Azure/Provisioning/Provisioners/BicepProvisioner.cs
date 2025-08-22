@@ -164,9 +164,8 @@ internal sealed class BicepProvisioner(
 
         resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
 
-        // Deploy-time provisioning should target the subscription scope while run-time
-        // provisioning should target the resource group scope.
-        var deployments = context.ExecutionContext.IsPublishMode
+        // Resources with a Subscription scope should use a subscription-level deployment.
+        var deployments = resource.Scope?.Subscription != null
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
         var deploymentName = resource.Name;
@@ -177,14 +176,15 @@ internal sealed class BicepProvisioner(
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
         });
-        // Only set the location for publish mode deployments
-        // and set the deployment name to include the resource group name
-        // hashed with the current Unix timestamp
-        if (context.ExecutionContext.IsPublishMode)
+        // Only set the location and custom deployment name
+        // for top-level AzureEnvironmentResource.
+#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (resource is AzureEnvironmentResource)
         {
             deploymentContent.Location = context.Location;
             deploymentName = $"{resourceGroup.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
         }
+#pragma warning restore ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
