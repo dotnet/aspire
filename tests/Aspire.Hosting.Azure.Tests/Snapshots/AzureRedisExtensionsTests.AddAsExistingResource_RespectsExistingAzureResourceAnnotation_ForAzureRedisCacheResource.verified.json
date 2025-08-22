@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_redis_name": "{existing-redis-name.value}",
+    "existing_redis_rg": "{existing-redis-rg.value}"
+  }
+}

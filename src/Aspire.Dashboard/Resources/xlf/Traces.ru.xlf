@@ -14,17 +14,17 @@
       </trans-unit>
       <trans-unit id="PauseInProgressText">
         <source>Traces capture paused at {0}</source>
-        <target state="new">Traces capture paused at {0}</target>
+        <target state="translated">Запись трассировок приостановлена в {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
-        <target state="new">Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</target>
+        <target state="translated">Отображение &lt;strong&gt;{0} трассировок&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TotalItemsFooterSingularText">
         <source>Showing &lt;strong&gt;{0} trace&lt;/strong&gt;</source>
-        <target state="new">Showing &lt;strong&gt;{0} trace&lt;/strong&gt;</target>
+        <target state="translated">Отображение &lt;strong&gt;{0} трассировки&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TracesFullName">

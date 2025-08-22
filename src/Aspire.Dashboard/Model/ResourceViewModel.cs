@@ -43,6 +43,8 @@ public sealed class ResourceViewModel
     public HealthStatus? HealthStatus { get; private set; }
     public bool IsHidden { private get; init; }
     public bool SupportsDetailedTelemetry { get; init; }
+    public string? IconName { get; init; }
+    public IconVariant? IconVariant { get; init; }
 
     /// <summary>
     /// Gets the cached addresses for this resource that can be used for peer matching.
@@ -258,14 +260,14 @@ public sealed class CommandViewModel
         };
     }
 
-    public string GetDisplayDescription(IStringLocalizer<Commands> loc)
+    public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
             KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
             KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
             KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription
+            _ => DisplayDescription is { Length : > 0 } ? DisplayDescription : null
         };
     }
 }

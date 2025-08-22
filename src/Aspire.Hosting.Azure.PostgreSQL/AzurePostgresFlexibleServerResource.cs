@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
 public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
@@ -126,7 +126,15 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         
         // Create and add new resource if it doesn't exist
         var store = PostgreSqlFlexibleServer.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

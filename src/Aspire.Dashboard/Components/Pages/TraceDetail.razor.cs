@@ -33,7 +33,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
     private int _resourceCount;
-    private List<OtlpApplication> _applications = default!;
+    private List<OtlpResource> _resources = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
@@ -222,7 +222,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private void UpdateDetailViewData()
     {
-        _applications = TelemetryRepository.GetApplications();
+        _resources = TelemetryRepository.GetResources();
 
         Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
         _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
@@ -242,7 +242,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         // If there are performance issues with displaying all logs then consider adding a limit to this query.
         var logsContext = new GetLogsContext
         {
-            ApplicationKey = null,
+            ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [new TelemetryFilter
@@ -258,10 +258,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
-        var apps = new HashSet<OtlpApplication>();
+        var apps = new HashSet<OtlpResource>();
         foreach (var span in _trace.Spans)
         {
-            apps.Add(span.Source.Application);
+            apps.Add(span.Source.Resource);
             if (span.UninstrumentedPeer != null)
             {
                 apps.Add(span.UninstrumentedPeer);
@@ -288,10 +288,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             return;
         }
 
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != _trace.FirstSpan.Source.ApplicationKey)
+        if (_tracesSubscription is null || _tracesSubscription.ResourceKey != _trace.FirstSpan.Source.ResourceKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.ResourceKey, SubscriptionType.Read, () => InvokeAsync(async () =>
             {
                 if (_trace == null)
                 {
@@ -386,9 +386,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             var spanDetailsViewModel = new SpanDetailsViewModel
             {
                 Span = viewModel.Span,
-                Applications = _applications,
+                Resources = _resources,
                 Properties = entryProperties,
-                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _applications),
+                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _resources),
                 Links = links,
                 Backlinks = backlinks,
             };
@@ -487,7 +487,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         await RefreshSpanViewAsync();
     }
 
-    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpResourceView app) => OtlpResource.GetResourceName(app, _resources);
 
     private async Task ToggleSpanLogsAsync(OtlpLogEntry logEntry)
     {

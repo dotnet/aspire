@@ -246,5 +246,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ProjectAlreadyExists", resourceCulture);
             }
         }
+
+        public static string CreateNugetConfigConfirmation {
+            get {
+                return ResourceManager.GetString("CreateNugetConfigConfirmation", resourceCulture);
+            }
+        }
+
+        public static string NuGetConfigCreatedConfirmationMessage {
+            get {
+                return ResourceManager.GetString("NuGetConfigCreatedConfirmationMessage", resourceCulture);
+            }
+        }
     }
 }

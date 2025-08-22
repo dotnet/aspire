@@ -47,6 +47,11 @@
         <target state="translated">Fehler beim Einstufen der Zertifikate als vertrauenswürdig: {0}</target>
         <note>{0} is an exception message</note>
       </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">NuGet.config für die ausgewählten Kanäle erstellen?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
         <target state="translated">Neues Aspire-Projekt wird erstellt...</target>
@@ -85,6 +90,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Keine</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">Die NuGet.config für den ausgewählten Paketkanal wurde erstellt.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

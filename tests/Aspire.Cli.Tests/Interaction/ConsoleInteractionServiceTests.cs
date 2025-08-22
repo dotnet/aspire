@@ -98,4 +98,54 @@ public class ConsoleInteractionServiceTests
         // Square brackets get escaped to [[square]] when using EscapeMarkup()
         Assert.Contains("Error output with [[square]] brackets", outputString);
     }
+
+    [Fact]
+    public void DisplayMarkdown_WithBasicMarkdown_ConvertsToSpectreMarkup()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+        
+        var interactionService = new ConsoleInteractionService(console);
+        var markdown = "# Header\nThis is **bold** and *italic* text with `code`.";
+
+        // Act
+        var exception = Record.Exception(() => interactionService.DisplayMarkdown(markdown));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        // Should contain converted markup, but due to Ansi = No, the actual markup tags won't appear in output
+        // Just verify it doesn't throw and produces some output
+        Assert.NotEmpty(outputString.Trim());
+    }
+
+    [Fact]
+    public void DisplayMarkdown_WithPlainText_DoesNotThrow()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+        
+        var interactionService = new ConsoleInteractionService(console);
+        var plainText = "This is just plain text without any markdown.";
+
+        // Act
+        var exception = Record.Exception(() => interactionService.DisplayMarkdown(plainText));
+
+        // Assert
+        Assert.Null(exception);
+        var outputString = output.ToString();
+        Assert.Contains("This is just plain text without any markdown.", outputString);
+    }
 }

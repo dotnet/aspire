@@ -342,6 +342,11 @@
         <target state="translated">Número</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplar">
+        <source>Exemplar</source>
+        <target state="translated">Exemplar</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
         <target state="translated">Exemplares</target>
@@ -374,7 +379,7 @@
       </trans-unit>
       <trans-unit id="ResourceActions">
         <source>Resource actions</source>
-        <target state="new">Resource actions</target>
+        <target state="translated">Ações do recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
@@ -437,9 +442,9 @@
         <target state="translated">Retomar dados recebidos</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">Selecionar um aplicativo</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">Selecionar um recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

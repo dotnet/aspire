@@ -57,7 +57,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
     private readonly DistributedApplicationOptions _options;
-
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -241,6 +240,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
         _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
+        _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
@@ -250,6 +250,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
+        _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
@@ -494,7 +495,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--start-resource", "Exec:ResourceName" },
-            { "--command", "Exec:Command" }
+            { "--command", "Exec:Command" },
+            { "--workdir", "Exec:WorkingDirectory" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 

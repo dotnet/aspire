@@ -7,14 +7,16 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.NuGet;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using System.Xml.Linq;
 using Semver;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, INuGetPackageCache nuGetPackageCache, INewCommandPrompter prompter) : ITemplateFactory
+internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter, CliExecutionContext executionContext) : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -225,7 +227,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             var extraArgs = await extraArgsCallback(parseResult, cancellationToken);
 
             var source = parseResult.GetValue<string?>("--source");
-            var version = await GetProjectTemplatesVersionAsync(parseResult, prerelease: true, source: source, cancellationToken: cancellationToken);
+            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+            using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
             var templateInstallCollector = new OutputCollector();
             var templateInstallResult = await interactionService.ShowStatusAsync<(int ExitCode, string? TemplateVersion)>(
@@ -238,7 +241,20 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                         StandardErrorCallback = templateInstallCollector.AppendOutput,
                     };
 
-                    var result = await runner.InstallTemplateAsync("Aspire.ProjectTemplates", version, source, true, options, cancellationToken);
+                    // Whilst we install the templates - if we are using an explicit channel we need to
+                    // generate a temporary NuGet.config file to make sure we install the right package
+                    // from the right feed. If we are using an implicit channel then we just use the
+                    // ambient configuration (although we should still specify the source) because
+                    // the user would have selected it.
+
+                    var result = await runner.InstallTemplateAsync(
+                        packageName: "Aspire.ProjectTemplates",
+                        version: selectedTemplateDetails.Package.Version,
+                        nugetConfigFile: temporaryConfig?.ConfigFile,
+                        nugetSource: selectedTemplateDetails.Package.Source,
+                        force: true,
+                        options: options,
+                        cancellationToken: cancellationToken);
                     return result;
                 });
 
@@ -290,6 +306,10 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             await certificateService.EnsureCertificatesTrustedAsync(runner, cancellationToken);
 
+            // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
+            // working directory, create one in the newly created project's output directory.
+            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, outputPath, cancellationToken);
+
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
@@ -315,7 +335,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     {
         if (parseResult.GetValue<string>("--name") is not { } name || !ProjectNameValidator.IsProjectNameValid(name))
         {
-            var defaultName = new DirectoryInfo(Environment.CurrentDirectory).Name;
+            var defaultName = executionContext.WorkingDirectory.Name;
             name = await prompter.PromptForProjectNameAsync(defaultName, cancellationToken);
         }
 
@@ -332,30 +352,175 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return Path.GetFullPath(outputPath);
     }
 
-    private async Task<string> GetProjectTemplatesVersionAsync(ParseResult parseResult, bool prerelease, string? source, CancellationToken cancellationToken)
+    private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        _ = parseResult;
+        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+
+        var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
+        {
+            var results = new List<(NuGetPackage Package, PackageChannel Channel)>();
+            var packagesFromChannelsLock = new object();
+
+            await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
+            {
+                var templatePackages = await channel.GetTemplatePackagesAsync(executionContext.WorkingDirectory, ct);
+                lock (packagesFromChannelsLock)
+                {
+                    results.AddRange(templatePackages.Select(p => (p, channel)));
+                }
+            });
+
+            return results;
+        });
+
+        if (!packagesFromChannels.Any())
+        {
+            throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
+        }
+
+        var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+
         if (parseResult.GetValue<string>("--version") is { } version)
         {
-            return version;
+            var explicitPacakgeFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
+            var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
+            return explicitPackageFromChannel;
         }
-        else
+
+        var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
+        return selectedPackageFromChannel;
+    }
+
+    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, string outputPath, CancellationToken cancellationToken)
+    {
+        if (channel.Type is not PackageChannelType.Explicit)
         {
-            var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+            return;
+        }
 
-            var candidatePackages = await interactionService.ShowStatusAsync(
-                TemplatingStrings.SearchingForAvailableTemplateVersions,
-                () => nuGetPackageCache.GetTemplatePackagesAsync(workingDirectory, prerelease, source, cancellationToken)
-                );
+        var mappings = channel.Mappings;
+        if (mappings is null || mappings.Length == 0)
+        {
+            return;
+        }
 
-            if (!candidatePackages.Any())
+        var workingDir = executionContext.WorkingDirectory;
+        // Locate an existing NuGet.config in the current directory using a case-insensitive search
+        var nugetConfigFile = TryFindNuGetConfigInDirectory(workingDir);
+
+        // We only act if we need to create or update
+        if (nugetConfigFile is null)
+        {
+            // Ask for confirmation before creating the file
+            var choice = await interactionService.PromptForSelectionAsync(
+                TemplatingStrings.CreateNugetConfigConfirmation,
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken);
+
+            if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                throw new EmptyChoicesException(TemplatingStrings.NoTemplateVersionsFound);
+                // Use the temporary config we already generated; if it's missing, generate a fresh one
+                if (temporaryConfig is null)
+                {
+                    using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+                    var outputDir = new DirectoryInfo(outputPath);
+                    Directory.CreateDirectory(outputDir.FullName);
+                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
+                    File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
+                }
+                else
+                {
+                    // Ensure target directory exists
+                    var outputDir = new DirectoryInfo(outputPath);
+                    Directory.CreateDirectory(outputDir.FullName);
+                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
+                    File.Copy(temporaryConfig.ConfigFile.FullName, targetPath, overwrite: true);
+                }
+                interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
 
-            var orderedCandidatePackages = candidatePackages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer);
-            var selectedPackage = await prompter.PromptForTemplatesVersionAsync(orderedCandidatePackages, cancellationToken);
-            return selectedPackage.Version;
+            return;
         }
+
+        // Update existing NuGet.config if any of the required sources are missing
+        var requiredSources = mappings
+            .Select(m => m.Source)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        XDocument doc;
+    await using (var stream = nugetConfigFile.OpenRead())
+        {
+            doc = XDocument.Load(stream);
+        }
+
+        var configuration = doc.Root ?? new XElement("configuration");
+        if (doc.Root is null)
+        {
+            doc.Add(configuration);
+        }
+
+        var packageSources = configuration.Element("packageSources");
+        if (packageSources is null)
+        {
+            packageSources = new XElement("packageSources");
+            configuration.Add(packageSources);
+        }
+
+        var existingAdds = packageSources.Elements("add").ToArray();
+        var existingValues = new HashSet<string>(existingAdds
+            .Select(e => (string?)e.Attribute("value") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+        var existingKeys = new HashSet<string>(existingAdds
+            .Select(e => (string?)e.Attribute("key") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+
+        var missingSources = requiredSources
+            .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
+            .ToArray();
+
+        if (missingSources.Length == 0)
+        {
+            return;
+        }
+
+        var updateChoice = await interactionService.PromptForSelectionAsync(
+            "Update NuGet.config to add missing package sources for the selected channel?",
+            [TemplatingStrings.Yes, TemplatingStrings.No],
+            c => c,
+            cancellationToken);
+
+        if (!string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
+        {
+            return;
+        }
+
+        foreach (var source in missingSources)
+        {
+            // Use the source URL as both key and value for consistency with our temporary config
+            var add = new XElement("add");
+            add.SetAttributeValue("key", source);
+            add.SetAttributeValue("value", source);
+            packageSources.Add(add);
+        }
+
+        // Save back the updated document
+        await using (var writeStream = nugetConfigFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            doc.Save(writeStream);
+        }
+
+        interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
+    }
+
+    private static FileInfo? TryFindNuGetConfigInDirectory(DirectoryInfo directory)
+    {
+        ArgumentNullException.ThrowIfNull(directory);
+
+        // Search only the specified directory for a file named "nuget.config", ignoring case
+        return directory
+            .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
     }
 }
 

@@ -64,6 +64,11 @@ Przykłady:
         <target state="translated">Nie określono zasobu docelowego. Użyj polecenia --resource lub --start-resource, aby określić cel.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute the command in.</source>
+        <target state="translated">Katalog roboczy, w którym ma zostać wykonane polecenie.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -11,7 +11,8 @@ namespace Aspire.Cli.Utils;
 
 internal interface ICliUpdateNotifier
 {
-    Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default);
+    Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken);
+    void NotifyIfUpdateAvailable();
 }
 
 internal class CliUpdateNotifier(
@@ -19,29 +20,36 @@ internal class CliUpdateNotifier(
     INuGetPackageCache nuGetPackageCache,
     IInteractionService interactionService) : ICliUpdateNotifier
 {
+    private IEnumerable<Shared.NuGetPackageCli>? _availablePackages;
 
-    public async Task NotifyIfUpdateAvailableAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken = default)
+    public async Task CheckForCliUpdatesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
-        try
+        _availablePackages = await nuGetPackageCache.GetCliPackagesAsync(
+            workingDirectory: workingDirectory,
+            prerelease: true,
+            nugetConfigFile: null,
+            cancellationToken: cancellationToken);
+    }
+
+    public void NotifyIfUpdateAvailable()
+    {
+        if (_availablePackages is null)
         {
-            var currentVersion = GetCurrentVersion();
-            if (currentVersion is null)
-            {
-                logger.LogDebug("Unable to determine current CLI version for update check.");
-                return;
-            }
-
-            var availablePackages = await nuGetPackageCache.GetCliPackagesAsync(workingDirectory, prerelease: true, source: null, cancellationToken);
-            var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, availablePackages);
-
-            if (newerVersion is not null)
-            {
-                interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
-            }
+            return;
         }
-        catch (Exception ex)
+
+        var currentVersion = GetCurrentVersion();
+        if (currentVersion is null)
         {
-            logger.LogDebug(ex, "Non-fatal error while checking for CLI updates.");
+            logger.LogDebug("Unable to determine current CLI version for update check.");
+            return;
+        }
+
+        var newerVersion = PackageUpdateHelpers.GetNewerVersion(currentVersion, _availablePackages);
+
+        if (newerVersion is not null)
+        {
+            interactionService.DisplayVersionUpdateNotification(newerVersion.ToString());
         }
     }
 

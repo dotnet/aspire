@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -59,7 +58,6 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
-        _eventing.Subscribe<InitializeResourceEvent>(OnResourceInitialized);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -304,69 +302,6 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
-    }
-
-    private Task OnResourceInitialized(InitializeResourceEvent @event, CancellationToken cancellationToken)
-    {
-        var resource = @event.Resource;
-
-        if (resource is ConnectionStringResource connectionStringResource)
-        {
-            InitializeConnectionString(connectionStringResource);
-        }
-
-        void InitializeConnectionString(ConnectionStringResource connectionStringResource)
-        {
-            var logger = _loggerService.GetLogger(resource);
-            var waitFor = new List<Task>();
-
-            var references = connectionStringResource.Annotations.OfType<ResourceRelationshipAnnotation>()
-                .Where(x => x.Type == KnownRelationshipTypes.Reference)
-                .Select(x => x.Resource);
-
-            foreach (var reference in references)
-            {
-                if (reference is IResourceWithEndpoints)
-                {
-                    var tcs = new TaskCompletionSource();
-                    logger.LogInformation("Waiting for endpoints to be allocated for resource {ResourceName}", reference.Name);
-                    _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(reference, (_, _) =>
-                    {
-                        logger.LogInformation("Endpoints allocated for resource {ResourceName}", reference.Name);
-                        tcs.SetResult();
-                        return Task.CompletedTask;
-                    });
-
-                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
-                }
-
-                if (reference is IResourceWithConnectionString)
-                {
-                    var tcs = new TaskCompletionSource();
-                    logger.LogInformation("Waiting for connection string to be available for resource {ResourceName}", reference.Name);
-                    _eventing.Subscribe<ConnectionStringAvailableEvent>(reference, (_, _) =>
-                    {
-                        logger.LogInformation("Connection string is available for resource {ResourceName}", reference.Name);
-                        tcs.SetResult();
-                        return Task.CompletedTask;
-                    });
-
-                    waitFor.Add(tcs.Task.WaitAsync(cancellationToken));
-                }
-            }
-
-            _ = Task.Run(async () =>
-            {
-                await Task.WhenAll(waitFor).ConfigureAwait(false);
-                await PublishConnectionStringAvailableEvent(connectionStringResource, cancellationToken).ConfigureAwait(false);
-                await _notificationService.PublishUpdateAsync(connectionStringResource, s => s with
-                {
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success),
-                }).ConfigureAwait(false);
-            }, cancellationToken);
-        }
-
-        return Task.CompletedTask;
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)

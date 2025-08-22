@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext
@@ -576,6 +576,20 @@ public static class ResourceExtensions
         {
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Determines whether the specified resource requires image building and pushing.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build and a push to a container registry if they provide
+    /// their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image push requirements.</param>
+    /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
+    public static bool RequiresImageBuildAndPush(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
     }
 
     /// <summary>

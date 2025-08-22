@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_kv_name": "{existing-kv-name.value}",
+    "existing_kv_rg": "{existing-kv-rg.value}"
+  }
+}

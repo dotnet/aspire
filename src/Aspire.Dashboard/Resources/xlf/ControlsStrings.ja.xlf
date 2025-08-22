@@ -342,6 +342,11 @@
         <target state="translated">カウント</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplar">
+        <source>Exemplar</source>
+        <target state="translated">模範</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
         <target state="translated">手本</target>
@@ -374,7 +379,7 @@
       </trans-unit>
       <trans-unit id="ResourceActions">
         <source>Resource actions</source>
-        <target state="new">Resource actions</target>
+        <target state="translated">リソース アクション</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
@@ -437,9 +442,9 @@
         <target state="translated">受信データを再開</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">アプリケーションを選択する</target>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">リソースの選択</target>
         <note />
       </trans-unit>
       <trans-unit id="ShowHiddenResources">

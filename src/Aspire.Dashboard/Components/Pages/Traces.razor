@@ -1,5 +1,5 @@
 ﻿@page "/traces"
-@page "/traces/resource/{applicationName}"
+@page "/traces/resource/{resourceName}"
 
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
@@ -18,7 +18,7 @@
 
 <PageTitle>
     <ApplicationName
-        AdditionalText="@PageViewModel.SelectedApplication.Id?.ReplicaSetName"
+        AdditionalText="@PageViewModel.SelectedResource.Id?.ReplicaSetName"
         ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)"
         Loc="@Loc"/>
 </PageTitle>
@@ -29,17 +29,17 @@
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
         </PageTitleSection>
         <ToolbarSection>
-            <ResourceSelect Resources="_applicationViewModels"
-                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
-                            @bind-SelectedResource="PageViewModel.SelectedApplication"
-                            @bind-SelectedResource:after="HandleSelectedApplicationChanged"
+            <ResourceSelect Resources="_resourceViewModels"
+                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
+                            @bind-SelectedResource="PageViewModel.SelectedResource"
+                            @bind-SelectedResource:after="HandleSelectedResourceChanged"
                             CanSelectGrouping="true"
                             LabelClass="toolbar-left" />
 
             <SignalsActionsDisplay HandleClearSignal="@ClearTraces"
                                   IsPaused="@PauseManager.AreTracesPaused(out _)"
                                   OnPausedChanged="@PauseManager.SetTracesPaused"
-                                  SelectedResource="@PageViewModel.SelectedApplication" />
+                                  SelectedResource="@PageViewModel.SelectedResource" />
 
             <FluentSearch @bind-Value="_filter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
@@ -92,6 +92,7 @@
                                     RowClass="@GetRowClass"
                                     GenerateHeader="GenerateHeaderOption.Sticky"
                                     ItemSize="46"
+                                    OverscanCount="100"
                                     ResizableColumns="true"
                                     ResizeColumnOnAllRows="false"
                                     ItemsProvider="@GetData"
@@ -114,15 +115,15 @@
                             <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
                                     <ChildContent>
-                                        @foreach (var item in TraceHelpers.GetOrderedApplications(context))
+                                        @foreach (var item in TraceHelpers.GetOrderedResources(context))
                                         {
                                             <FluentOverflowItem>
-                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Application)));">
+                                                <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Resource)));">
                                                     @if (item.ErroredSpans > 0)
                                                     {
                                                         <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                                     }
-                                                    @GetResourceName(item.Application) (@item.TotalSpans)
+                                                    @GetResourceName(item.Resource) (@item.TotalSpans)
                                                 </span>
                                             </FluentOverflowItem>
                                         }
