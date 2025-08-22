@@ -40,11 +40,11 @@ See the [Azure AI Foundry SDK quickstarts](https://learn.microsoft.com/azure/ai-
 
 ## Configuration
 
-The .NET Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and `DeploymentId`, or a `ConnectionString` is required to be supplied.
+The .NET Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and a deployment identifier (`Deployment`, `DeploymentId`, or `Model`), or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys, Deployment ID and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};DeploymentId={deploymentId}`. You can provide the name of the connection string when calling `builder.AddChatCompletionsClient()`:
+A connection can be constructed from the __Keys, Deployment ID and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};Deployment={deploymentName}`. You can provide the name of the connection string when calling `builder.AddChatCompletionsClient()`:
 
 ```csharp
 builder.AddChatCompletionsClient("connectionName");
@@ -59,7 +59,7 @@ The recommended approach is to use an Endpoint, which works with the `ChatComple
 ```json
 {
   "ConnectionStrings": {
-    "connectionName": "Endpoint=https://{endpoint}/;DeploymentId={deploymentName}"
+    "connectionName": "Endpoint=https://{endpoint}/;Deployment={deploymentName}"
   }
 }
 ```
@@ -71,10 +71,20 @@ Alternatively, a custom connection string can be used.
 ```json
 {
   "ConnectionStrings": {
-    "connectionName": "Endpoint=https://{endpoint}/;Key={account_key};DeploymentId={deploymentName}"
+    "connectionName": "Endpoint=https://{endpoint}/;Key={account_key};Deployment={deploymentName}"
   }
 }
 ```
+
+#### Connection string compatibility
+
+The library supports multiple formats for specifying the deployment:
+
+- **`Deployment={deploymentName}`** - Preferred format for Azure AI Foundry deployments
+- **`DeploymentId={deploymentId}`** - Legacy format (maintained for backward compatibility)  
+- **`Model={modelName}`** - Format used by GitHub Models
+
+Only one of these keys should be present in a connection string. If multiple are provided, an `ArgumentException` will be thrown.
 
 ### Use configuration providers
 
