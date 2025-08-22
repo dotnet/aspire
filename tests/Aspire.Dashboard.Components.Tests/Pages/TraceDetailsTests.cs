@@ -523,7 +523,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         
         // Act - Find the dropdown menu and click Collapse All
         var menuButton = cut.FindComponent<AspireMenuButton>();
-        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse All"); // Locate by text since ID was removed
+        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
         Assert.NotNull(collapseAllMenuItem);
         cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
 
@@ -589,7 +589,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         
         // First click "Collapse All" to collapse everything
         var menuButton = cut.FindComponent<AspireMenuButton>();
-        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse All"); // Locate by text since ID was removed
+        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
         Assert.NotNull(collapseAllMenuItem);
         cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
         
@@ -602,7 +602,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
         
         // Act - Click "Expand All"
-        var expandAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Expand All"); // Locate by text since ID was removed
+        var expandAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Expand all"); // Locate by text since ID was removed
         Assert.NotNull(expandAllMenuItem);
         cut.InvokeAsync(() => expandAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
 

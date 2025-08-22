@@ -108,8 +108,8 @@
         <note />
       </trans-unit>
       <trans-unit id="CollapseAllSpansText">
-        <source>Collapse All</source>
-        <target state="new">Collapse All</target>
+        <source>Collapse all</source>
+        <target state="new">Collapse all</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -138,8 +138,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ExpandAllSpansText">
-        <source>Expand All</source>
-        <target state="new">Expand All</target>
+        <source>Expand all</source>
+        <target state="new">Expand all</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -580,6 +580,11 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Разделить по вертикали</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="new">View structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

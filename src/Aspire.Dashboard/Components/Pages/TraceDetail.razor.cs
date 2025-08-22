@@ -112,7 +112,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         // Add "View structured logs" at the top
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
-            Text = "View structured logs",
+            Text = ControlStringsLoc[nameof(ControlsStrings.ViewStructuredLogsText)],
             Icon = new Icons.Regular.Size16.SlideTextSparkle(),
             OnClick = () =>
             {
@@ -445,7 +445,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             return false;
         }
 
-        return _spanWaterfallViewModels.Any(vm => !vm.IsCollapsed && vm.Children.Count > 0);
+        // Don't consider root spans (depth 0) when determining if collapse all should be enabled
+        return _spanWaterfallViewModels.Any(vm => vm.Depth > 0 && !vm.IsCollapsed && vm.Children.Count > 0);
     }
 
     private async Task CollapseAllSpansAsync()
@@ -457,7 +458,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            if (viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
+            // Don't collapse root spans (depth 0)
+            if (viewModel.Depth > 0 && viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
             {
                 SetSpanCollapsedState(viewModel, true);
             }
