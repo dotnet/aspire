@@ -91,8 +91,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 cancellationToken: cancellationToken);
                 
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
-            using var tempConfig = await TemporaryNuGetConfig.CreateAsync(channel.Mappings!);
-            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, tempConfig, channel.Mappings);
+            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel);
         }
 
         foreach (var updateStep in updateSteps)

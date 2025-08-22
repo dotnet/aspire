@@ -3,6 +3,7 @@
 
 using System.Xml.Linq;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Tests.Utils;
 
 namespace Aspire.Cli.Tests.Packaging;
@@ -23,8 +24,30 @@ public class NuGetConfigMergerTests
         return new FileInfo(path);
     }
 
+    private sealed class FakeNuGetPackageCache : INuGetPackageCache
+    {
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+        {
+            _ = workingDirectory; _ = prerelease; _ = nugetConfigFile; _ = cancellationToken; return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        }
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+        {
+            _ = workingDirectory; _ = prerelease; _ = nugetConfigFile; _ = cancellationToken; return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        }
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+        {
+            _ = workingDirectory; _ = prerelease; _ = nugetConfigFile; _ = cancellationToken; return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        }
+        public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+        {
+            _ = workingDirectory; _ = packageId; _ = filter; _ = prerelease; _ = nugetConfigFile; _ = cancellationToken; return Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+        }
+    }
+
+    private static PackageChannel CreateChannel(PackageMapping[] mappings) => PackageChannel.CreateExplicitChannel("test", PackageChannelQuality.Both, mappings, new FakeNuGetPackageCache());
+
     [Fact]
-    public async Task CreateOrUpdateAsync_CopiesTemporaryConfig_WhenNoExistingConfig()
+    public async Task CreateOrUpdateAsync_CreatesConfigFromMappings_WhenNoExistingConfig()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
@@ -35,20 +58,20 @@ public class NuGetConfigMergerTests
             new PackageMapping(PackageMapping.AllPackages, "https://feed2.example")
         };
 
-        using var tempConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
-
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, tempConfig, mappings);
+    var channel = CreateChannel(mappings);
+    await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
         var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
         Assert.True(File.Exists(targetConfigPath));
 
-        var expected = await File.ReadAllTextAsync(tempConfig.ConfigFile.FullName);
+    using var tempConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+    var expected = await File.ReadAllTextAsync(tempConfig.ConfigFile.FullName);
         var actual = await File.ReadAllTextAsync(targetConfigPath);
         Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
     }
 
     [Fact]
-    public async Task CreateOrUpdateAsync_GeneratesConfigFromMappings_WhenNoTempConfig()
+    public async Task CreateOrUpdateAsync_GeneratesConfigFromMappings_WhenChannelProvided()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
@@ -59,7 +82,8 @@ public class NuGetConfigMergerTests
             new PackageMapping(PackageMapping.AllPackages, "https://feed2.example")
         };
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, temporaryConfig: null, mappings);
+    var channel = CreateChannel(mappings);
+    await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
         var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
         Assert.True(File.Exists(targetConfigPath));
@@ -102,7 +126,8 @@ public class NuGetConfigMergerTests
             new PackageMapping("Microsoft.*", "https://feed2.example") // feed2 missing
         };
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, temporaryConfig: null, mappings);
+    var channel = CreateChannel(mappings);
+    await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
         var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
         var packageSources = xml.Root!.Element("packageSources")!;
@@ -140,7 +165,8 @@ public class NuGetConfigMergerTests
             new PackageMapping("Lib.*", "https://new.example")
         };
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, temporaryConfig: null, mappings);
+    var channel = CreateChannel(mappings);
+    await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
         var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
         var packageSources = xml.Root!.Element("packageSources")!;
@@ -179,7 +205,8 @@ public class NuGetConfigMergerTests
             new PackageMapping("Microsoft.*", "https://feed2.example")
         };
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, temporaryConfig: null, mappings);
+    var channel = CreateChannel(mappings);
+    await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
         var xml = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
         var psm = xml.Root!.Element("packageSourceMapping");
@@ -192,8 +219,9 @@ public class NuGetConfigMergerTests
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
-        var mappings = new[] { new PackageMapping("Aspire.*", "https://feed.example") };
-        Assert.True(NuGetConfigMerger.HasMissingSources(root, mappings));
+    var mappings = new[] { new PackageMapping("Aspire.*", "https://feed.example") };
+    var channel = CreateChannel(mappings);
+    Assert.True(NuGetConfigMerger.HasMissingSources(root, channel));
     }
 
     [Fact]
@@ -223,7 +251,8 @@ public class NuGetConfigMergerTests
             new PackageMapping("Aspire.*", "https://feed2.example") // should be feed2, but config has feed1
         };
 
-        Assert.True(NuGetConfigMerger.HasMissingSources(root, mappings));
+    var channel = CreateChannel(mappings);
+    Assert.True(NuGetConfigMerger.HasMissingSources(root, channel));
     }
 
     [Fact]
@@ -257,7 +286,8 @@ public class NuGetConfigMergerTests
             new PackageMapping("Microsoft.*", "https://feed2.example")
         };
 
-        Assert.False(NuGetConfigMerger.HasMissingSources(root, mappings));
+    var channel = CreateChannel(mappings);
+    Assert.False(NuGetConfigMerger.HasMissingSources(root, channel));
     }
 
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");

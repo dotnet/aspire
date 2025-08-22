@@ -307,7 +307,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.
-            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, outputPath, cancellationToken);
+            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
@@ -391,7 +391,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return selectedPackageFromChannel;
     }
 
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, string outputPath, CancellationToken cancellationToken)
+    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
     {
         if (channel.Type is not PackageChannelType.Explicit)
         {
@@ -409,7 +409,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         
         // Check if we need to create or update a NuGet.config
         var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
-        var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, mappings);
+        var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
 
         if (!hasConfigInWorkingDir)
         {
@@ -422,7 +422,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, temporaryConfig, mappings);
+                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
         }
@@ -436,7 +436,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, temporaryConfig, mappings);
+                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
                 interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
             }
         }

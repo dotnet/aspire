@@ -9,18 +9,19 @@ namespace Aspire.Cli.Packaging;
 internal class NuGetConfigMerger
 {
     /// <summary>
-    /// Creates or updates a NuGet.config file in the specified directory based on the provided temporary NuGet config.
+    /// Creates or updates a NuGet.config file in the specified directory based on the provided <see cref="PackageChannel"/>.
+    /// For implicit channels (no explicit mappings) this method is a no-op.
     /// </summary>
     /// <param name="targetDirectory">The directory where the NuGet.config should be created or updated.</param>
-    /// <param name="temporaryConfig">The temporary NuGet config containing the sources to merge.</param>
-    /// <param name="mappings">The package mappings to apply. If null, will be derived from the temporary config.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, TemporaryNuGetConfig? temporaryConfig, PackageMapping[]? mappings = null)
+    /// <param name="channel">The package channel providing mapping information.</param>
+    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
+        ArgumentNullException.ThrowIfNull(channel);
 
-        // If no temporary config is provided and no mappings, there's nothing to do
-        if (temporaryConfig is null && (mappings is null || mappings.Length == 0))
+        // Only explicit channels (with mappings) require a NuGet.config merge/write.
+        var mappings = channel.Mappings;
+        if (channel.Type is not PackageChannelType.Explicit || mappings is null || mappings.Length == 0)
         {
             return;
         }
@@ -30,34 +31,26 @@ internal class NuGetConfigMerger
             targetDirectory.Create();
         }
 
-        // Locate an existing NuGet.config in the target directory using a case-insensitive search
-    if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
+        if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            // Create a new NuGet.config file
-            await CreateNewNuGetConfigAsync(targetDirectory, temporaryConfig, mappings);
+            await CreateNewNuGetConfigAsync(targetDirectory, mappings);
         }
         else
         {
-            // Update the existing NuGet.config file
             await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, TemporaryNuGetConfig? temporaryConfig, PackageMapping[]? mappings)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings)
     {
-        var targetPath = Path.Combine(targetDirectory.FullName, "NuGet.config");
+        if (mappings.Length == 0)
+        {
+            return;
+        }
 
-        if (temporaryConfig is not null)
-        {
-            // Use the existing temporary config file
-            File.Copy(temporaryConfig.ConfigFile.FullName, targetPath, overwrite: true);
-        }
-        else if (mappings is not null && mappings.Length > 0)
-        {
-            // Generate a new NuGet.config from the mappings
-            using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
-            File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
-        }
+        var targetPath = Path.Combine(targetDirectory.FullName, "NuGet.config");
+        using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+        File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
     private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings)
@@ -264,19 +257,20 @@ internal class NuGetConfigMerger
     /// or if package source mappings need to be updated.
     /// </summary>
     /// <param name="targetDirectory">The directory to check for NuGet.config.</param>
-    /// <param name="mappings">The package mappings to check against.</param>
+    /// <param name="channel">The package channel whose mappings are checked.</param>
     /// <returns>True if sources are missing or mappings need updates, false if all sources and mappings are correctly configured.</returns>
-    public static bool HasMissingSources(DirectoryInfo targetDirectory, PackageMapping[] mappings)
+    public static bool HasMissingSources(DirectoryInfo targetDirectory, PackageChannel channel)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
-        ArgumentNullException.ThrowIfNull(mappings);
+        ArgumentNullException.ThrowIfNull(channel);
 
-        if (mappings.Length == 0)
+        var mappings = channel.Mappings;
+        if (channel.Type is not PackageChannelType.Explicit || mappings is null || mappings.Length == 0)
         {
-            return false;
+            return false; // Implicit channels or empty mappings never require config changes.
         }
 
-    if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
+	if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
             return true; // No config exists, so sources are "missing"
         }
