@@ -16,6 +16,10 @@ ms.date: 08/21/2025
 - [App model enhancements](#️-app-model-enhancements)
   - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
+  - [ExternalService WaitFor behavior change](#externalservice-waitfor-behavior-change)
+  - [Context-based endpoint resolution](#context-based-endpoint-resolution)
+  - [Resource lifetime behavior](#resource-lifetime-behavior)
+  - [InteractionInput API changes](#interactioninput-api-changes)
   - [Custom resource icons](#custom-resource-icons)
   - [MySQL password improvements](#mysql-password-improvements)
   - [Remote & debugging experience](#remote--debugging-experience)
@@ -23,7 +27,6 @@ ms.date: 08/21/2025
   - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
   - [Azure App Configuration emulator](#azure-app-configuration-emulator)
   - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
-- [Breaking changes](#️-breaking-changes)
 
 📢 .NET Aspire 9.5 is the next minor version release of .NET Aspire. It supports:
 
@@ -221,6 +224,69 @@ var api = builder.AddProject<Projects.Api>("api")
   .WithReference(redis);
 ```
 
+### ExternalService WaitFor behavior change
+
+Breaking change: `WaitFor` now properly honors `ExternalService` health checks so dependent resources defer start until the external service reports healthy (issue [#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, dependents would start even if the external target failed its readiness probe. This improves correctness and aligns `ExternalService` with other resource types.
+
+If you relied on the old lenient behavior (e.g., starting a frontend while an external API was still warming up), you can temporarily remove the `WaitFor` call or switch to `WaitForStart` if only startup is required.
+
+```csharp
+var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
+  .WithHttpHealthCheck("/health/ready");
+
+builder.AddProject<Projects.Frontend>("frontend")
+  .WaitFor(externalApi);
+```
+
+### Context-based endpoint resolution
+
+Breaking change: Endpoint resolution in `WithEnvironment` now correctly resolves container hostnames instead of always using "localhost" ([#8574](https://github.com/dotnet/aspire/issues/8574)):
+
+```csharp
+var redis = builder.AddRedis("redis");
+
+builder.AddRabbitMQ("rabbitmq")
+  .WithEnvironment(context =>
+  {
+    var endpoint = redis.GetEndpoint("tcp");
+    var redisHost = endpoint.Property(EndpointProperty.Host);
+    var redisPort = endpoint.Property(EndpointProperty.Port);
+
+    context.EnvironmentVariables["REDIS_HOST"] = redisHost;
+    context.EnvironmentVariables["REDIS_PORT"] = redisPort;
+  });
+```
+
+### Resource lifetime behavior
+
+Breaking change: Several resources now support `WaitFor` operations that were previously not supported ([#10851](https://github.com/dotnet/aspire/pull/10851), [#10842](https://github.com/dotnet/aspire/pull/10842)):
+
+```csharp
+var connectionString = builder.AddConnectionString("db");
+var apiKey = builder.AddParameter("api-key", secret: true);
+
+builder.AddProject<Projects.Api>("api")
+  .WaitFor(connectionString)
+  .WaitFor(apiKey);
+```
+
+Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Models no longer implement `IResourceWithoutLifetime`. They now show as "Running" and can be used with `WaitFor` operations.
+
+### InteractionInput API changes
+
+Breaking change: The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
+
+```csharp
+var input = new InteractionInput 
+{ 
+  Name = "username",
+  Label = "Username",
+  InputType = InputType.Text 
+};
+```
+
+All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
+
 ### Custom resource icons
 
 Resources can specify custom icon names for better visual identification:
@@ -267,6 +333,8 @@ Package upgrades and localization support plus groundwork for richer debugging s
 
 ### Azure AI Foundry enhancements
 
+9.5 adds a generated, strongly-typed model catalog (`AIFoundryModel`) for IntelliSense + ref safety when creating deployments (PR #10986) and a daily automation that refreshes the catalog as new models appear in Azure AI Foundry (PR #11040). Sample apps and end-to-end tests now use these constants (PR #11039) instead of raw strings. The original Foundry hosting integration and local runtime support were introduced earlier (issue #9568); this release focuses on developer ergonomics and keeping model metadata current.
+
 Strongly-typed model catalog with IntelliSense support:
 
 ```csharp
@@ -302,65 +370,3 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
 
-## ⚠️ Breaking changes
-
-### ExternalService WaitFor behavior change
-
-`WaitFor` now properly works with `ExternalService` resources that have health checks ([#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, resources would start even if the external service was unhealthy:
-
-```csharp
-var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
-                        .WithHttpHealthCheck("/health/ready");
-
-builder.AddProject<Projects.Frontend>("frontend")
-        .WaitFor(externalApi);
-```
-
-### Context-based endpoint resolution improvements
-
-Endpoint resolution in `WithEnvironment` now correctly resolves container hostnames instead of always using "localhost" ([#8574](https://github.com/dotnet/aspire/issues/8574)):
-
-```csharp
-var redis = builder.AddRedis("redis");
-
-builder.AddRabbitMQ("rabbitmq")
-    .WithEnvironment(context =>
-    {
-        var endpoint = redis.GetEndpoint("tcp");
-        var redisHost = endpoint.Property(EndpointProperty.Host);
-        var redisPort = endpoint.Property(EndpointProperty.Port);
-
-        context.EnvironmentVariables["REDIS_HOST"] = redisHost;
-        context.EnvironmentVariables["REDIS_PORT"] = redisPort;
-    });
-```
-
-### Resource lifetime behavior changes
-
-Several resources now support `WaitFor` operations that were previously not supported ([#10851](https://github.com/dotnet/aspire/pull/10851), [#10842](https://github.com/dotnet/aspire/pull/10842)):
-
-```csharp
-var connectionString = builder.AddConnectionString("db");
-var apiKey = builder.AddParameter("api-key", secret: true);
-
-builder.AddProject<Projects.Api>("api")
-  .WaitFor(connectionString)
-  .WaitFor(apiKey);
-```
-
-Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Models no longer implement `IResourceWithoutLifetime`. They now show as "Running" and can be used with `WaitFor` operations.
-
-### InteractionInput API changes
-
-The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
-
-```csharp
-var input = new InteractionInput 
-{ 
-    Name = "username",
-    Label = "Username",
-    InputType = InputType.Text 
-};
-```
-
-All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
