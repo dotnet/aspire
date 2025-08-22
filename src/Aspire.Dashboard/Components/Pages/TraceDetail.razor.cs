@@ -68,9 +68,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Dashboard.Resources.TraceDetail> Loc { get; init; }
 
     [Inject]
@@ -78,6 +75,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -109,6 +109,25 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _traceActionsMenuItems.Clear();
 
+        // Add "View structured logs" at the top
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = "View structured logs",
+            Icon = new Icons.Regular.Size16.SlideTextSparkle(),
+            OnClick = () =>
+            {
+                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: _trace?.TraceId));
+                return Task.CompletedTask;
+            }
+        });
+
+        // Add divider
+        _traceActionsMenuItems.Add(new MenuButtonItem
+        {
+            IsDivider = true
+        });
+
+        // Add expand/collapse options
         _traceActionsMenuItems.Add(new MenuButtonItem
         {
             Text = ControlStringsLoc[nameof(ControlsStrings.ExpandAllSpansText)],
