@@ -91,8 +91,8 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// When password authentication is enabled, it resolves to the user name parameter value.
     /// </remarks>
     public ReferenceExpression? UserName => 
-        InnerResource is not null && InnerResource.UserNameParameter is not null ?
-            ReferenceExpression.Create($"{InnerResource.UserNameParameter}") :
+        InnerResource is not null ?
+            InnerResource.UserNameReference :
             UsePasswordAuthentication && UserNameParameter is not null ?
                 ReferenceExpression.Create($"{UserNameParameter}") :
                 null;
