@@ -9,6 +9,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -74,6 +75,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10987")]
+    // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDerivesOutputPathFromProjectNameForStarterTemplate()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -130,6 +133,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11034")]
     public async Task NewCommandDoesNotPromptForProjectNameIfSpecifiedOnCommandLine()
     {
         var promptedForName = false;
@@ -238,6 +242,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
+    // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDoesNotPromptForTemplateIfSpecifiedOnCommandLine()
     {
         bool promptedForTemplate = false;

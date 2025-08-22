@@ -439,7 +439,8 @@ internal abstract class PublishCommandBase : BaseCommand
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
         if (!hasValidationErrors && inputs.Count > 1)
         {
-            AnsiConsole.MarkupLine($"[bold]{activity.Data.StatusText.EscapeMarkup()}[/]");
+            var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+            AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
         }
 
         // Handle multiple inputs
@@ -456,9 +457,13 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 // For multiple inputs, use the input label as the prompt
                 // For single input, use the activity status text as the prompt
-                var promptText = inputs.Count > 1
+                var basePromptText = inputs.Count > 1
                     ? $"{input.Label}: "
-                    : $"[bold]{activity.Data.StatusText}[/]";
+                    : activity.Data.StatusText;
+                
+                var promptText = inputs.Count > 1
+                    ? MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)
+                    : $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)}[/]";
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }

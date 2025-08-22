@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">Anonyme Volumes können nicht schreibgeschützt sein.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">Bindungsbereitstellungen müssen einen absoluten Pfad angeben.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">Für "Bereitstellungen einbinden" muss ein Quellpfad angegeben werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="new">Application orchestrator dependency check returned an error: {0}</target>
+        <target state="translated">Fehler bei der Abhängigkeitsprüfung des Anwendungsorchestrierers: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
-        <target state="new">Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</target>
+        <target state="translated">Zum Ausführen der Anwendung ist eine neuere Version des Pakets „Aspire.Hosting.AppHost“ erforderlich. Stellen Sie sicher, dass Sie auf mindestens die Version „{0}“ verweisen.</target>
         <note />
       </trans-unit>
     </body>

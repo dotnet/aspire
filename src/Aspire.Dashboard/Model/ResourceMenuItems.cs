@@ -19,6 +19,8 @@ public static class ResourceMenuItems
     private static readonly Icon s_tracesIcon = new Icons.Regular.Size16.GanttChart();
     private static readonly Icon s_metricsIcon = new Icons.Regular.Size16.ChartMultiple();
     private static readonly Icon s_linkIcon = new Icons.Regular.Size16.Link();
+    private static readonly Icon s_toolboxIcon = new Icons.Regular.Size16.Toolbox();
+    private static readonly Icon s_linkMultipleIcon = new Icons.Regular.Size16.LinkMultiple();
 
     public static void AddMenuItems(
         List<MenuButtonItem> menuItems,
@@ -56,13 +58,82 @@ public static class ResourceMenuItems
             });
         }
 
+        AddTelemetryMenuItems(menuItems, resource, navigationManager, telemetryRepository, getResourceName, loc);
+
+        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting);
+
+        if (showUrls)
+        {
+            AddUrlMenuItems(menuItems, resource, loc);
+        }
+    }
+
+    private static void AddUrlMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc)
+    {
+        var urls = ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true)
+            .Where(u => !string.IsNullOrEmpty(u.Url))
+            .ToList();
+
+        if (urls.Count == 0)
+        {
+            return;
+        }
+
+        menuItems.Add(new MenuButtonItem { IsDivider = true });
+
+        if (urls.Count > 5)
+        {
+            var urlItems = new List<MenuButtonItem>();
+
+            foreach (var url in urls)
+            {
+                urlItems.Add(CreateUrlMenuItem(url));
+            }
+
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionUrlsText)],
+                Tooltip = "", // No tooltip for the commands menu item.
+                Icon = s_linkMultipleIcon,
+                NestedMenuItems = urlItems
+            });
+        }
+        else
+        {
+            foreach (var url in urls)
+            {
+                menuItems.Add(CreateUrlMenuItem(url));
+            }
+        }
+    }
+
+    private static MenuButtonItem CreateUrlMenuItem(DisplayedUrl url)
+    {
+        // Opens the URL in a new window when clicked.
+        // It's important that this is done in the onclick event so the browser popup allows it.
+        return new MenuButtonItem
+        {
+            Text = url.Text,
+            Tooltip = url.Url,
+            Icon = s_linkIcon,
+            AdditionalAttributes = new Dictionary<string, object>
+            {
+                ["data-openbutton"] = "true",
+                ["data-url"] = url.Url!,
+                ["data-target"] = "_blank"
+            }
+        };
+    }
+
+    private static void AddTelemetryMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, NavigationManager navigationManager, TelemetryRepository telemetryRepository, Func<ResourceViewModel, string> getResourceName, IStringLocalizer<Resources.Resources> loc)
+    {
         // Show telemetry menu items if there is telemetry for the resource.
-        var telemetryApplication = telemetryRepository.GetApplicationByCompositeName(resource.Name);
-        if (telemetryApplication != null)
+        var telemetryResource = telemetryRepository.GetResourceByCompositeName(resource.Name);
+        if (telemetryResource != null)
         {
             menuItems.Add(new MenuButtonItem { IsDivider = true });
 
-            if (!telemetryApplication.UninstrumentedPeer)
+            if (!telemetryResource.UninstrumentedPeer)
             {
                 menuItems.Add(new MenuButtonItem
                 {
@@ -89,7 +160,7 @@ public static class ResourceMenuItems
                 }
             });
 
-            if (!telemetryApplication.UninstrumentedPeer)
+            if (!telemetryResource.UninstrumentedPeer)
             {
                 menuItems.Add(new MenuButtonItem
                 {
@@ -104,58 +175,69 @@ public static class ResourceMenuItems
                 });
             }
         }
+    }
 
+    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting)
+    {
         var menuCommands = resource.Commands
-            .Where(c => c.State != CommandViewModelState.Hidden)
-            .OrderBy(c => !c.IsHighlighted)
-            .ToList();
-        if (menuCommands.Count > 0)
+                    .Where(c => c.State != CommandViewModelState.Hidden)
+                    .ToList();
+
+        if (menuCommands.Count == 0)
         {
-            menuItems.Add(new MenuButtonItem { IsDivider = true });
+            return;
+        }
 
-            foreach (var command in menuCommands)
+        var highlightedMenuCommands = menuCommands.Where(c => c.IsHighlighted).ToList();
+        var otherMenuCommands = menuCommands.Where(c => !c.IsHighlighted).ToList();
+
+        menuItems.Add(new MenuButtonItem { IsDivider = true });
+
+        // Always show the highlighted commands first and not in a sub-menu.
+        foreach (var highlightedCommand in highlightedMenuCommands)
+        {
+            menuItems.Add(CreateMenuItem(highlightedCommand));
+        }
+
+        // If there are more than 5 commands, we group them under a "Commands" menu item. This is done to avoid the menu going off the end of the screen.
+        // A scenario where this could happen is viewing the menu for a resource and the resource is in the middle of the screen.
+        if (highlightedMenuCommands.Count + otherMenuCommands.Count > 5)
+        {
+            var commands = new List<MenuButtonItem>();
+
+            foreach (var command in otherMenuCommands)
             {
-                var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
+                commands.Add(CreateMenuItem(command));
+            }
 
-                menuItems.Add(new MenuButtonItem
-                {
-                    Text = command.GetDisplayName(commandsLoc),
-                    Tooltip = command.GetDisplayDescription(commandsLoc),
-                    Icon = icon,
-                    OnClick = () => commandSelected.InvokeAsync(command),
-                    IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
-                });
+            menuItems.Add(new MenuButtonItem
+            {
+                Text = loc[nameof(Resources.Resources.ResourceActionCommandsText)],
+                Tooltip = "", // No tooltip for the commands menu item.
+                Icon = s_toolboxIcon,
+                NestedMenuItems = commands
+            });
+        }
+        else
+        {
+            foreach (var command in otherMenuCommands)
+            {
+                menuItems.Add(CreateMenuItem(command));
             }
         }
 
-        if (showUrls)
+        MenuButtonItem CreateMenuItem(CommandViewModel command)
         {
-            var urls = ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true)
-                .Where(u => !string.IsNullOrEmpty(u.Url))
-                .ToList();
+            var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
-            if (urls.Count > 0)
+            return new MenuButtonItem
             {
-                menuItems.Add(new MenuButtonItem { IsDivider = true });
-            }
-
-            foreach (var url in urls)
-            {
-                // Opens the URL in a new window when clicked.
-                // It's important that this is done in the onclick event so the browser popup allows it.
-                menuItems.Add(new MenuButtonItem
-                {
-                    Text = url.Text,
-                    Tooltip = url.Url,
-                    Icon = s_linkIcon,
-                    AdditionalAttributes = new Dictionary<string, object>
-                    {
-                        ["data-openbutton"] = "true",
-                        ["data-url"] = url.Url!,
-                        ["data-target"] = "_blank"
-                    }
-                });
-            }
+                Text = command.GetDisplayName(commandsLoc),
+                Tooltip = command.GetDisplayDescription(commandsLoc),
+                Icon = icon,
+                OnClick = () => commandSelected.InvokeAsync(command),
+                IsDisabled = command.State == CommandViewModelState.Disabled || isCommandExecuting(resource, command)
+            };
         }
     }
 }

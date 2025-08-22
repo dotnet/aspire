@@ -579,6 +579,20 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Determines whether the specified resource requires image building and pushing.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build and a push to a container registry if they provide
+    /// their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image push requirements.</param>
+    /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
+    public static bool RequiresImageBuildAndPush(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+    }
+
+    /// <summary>
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>

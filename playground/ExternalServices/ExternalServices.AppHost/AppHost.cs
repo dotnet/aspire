@@ -10,6 +10,7 @@ var externalServiceUrl = builder.AddParameter("external-service-url")
     .WithDescription("The URL of the external service.")
     .WithCustomInput(p => new()
     {
+        Name = "ParameterInput",
         InputType = InputType.Text,
         Value = "https://example.com",
         Label = p.Name,

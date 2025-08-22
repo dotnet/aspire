@@ -24,16 +24,16 @@ For pull-requests in CI the tests are run via GitHub actions defined in `tests-i
     - set `<TestsRunningOutsideOfRepo>true</TestsRunningOutsideOfRepo>` to `tests/Aspire.EndToEnd.Tests/Directory.props` before any imports
     - or set the environment variable `TestsRunningOutsideOfRepo=true`
 
-## Adding tests for new components
+## Adding tests for new integrations
 
-The following changes need to be made to when adding a new component:
+The following changes need to be made to when adding a new integration:
 
 * Add a new `TestResourceNames` [enum entry](../testproject/Common/TestResourceNames.cs).
-* Add ProjectReference to the new resource/component from the [TestProject.AppHost](../testproject/TestProject.AppHost/TestProject.AppHost.csproj) and [TestProject.IntegrationServiceA](../testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj) projects.
+* Add ProjectReference to the new resource/integration from the [TestProject.AppHost](../testproject/TestProject.AppHost/TestProject.AppHost.csproj) and [TestProject.IntegrationServiceA](../testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj) projects.
   * Add PackageVersion entries to the new packages in [Directory.Packages.Helix.props](../Shared/RepoTesting/Directory.Packages.Helix.props)
 * Add entries to the AppHost.cs/Program.cs of both the AppHost and IntegrationServiceA projects.
 * Add a test in [IntegrationServicesTests](../Aspire.EndToEnd.Tests/IntegrationServicesTests.cs)
-  * If the component's container starts in a reasonable time, the new test can just be a new `[InlineData]` entry to the existing `VerifyComponentWorks` test.
+  * If the integration's container starts in a reasonable time, the new test can just be a new `[InlineData]` entry to the existing `VerifyComponentWorks` test.
   * If the container takes a long time to start, or is flaky, add a separate test scenario (similar to Oracle and CosmosDb).
 
 See https://github.com/dotnet/aspire/pull/4179 for an example.
