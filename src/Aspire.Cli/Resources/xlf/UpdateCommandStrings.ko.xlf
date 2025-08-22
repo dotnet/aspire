@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../UpdateCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Update integrations in the Aspire project.</source>
-        <target state="new">Update integrations in the Aspire project.</target>
+        <source>(preview) Update integrations in the Aspire project.</source>
+        <target state="new">(preview) Update integrations in the Aspire project.</target>
         <note />
       </trans-unit>
     </body>
