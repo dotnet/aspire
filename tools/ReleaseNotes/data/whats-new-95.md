@@ -19,6 +19,29 @@ It's important to note that .NET Aspire releases out-of-band from .NET releases.
 - [.NET support policy](https://dotnet.microsoft.com/platform/support/policy): Definitions for LTS and STS.
 - [.NET Aspire support policy](https://dotnet.microsoft.com/platform/support/policy/aspire): Important unique product lifecycle details.
 
+## ⬆️ Upgrade to .NET Aspire 9.5
+
+Moving between minor releases of Aspire is simple:
+
+1. In your AppHost project file (that is, _MyApp.AppHost.csproj_), update the [📦 Aspire.AppHost.Sdk](https://www.nuget.org/packages/Aspire.AppHost.Sdk) NuGet package to version `9.5.0`:
+
+    ```xml
+    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+    ```
+
+    For more information, see [.NET Aspire SDK](xref:dotnet/aspire/sdk).
+
+2. Check for any NuGet package updates, either using the NuGet Package Manager in Visual Studio or the **Update NuGet Package** command from C# Dev Kit in VS Code.
+
+3. Update to the latest [.NET Aspire templates](../fundamentals/aspire-sdk-templates.md) by running the following .NET command line:
+
+    ```dotnetcli
+    dotnet new install Aspire.ProjectTemplates
+    ```
+
+    > [!NOTE]
+    > The `dotnet new install` command will update existing Aspire templates to the latest version if they are already installed.
+
 ## 🎨 Dashboard enhancements
 
 ### 🔗 Deep-linked telemetry navigation
