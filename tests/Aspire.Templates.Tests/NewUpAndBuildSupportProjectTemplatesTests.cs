@@ -134,7 +134,7 @@ public class XUnit_AspireVersion93_NewUpAndBuildSupportProjectTemplatesTests : N
     }
 
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.3"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.4"])]
     public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);
@@ -148,7 +148,7 @@ public class XUnit_AspireVersion94_NewUpAndBuildSupportProjectTemplatesTests : N
     }
 
     [Theory]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.4"])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-xunit", "--aspire-version 9.5"])]
     public Task CanNewAndBuild(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
         return CanNewAndBuildActual(templateName, extraTestCreationArgs, sdk, tfm, error);

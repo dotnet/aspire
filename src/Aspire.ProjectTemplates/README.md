@@ -29,3 +29,8 @@ For the `aspire-empty` template:
       "aspire-9.5-tfms": "net8.0;net9.0;net10.0"
     },
     ```
+
+In the *[repo_root]/tests/Aspire.Templates.Tests/NewUpAndBuildSupportProjectTemplatesTests.cs* file:
+
+1. Replace instances of old latest version with new latest version, e.g. `9.4` -> `9.5`
+2. Replace instances of old previous version with new previous version, e.g. `9.3` -> `9.4`
