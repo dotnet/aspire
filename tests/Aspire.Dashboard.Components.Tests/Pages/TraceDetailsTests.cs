@@ -530,11 +530,23 @@ public partial class TraceDetailsTests : DashboardTestContext
         // Assert
         cut.WaitForAssertion(() =>
         {
-            var expandContainers = cut.FindAll(".main-grid-expand-container");
-            // All parent spans should be collapsed
-            foreach (var container in expandContainers.Where(c => c.ParentElement?.QuerySelector(".main-grid-expand-button") != null))
+            var expandContainers = cut
+                .FindAll(".main-grid-expand-container")
+                .Where(c => c.ParentElement?.QuerySelector(".main-grid-expand-button") != null)
+                .ToList();
+
+            for (var i = 0; i < expandContainers.Count; i++)
             {
-                Assert.True(container.ClassList.Contains("main-grid-collapsed"));
+                if (i == 0)
+                {
+                    // The first container should be expanded
+                    Assert.True(expandContainers[i].ClassList.Contains("main-grid-expanded"));
+                }
+                else
+                {
+                    // All other containers should be collapsed
+                    Assert.True(expandContainers[i].ClassList.Contains("main-grid-collapsed"));
+                }
             }
         });
     }
