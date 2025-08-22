@@ -6,7 +6,7 @@
 
 parameters:
   PackageVersion: 10.0.0
-  BuildDropPath: '$(System.DefaultWorkingDirectory)/artifacts'
+  BuildDropPath: '$(Build.SourcesDirectory)/artifacts'
   PackageName: '.NET'
   ManifestDirPath: $(Build.ArtifactStagingDirectory)/sbom
   IgnoreDirectories: ''
