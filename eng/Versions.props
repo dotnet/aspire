@@ -47,8 +47,8 @@
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.8.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.8.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- for templates -->
-    <MicrosoftAspNetCorePackageVersionForNet9>9.0.6</MicrosoftAspNetCorePackageVersionForNet9>
-    <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.5.25277.114</MicrosoftAspNetCorePackageVersionForNet10>
+    <MicrosoftAspNetCorePackageVersionForNet9>9.0.8</MicrosoftAspNetCorePackageVersionForNet9>
+    <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-preview.7.25380.108</MicrosoftAspNetCorePackageVersionForNet10>
     <!-- Fuzzing tests -->
     <SharpFuzzPackageVersion>2.1.1</SharpFuzzPackageVersion>
     <!-- Aspire.Cli uses a preview version of StreamJsonRpc which is needed for native AOT support. -->
