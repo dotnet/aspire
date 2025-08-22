@@ -1,7 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using GitHubModelsEndToEnd.WebStory.Components;
+using Microsoft.Extensions.AI;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 
 AppContext.SetSwitch("Azure.Experimental.TraceGenAIMessageContent", true);
 
@@ -9,8 +14,26 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureChatCompletionsClient("chat")
-       .AddChatClient(deploymentId: null, configureChatClient: c => c.EnableSensitiveData = true);
+builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("Experimental.Microsoft.Extensions.AI"));
+builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("WebStory"));
+builder.Services.AddOpenTelemetry().WithMetrics(b => b.AddMeter("Experimental.Microsoft.Extensions.AI"));
+
+builder.Services.AddOpenTelemetry().WithTracing(t => t.AddProcessor(new ActivityFilteringProcessor(activity =>
+{
+    if (activity.Source.Name.StartsWith("Azure."))
+    {
+        return false;
+    }
+    return true;
+}))).UseAzureMonitor(o =>
+{
+    o.ConnectionString = "InstrumentationKey=12ca7138-0269-4c23-87eb-01065c672200;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=515d870a-3d1b-47ac-87c1-6ede2571a839";
+});
+
+builder.AddAzureChatCompletionsClient("chat", s => s.DisableTracing = true)
+       .AddChatClient(deploymentId: null, configureChatClient: c => c.EnableSensitiveData = true)
+       .UseFunctionInvocation();
+       //.UseOpenTelemetry(configure: c => c.EnableSensitiveData = true);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -35,3 +58,20 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+sealed class ActivityFilteringProcessor : BaseProcessor<Activity>
+{
+    private readonly Func<Activity, bool> _shouldKeep;
+
+    public ActivityFilteringProcessor(Func<Activity, bool> shouldKeep) =>
+        _shouldKeep = shouldKeep;
+
+    public override void OnStart(Activity data)
+    {
+        if (!_shouldKeep(data))
+        {
+            data.IsAllDataRequested = false; // disables enrichment
+            data.ActivityTraceFlags &= ~ActivityTraceFlags.Recorded; // marks as not recorded
+        }
+    }
+}

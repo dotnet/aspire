@@ -221,10 +221,10 @@ public static class AspireAzureAIInferenceExtensions
 
         var result = chatCompletionsClient.AsIChatClient(deploymentId ?? builder.DeploymentId);
 
-        if (builder.DisableTracing)
-        {
-            return result;
-        }
+        //if (builder.DisableTracing)
+        //{
+        //    return result;
+        //}
 
         var loggerFactory = services.GetService<ILoggerFactory>();
         var openTelemetryChatClient = new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
