@@ -20,7 +20,6 @@ parameters:
   artifacts: ''
   enableMicrobuild: false
   enableMicrobuildForMacAndLinux: false
-  microbuildUseESRP: true
   enablePublishBuildArtifacts: false
   enablePublishBuildAssets: false
   enablePublishTestResults: false
@@ -129,7 +128,6 @@ jobs:
       parameters:
         enableMicrobuild: ${{ parameters.enableMicrobuild }}
         enableMicrobuildForMacAndLinux: ${{ parameters.enableMicrobuildForMacAndLinux }}
-        microbuildUseESRP: ${{ parameters.microbuildUseESRP }}
         continueOnError: ${{ parameters.continueOnError }}
 
   - ${{ if and(eq(parameters.runAsPublic, 'false'), eq(variables['System.TeamProject'], 'internal')) }}:
@@ -163,7 +161,7 @@ jobs:
       inputs:
         testResultsFormat: 'xUnit'
         testResultsFiles: '*.xml'
-        searchFolder: '$(System.DefaultWorkingDirectory)/artifacts/TestResults/$(_BuildConfig)'
+        searchFolder: '$(Build.SourcesDirectory)/artifacts/TestResults/$(_BuildConfig)'
         testRunTitle: ${{ coalesce(parameters.testRunTitle, parameters.name, '$(System.JobName)') }}-xunit
         mergeTestResults: ${{ parameters.mergeTestResults }}
       continueOnError: true
@@ -174,7 +172,7 @@ jobs:
       inputs:
         testResultsFormat: 'VSTest'
         testResultsFiles: '*.trx'
-        searchFolder: '$(System.DefaultWorkingDirectory)/artifacts/TestResults/$(_BuildConfig)'
+        searchFolder: '$(Build.SourcesDirectory)/artifacts/TestResults/$(_BuildConfig)'
         testRunTitle: ${{ coalesce(parameters.testRunTitle, parameters.name, '$(System.JobName)') }}-trx
         mergeTestResults: ${{ parameters.mergeTestResults }}
       continueOnError: true
@@ -218,7 +216,7 @@ jobs:
     - task: CopyFiles@2
       displayName: Gather buildconfiguration for build retry
       inputs:
-        SourceFolder: '$(System.DefaultWorkingDirectory)/eng/common/BuildConfiguration'
+        SourceFolder: '$(Build.SourcesDirectory)/eng/common/BuildConfiguration'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/eng/common/BuildConfiguration'
       continueOnError: true
