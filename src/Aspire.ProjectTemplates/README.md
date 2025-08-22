@@ -19,13 +19,12 @@ Each template has a content folder for the previous version and the current vers
 
 For each template:
 
-1. Delete content folder named for old previous version, e.g. *./9.3*
-2. Copy content folder named for old current version to a new folder named for new current version, e.g. *./9.4* -> *./9.5*
-3. Rename content folder named for old current version to new previous version, e.g. *./9.4* -> *./9.3*
-4. Edit *./.template.config/template.json* and replace instances of old latest version with new latest version, e.g. `9.4` -> `9.5`
-5. Edit *./.template.config/template.json* and replace instances of old previous version with new previous version, e.g. `9.3` -> `9.4`
-6. If supported TFMs changed between old previous version and new previous version, or old current version and new current version, update `AspireVersionNetX` options appropriately. Note that the `AspireVersion` option maps to the `net8.0` TFM.
-7. In all *.csproj* files in the content folder named for the new previous version, e.g. *./9.4/**/*.csproj*:
+1. **Delete** content folder named for old previous version, e.g. *./9.3*
+2. **Copy** content folder named for old current version to a new folder named for new current version, e.g. *./9.4* -> *./9.5*
+3. Edit *./.template.config/template.json* and replace instances of old latest version with new latest version, e.g. `9.4` -> `9.5`
+4. Edit *./.template.config/template.json* and replace instances of old previous version with new previous version, e.g. `9.3` -> `9.4`
+5. If supported TFMs changed between old previous version and new previous version, or old current version and new current version, update `AspireVersionNetX` options appropriately. Note that the `AspireVersion` option maps to the `net8.0` TFM.
+6. In all *.csproj* files in the content folder named for the new previous version, e.g. *./9.4/**/*.csproj*:
    1. Update all versions for Aspire-produced packages (and SDKs) referenced to the new previous package version (`major.minor.patch` for latest patch), replacing the replacement token value with a static version value, e.g. `!!REPLACE_WITH_LATEST_VERSION!!` -> `9.4.1`
    2. Update all versions for non-Aspire packages to the version referenced by current released version of the template, replacing the replacement token value with the relevant static version value, e.g. `!!REPLACE_WITH_ASPNETCORE_10_VERSION!!` -> `10.0.0-preview.7.25380.108`. Some non-Aspire packages referenced don't use a replacement token and instead just use a static value. In these cases simply leave the value as is.
       
@@ -48,7 +47,7 @@ For each template:
                            Overwrite="true" />
          ```
 
-8. Updating the versions for non-Aspire packages referenced in all *.csproj* files in the content folder named for the new latest version, e.g. *./9.5/**/*.csproj*, isn't covered as part of this process. These package versions should be updated by our regular process for updating the versions of our dependencies.
+7. Updating the versions for non-Aspire packages referenced in all *.csproj* files in the content folder named for the new latest version, e.g. *./9.5/**/*.csproj*, isn't covered as part of this process. These package versions should be updated by our regular process for updating the versions of our dependencies.
 
 For the `aspire-empty` template:
 
