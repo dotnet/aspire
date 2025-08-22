@@ -6,6 +6,25 @@ ms.date: 08/21/2025
 
 # What's new in .NET Aspire 9.5
 
+## Table of contents
+
+- [Upgrade to .NET Aspire 9.5](#️-upgrade-to-net-aspire-95)
+- [CLI improvements](#-cli-improvements)
+- [Dashboard enhancements](#-dashboard-enhancements)
+- [Integration changes and additions](#integration-changes-and-additions)
+  - [OpenAI hosting integration](#openai-hosting-integration)
+- [App model enhancements](#️-app-model-enhancements)
+  - [Telemetry configuration APIs](#telemetry-configuration-apis)
+  - [Resource waiting patterns](#resource-waiting-patterns)
+  - [Custom resource icons](#custom-resource-icons)
+  - [MySQL password improvements](#mysql-password-improvements)
+  - [Remote & debugging experience](#remote--debugging-experience)
+- [Azure](#azure)
+  - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
+  - [Azure App Configuration emulator](#azure-app-configuration-emulator)
+  - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+- [Breaking changes](#️-breaking-changes)
+
 📢 .NET Aspire 9.5 is the next minor version release of .NET Aspire. It supports:
 
 - .NET 8.0 Long Term Support (LTS)
@@ -39,8 +58,45 @@ Moving between minor releases of Aspire is simple:
     dotnet new install Aspire.ProjectTemplates
     ```
 
-    > [!NOTE]
-    > The `dotnet new install` command will update existing Aspire templates to the latest version if they are already installed.
+  > [!NOTE]
+  > The `dotnet new install` command will update existing Aspire templates to the latest version if they are already installed.
+
+If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using .NET Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
+
+## 🚀 CLI improvements
+
+### 🧪 `aspire exec` enhancements
+
+Introduced in 9.4 (behind a feature flag), `aspire exec` in 9.5 adds `--workdir` support plus improved help text and argument validation:
+
+```bash
+# Show environment info for an app container
+aspire exec --resource api-container -- dotnet --info
+
+# Run a command from a specific working directory (new in 9.5)
+aspire exec --resource worker --workdir /app/tools -- dotnet run -- --seed
+```
+
+### 🧷 Robust orphan detection
+
+Resilient to PID reuse via `ASPIRE_CLI_STARTED` timestamp + PID verification:
+
+```text
+Detected orphaned prior AppHost process (PID reused). Cleaning up...
+```
+
+### 📦 Package channel & templating enhancements
+
+New packaging channel infrastructure lets `aspire add` and templating flows surface stable vs pre-release channels with localized UI.
+
+### 📝 Rich markdown rendering
+
+Extended markdown coverage in CLI prompts/output including code fences, emphasis, and safe escaping.
+
+### 🧵 Improved cancellation & CTRL-C UX
+
+- CTRL-C guidance message
+- Fix for stall on interrupt
 
 ## 🎨 Dashboard enhancements
 
@@ -105,42 +161,86 @@ Smart notifications appear when Docker/Podman is installed but unhealthy, with a
 - Launch profile support with localized display names (#10906)
 - Forwarded headers support for proxy/container scenarios (#10388)
 
-## 🚀 CLI improvements
+## Integration changes and additions
 
-### 🧪 `aspire exec` enhancements
+### OpenAI hosting integration
 
-Introduced in 9.4 (behind a feature flag), `aspire exec` in 9.5 adds `--workdir` support plus improved help text and argument validation:
+New `AddOpenAI` integration for self-hosted or compatible OpenAI endpoints with child model resources:
 
-```bash
-# Show environment info for an app container
-aspire exec --resource api-container -- dotnet --info
+```csharp
+var openai = builder.AddOpenAI("openai")
+  .WithApiKey(builder.AddParameter("OPENAI__API_KEY", secret: true))
+  .WithEndpoint("http://localhost:9000");
 
-# Run a command from a specific working directory (new in 9.5)
-aspire exec --resource worker --workdir /app/tools -- dotnet run -- --seed
+var chat = openai.AddModel("chat", "gpt-4o-mini");
+
+builder.AddProject<Projects.Api>("api")
+  .WithReference(chat);
 ```
 
-### 🧷 Robust orphan detection
+## 🖥️ App model enhancements
 
-Resilient to PID reuse via `ASPIRE_CLI_STARTED` timestamp + PID verification:
+### Telemetry configuration APIs
 
-```text
-Detected orphaned prior AppHost process (PID reused). Cleaning up...
+Enhanced OTLP telemetry configuration with protocol selection:
+
+```csharp
+// New OtlpProtocol enum with Grpc and HttpProtobuf options
+public enum OtlpProtocol
+{
+    Grpc = 0,
+    HttpProtobuf = 1
+}
+
+// Configure OTLP telemetry with specific protocol
+var api = builder.AddProject<Projects.Api>("api")
+  .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
+
+// Or use default protocol
+var worker = builder.AddProject<Projects.Worker>("worker")  \
+  .WithOtlpExporter();
 ```
 
-### 📦 Package channel & templating enhancements
+### Resource waiting patterns
 
-New packaging channel infrastructure lets `aspire add` and templating flows surface stable vs pre-release channels with localized UI.
+Enhanced waiting with new `WaitForStart` options:
 
-### 📝 Rich markdown rendering
+```csharp
+var postgres = builder.AddPostgres("postgres");
+var redis = builder.AddRedis("redis");
 
-Extended markdown coverage in CLI prompts/output including code fences, emphasis, and safe escaping.
+var api = builder.AddProject<Projects.Api>("api")
+  .WaitForStart(postgres)  // New: Wait only for startup, not health
+  .WaitForStart(redis)  // New: With explicit behavior
+  .WithReference(postgres)
+  .WithReference(redis);
+```
 
-### 🧵 Improved cancellation & CTRL-C UX
+### Custom resource icons
 
-- CTRL-C guidance message
-- Fix for stall on interrupt
+Resources can specify custom icon names for better visual identification:
 
-## 🔌 Remote & debugging experience
+```csharp
+var postgres = builder.AddPostgres("postgres")
+  .WithIconName("database");
+
+var api = builder.AddProject<Projects.Api>("api")
+  .WithIconName("web-app", ApplicationModel.IconVariant.Regular);
+```
+
+### MySQL password improvements
+
+Consistent password handling across database resources:
+
+```csharp
+var mysql = builder.AddMySql("mysql")
+  .WithPassword(builder.AddParameter("mysql-password", secret: true));
+
+// Password can be modified during configuration
+mysql.Resource.PasswordParameter = builder.AddParameter("new-password", secret: true);
+```
+
+### Remote & debugging experience
 
 ### 🔄 SSH remote auto port forwarding
 
@@ -158,123 +258,7 @@ The extension offers Run vs Debug for the AppHost. If the C# extension is presen
 
 Package upgrades and localization support plus groundwork for richer debugging scenarios.
 
-## 📚 Notable new / changed APIs
-
-### ⚠️ Breaking Changes
-
-#### OpenAI hosting API restructure
-
-The OpenAI hosting APIs have been redesigned with a breaking change to introduce a parent-child resource model:
-
-```csharp
-// A custom open AI compatible endpoint 
-var openai = builder.AddOpenAI("openai")
-  .WithApiKey(builder.AddParameter("OPENAI__API_KEY", secret: true))
-  .WithEndpoint("http://localhost:9000");
-
-var chat = openai.AddModel("chat", "gpt-4o-mini");
-
-builder.AddProject<Projects.Api>("api")
-  .WithReference(chat);
-```
-
-#### ExternalService WaitFor behavior change
-
-`WaitFor` now properly works with `ExternalService` resources that have health checks ([#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, resources would start even if the external service was unhealthy:
-
-```csharp
-var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
-                        .WithHttpHealthCheck("/health/ready");
-
-// Now properly waits for the external service to be healthy before starting
-builder.AddProject<Projects.Frontend>("frontend")
-        .WaitFor(externalApi);
-```
-
-**Breaking Change**: If you relied on resources starting despite unhealthy external services, this behavior has changed. Resources now correctly wait for external service health checks to pass.
-
-#### Context-based endpoint resolution improvements
-
-Endpoint resolution in `WithEnvironment` now correctly resolves container hostnames instead of always using "localhost" ([#8574](https://github.com/dotnet/aspire/issues/8574)):
-
-```csharp
-var redis = builder.AddRedis("redis");
-
-builder.AddRabbitMQ("rabbitmq")
-    .WithEnvironment(context =>
-    {
-        var endpoint = redis.GetEndpoint("tcp");
-        var redisHost = endpoint.Property(EndpointProperty.Host);
-        var redisPort = endpoint.Property(EndpointProperty.Port);
-
-        // Now correctly resolves to container hostname, not "localhost"
-        context.EnvironmentVariables["REDIS_HOST"] = redisHost;
-        context.EnvironmentVariables["REDIS_PORT"] = redisPort;
-    });
-```
-
-**Breaking Change**: If you had workarounds for the localhost resolution issue, you may need to remove them as endpoints now resolve correctly to container hostnames.
-
-#### Resource lifetime behavior changes
-
-Several resources now support `WaitFor` operations that were previously not supported ([#10851](https://github.com/dotnet/aspire/pull/10851), [#10842](https://github.com/dotnet/aspire/pull/10842)):
-
-```csharp
-var connectionString = builder.AddConnectionString("db");
-var apiKey = builder.AddParameter("api-key", secret: true);
-
-// Now supported - can wait for parameter and connection string resources
-builder.AddProject<Projects.Api>("api")
-  .WaitFor(connectionString)  // Previously not supported
-  .WaitFor(apiKey);          // Previously not supported
-```
-
-**Breaking Change**: Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Models no longer implement `IResourceWithoutLifetime`. They now show as "Running" in the dashboard and can be used with `WaitFor` operations.
-
-#### InteractionInput API changes
-
-The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
-
-```csharp
-// ❌ Old API (9.4 and earlier)
-var input = new InteractionInput 
-{ 
-    Label = "Username", 
-    InputType = InputType.Text 
-    // Name was optional and auto-generated from Label
-};
-
-// ✅ New API (9.5+)
-var input = new InteractionInput 
-{ 
-    Name = "username",        // Now required
-    Label = "Username",       // Now optional (will use Name if not specified)  
-    InputType = InputType.Text 
-};
-```
-
-**Breaking Change**: All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
-
-### 🔗 New telemetry configuration APIs
-
-Enhanced OTLP telemetry configuration with protocol selection:
-
-```csharp
-// New OtlpProtocol enum with Grpc and HttpProtobuf options
-public enum OtlpProtocol
-{
-    Grpc = 0,
-    HttpProtobuf = 1
-}
-
-// Configure OTLP telemetry with specific protocol
-var api = builder.AddProject<Projects.Api>("api")
-  .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
-
-// Or use default protocol
-var worker = builder.AddProject<Projects.Worker>("worker")  
-  .WithOtlpExporter();
-```
+## Azure
 
 ### Azure AI Foundry enhancements
 
@@ -303,45 +287,6 @@ var appConfig = builder.AddAzureAppConfiguration("config")
     .WithHostPort(8080));
 ```
 
-### Resource waiting patterns
-
-Enhanced waiting with new `WaitForStart` options:
-
-```csharp
-var postgres = builder.AddPostgres("postgres");
-var redis = builder.AddRedis("redis");
-
-var api = builder.AddProject<Projects.Api>("api")
-  .WaitForStart(postgres)  // New: Wait only for startup, not health
-  .WaitForStart(redis)  // New: With explicit behavior
-  .WithReference(postgres)
-  .WithReference(redis);
-```
-
-### Custom resource icons
-
-Resources can specify custom icon names for better visual identification:
-
-```csharp
-var postgres = builder.AddPostgreSQL("postgres")
-  .WithIconName("database");
-
-var api = builder.AddProject<Projects.Api>("api")
-  .WithIconName("web-app", ApplicationModel.IconVariant.Regular);
-```
-
-### MySQL password improvements
-
-Consistent password handling across database resources:
-
-```csharp
-var mysql = builder.AddMySql("mysql")
-  .WithPassword(builder.AddParameter("mysql-password", secret: true));
-
-// Password can be modified during configuration
-mysql.Resource.PasswordParameter = builder.AddParameter("new-password", secret: true);
-```
-
 ### Broader Azure resource capability surfacing
 
 Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
@@ -351,3 +296,66 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
+
+## ⚠️ Breaking changes
+
+### ExternalService WaitFor behavior change
+
+`WaitFor` now properly works with `ExternalService` resources that have health checks ([#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, resources would start even if the external service was unhealthy:
+
+```csharp
+var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
+                        .WithHttpHealthCheck("/health/ready");
+
+builder.AddProject<Projects.Frontend>("frontend")
+        .WaitFor(externalApi);
+```
+
+### Context-based endpoint resolution improvements
+
+Endpoint resolution in `WithEnvironment` now correctly resolves container hostnames instead of always using "localhost" ([#8574](https://github.com/dotnet/aspire/issues/8574)):
+
+```csharp
+var redis = builder.AddRedis("redis");
+
+builder.AddRabbitMQ("rabbitmq")
+    .WithEnvironment(context =>
+    {
+        var endpoint = redis.GetEndpoint("tcp");
+        var redisHost = endpoint.Property(EndpointProperty.Host);
+        var redisPort = endpoint.Property(EndpointProperty.Port);
+
+        context.EnvironmentVariables["REDIS_HOST"] = redisHost;
+        context.EnvironmentVariables["REDIS_PORT"] = redisPort;
+    });
+```
+
+### Resource lifetime behavior changes
+
+Several resources now support `WaitFor` operations that were previously not supported ([#10851](https://github.com/dotnet/aspire/pull/10851), [#10842](https://github.com/dotnet/aspire/pull/10842)):
+
+```csharp
+var connectionString = builder.AddConnectionString("db");
+var apiKey = builder.AddParameter("api-key", secret: true);
+
+builder.AddProject<Projects.Api>("api")
+  .WaitFor(connectionString)
+  .WaitFor(apiKey);
+```
+
+Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Models no longer implement `IResourceWithoutLifetime`. They now show as "Running" and can be used with `WaitFor` operations.
+
+### InteractionInput API changes
+
+The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
+
+```csharp
+var input = new InteractionInput 
+{ 
+    Name = "username",
+    Label = "Username",
+    InputType = InputType.Text 
+};
+```
+
+All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
