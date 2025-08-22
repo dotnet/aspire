@@ -27,4 +27,20 @@ internal interface IInteractionService
 
     void DisplayVersionUpdateNotification(string newerVersion);
     void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false);
+
+    Task<T> DisplayWalkerAsync<T>(Func<WalkerContext<T>, CancellationToken, Task> walker, CancellationToken cancellationToken) where T : notnull;
+}
+
+internal sealed class WalkerContext<T> where T : notnull
+{
+    public WalkerContext(Func<WalkerContext<T>, CancellationToken, Task> walker)
+    {
+        Previous.Push(static (_, _) => Task.FromException(new InvalidOperationException("No previous menu available.")));
+        Next = walker;
+    }
+
+    public T? Result { get; set; }
+
+    public Stack<Func<WalkerContext<T>, CancellationToken, Task>> Previous { get; set; } = new();
+    public Func<WalkerContext<T>, CancellationToken, Task>? Next { get; set; }
 }

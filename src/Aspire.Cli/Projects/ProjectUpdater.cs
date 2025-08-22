@@ -7,7 +7,6 @@ using System.Xml;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
-using Aspire.Cli.Resources;
 using Aspire.Shared;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -36,22 +35,60 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         interactionService.DisplayMessage("check_mark", "Project has updates!");
 
-        foreach (var updateStep in updateSteps)
-        {
-            // TODO: Replace this with a progress indicator or something.
-            interactionService.DisplayMessage("package", updateStep.Description);
-        }
+        // foreach (var updateStep in updateSteps)
+        // {
+        //     // TODO: Replace this with a progress indicator or something.
+        //     interactionService.DisplayMessage("package", updateStep.Description);
+        // }
 
-        var result = await interactionService.PromptForSelectionAsync(
-            "Perform updates?",
-            [TemplatingStrings.Yes, TemplatingStrings.No],
-            s => s,
-            cancellationToken);
+        // var result = await interactionService.PromptForSelectionAsync(
+        //     "Perform updates?",
+        //     [TemplatingStrings.Yes, TemplatingStrings.No],
+        //     s => s,
+        //     cancellationToken);
 
-        if (result != TemplatingStrings.Yes)
+        // if (result != TemplatingStrings.Yes)
+        // {
+        //     return;
+        // }
+
+        updateSteps = await interactionService.DisplayWalkerAsync<IEnumerable<UpdateStep>>(async (context, ct) =>
         {
-            return;
-        }
+            var selections = new List<(string Text, Func<CancellationToken, Task> Callback)>();
+
+            foreach (var step in updateSteps)
+            {
+                Func<CancellationToken, Task> action = async (selectorCancellationToken) =>
+                {
+                    var versionOverride = await interactionService.PromptForStringAsync(
+                        "Override version?",
+                        defaultValue: "9.5.0-blah",
+                        cancellationToken: selectorCancellationToken);
+
+                    context.Next = context.Previous.Pop();
+                };
+
+                selections.Add((step.Description, action));
+            }
+
+            selections.Add(("Apply changes (CTRL-C to cancel)", (selectorCancellationToken) =>
+            {
+                context.Result = updateSteps;
+                return Task.CompletedTask;
+            }));
+
+            var selection = await interactionService.PromptForSelectionAsync(
+                "Configure upgrade or apply changes:",
+                selections,
+                s => s.Text,
+                cancellationToken
+            );
+
+            context.Next = async (ctx, ct) =>
+            {
+                await selection.Callback(ct);
+            };
+        }, cancellationToken);
 
         if (channel.Type == PackageChannelType.Explicit)
         {
@@ -86,7 +123,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 isSecret: false,
                 required: true,
                 cancellationToken: cancellationToken);
-                
+
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
             using var tempConfig = await TemporaryNuGetConfig.CreateAsync(channel.Mappings!);
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, tempConfig, channel.Mappings);
@@ -95,7 +132,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         foreach (var updateStep in updateSteps)
         {
             interactionService.DisplaySubtleMessage($"Executing: {updateStep.Description}");
-            await updateStep.Callback();
+            await updateStep.Callback(updateStep);
         }
 
         interactionService.DisplaySuccess("Update successful!");
@@ -184,7 +221,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var sdkUpdateStep = new UpdateStep(
             $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
+            (step) => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
@@ -238,11 +275,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             }
 
             var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException("Package reference does not have Version.");
-            var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
+            var targetPackageVersion = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
             var updateStep = new UpdateStep(
-                $"Update package {packageId} from {packageVersion} to {latestPackage.Version}",
-                () => UpdatePackageReferenceInProject(projectFile, latestPackage, context, cancellationToken));
+                $"Update {packageId} in {projectFile.Name} to {targetPackageVersion}",
+                (step) => UpdatePackageReferenceInProject(projectFile, targetPackageVersion, context, cancellationToken));
             context.UpdateSteps.Enqueue(updateStep);
         }
     }
@@ -280,13 +317,13 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
 }
 
-internal record UpdateStep(string Description, Func<Task> Callback)
+internal record UpdateStep(string Description, Func<UpdateStep, Task> Callback)
 {
 }
 
 internal record AnalyzeStep(string Description, Func<Task> Callback)
 {
-    
+
 }
 
 internal sealed class ProjectUpdaterException : System.Exception

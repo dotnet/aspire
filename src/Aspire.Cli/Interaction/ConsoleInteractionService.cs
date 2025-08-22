@@ -204,4 +204,18 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
         _ansiConsole.WriteLine();
     }
+
+    public async Task<T> DisplayWalkerAsync<T>(Func<WalkerContext<T>, CancellationToken, Task> walker, CancellationToken cancellationToken) where T : notnull
+    {
+        var context = new WalkerContext<T>(walker);
+        do
+        {
+            var next = context.Next;
+            context.Next = null;
+            await next!(context, cancellationToken);
+            context.Previous.Push(next);
+        } while (context.Result == null || context.Next != null);
+
+        return context.Result ?? throw new InvalidOperationException("No result available.");
+    }
 }

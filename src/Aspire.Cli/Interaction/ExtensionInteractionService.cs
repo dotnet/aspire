@@ -255,4 +255,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         _consoleInteractionService.WriteConsoleLog(message, lineNumber, type, isErrorMessage);
     }
+
+    public Task<T> DisplayWalkerAsync<T>(Func<WalkerContext<T>, CancellationToken, Task> walker, CancellationToken cancellationToken) where T : notnull
+    {
+        return _consoleInteractionService.DisplayWalkerAsync(walker, cancellationToken);
+    }
 }
