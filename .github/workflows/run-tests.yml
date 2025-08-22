@@ -349,12 +349,8 @@ jobs:
         env:
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
         run: |
-          if [ -d "${{ github.workspace }}/testresults" ]; then
-            ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- \
-              "${{ github.workspace }}/testresults" \
-              --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" \
-              --repo "${{ github.repository }}" \
-              --sha "${{ github.event.pull_request.head.sha || github.sha }}" \
-              --url "${{ steps.upload-logs.outputs.artifact-url }}"
-          fi
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/PostTestSummaryToCheck/PostTestSummaryToCheck.csproj" -- "${{ github.workspace }}/testresults" --check-name "Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})" --repo "${{ github.repository }}" --sha "${{ github.event.pull_request.head.sha || github.sha }}" --url "${{ steps.upload-logs.outputs.artifact-url }}"
+          }
