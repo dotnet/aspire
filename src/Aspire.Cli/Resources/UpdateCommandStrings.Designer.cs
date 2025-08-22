@@ -57,5 +57,28 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
+
+    internal static string SelectChannelPrompt => ResourceManager.GetString("SelectChannelPrompt", resourceCulture);
+    internal static string AnalyzingProjectStatus => ResourceManager.GetString("AnalyzingProjectStatus", resourceCulture);
+    internal static string ProjectHasUpdatesMessage => ResourceManager.GetString("ProjectHasUpdatesMessage", resourceCulture);
+    internal static string PerformUpdatesPrompt => ResourceManager.GetString("PerformUpdatesPrompt", resourceCulture);
+    internal static string WhichDirectoryNuGetConfigPrompt => ResourceManager.GetString("WhichDirectoryNuGetConfigPrompt", resourceCulture);
+    internal static string ExecutingUpdateStepFormat => ResourceManager.GetString("ExecutingUpdateStepFormat", resourceCulture);
+    internal static string UpdateSuccessfulMessage => ResourceManager.GetString("UpdateSuccessfulMessage", resourceCulture);
+    internal static string AnalyzeAppHost => ResourceManager.GetString("AnalyzeAppHost", resourceCulture);
+    internal static string AnalyzeAppHostSdk => ResourceManager.GetString("AnalyzeAppHostSdk", resourceCulture);
+    internal static string AnalyzeProjectFormat => ResourceManager.GetString("AnalyzeProjectFormat", resourceCulture);
+    internal static string UpdateAppHostSdkFormat => ResourceManager.GetString("UpdateAppHostSdkFormat", resourceCulture);
+    internal static string UpdatePackageFormat => ResourceManager.GetString("UpdatePackageFormat", resourceCulture);
+    internal static string FailedDiscoverNuGetConfig => ResourceManager.GetString("FailedDiscoverNuGetConfig", resourceCulture);
+    internal static string FailedFetchItemsAndPropertiesFormat => ResourceManager.GetString("FailedFetchItemsAndPropertiesFormat", resourceCulture);
+    internal static string NoPackageFoundFormat => ResourceManager.GetString("NoPackageFoundFormat", resourceCulture);
+    internal static string CouldNotFindRootProjectElementFormat => ResourceManager.GetString("CouldNotFindRootProjectElementFormat", resourceCulture);
+    internal static string CouldNotFindSdkElementFormat => ResourceManager.GetString("CouldNotFindSdkElementFormat", resourceCulture);
+    internal static string ProjectReferenceNoFullPath => ResourceManager.GetString("ProjectReferenceNoFullPath", resourceCulture);
+    internal static string PackageReferenceNoIdentity => ResourceManager.GetString("PackageReferenceNoIdentity", resourceCulture);
+    internal static string PackageReferenceNoVersion => ResourceManager.GetString("PackageReferenceNoVersion", resourceCulture);
+    internal static string FailedUpdatePackageReferenceFormat => ResourceManager.GetString("FailedUpdatePackageReferenceFormat", resourceCulture);
+    internal static string UnexpectedCodePath => ResourceManager.GetString("UnexpectedCodePath", resourceCulture);
     }
 }

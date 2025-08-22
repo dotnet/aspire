@@ -15,4 +15,70 @@
   <data name="Description" xml:space="preserve">
     <value>(preview) Update integrations in the Aspire project.</value>
   </data>
+  <data name="SelectChannelPrompt" xml:space="preserve">
+    <value>Select a channel:</value>
+  </data>
+  <data name="AnalyzingProjectStatus" xml:space="preserve">
+    <value>Analyzing project...</value>
+  </data>
+  <data name="ProjectHasUpdatesMessage" xml:space="preserve">
+    <value>Project has updates!</value>
+  </data>
+  <data name="PerformUpdatesPrompt" xml:space="preserve">
+    <value>Perform updates?</value>
+  </data>
+  <data name="WhichDirectoryNuGetConfigPrompt" xml:space="preserve">
+    <value>Which directory for NuGet.config file?</value>
+  </data>
+  <data name="ExecutingUpdateStepFormat" xml:space="preserve">
+    <value>Executing: {0}</value>
+  </data>
+  <data name="UpdateSuccessfulMessage" xml:space="preserve">
+    <value>Update successful!</value>
+  </data>
+  <data name="AnalyzeAppHost" xml:space="preserve">
+    <value>Analyze App Host</value>
+  </data>
+  <data name="AnalyzeAppHostSdk" xml:space="preserve">
+    <value>Analyze App Host SDK</value>
+  </data>
+  <data name="AnalyzeProjectFormat" xml:space="preserve">
+    <value>Analyze project: {0}</value>
+  </data>
+  <data name="UpdateAppHostSdkFormat" xml:space="preserve">
+    <value>Update AppHost SDK from {0} to {1}</value>
+  </data>
+  <data name="UpdatePackageFormat" xml:space="preserve">
+    <value>Update package {0} from {1} to {2}</value>
+  </data>
+  <data name="FailedDiscoverNuGetConfig" xml:space="preserve">
+    <value>Failed to discover NuGet.config files.</value>
+  </data>
+  <data name="FailedFetchItemsAndPropertiesFormat" xml:space="preserve">
+    <value>Failed to fetch items and properties for project: {0}</value>
+  </data>
+  <data name="NoPackageFoundFormat" xml:space="preserve">
+    <value>No package found with ID '{0}' in channel '{1}'.</value>
+  </data>
+  <data name="CouldNotFindRootProjectElementFormat" xml:space="preserve">
+    <value>Could not find root &lt;Project&gt; element in {0}</value>
+  </data>
+  <data name="CouldNotFindSdkElementFormat" xml:space="preserve">
+    <value>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</value>
+  </data>
+  <data name="ProjectReferenceNoFullPath" xml:space="preserve">
+    <value>Project reference does not have FullPath.</value>
+  </data>
+  <data name="PackageReferenceNoIdentity" xml:space="preserve">
+    <value>Package reference does not have Identity.</value>
+  </data>
+  <data name="PackageReferenceNoVersion" xml:space="preserve">
+    <value>Package reference does not have Version.</value>
+  </data>
+  <data name="FailedUpdatePackageReferenceFormat" xml:space="preserve">
+    <value>Failed to update package reference for {0} in project {1}.</value>
+  </data>
+  <data name="UnxpectedCodePath" xml:space="preserve">
+    <value>Unexpected code path.</value>
+  </data>
 </root>

@@ -26,7 +26,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
 
-        var updateSteps = await interactionService.ShowStatusAsync("Analyzing project...", () => GetUpdateStepsAsync(projectFile, channel, cancellationToken));
+    var updateSteps = await interactionService.ShowStatusAsync(UpdateCommandStrings.AnalyzingProjectStatus, () => GetUpdateStepsAsync(projectFile, channel, cancellationToken));
 
         if (!updateSteps.Any())
         {
@@ -34,7 +34,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
-        interactionService.DisplayMessage("check_mark", "Project has updates!");
+    interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectHasUpdatesMessage);
 
         foreach (var updateStep in updateSteps)
         {
@@ -43,7 +43,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var result = await interactionService.PromptForSelectionAsync(
-            "Perform updates?",
+            UpdateCommandStrings.PerformUpdatesPrompt,
             [TemplatingStrings.Yes, TemplatingStrings.No],
             s => s,
             cancellationToken);
@@ -59,7 +59,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
             if (configPathsExitCode != 0 || configPaths is null || configPaths.Length == 0)
             {
-                throw new ProjectUpdaterException($"Failed to discover NuGet.config files.");
+                throw new ProjectUpdaterException(UpdateCommandStrings.FailedDiscoverNuGetConfig);
             }
 
             var configPathDirectories = configPaths.Select(Path.GetDirectoryName).ToArray();
@@ -76,11 +76,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             {
                 { Length: 0 or 1 } => fallbackNuGetConfigDirectory,
                 var p when p.Length > 1 => IsGlobalNuGetConfig(p[0]!) ? fallbackNuGetConfigDirectory : p[0],
-                _ => throw new InvalidOperationException("CS8846 compiler is broken!")
+
+                // CS8846 error if we don't put this rule here even though we do "when"
+                // above - this is corner case in C# evalutation of switch statements.
+                _ => throw new InvalidOperationException(UpdateCommandStrings.UnexpectedCodePath)
             };
 
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
-                promptText: "Which directory for NuGet.config file?",
+                promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory,
                 validator: null,
                 isSecret: false,
@@ -94,11 +97,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         foreach (var updateStep in updateSteps)
         {
-            interactionService.DisplaySubtleMessage($"Executing: {updateStep.Description}");
+            interactionService.DisplaySubtleMessage(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
             await updateStep.Callback();
         }
 
-        interactionService.DisplaySuccess("Update successful!");
+        interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
         return;
     }
 
@@ -119,7 +122,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         var context = new UpdateContext(projectFile, channel);
 
-        var appHostAnalyzeStep = new AnalyzeStep("Analyze App Host", () => AnalyzeAppHostAsync(context, cancellationToken));
+    var appHostAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHost, () => AnalyzeAppHostAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostAnalyzeStep);
 
         while (context.AnalyzeSteps.TryDequeue(out var analyzeStep))
@@ -142,7 +145,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         if (exitCode != 0 || document is null)
         {
-            throw new ProjectUpdaterException($"Failed to fetch items and properties for project: {projectFile.FullName}");
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedFetchItemsAndPropertiesFormat, projectFile.FullName));
         }
 
         return document;
@@ -150,10 +153,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private Task AnalyzeAppHostAsync(UpdateContext context, CancellationToken cancellationToken)
     {
-        var appHostSdkAnalyzeStep = new AnalyzeStep("Analyze App Host SDK", () => AnalyzeAppHostSdkAsync(context, cancellationToken));
+    var appHostSdkAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHostSdk, () => AnalyzeAppHostSdkAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostSdkAnalyzeStep);
 
-        var appHostProjectAnalyzeStep = new AnalyzeStep($"Analyze project: {context.AppHostProjectFile.FullName}", () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
+    var appHostProjectAnalyzeStep = new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, context.AppHostProjectFile.FullName), () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostProjectAnalyzeStep);
 
         return Task.CompletedTask;
@@ -169,7 +172,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return latestPackage;
         });
 
-        return latestPackage ?? throw new ProjectUpdaterException($"No package found with ID '{packageId}' in channel '{context.Channel.Name}'.");
+    return latestPackage ?? throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.NoPackageFoundFormat, packageId, context.Channel.Name));
     }
 
     private async Task AnalyzeAppHostSdkAsync(UpdateContext context, CancellationToken cancellationToken)
@@ -183,7 +186,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
         var sdkUpdateStep = new UpdateStep(
-            $"Update AppHost SDK from {sdkVersionElement.GetString()} to {latestSdkPackage?.Version}",
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdateAppHostSdkFormat, sdkVersionElement.GetString(), latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
@@ -198,13 +201,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var projectNode = projectDocument.SelectSingleNode("/Project");
         if (projectNode is null)
         {
-            throw new ProjectUpdaterException($"Could not find root <Project> element in {projectFile.FullName}");
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindRootProjectElementFormat, projectFile.FullName));
         }
 
         var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
         if (sdkNode is null)
         {
-            throw new ProjectUpdaterException($"Could not find <Sdk Name='Aspire.AppHost.Sdk' /> element in {projectFile.FullName}");
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
         }
         
         sdkNode.Attributes?["Version"]?.Value = package.Version;
@@ -222,26 +225,26 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var projectReferencesElement = itemsElement.GetProperty("ProjectReference").EnumerateArray();
         foreach (var projectReference in projectReferencesElement)
         {
-            var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException("Project reference does not have FullPath.");
+            var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
             var referencedProjectFile = new FileInfo(referencedProjectPath);
-            context.AnalyzeSteps.Enqueue(new AnalyzeStep($"Analyze project: {referencedProjectFile.FullName}", () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+            context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
         }
 
         var packageReferencesElement = itemsElement.GetProperty("PackageReference").EnumerateArray();
         foreach (var packageReference in packageReferencesElement)
         {
-            var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException("Package reference does not have Identity.");
+            var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
 
             if (!IsUpdatablePackage(packageId))
             {
                 continue;
             }
 
-            var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException("Package reference does not have Version.");
+            var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
             var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
             var updateStep = new UpdateStep(
-                $"Update package {packageId} from {packageVersion} to {latestPackage.Version}",
+                string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage.Version),
                 () => UpdatePackageReferenceInProject(projectFile, latestPackage, context, cancellationToken));
             context.UpdateSteps.Enqueue(updateStep);
         }
@@ -267,7 +270,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         if (exitCode != 0)
         {
-            throw new ProjectUpdaterException($"Failed to update package reference for {package.Id} in project {projectFile.FullName}.");
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
         }
     }
 }
