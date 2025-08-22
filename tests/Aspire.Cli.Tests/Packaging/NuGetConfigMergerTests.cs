@@ -16,10 +16,10 @@ public class NuGetConfigMergerTests
         _outputHelper = outputHelper;
     }
 
-    private static FileInfo WriteConfig(DirectoryInfo dir, string fileName, string content)
+    private static async Task<FileInfo> WriteConfigAsync(DirectoryInfo dir, string content)
     {
-        var path = Path.Combine(dir.FullName, fileName);
-        File.WriteAllText(path, content);
+        var path = Path.Combine(dir.FullName, "NuGet.config");
+        await File.WriteAllTextAsync(path, content);
         return new FileInfo(path);
     }
 
@@ -75,13 +75,26 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
-    public async Task CreateOrUpdateAsync_AddsMissingSources_WhenUpdatingExistingConfig()
+        public async Task CreateOrUpdateAsync_AddsMissingSources_WhenUpdatingExistingConfig()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-        // Existing config with one source only
-    WriteConfig(root, "NuGet.config", """<?xml version="1.0"?><configuration><packageSources><add key="https://feed1.example" value="https://feed1.example" /></packageSources><packageSourceMapping><packageSource key="https://feed1.example"><package pattern="Aspire.*" /></packageSource></packageSourceMapping></configuration>""");
+                // Existing config with one source only
+                await WriteConfigAsync(root,
+                        """
+                        <?xml version="1.0"?>
+                        <configuration>
+                            <packageSources>
+                                <add key="https://feed1.example" value="https://feed1.example" />
+                            </packageSources>
+                            <packageSourceMapping>
+                                <packageSource key="https://feed1.example">
+                                    <package pattern="Aspire.*" />
+                                </packageSource>
+                            </packageSourceMapping>
+                        </configuration>
+                        """);
 
         var mappings = new[]
         {
@@ -101,13 +114,26 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
-    public async Task CreateOrUpdateAsync_RemapsPatternsAndRemovesEmptySources()
+        public async Task CreateOrUpdateAsync_RemapsPatternsAndRemovesEmptySources()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-        // Existing config: pattern Lib.* mapped to old source only
-    WriteConfig(root, "NuGet.config", """<?xml version="1.0"?><configuration><packageSources><add key="https://old.example" value="https://old.example" /></packageSources><packageSourceMapping><packageSource key="https://old.example"><package pattern="Lib.*" /></packageSource></packageSourceMapping></configuration>""");
+                // Existing config: pattern Lib.* mapped to old source only
+                await WriteConfigAsync(root,
+                        """
+                        <?xml version="1.0"?>
+                        <configuration>
+                            <packageSources>
+                                <add key="https://old.example" value="https://old.example" />
+                            </packageSources>
+                            <packageSourceMapping>
+                                <packageSource key="https://old.example">
+                                    <package pattern="Lib.*" />
+                                </packageSource>
+                            </packageSourceMapping>
+                        </configuration>
+                        """);
 
         var mappings = new[]
         {
@@ -130,13 +156,22 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
-    public async Task CreateOrUpdateAsync_CreatesPackageSourceMapping_WhenAbsent()
+        public async Task CreateOrUpdateAsync_CreatesPackageSourceMapping_WhenAbsent()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-        // Existing config without packageSourceMapping
-    WriteConfig(root, "nuget.config", """<?xml version="1.0"?><configuration><packageSources><add key="https://feed1.example" value="https://feed1.example" /><add key="https://feed2.example" value="https://feed2.example" /></packageSources></configuration>""");
+                // Existing config without packageSourceMapping
+                await WriteConfigAsync(root,
+                        """
+                        <?xml version="1.0"?>
+                        <configuration>
+                            <packageSources>
+                                <add key="https://feed1.example" value="https://feed1.example" />
+                                <add key="https://feed2.example" value="https://feed2.example" />
+                            </packageSources>
+                        </configuration>
+                        """);
 
         var mappings = new[]
         {
@@ -162,12 +197,26 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
-    public void HasMissingSources_ReturnsTrue_WhenPatternMappedToWrongSource()
+        public async Task HasMissingSources_ReturnsTrue_WhenPatternMappedToWrongSource()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-    WriteConfig(root, "NuGet.config", """<?xml version="1.0"?><configuration><packageSources><add key="https://feed1.example" value="https://feed1.example" /><add key="https://feed2.example" value="https://feed2.example" /></packageSources><packageSourceMapping><packageSource key="https://feed1.example"><package pattern="Aspire.*" /></packageSource></packageSourceMapping></configuration>""");
+                await WriteConfigAsync(root,
+                        """
+                        <?xml version="1.0"?>
+                        <configuration>
+                            <packageSources>
+                                <add key="https://feed1.example" value="https://feed1.example" />
+                                <add key="https://feed2.example" value="https://feed2.example" />
+                            </packageSources>
+                            <packageSourceMapping>
+                                <packageSource key="https://feed1.example">
+                                    <package pattern="Aspire.*" />
+                                </packageSource>
+                            </packageSourceMapping>
+                        </configuration>
+                        """);
 
         var mappings = new[]
         {
@@ -178,12 +227,29 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
-    public void HasMissingSources_ReturnsFalse_WhenAllSourcesAndMappingsPresent()
+        public async Task HasMissingSources_ReturnsFalse_WhenAllSourcesAndMappingsPresent()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-    WriteConfig(root, "NuGet.config", """<?xml version="1.0"?><configuration><packageSources><add key="https://feed1.example" value="https://feed1.example" /><add key="https://feed2.example" value="https://feed2.example" /></packageSources><packageSourceMapping><packageSource key="https://feed1.example"><package pattern="Aspire.*" /></packageSource><packageSource key="https://feed2.example"><package pattern="Microsoft.*" /></packageSource></packageSourceMapping></configuration>""");
+                await WriteConfigAsync(root,
+                        """
+                        <?xml version="1.0"?>
+                        <configuration>
+                            <packageSources>
+                                <add key="https://feed1.example" value="https://feed1.example" />
+                                <add key="https://feed2.example" value="https://feed2.example" />
+                            </packageSources>
+                            <packageSourceMapping>
+                                <packageSource key="https://feed1.example">
+                                    <package pattern="Aspire.*" />
+                                </packageSource>
+                                <packageSource key="https://feed2.example">
+                                    <package pattern="Microsoft.*" />
+                                </packageSource>
+                            </packageSourceMapping>
+                        </configuration>
+                        """);
 
         var mappings = new[]
         {
