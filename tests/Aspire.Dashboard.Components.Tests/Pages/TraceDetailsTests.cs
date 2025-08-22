@@ -537,16 +537,13 @@ public partial class TraceDetailsTests : DashboardTestContext
 
             for (var i = 0; i < expandContainers.Count; i++)
             {
-                if (i == 0)
-                {
-                    // The first container should be expanded
-                    Assert.True(expandContainers[i].ClassList.Contains("main-grid-expanded"));
-                }
-                else
-                {
-                    // All other containers should be collapsed
-                    Assert.True(expandContainers[i].ClassList.Contains("main-grid-collapsed"));
-                }
+                // The first container should be expanded
+                // All other containers should be collapsed
+                var expectedClass = (i == 0)
+                    ? "main-grid-expanded"
+                    : "main-grid-collapsed";
+
+                Assert.True(expandContainers[i].ClassList.Contains(expectedClass));
             }
         });
     }
