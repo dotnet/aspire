@@ -44,6 +44,12 @@ inputs:
   workflow_run_id:
     description: "Workflow run ID to use when discovering the check suite ID. Defaults to current run id."
     required: false
+  workflow_job_name:
+    description: "Optional: the current workflow job display name (as shown in the UI) to select the matching job's check suite."
+    required: false
+  runner_label:
+    description: "Optional: a runner label (e.g., ubuntu-latest, macos-latest, windows-latest) to help disambiguate jobs."
+    required: false
 
 runs:
   using: composite
@@ -64,6 +70,8 @@ runs:
         INPUT_CHECK_SUITE_ID: ${{ inputs.check_suite_id }}
         INPUT_DISCOVER_CHECK_SUITE: ${{ inputs.discover_check_suite }}
         INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow_run_id }}
+        INPUT_WORKFLOW_JOB_NAME: ${{ inputs.workflow_job_name }}
+        INPUT_RUNNER_LABEL: ${{ inputs.runner_label }}
       run: |
         $ErrorActionPreference = 'Stop'
 
@@ -119,9 +127,38 @@ runs:
           # Preferred discovery: use one of the jobs in THIS workflow run, fetch its check run,
           # and read the suite id from there. This guarantees we associate with the parent workflow (e.g., "CI").
           try {
-            $jobsEndpoint = "repos/$ownerRepo/actions/runs/$runId/jobs?per_page=1"
-            $checkRunUrl = gh api $jobsEndpoint --jq ".jobs[0].check_run_url" 2>$null
-            if (-not [string]::IsNullOrWhiteSpace($checkRunUrl)) {
+            $jobsEndpoint = "repos/$ownerRepo/actions/runs/$runId/jobs?per_page=100"
+            $jobsJson = gh api $jobsEndpoint 2>$null | ConvertFrom-Json
+
+            $desiredName = $env:INPUT_WORKFLOW_JOB_NAME
+            $desiredLabel = $env:INPUT_RUNNER_LABEL
+            $selectedJob = $null
+
+            if ($jobsJson -and $jobsJson.jobs) {
+              $candidates = $jobsJson.jobs
+              $totalJobs = $candidates.Count
+              if (-not [string]::IsNullOrWhiteSpace($desiredName)) {
+                $candidates = $candidates | Where-Object { $_.name -eq $desiredName }
+                Write-Host "Filtered jobs by name '$desiredName': $($candidates.Count) of $totalJobs"
+              }
+              if (-not [string]::IsNullOrWhiteSpace($desiredLabel)) {
+                $before = $candidates.Count
+                $candidates = $candidates | Where-Object { $_.labels -contains $desiredLabel }
+                Write-Host "Filtered jobs by runner label '$desiredLabel': $($candidates.Count) of $before"
+              }
+
+              if ($candidates -and $candidates.Count -gt 0) {
+                $selectedJob = $candidates[0]
+              } elseif ($jobsJson.jobs.Count -gt 0) {
+                $selectedJob = $jobsJson.jobs[0]
+                Write-Host "No matching job found by filters. Falling back to first job: '$($selectedJob.name)'"
+              }
+            } else {
+              Write-Host "No jobs returned for workflow_run_id=$runId"
+            }
+
+            if ($selectedJob -and $selectedJob.check_run_url) {
+              $checkRunUrl = $selectedJob.check_run_url
               $checkSuiteId = gh api $checkRunUrl --jq ".check_suite.id" 2>$null
               if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $suiteSource = "job:$checkRunUrl" }
             }
