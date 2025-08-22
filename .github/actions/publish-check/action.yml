@@ -111,6 +111,7 @@ runs:
         # Optionally discover the check suite id for the current workflow run
         $checkSuiteId = $env:INPUT_CHECK_SUITE_ID
         $discover = $env:INPUT_DISCOVER_CHECK_SUITE
+        $suiteSource = 'none'
         if ([string]::IsNullOrWhiteSpace($checkSuiteId) -and $discover -eq 'true') {
           $runId = $env:INPUT_WORKFLOW_RUN_ID
           if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "$env:GITHUB_RUN_ID" }
@@ -122,6 +123,7 @@ runs:
             $checkRunUrl = gh api $jobsEndpoint --jq ".jobs[0].check_run_url" 2>$null
             if (-not [string]::IsNullOrWhiteSpace($checkRunUrl)) {
               $checkSuiteId = gh api $checkRunUrl --jq ".check_suite.id" 2>$null
+              if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $suiteSource = "job:$checkRunUrl" }
             }
           } catch {
             Write-Host "Primary suite discovery via jobs failed for run $runId. Will try fallback method."
@@ -133,9 +135,30 @@ runs:
             try {
               $suitesEndpoint = "repos/$ownerRepo/actions/runs/$runId/check-suites"
               $checkSuiteId = gh api $suitesEndpoint --jq ".check_suites[0].id" 2>$null
+              if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $suiteSource = "fallback:$suitesEndpoint" }
             } catch {
               Write-Host "Fallback suite discovery failed for run $runId. Continuing without explicit suite id."
             }
+          }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($env:INPUT_CHECK_SUITE_ID)) {
+          $suiteSource = 'explicit-input'
+        }
+
+        $runIdForLog = if ([string]::IsNullOrWhiteSpace($runId)) { "$env:GITHUB_RUN_ID" } else { $runId }
+
+        if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) {
+          Write-Host "Using check_suite_id: $checkSuiteId (source=$suiteSource) for workflow_run_id: $runIdForLog"
+        } else {
+          if ($discover -eq 'true') {
+            Write-Error "Failed to determine check_suite_id (source=$suiteSource) for workflow_run_id: $runIdForLog. Refusing to create a check run without an explicit suite to avoid mis-association."
+            Write-Host "Diagnostics: Listing jobs and suites for the run to help debugging..."
+            try { gh api "repos/$ownerRepo/actions/runs/$runIdForLog/jobs?per_page=100" | Out-Host } catch { Write-Host "Listing jobs failed: $($_.Exception.Message)" }
+            try { gh api "repos/$ownerRepo/actions/runs/$runIdForLog/check-suites" | Out-Host } catch { Write-Host "Listing check-suites failed: $($_.Exception.Message)" }
+            exit 1
+          } else {
+            Write-Host "No check_suite_id determined (source=$suiteSource). GitHub will auto-associate the check run. workflow_run_id: $runIdForLog"
           }
         }
 
@@ -158,5 +181,16 @@ runs:
           'X-GitHub-Api-Version: 2022-11-28'
         )
 
-        Write-Host "Creating check run '$checkName' for $ownerRepo@$headSha"
-        $json | gh api --method POST $postEndpoint --input - @($headers | ForEach-Object { '-H'; $_ })
+        Write-Host "Creating check run '$checkName' for $ownerRepo@$headSha (suite=$checkSuiteId)"
+        $response = $json | gh api --method POST $postEndpoint --input - @($headers | ForEach-Object { '-H'; $_ })
+        try {
+          $created = $response | ConvertFrom-Json -ErrorAction Stop
+          $createdId = $created.id
+          $createdSuite = $created.check_suite.id
+          $createdName = $created.name
+          $createdStatus = $created.status
+          Write-Host "Created check_run id=$createdId name='$createdName' status=$createdStatus check_suite_id=$createdSuite"
+        } catch {
+          Write-Host "Check run created, but failed to parse response JSON. Raw response:"
+          Write-Host $response
+        }
