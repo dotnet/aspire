@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Xml.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Cli.Packaging;
 
@@ -30,9 +31,7 @@ internal class NuGetConfigMerger
         }
 
         // Locate an existing NuGet.config in the target directory using a case-insensitive search
-        var nugetConfigFile = TryFindNuGetConfigInDirectory(targetDirectory);
-
-        if (nugetConfigFile is null)
+    if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
             // Create a new NuGet.config file
             await CreateNewNuGetConfigAsync(targetDirectory, temporaryConfig, mappings);
@@ -277,8 +276,7 @@ internal class NuGetConfigMerger
             return false;
         }
 
-        var nugetConfigFile = TryFindNuGetConfigInDirectory(targetDirectory);
-        if (nugetConfigFile is null)
+    if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
             return true; // No config exists, so sources are "missing"
         }
@@ -360,13 +358,21 @@ internal class NuGetConfigMerger
         }
     }
 
-    private static FileInfo? TryFindNuGetConfigInDirectory(DirectoryInfo directory)
+    internal static bool TryFindNuGetConfigInDirectory(DirectoryInfo directory, [NotNullWhen(true)] out FileInfo? nugetConfigFile)
     {
         ArgumentNullException.ThrowIfNull(directory);
-
-        // Search only the specified directory for a file named "nuget.config", ignoring case
-        return directory
+        // Find all files whose name matches "nuget.config" ignoring case in the top-level directory only
+        var matches = directory
             .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
+            .Where(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (matches.Length > 1)
+        {
+            throw new InvalidOperationException($"Multiple NuGet.config files found in '{directory.FullName}' differing only by case.");
+        }
+
+        nugetConfigFile = matches.SingleOrDefault();
+        return matches.Length == 1;
     }
 }

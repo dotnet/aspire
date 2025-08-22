@@ -408,8 +408,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var outputDir = new DirectoryInfo(outputPath);
         
         // Check if we need to create or update a NuGet.config
-        var nugetConfigFile = TryFindNuGetConfigInDirectory(workingDir);
-        var hasConfigInWorkingDir = nugetConfigFile is not null;
+        var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
         var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, mappings);
 
         if (!hasConfigInWorkingDir)
@@ -443,14 +442,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         }
     }
 
-    private static FileInfo? TryFindNuGetConfigInDirectory(DirectoryInfo directory)
+    private static bool TryFindNuGetConfigInDirectory(DirectoryInfo directory, out FileInfo? nugetConfigFile)
     {
         ArgumentNullException.ThrowIfNull(directory);
 
         // Search only the specified directory for a file named "nuget.config", ignoring case
-        return directory
+        nugetConfigFile = directory
             .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
             .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
+        return nugetConfigFile is not null;
     }
 }
 
