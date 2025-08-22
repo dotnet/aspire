@@ -126,6 +126,6 @@
     <SystemTextJsonLTSVersion>8.0.6</SystemTextJsonLTSVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryNet8Version>1.9.0</OpenTelemetryNet8Version>
-    <OpenTelemetryInstrumentationGrpcNetClientLTSVersion>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientLTSVersion>
+    <OpenTelemetryInstrumentationGrpcNetClientNet8Version>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientNet8Version>
   </PropertyGroup>
 </Project>
