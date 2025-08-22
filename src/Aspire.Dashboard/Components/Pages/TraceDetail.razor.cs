@@ -25,6 +25,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private const string NameColumn = nameof(NameColumn);
     private const string TicksColumn = nameof(TicksColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
+    private const int RootSpanDepth = 1;
 
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
@@ -446,7 +447,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         // Don't consider root spans (depth 0) when determining if collapse all should be enabled
-        return _spanWaterfallViewModels.Any(vm => vm.Depth > 0 && !vm.IsCollapsed && vm.Children.Count > 0);
+        return _spanWaterfallViewModels.Any(vm => vm.Depth > RootSpanDepth && !vm.IsCollapsed && vm.Children.Count > 0);
     }
 
     private async Task CollapseAllSpansAsync()
@@ -458,8 +459,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         foreach (var viewModel in _spanWaterfallViewModels)
         {
-            // Don't collapse root spans (depth 0)
-            if (viewModel.Depth > 0 && viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
+            // Don't collapse root spans.
+            if (viewModel.Depth > RootSpanDepth && viewModel.Children.Count > 0 && !viewModel.IsCollapsed)
             {
                 SetSpanCollapsedState(viewModel, true);
             }

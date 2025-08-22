@@ -472,7 +472,7 @@ public partial class TraceDetailsTests : DashboardTestContext
                 container => Assert.True(container.ClassList.Contains("main-grid-collapsed")));
         });
     }
-    
+
     [Fact]
     public void CollapseAllSpans_CollapsesAllSpans()
     {
@@ -520,7 +520,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
-        
+
         // Act - Find the dropdown menu and click Collapse All
         var menuButton = cut.FindComponent<AspireMenuButton>();
         var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
@@ -586,13 +586,13 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
-        
+
         // First click "Collapse All" to collapse everything
         var menuButton = cut.FindComponent<AspireMenuButton>();
         var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
         Assert.NotNull(collapseAllMenuItem);
         cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
-        
+
         // Wait for spans to collapse
         cut.WaitForAssertion(() =>
         {
@@ -600,7 +600,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             // At least one span should be collapsed
             Assert.Contains(expandContainers, container => container.ClassList.Contains("main-grid-collapsed"));
         });
-        
+
         // Act - Click "Expand All"
         var expandAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Expand all"); // Locate by text since ID was removed
         Assert.NotNull(expandAllMenuItem);
