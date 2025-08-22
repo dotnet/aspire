@@ -105,8 +105,8 @@ Extended markdown coverage in CLI prompts/output including code fences, emphasis
 Trace IDs, span IDs, resource names, and log levels become interactive buttons in property grids for one-click navigation between telemetry views (#10648).
 
 ### 📊 Multi-resource console logs
-
-New "All" option aggregates logs across resources with colored prefixes and smart timestamp handling (#10981):
+ 
+New "All" option streams logs from every running resource simultaneously with deterministic colored name prefixes and a separate timestamp preference to reduce noise in aggregate view (#10981):
 
 ```text
 [api      INF] Hosting started
@@ -119,8 +119,8 @@ New "All" option aggregates logs across resources with colored prefixes and smar
 Resources can specify custom icons via `WithIconName()` for better visual identification in dashboard views (#10760).
 
 ### 🌐 Reverse proxy support
-
-Dashboard now properly handles forwarded headers when running behind reverse proxies like YARP (#10388):
+ 
+Dashboard now explicitly maps forwarded Host & Proto headers when `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`, fixing OpenID auth redirects and URL generation behind reverse proxies like YARP (#10388). Only these two headers are allowed to limit spoofing surface:
 
 - Enable with `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`
 - Fixes OpenID authentication redirect issues with proxy scenarios
@@ -203,7 +203,12 @@ var worker = builder.AddProject<Projects.Worker>("worker")  \
 
 ### Resource waiting patterns
 
-Enhanced waiting with new `WaitForStart` options:
+Enhanced waiting with new `WaitForStart` options (issue #7532, implemented in PR #10948). `WaitForStart` waits for a dependency to reach the Running state without blocking on health checks—useful when initialization code (migrations, seeding, registry bootstrap) must run before the service can become "healthy". Compared to `WaitFor`:
+
+- `WaitFor` = Running + passes health checks.
+- `WaitForStart` = Running only (ignores health checks, faster in dev / init flows).
+
+This mirrors Docker Compose's `service_started` vs `service_healthy` conditions and supports both existing `WaitBehavior` modes.
 
 ```csharp
 var postgres = builder.AddPostgres("postgres");
@@ -211,7 +216,7 @@ var redis = builder.AddRedis("redis");
 
 var api = builder.AddProject<Projects.Api>("api")
   .WaitForStart(postgres)  // New: Wait only for startup, not health
-  .WaitForStart(redis)  // New: With explicit behavior
+  .WaitFor(redis)  // Existing: Wait for healthy
   .WithReference(postgres)
   .WithReference(redis);
 ```
