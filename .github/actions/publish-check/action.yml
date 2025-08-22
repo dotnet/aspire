@@ -1,54 +1,53 @@
-name: "Publish GitHub Check"
-description: "Publish a GitHub Check run from a file or inline text with optional check suite association"
-author: ".NET Aspire"
+name: Publish Check
+description: Publish a GitHub Check Run with optional check suite discovery and diagnostics
 
 inputs:
   github_token:
-    description: "GitHub token with 'checks: write' permission"
-    required: true
-  check_name:
-    description: "Name of the check run"
-    required: true
-  title:
-    description: "Title shown in the check output"
-    required: false
-  head_sha:
-    description: "The SHA of the commit to associate the check with. Defaults to GITHUB_SHA."
+    description: Token used to authenticate GitHub API requests (recommended to pass ${{ github.token }})
     required: false
   owner_repo:
-    description: "Owner/Repo in the form 'owner/repo'. Defaults to current repository."
+    description: The owner/repo to operate on (defaults to $GITHUB_REPOSITORY)
+    required: false
+  head_sha:
+    description: The commit SHA for the check run (defaults to $GITHUB_SHA)
+    required: false
+  check_name:
+    description: The name of the check
+    required: true
+  title:
+    description: Title shown in the check output
     required: false
   status:
-    description: "Check run status (queued, in_progress, completed). Defaults to 'completed'."
+    description: The status of the check run (queued, in_progress, completed). Defaults to completed
     required: false
     default: completed
   conclusion:
-    description: "Conclusion for a completed check (success, failure, neutral, cancelled, timed_out, action_required, skipped, stale)."
+    description: The conclusion of the check run (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped)
     required: false
   details_url:
-    description: "URL for more details about the check."
+    description: A URL with more details for the check run
     required: false
   summary_file:
-    description: "Path to a file containing the markdown summary."
+    description: Path to a file whose contents will become the check summary
     required: false
   summary_text:
-    description: "Inline markdown summary text. If provided, takes precedence over summary_file."
+    description: Inline summary text for the check (takes precedence over summary_file)
     required: false
   check_suite_id:
-    description: "Optional check suite ID to associate the check with."
+    description: Explicit check suite id to associate the check run with
     required: false
   discover_check_suite:
-    description: "If true and check_suite_id not provided, attempt to discover current Actions check suite ID for this run."
+    description: When true, discover the suite id from the current workflow run and fail if it cannot be determined
     required: false
-    default: "true"
+    default: 'false'
   workflow_run_id:
-    description: "Workflow run ID to use when discovering the check suite ID. Defaults to current run id."
+    description: The workflow run id to use for discovery (defaults to $GITHUB_RUN_ID)
     required: false
   workflow_job_name:
-    description: "Optional: the current workflow job display name (as shown in the UI) to select the matching job's check suite."
+    description: Optional job name filter used during discovery
     required: false
   runner_label:
-    description: "Optional: a runner label (e.g., ubuntu-latest, macos-latest, windows-latest) to help disambiguate jobs."
+    description: Optional runner label filter (e.g., ubuntu-latest, windows-latest, macos-latest) used during discovery
     required: false
 
 runs:
@@ -73,161 +72,4 @@ runs:
         INPUT_WORKFLOW_JOB_NAME: ${{ inputs.workflow_job_name }}
         INPUT_RUNNER_LABEL: ${{ inputs.runner_label }}
       run: |
-        $ErrorActionPreference = 'Stop'
-
-        $ownerRepo = $env:INPUT_OWNER_REPO
-        if ([string]::IsNullOrWhiteSpace($ownerRepo)) {
-          $ownerRepo = '${{ github.repository }}'
-        }
-
-        $headSha = $env:INPUT_HEAD_SHA
-        if ([string]::IsNullOrWhiteSpace($headSha)) {
-          $headSha = "$env:GITHUB_SHA"
-        }
-
-        $checkName = $env:INPUT_CHECK_NAME
-        if ([string]::IsNullOrWhiteSpace($checkName)) {
-          Write-Error 'check_name input is required.'
-        }
-
-        $title = $env:INPUT_TITLE
-        if ([string]::IsNullOrWhiteSpace($title)) {
-          $title = $checkName
-        }
-
-        # Summary content precedence: inline > file > empty
-        $summaryText = ''
-        $inline = $env:INPUT_SUMMARY_TEXT
-        if (-not [string]::IsNullOrWhiteSpace($inline)) {
-          $summaryText = $inline
-        } elseif (-not [string]::IsNullOrWhiteSpace($env:INPUT_SUMMARY_FILE)) {
-          $summaryPath = $env:INPUT_SUMMARY_FILE
-          if (Test-Path $summaryPath) {
-            $summaryText = Get-Content -Path $summaryPath -Raw -Encoding UTF8
-          } else {
-            Write-Host "Summary file not found at $summaryPath. Proceeding with empty summary."
-          }
-        }
-
-        $status = $env:INPUT_STATUS
-        if ([string]::IsNullOrWhiteSpace($status)) { $status = 'completed' }
-        $conclusion = $env:INPUT_CONCLUSION
-
-        # Optional details URL
-        $detailsUrl = $env:INPUT_DETAILS_URL
-
-        # Optionally discover the check suite id for the current workflow run
-        $checkSuiteId = $env:INPUT_CHECK_SUITE_ID
-        $discover = $env:INPUT_DISCOVER_CHECK_SUITE
-        $suiteSource = 'none'
-        if ([string]::IsNullOrWhiteSpace($checkSuiteId) -and $discover -eq 'true') {
-          $runId = $env:INPUT_WORKFLOW_RUN_ID
-          if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "$env:GITHUB_RUN_ID" }
-
-          # Preferred discovery: use one of the jobs in THIS workflow run, fetch its check run,
-          # and read the suite id from there. This guarantees we associate with the parent workflow (e.g., "CI").
-          try {
-            $jobsEndpoint = "repos/$ownerRepo/actions/runs/$runId/jobs?per_page=100"
-            $jobsJson = gh api $jobsEndpoint 2>$null | ConvertFrom-Json
-
-            $desiredName = $env:INPUT_WORKFLOW_JOB_NAME
-            $desiredLabel = $env:INPUT_RUNNER_LABEL
-            $selectedJob = $null
-
-            if ($jobsJson -and $jobsJson.jobs) {
-              $candidates = $jobsJson.jobs
-              $totalJobs = $candidates.Count
-              if (-not [string]::IsNullOrWhiteSpace($desiredName)) {
-                $candidates = $candidates | Where-Object { $_.name -eq $desiredName }
-                Write-Host "Filtered jobs by name '$desiredName': $($candidates.Count) of $totalJobs"
-              }
-              if (-not [string]::IsNullOrWhiteSpace($desiredLabel)) {
-                $before = $candidates.Count
-                $candidates = $candidates | Where-Object { $_.labels -contains $desiredLabel }
-                Write-Host "Filtered jobs by runner label '$desiredLabel': $($candidates.Count) of $before"
-              }
-
-              if ($candidates -and $candidates.Count -gt 0) {
-                $selectedJob = $candidates[0]
-              } elseif ($jobsJson.jobs.Count -gt 0) {
-                $selectedJob = $jobsJson.jobs[0]
-                Write-Host "No matching job found by filters. Falling back to first job: '$($selectedJob.name)'"
-              }
-            } else {
-              Write-Host "No jobs returned for workflow_run_id=$runId"
-            }
-
-            if ($selectedJob -and $selectedJob.check_run_url) {
-              $checkRunUrl = $selectedJob.check_run_url
-              $checkSuiteId = gh api $checkRunUrl --jq ".check_suite.id" 2>$null
-              if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $suiteSource = "job:$checkRunUrl" }
-            }
-          } catch {
-            Write-Host "Primary suite discovery via jobs failed for run $runId. Will try fallback method."
-          }
-
-          # Fallback discovery: pick the suite created by this run (first result). This can be ambiguous
-          # across multiple workflows on the same SHA, so we only use it if the preferred method failed.
-          if ([string]::IsNullOrWhiteSpace($checkSuiteId)) {
-            try {
-              $suitesEndpoint = "repos/$ownerRepo/actions/runs/$runId/check-suites"
-              $checkSuiteId = gh api $suitesEndpoint --jq ".check_suites[0].id" 2>$null
-              if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $suiteSource = "fallback:$suitesEndpoint" }
-            } catch {
-              Write-Host "Fallback suite discovery failed for run $runId. Continuing without explicit suite id."
-            }
-          }
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($env:INPUT_CHECK_SUITE_ID)) {
-          $suiteSource = 'explicit-input'
-        }
-
-        $runIdForLog = if ([string]::IsNullOrWhiteSpace($runId)) { "$env:GITHUB_RUN_ID" } else { $runId }
-
-        if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) {
-          Write-Host "Using check_suite_id: $checkSuiteId (source=$suiteSource) for workflow_run_id: $runIdForLog"
-        } else {
-          if ($discover -eq 'true') {
-            Write-Error "Failed to determine check_suite_id (source=$suiteSource) for workflow_run_id: $runIdForLog. Refusing to create a check run without an explicit suite to avoid mis-association."
-            Write-Host "Diagnostics: Listing jobs and suites for the run to help debugging..."
-            try { gh api "repos/$ownerRepo/actions/runs/$runIdForLog/jobs?per_page=100" | Out-Host } catch { Write-Host "Listing jobs failed: $($_.Exception.Message)" }
-            try { gh api "repos/$ownerRepo/actions/runs/$runIdForLog/check-suites" | Out-Host } catch { Write-Host "Listing check-suites failed: $($_.Exception.Message)" }
-            exit 1
-          } else {
-            Write-Host "No check_suite_id determined (source=$suiteSource). GitHub will auto-associate the check run. workflow_run_id: $runIdForLog"
-          }
-        }
-
-        # Build request body
-        $body = @{
-          name = $checkName
-          head_sha = $headSha
-          status = $status
-          output = @{ title = $title; summary = $summaryText }
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($conclusion)) { $body["conclusion"] = $conclusion }
-        if (-not [string]::IsNullOrWhiteSpace($detailsUrl)) { $body["details_url"] = $detailsUrl }
-        if (-not [string]::IsNullOrWhiteSpace($checkSuiteId)) { $body["check_suite_id"] = $checkSuiteId }
-
-        $json = $body | ConvertTo-Json -Depth 10
-        $postEndpoint = "repos/$ownerRepo/check-runs"
-        $headers = @(
-          'Accept: application/vnd.github+json',
-          'X-GitHub-Api-Version: 2022-11-28'
-        )
-
-        Write-Host "Creating check run '$checkName' for $ownerRepo@$headSha (suite=$checkSuiteId)"
-        $response = $json | gh api --method POST $postEndpoint --input - @($headers | ForEach-Object { '-H'; $_ })
-        try {
-          $created = $response | ConvertFrom-Json -ErrorAction Stop
-          $createdId = $created.id
-          $createdSuite = $created.check_suite.id
-          $createdName = $created.name
-          $createdStatus = $created.status
-          Write-Host "Created check_run id=$createdId name='$createdName' status=$createdStatus check_suite_id=$createdSuite"
-        } catch {
-          Write-Host "Check run created, but failed to parse response JSON. Raw response:"
-          Write-Host $response
-        }
+        & "${{ github.action_path }}/publish-check.ps1"

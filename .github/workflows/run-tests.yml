@@ -373,3 +373,5 @@ jobs:
           summary_file: ${{ github.workspace }}/testresults/summary.md
           # Optional: can pass an explicit suite id if available; otherwise the action discovers it
           discover_check_suite: true
+          workflow_job_name: ${{ inputs.testShortName }}
+          runner_label: ${{ inputs.os }}
