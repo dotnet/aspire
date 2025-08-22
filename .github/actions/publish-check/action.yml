@@ -46,7 +46,7 @@ inputs:
     required: false
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Publish Check
       shell: pwsh
@@ -114,11 +114,28 @@ runs:
         if ([string]::IsNullOrWhiteSpace($checkSuiteId) -and $discover -eq 'true') {
           $runId = $env:INPUT_WORKFLOW_RUN_ID
           if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "$env:GITHUB_RUN_ID" }
-          $endpoint = "repos/$ownerRepo/actions/runs/$runId/check-suites"
+
+          # Preferred discovery: use one of the jobs in THIS workflow run, fetch its check run,
+          # and read the suite id from there. This guarantees we associate with the parent workflow (e.g., "CI").
           try {
-            $checkSuiteId = gh api $endpoint --jq ".check_suites[0].id" 2>$null
+            $jobsEndpoint = "repos/$ownerRepo/actions/runs/$runId/jobs?per_page=1"
+            $checkRunUrl = gh api $jobsEndpoint --jq ".jobs[0].check_run_url" 2>$null
+            if (-not [string]::IsNullOrWhiteSpace($checkRunUrl)) {
+              $checkSuiteId = gh api $checkRunUrl --jq ".check_suite.id" 2>$null
+            }
           } catch {
-            Write-Host "Failed to discover check suite id for run $runId. Continuing without explicit suite id."
+            Write-Host "Primary suite discovery via jobs failed for run $runId. Will try fallback method."
+          }
+
+          # Fallback discovery: pick the suite created by this run (first result). This can be ambiguous
+          # across multiple workflows on the same SHA, so we only use it if the preferred method failed.
+          if ([string]::IsNullOrWhiteSpace($checkSuiteId)) {
+            try {
+              $suitesEndpoint = "repos/$ownerRepo/actions/runs/$runId/check-suites"
+              $checkSuiteId = gh api $suitesEndpoint --jq ".check_suites[0].id" 2>$null
+            } catch {
+              Write-Host "Fallback suite discovery failed for run $runId. Continuing without explicit suite id."
+            }
           }
         }
 
