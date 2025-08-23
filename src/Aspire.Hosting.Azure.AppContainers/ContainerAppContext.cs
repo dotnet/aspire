@@ -173,10 +173,11 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 StorageName = storageName.AsProvisioningParameter(Infra),
             };
 
-            // Set mount options if they are specified in the ContainerMountAnnotation
-            if (!string.IsNullOrEmpty(volume.Options))
+            // Build mount options from structured properties
+            var mountOptions = BuildMountOptions(volume);
+            if (!string.IsNullOrEmpty(mountOptions))
             {
-                containerAppVolume.MountOptions = volume.Options;
+                containerAppVolume.MountOptions = mountOptions;
             }
 
             template.Volumes.Add(containerAppVolume);
@@ -189,6 +190,39 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
             containerAppContainer.VolumeMounts.Add(containerAppVolumeMount);
         }
+    }
+
+    private static string? BuildMountOptions(ContainerMountAnnotation volume)
+    {
+        var options = new List<string>();
+
+        if (volume.UserId.HasValue)
+        {
+            options.Add($"uid={volume.UserId}");
+        }
+
+        if (volume.GroupId.HasValue)
+        {
+            options.Add($"gid={volume.GroupId}");
+        }
+
+        if (volume.DirectoryMode.HasValue)
+        {
+            // Mask to permission bits only and format as octal
+            var permissionBits = (int)volume.DirectoryMode.Value & 0b111_111_111; // rwxrwxrwx
+            var octal = Convert.ToString(permissionBits, 8).PadLeft(4, '0');
+            options.Add($"dir_mode={octal}");
+        }
+
+        if (volume.FileMode.HasValue)
+        {
+            // Mask to permission bits only and format as octal
+            var permissionBits = (int)volume.FileMode.Value & 0b111_111_111; // rwxrwxrwx
+            var octal = Convert.ToString(permissionBits, 8).PadLeft(4, '0');
+            options.Add($"file_mode={octal}");
+        }
+
+        return options.Count > 0 ? string.Join(",", options) : null;
     }
 
     private void AddAzureClientId(IAppIdentityResource? appIdentityResource, ContainerAppContainer containerAppContainer)

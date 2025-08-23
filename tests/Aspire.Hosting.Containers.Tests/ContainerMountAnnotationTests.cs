@@ -40,73 +40,84 @@ public class ContainerMountAnnotationTests
     }
 
     [Fact]
-    public void OptionsPropertyRoundTrips()
+    public void NewOverloadSetsProperties()
     {
-        var ann = new ContainerMountAnnotation("myvol", "/data", ContainerMountType.Volume, false)
-        {
-            Options = "uid=999,gid=999"
-        };
-        Assert.Equal("uid=999,gid=999", ann.Options);
+        var directoryMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | 
+                           UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                           UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+        var fileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | 
+                      UnixFileMode.GroupRead | 
+                      UnixFileMode.OtherRead;
+
+        var annotation = new ContainerMountAnnotation(
+            "myvol", 
+            "/data", 
+            ContainerMountType.Volume, 
+            false,
+            userId: 999,
+            groupId: 999,
+            directoryMode: directoryMode,
+            fileMode: fileMode);
+
+        Assert.Equal("myvol", annotation.Source);
+        Assert.Equal("/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        Assert.Equal(999, annotation.UserId);
+        Assert.Equal(999, annotation.GroupId);
+        Assert.Equal(directoryMode, annotation.DirectoryMode);
+        Assert.Equal(fileMode, annotation.FileMode);
     }
 
     [Fact]
-    public void WithMountOptionsExtensionSetsOptions()
+    public void LegacyConstructorKeepsPropertiesNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest")
-            .WithVolume("vol1", "/data", isReadOnly: false)
-            .WithMountOptions("/data", "uid=999");
-
-        var mount = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(m => m.Target == "/data");
-        Assert.Equal("uid=999", mount.Options);
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenBuilderIsNull()
-    {
-        IResourceBuilder<ContainerResource> builder = null!;
-        Assert.Throws<ArgumentNullException>(() => builder.WithMountOptions("/data", "uid=999"));
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenTargetPathIsNull()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest");
-        Assert.Throws<ArgumentException>(() => container.WithMountOptions(null!, "uid=999"));
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenTargetPathIsEmpty()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest");
-        Assert.Throws<ArgumentException>(() => container.WithMountOptions("", "uid=999"));
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenOptionsIsNull()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest");
-        Assert.Throws<ArgumentException>(() => container.WithMountOptions("/data", null!));
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenOptionsIsEmpty()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest");
-        Assert.Throws<ArgumentException>(() => container.WithMountOptions("/data", ""));
-    }
-
-    [Fact]
-    public void WithMountOptionsThrowsWhenNoMountExists()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var container = builder.AddContainer("c1", "alpine:latest");
+        var annotation = new ContainerMountAnnotation("myvol", "/data", ContainerMountType.Volume, false);
         
-        var ex = Assert.Throws<InvalidOperationException>(() => container.WithMountOptions("/nonexistent", "uid=999"));
-        Assert.Equal("No container mount with target '/nonexistent' was found on resource 'c1'.", ex.Message);
+        Assert.Equal("myvol", annotation.Source);
+        Assert.Equal("/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        Assert.Null(annotation.UserId);
+        Assert.Null(annotation.GroupId);
+        Assert.Null(annotation.DirectoryMode);
+        Assert.Null(annotation.FileMode);
+    }
+
+    [Fact]
+    public void ValidationRejectsNonPermissionBitsInDirectoryMode()
+    {
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+
+        var ex = Assert.Throws<ArgumentException>("directoryMode", () => new ContainerMountAnnotation(
+            "myvol", "/data", ContainerMountType.Volume, false, null, null, invalidMode, null));
+        
+        Assert.Contains("DirectoryMode must contain only permission bits", ex.Message);
+    }
+
+    [Fact]
+    public void ValidationRejectsNonPermissionBitsInFileMode()
+    {
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+
+        var ex = Assert.Throws<ArgumentException>("fileMode", () => new ContainerMountAnnotation(
+            "myvol", "/data", ContainerMountType.Volume, false, null, null, null, invalidMode));
+        
+        Assert.Contains("FileMode must contain only permission bits", ex.Message);
+    }
+
+    [Fact]
+    public void ValidationAllowsValidPermissionBits()
+    {
+        var validMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | 
+                       UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+        // Should not throw
+        var annotation = new ContainerMountAnnotation(
+            "myvol", "/data", ContainerMountType.Volume, false, 999, 999, validMode, validMode);
+        
+        Assert.Equal(validMode, annotation.DirectoryMode);
+        Assert.Equal(validMode, annotation.FileMode);
     }
 }

@@ -20,6 +20,24 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
     public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
+        : this(source, target, type, isReadOnly, userId: null, groupId: null, directoryMode: null, fileMode: null)
+    {
+    }
+
+    /// <summary>
+    /// Instantiates a mount annotation that specifies the details for a container mount.
+    /// </summary>
+    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+    /// <param name="target">The target path of the mount.</param>
+    /// <param name="type">The type of the mount.</param>
+    /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
+    /// <param name="userId">The user ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="groupId">The group ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="directoryMode">The default permission mode for directories. Best-effort; provider may ignore.</param>
+    /// <param name="fileMode">The default permission mode for files. Best-effort; provider may ignore.</param>
+    /// <exception cref="ArgumentException">Thrown when directoryMode or fileMode contains non-permission bits.</exception>
+    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly,
+        int? userId, int? groupId, UnixFileMode? directoryMode, UnixFileMode? fileMode)
     {
         if (type == ContainerMountType.BindMount)
         {
@@ -39,10 +57,29 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
             throw new ArgumentException(MessageStrings.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));
         }
 
+        // Validate that directoryMode and fileMode only contain permission bits (rwx for user, group, other)
+        var allowedPermissionMask = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                  UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                                  UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+        if (directoryMode.HasValue && (directoryMode.Value & ~allowedPermissionMask) != 0)
+        {
+            throw new ArgumentException("DirectoryMode must contain only permission bits (read, write, execute for user, group, other).", nameof(directoryMode));
+        }
+
+        if (fileMode.HasValue && (fileMode.Value & ~allowedPermissionMask) != 0)
+        {
+            throw new ArgumentException("FileMode must contain only permission bits (read, write, execute for user, group, other).", nameof(fileMode));
+        }
+
         Source = source;
         Target = target;
         Type = type;
         IsReadOnly = isReadOnly;
+        UserId = userId;
+        GroupId = groupId;
+        DirectoryMode = directoryMode;
+        FileMode = fileMode;
     }
 
     /// <summary>
@@ -66,12 +103,26 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     public bool IsReadOnly { get; }
 
     /// <summary>
-    /// Gets or sets provider / platform specific mount options. This value is opaque to Aspire itself and
-    /// may be interpreted by deployment targets (e.g. Azure Container Apps) to populate platform-specific
-    /// mount option fields (e.g. "uid=999,gid=999,dir_mode=0750,file_mode=0640"). Backends that do not
-    /// support options should ignore this value.
+    /// Gets the user ID for ownership. This is a best-effort hint and providers may ignore it.
     /// </summary>
-    public string? Options { get; set; }
+    public int? UserId { get; }
+
+    /// <summary>
+    /// Gets the group ID for ownership. This is a best-effort hint and providers may ignore it.
+    /// </summary>
+    public int? GroupId { get; }
+
+    /// <summary>
+    /// Gets the default permission mode for directories. This is a best-effort hint and providers may ignore it.
+    /// Only permission bits (read, write, execute for user, group, other) are allowed.
+    /// </summary>
+    public UnixFileMode? DirectoryMode { get; }
+
+    /// <summary>
+    /// Gets the default permission mode for files. This is a best-effort hint and providers may ignore it.
+    /// Only permission bits (read, write, execute for user, group, other) are allowed.
+    /// </summary>
+    public UnixFileMode? FileMode { get; }
 }
 
 /// <summary>
