@@ -7,9 +7,9 @@ param env_outputs_azure_container_apps_environment_id string
 
 param env_outputs_volumes_api_0 string
 
-param env_outputs_volumes_api_1 string
+param env_outputs_bindmounts_api_1 string
 
-param env_outputs_bindmounts_api_2 string
+param env_outputs_volumes_api_1 string
 
 resource api 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'api'
@@ -30,12 +30,12 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               mountPath: '/path1'
             }
             {
-              volumeName: 'v1'
-              mountPath: '/path2'
-            }
-            {
               volumeName: 'bm0'
               mountPath: '/path3'
+            }
+            {
+              volumeName: 'v1'
+              mountPath: '/path2'
             }
           ]
         }
@@ -50,15 +50,15 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
           storageName: env_outputs_volumes_api_0
         }
         {
+          name: 'bm0'
+          storageType: 'AzureFile'
+          storageName: env_outputs_bindmounts_api_1
+        }
+        {
           name: 'v1'
           storageType: 'AzureFile'
           storageName: env_outputs_volumes_api_1
           mountOptions: 'uid=999,gid=999,dir_mode=0750,file_mode=0640'
-        }
-        {
-          name: 'bm0'
-          storageType: 'AzureFile'
-          storageName: env_outputs_bindmounts_api_2
         }
       ]
     }
