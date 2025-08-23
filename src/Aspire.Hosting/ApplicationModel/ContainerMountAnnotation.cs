@@ -64,6 +64,14 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// Gets a value indicating whether the volume mount is read-only.
     /// </summary>
     public bool IsReadOnly { get; }
+
+    /// <summary>
+    /// Gets or sets provider / platform specific mount options. This value is opaque to Aspire itself and
+    /// may be interpreted by deployment targets (e.g. Azure Container Apps) to populate platform-specific
+    /// mount option fields (e.g. "uid=999,gid=999,dir_mode=0750,file_mode=0640"). Backends that do not
+    /// support options should ignore this value.
+    /// </summary>
+    public string? Options { get; set; }
 }
 
 /// <summary>

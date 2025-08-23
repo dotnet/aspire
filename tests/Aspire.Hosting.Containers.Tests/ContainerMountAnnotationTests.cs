@@ -38,4 +38,75 @@ public class ContainerMountAnnotationTests
         Assert.Equal(ContainerMountType.BindMount, annotation.Type);
         Assert.False(annotation.IsReadOnly);
     }
+
+    [Fact]
+    public void OptionsPropertyRoundTrips()
+    {
+        var ann = new ContainerMountAnnotation("myvol", "/data", ContainerMountType.Volume, false)
+        {
+            Options = "uid=999,gid=999"
+        };
+        Assert.Equal("uid=999,gid=999", ann.Options);
+    }
+
+    [Fact]
+    public void WithMountOptionsExtensionSetsOptions()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest")
+            .WithVolume("vol1", "/data", isReadOnly: false)
+            .WithMountOptions("/data", "uid=999");
+
+        var mount = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(m => m.Target == "/data");
+        Assert.Equal("uid=999", mount.Options);
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenBuilderIsNull()
+    {
+        IResourceBuilder<ContainerResource> builder = null!;
+        Assert.Throws<ArgumentNullException>(() => builder.WithMountOptions("/data", "uid=999"));
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenTargetPathIsNull()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest");
+        Assert.Throws<ArgumentException>(() => container.WithMountOptions(null!, "uid=999"));
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenTargetPathIsEmpty()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest");
+        Assert.Throws<ArgumentException>(() => container.WithMountOptions("", "uid=999"));
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenOptionsIsNull()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest");
+        Assert.Throws<ArgumentException>(() => container.WithMountOptions("/data", null!));
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenOptionsIsEmpty()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest");
+        Assert.Throws<ArgumentException>(() => container.WithMountOptions("/data", ""));
+    }
+
+    [Fact]
+    public void WithMountOptionsThrowsWhenNoMountExists()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("c1", "alpine:latest");
+        
+        var ex = Assert.Throws<InvalidOperationException>(() => container.WithMountOptions("/nonexistent", "uid=999"));
+        Assert.Equal("No container mount with target '/nonexistent' was found on resource 'c1'.", ex.Message);
+    }
 }
