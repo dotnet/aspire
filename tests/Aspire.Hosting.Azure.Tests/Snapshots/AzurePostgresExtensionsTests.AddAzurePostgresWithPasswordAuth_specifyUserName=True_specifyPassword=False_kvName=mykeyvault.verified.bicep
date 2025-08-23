@@ -84,3 +84,5 @@ resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
 }
 
 output name string = postgres_data.name
+
+output hostName string = postgres_data.properties.fullyQualifiedDomainName
