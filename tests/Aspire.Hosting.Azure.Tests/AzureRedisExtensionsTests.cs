@@ -145,8 +145,6 @@ public class AzureRedisExtensionsTests
         Assert.NotNull(redis.Resource.HostName);
         Assert.Equal("localhost:12455", await redis.Resource.HostName.GetValueAsync(CancellationToken.None));
 
-        Assert.Null(redis.Resource.UserName); // Redis doesn't use usernames
-
         Assert.NotNull(redis.Resource.Password);
         Assert.Equal("p@ssw0rd1", await redis.Resource.Password.GetValueAsync(CancellationToken.None));
     }
@@ -197,7 +195,6 @@ public class AzureRedisExtensionsTests
 
         // Even with auto-generated password, Password and HostName should be available
         Assert.NotNull(redis.Resource.HostName);
-        Assert.Null(redis.Resource.UserName); // Redis doesn't use usernames
         Assert.NotNull(redis.Resource.Password);
         
         // Validate the values can be resolved
@@ -218,7 +215,6 @@ public class AzureRedisExtensionsTests
 
         // In Azure mode (both Entra ID and access key), Password should be null since Redis uses connection strings
         Assert.Null(redis.Resource.Password);
-        Assert.Null(redis.Resource.UserName); // Redis doesn't use usernames
 
         // HostName should still be available and resolve to bicep output
         Assert.NotNull(redis.Resource.HostName);

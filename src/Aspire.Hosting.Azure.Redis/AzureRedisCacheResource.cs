@@ -79,14 +79,6 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
             ReferenceExpression.Create($"{HostNameOutput}");
 
     /// <summary>
-    /// Gets the user name for the Redis server.
-    /// </summary>
-    /// <remarks>
-    /// Redis does not use user names for authentication, so this property always returns null.
-    /// </remarks>
-    public ReferenceExpression? UserName => null;
-
-    /// <summary>
     /// Gets the password for the Redis server when running as a container.
     /// </summary>
     /// <remarks>
