@@ -173,6 +173,12 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 StorageName = storageName.AsProvisioningParameter(Infra),
             };
 
+            // Set mount options if they are specified in the ContainerMountAnnotation
+            if (!string.IsNullOrEmpty(volume.Options))
+            {
+                containerAppVolume.MountOptions = volume.Options;
+            }
+
             template.Volumes.Add(containerAppVolume);
 
             var containerAppVolumeMount = new ContainerAppVolumeMount
