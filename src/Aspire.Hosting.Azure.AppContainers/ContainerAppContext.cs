@@ -112,6 +112,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerAppIdentityId);
         AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer);
         AddVolumes(template, containerAppContainer);
+        AddProbes(containerAppContainer);
 
         infra.Add(containerAppResource);
 
@@ -815,11 +816,49 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         app.Registries = [
             new ContainerAppRegistryCredentials
-                    {
-                        Server = _containerRegistryUrlParameter,
-                        Identity = _containerRegistryManagedIdentityIdParameter
-                    }
+            {
+                Server = _containerRegistryUrlParameter,
+                Identity = _containerRegistryManagedIdentityIdParameter
+            }
         ];
+    }
+
+    private void AddProbes(ContainerAppContainer containerAppContainer)
+    {
+        if (!resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            return;
+        }
+
+        foreach (var probeAnnotation in probeAnnotations)
+        {
+            ContainerAppProbe? containerAppProbe = null;
+            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation && endpointProbeAnnotation.EndpointReference.TargetPort.HasValue)
+            {
+                containerAppProbe = new ContainerAppProbe()
+                {
+                    ProbeType = probeAnnotation.Type switch
+                    {
+                        ProbeType.Startup => ContainerAppProbeType.Startup,
+                        ProbeType.Readiness => ContainerAppProbeType.Readiness,
+                        _ => ContainerAppProbeType.Liveness,
+                    },
+                    InitialDelaySeconds = probeAnnotation.InitialDelaySeconds,
+                    PeriodSeconds = probeAnnotation.PeriodSeconds,
+                    HttpGet = new()
+                    {
+                        Path = endpointProbeAnnotation.Path,
+                        Port = endpointProbeAnnotation.EndpointReference.TargetPort.Value,
+                        Scheme = endpointProbeAnnotation.EndpointReference.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
+                    },
+                };
+            }
+
+            if (containerAppProbe is not null)
+            {
+                containerAppContainer.Probes.Add(new BicepValue<ContainerAppProbe>(containerAppProbe));
+            }
+        }
     }
 
     private sealed class PortAllocator(int startPort = 8000)

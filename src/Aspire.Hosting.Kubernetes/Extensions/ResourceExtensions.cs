@@ -233,7 +233,8 @@ internal static class ResourceExtensions
             .WithContainerEnvironmentalVariables(context)
             .WithContainerSecrets(context)
             .WithContainerPorts(context)
-            .WithContainerVolumes(context);
+            .WithContainerVolumes(context)
+            .WithContainerProbes(context);
     }
 
     private static ContainerV1 WithContainerVolumes(this ContainerV1 container, KubernetesResource context)
@@ -338,6 +339,54 @@ internal static class ResourceExtensions
                         Name = context.TargetResource.Name.ToSecretName(),
                     },
                 });
+        }
+
+        return container;
+    }
+
+    private static ContainerV1 WithContainerProbes(this ContainerV1 container, KubernetesResource context)
+    {
+        if (!context.TargetResource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            return container;
+        }
+
+        foreach (var probeAnnotation in probeAnnotations)
+        {
+            ProbeV1? probe = null;
+            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation && endpointProbeAnnotation.EndpointReference.TargetPort.HasValue)
+            {
+                probe = new ProbeV1()
+                {
+                    HttpGet = new()
+                    {
+                        Path = endpointProbeAnnotation.Path,
+                        Port = endpointProbeAnnotation.EndpointReference.TargetPort.Value,
+                        Scheme = endpointProbeAnnotation.EndpointReference.Scheme,
+                    },
+                };
+            }
+
+            if (probe is not null)
+            {
+                probe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
+                probe.PeriodSeconds = probeAnnotation.PeriodSeconds;
+
+                switch (probeAnnotation.Type)
+                {
+                    case ProbeType.Startup:
+                        container.StartupProbe = probe;
+                        break;
+
+                    case ProbeType.Readiness:
+                        container.ReadinessProbe = probe;
+                        break;
+
+                    case ProbeType.Liveness:
+                        container.LivenessProbe = probe;
+                        break;
+                }
+            }
         }
 
         return container;

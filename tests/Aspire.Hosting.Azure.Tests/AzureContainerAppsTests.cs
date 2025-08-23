@@ -1572,4 +1572,44 @@ public class AzureContainerAppsTests
 
         await VerifyFile(Path.Combine(tempDir.Path, "aspire-manifest.json"));
     }
+
+    [Fact]
+    public async Task ResourceWithProbes()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder
+            .AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithHttpProbe(ProbeType.Readiness, "http", "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "http", "/health");
+
+        builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort: 8080)
+            .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "https", "/health");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projectProvisioningResource = project.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectProvisioningResource);
+
+        var (_, containerBicep) = await GetManifestWithBicep(containerProvisioningResource);
+        var (_, projectBicep) = await GetManifestWithBicep(projectProvisioningResource);
+
+        await Verify(containerBicep, "bicep")
+              .AppendContentAsFile(projectBicep, "bicep");
+    }
 }

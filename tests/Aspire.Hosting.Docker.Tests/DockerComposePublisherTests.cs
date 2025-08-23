@@ -142,7 +142,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
@@ -169,7 +169,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -441,7 +441,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         builder.AddContainer("api", "my-api")
             .WithOtlpExporter();
 
-        builder.AddContainer("worker", "my-worker") 
+        builder.AddContainer("worker", "my-worker")
             .WithOtlpExporter();
 
         // Add a container without OTLP - should not be configured
@@ -477,6 +477,32 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         // In run mode, no compose file should be generated
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.False(File.Exists(composePath));
+    }
+
+    [Fact]
+    public async Task ResourceWithProbes()
+    {
+        using var tempDir = new TempDirectory();
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
+               .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+               .WithHttpEndpoint(targetPort: 8080)
+               .WithHttpProbe(ProbeType.Readiness, "http", "/ready", initialDelaySeconds: 60)
+               .WithHttpProbe(ProbeType.Liveness, "http", "/health");
+
+        var app = builder.Build();
+
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        await Verify(File.ReadAllText(composePath), "yaml");
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder

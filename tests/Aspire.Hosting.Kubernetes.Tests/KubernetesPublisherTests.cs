@@ -222,6 +222,59 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
+    [Fact]
+    public async Task PublishAsync_ResourceWithProbes()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Add a container to the application
+        var api = builder
+            .AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithHttpProbe(ProbeType.Readiness, "http", "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "http", "/health");
+
+        builder
+            .AddProject<TestProject>("project1", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort: 8080)
+            .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "https", "/health");
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "templates/myapp/deployment.yaml",
+            "templates/project1/deployment.yaml",
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
     private sealed class KedaScaledObject() : BaseKubernetesResource("keda.sh/v1alpha1", "ScaledObject")
     {
         [YamlMember(Alias = "spec")]

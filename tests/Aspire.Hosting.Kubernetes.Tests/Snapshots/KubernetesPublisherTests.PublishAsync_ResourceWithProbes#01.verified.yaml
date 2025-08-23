@@ -1,0 +1,54 @@
+﻿---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "project1-deployment"
+  labels:
+    app.kubernetes.io/name: "aspire-hosting-tests"
+    app.kubernetes.io/component: "project1"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "aspire-hosting-tests"
+        app.kubernetes.io/component: "project1"
+        app.kubernetes.io/instance: "{{.Release.Name}}"
+    spec:
+      containers:
+        - image: "{{ .Values.parameters.project1.project1_image }}"
+          livenessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            httpGet:
+              scheme: "https"
+              path: "/health"
+              port: 8080
+          name: "project1"
+          readinessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            httpGet:
+              scheme: "https"
+              path: "/ready"
+              port: 8080
+          envFrom:
+            - configMapRef:
+                name: "project1-config"
+          ports:
+            - name: "https"
+              protocol: "TCP"
+              containerPort: 8080
+          imagePullPolicy: "IfNotPresent"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "aspire-hosting-tests"
+      app.kubernetes.io/component: "project1"
+      app.kubernetes.io/instance: "{{.Release.Name}}"
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: "RollingUpdate"
