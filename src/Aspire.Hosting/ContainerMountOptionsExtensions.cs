@@ -23,8 +23,16 @@ public static class ContainerMountOptionsExtensions
         where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(targetPath);
-        ArgumentException.ThrowIfNullOrEmpty(options);
+        
+        if (string.IsNullOrEmpty(targetPath))
+        {
+            throw new ArgumentException("Value cannot be null or empty.", nameof(targetPath));
+        }
+        
+        if (string.IsNullOrEmpty(options))
+        {
+            throw new ArgumentException("Value cannot be null or empty.", nameof(options));
+        }
 
         var mount = builder.Resource.Annotations
             .OfType<ContainerMountAnnotation>()

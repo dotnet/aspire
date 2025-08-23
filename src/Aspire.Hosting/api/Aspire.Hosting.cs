@@ -108,12 +108,6 @@ namespace Aspire.Hosting
         public static bool IsContainer(this ApplicationModel.IResource resource) { throw null; }
     }
 
-    public static partial class ContainerMountOptionsExtensions
-    {
-        public static ApplicationModel.IResourceBuilder<T> WithMountOptions<T>(this ApplicationModel.IResourceBuilder<T> builder, string targetPath, string options)
-            where T : ApplicationModel.ContainerResource { throw null; }
-    }
-
     public static partial class CustomResourceExtensions
     {
         public static ApplicationModel.IResourceBuilder<TResource> WithInitialState<TResource>(this ApplicationModel.IResourceBuilder<TResource> builder, ApplicationModel.CustomResourceSnapshot initialSnapshot)
@@ -1027,8 +1021,6 @@ namespace Aspire.Hosting.ApplicationModel
         public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly) { }
 
         public bool IsReadOnly { get { throw null; } }
-
-        public string? Options { get { throw null; } set { } }
 
         public string? Source { get { throw null; } }
 
