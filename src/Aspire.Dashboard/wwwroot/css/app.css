@@ -455,7 +455,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .property-grid-container > fluent-accordion > fluent-accordion-item::part(heading) {
-    padding-left: calc(var(--design-unit) * 2 * 1px);
+    padding-left: calc(var(--design-unit) * 3.5px);
 }
 
 .property-grid-container fluent-accordion .fluent-data-grid {
