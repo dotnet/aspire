@@ -8,6 +8,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -36,6 +37,13 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(null, cancellationToken);
+
+            // Fail fast if central package management is detected, before prompting for channels.
+            if (projectFile is not null && UsesCentralPackageManagement(projectFile))
+            {
+                _interactionService.DisplayError(UpdateCommandStrings.CentralPackageManagementNotSupported);
+                return ExitCodeConstants.CentralPackageManagementNotSupported;
+            }
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
             var channel = await _interactionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);
@@ -44,10 +52,42 @@ internal sealed class UpdateCommand : BaseCommand
         }
         catch (ProjectUpdaterException ex)
         {
-            _interactionService.DisplayError(ex.Message);
+            var message = Markup.Escape(ex.Message);
+            _interactionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
 
         return 0;
+    }
+
+    private static bool UsesCentralPackageManagement(FileInfo projectFile)
+    {
+        // Heuristic 1: Presence of Directory.Packages.props in directory tree.
+        for (var current = projectFile.Directory; current is not null; current = current.Parent)
+        {
+            var directoryPackagesPropsPath = Path.Combine(current.FullName, "Directory.Packages.props");
+            if (File.Exists(directoryPackagesPropsPath))
+            {
+                return true;
+            }
+        }
+
+        // Heuristic 2: ManagePackageVersionsCentrally property inside project.
+        try
+        {
+            var doc = new System.Xml.XmlDocument { PreserveWhitespace = true };
+            doc.Load(projectFile.FullName);
+            var manageNode = doc.SelectSingleNode("/Project/PropertyGroup/ManagePackageVersionsCentrally");
+            if (manageNode?.InnerText.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            // Ignore parse errors.
+        }
+
+        return false;
     }
 }

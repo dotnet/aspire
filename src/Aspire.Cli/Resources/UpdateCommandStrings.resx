@@ -81,4 +81,7 @@
   <data name="UnxpectedCodePath" xml:space="preserve">
     <value>Unexpected code path.</value>
   </data>
+  <data name="CentralPackageManagementNotSupported" xml:space="preserve">
+    <value>Central package management is currently not supported by 'aspire update'.</value>
+  </data>
 </root>

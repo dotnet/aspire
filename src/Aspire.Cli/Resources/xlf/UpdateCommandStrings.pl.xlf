@@ -22,6 +22,11 @@
         <target state="new">Analyzing project...</target>
         <note />
       </trans-unit>
+      <trans-unit id="CentralPackageManagementNotSupported">
+        <source>Central package management is currently not supported by 'aspire update'.</source>
+        <target state="new">Central package management is currently not supported by 'aspire update'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="new">Could not find root &lt;Project&gt; element in {0}</target>
