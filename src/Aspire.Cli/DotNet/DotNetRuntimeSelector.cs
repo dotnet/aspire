@@ -36,9 +36,11 @@ internal sealed class DotNetRuntimeSelector(
     /// <inheritdoc />
     public async Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
     {
-        // Check environment variables first
-        var disablePrivateSdk = Environment.GetEnvironmentVariable("ASPIRE_DISABLE_PRIVATE_SDK") == "1";
-        var overrideVersion = Environment.GetEnvironmentVariable("ASPIRE_DOTNET_SDK_VERSION") 
+        // Check configuration first, then environment variables
+        var disablePrivateSdk = configuration["ASPIRE_DISABLE_PRIVATE_SDK"] == "1" 
+            || Environment.GetEnvironmentVariable("ASPIRE_DISABLE_PRIVATE_SDK") == "1";
+        var overrideVersion = configuration["ASPIRE_DOTNET_SDK_VERSION"]
+            ?? Environment.GetEnvironmentVariable("ASPIRE_DOTNET_SDK_VERSION") 
             ?? configuration["overrideMinimumSdkVersion"];
         
         // Load settings from ~/.aspire/settings.json
@@ -118,7 +120,8 @@ internal sealed class DotNetRuntimeSelector(
     {
         try
         {
-            var aspireHome = Environment.GetEnvironmentVariable("ASPIRE_HOME") 
+            var aspireHome = configuration["ASPIRE_HOME"]
+                ?? Environment.GetEnvironmentVariable("ASPIRE_HOME") 
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire");
             
             var settingsPath = Path.Combine(aspireHome, "settings.json");
@@ -162,7 +165,8 @@ internal sealed class DotNetRuntimeSelector(
 
     private async Task<bool> TryInitializePrivateAsync(string requiredVersion, CancellationToken cancellationToken)
     {
-        var aspireHome = Environment.GetEnvironmentVariable("ASPIRE_HOME") 
+        var aspireHome = configuration["ASPIRE_HOME"]
+            ?? Environment.GetEnvironmentVariable("ASPIRE_HOME") 
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire");
         
         var privateSdkPath = Path.Combine(aspireHome, "sdk", requiredVersion);
@@ -192,7 +196,8 @@ internal sealed class DotNetRuntimeSelector(
 
     private async Task<bool> OfferToInstallPrivateSdkAsync(string requiredVersion, string privateSdkPath, string privateDotNetPath, CancellationToken cancellationToken)
     {
-        var autoInstall = Environment.GetEnvironmentVariable("ASPIRE_AUTO_INSTALL") == "1";
+        var autoInstall = configuration["ASPIRE_AUTO_INSTALL"] == "1"
+            || Environment.GetEnvironmentVariable("ASPIRE_AUTO_INSTALL") == "1";
         
         if (!autoInstall)
         {
@@ -231,7 +236,7 @@ internal sealed class DotNetRuntimeSelector(
                     Directory.CreateDirectory(privateSdkPath);
 
                     ctx.Status($"Downloading and installing .NET SDK {requiredVersion}...");
-                    await InstallPrivateSdkAsync(requiredVersion, privateSdkPath, cancellationToken);
+                    await InstallPrivateSdkAsync(configuration, requiredVersion, privateSdkPath, cancellationToken);
                 });
 
             if (File.Exists(privateDotNetPath))
@@ -261,10 +266,11 @@ internal sealed class DotNetRuntimeSelector(
         }
     }
 
-    private static async Task InstallPrivateSdkAsync(string requiredVersion, string installPath, CancellationToken cancellationToken)
+    private static async Task InstallPrivateSdkAsync(IConfiguration configuration, string requiredVersion, string installPath, CancellationToken cancellationToken)
     {
         // Use dotnet-install script to install the SDK
-        var scriptUrl = Environment.GetEnvironmentVariable("ASPIRE_DOTNET_INSTALL_SCRIPT_URL");
+        var scriptUrl = configuration["ASPIRE_DOTNET_INSTALL_SCRIPT_URL"]
+            ?? Environment.GetEnvironmentVariable("ASPIRE_DOTNET_INSTALL_SCRIPT_URL");
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         
         if (string.IsNullOrEmpty(scriptUrl))

@@ -50,26 +50,21 @@ public class DotNetRuntimeSelectorTests
     public async Task InitializeAsync_WithDisablePrivateSdkEnvVar_StopsAtSystemCheck()
     {
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[]
+            {
+                new KeyValuePair<string, string?>("ASPIRE_DISABLE_PRIVATE_SDK", "1")
+            })
+            .Build();
         var sdkInstaller = new TestSdkInstaller { CheckResult = false };
         var interactionService = new TestInteractionService();
         var console = new TestAnsiConsole();
 
-        // Set environment variable
-        Environment.SetEnvironmentVariable("ASPIRE_DISABLE_PRIVATE_SDK", "1");
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, interactionService, console);
 
-        try
-        {
-            var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, interactionService, console);
+        var result = await selector.InitializeAsync();
 
-            var result = await selector.InitializeAsync();
-
-            Assert.False(result);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_DISABLE_PRIVATE_SDK", null);
-        }
+        Assert.False(result);
     }
 
     [Fact]
@@ -93,6 +88,42 @@ public class DotNetRuntimeSelectorTests
 
         Assert.True(result);
         Assert.Equal("8.0.100", sdkInstaller.LastCheckedVersion);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ConfigurationTakesPrecedenceOverEnvironment()
+    {
+        var logger = NullLogger<DotNetRuntimeSelector>.Instance;
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[]
+            {
+                new KeyValuePair<string, string?>("ASPIRE_DOTNET_SDK_VERSION", "9.0.100"),
+                new KeyValuePair<string, string?>("ASPIRE_AUTO_INSTALL", "1")
+            })
+            .Build();
+        var sdkInstaller = new TestSdkInstaller { CheckResult = true };
+        var interactionService = new TestInteractionService();
+        var console = new TestAnsiConsole();
+
+        // Set different values in environment variables
+        Environment.SetEnvironmentVariable("ASPIRE_DOTNET_SDK_VERSION", "8.0.100");
+        Environment.SetEnvironmentVariable("ASPIRE_AUTO_INSTALL", "0");
+
+        try
+        {
+            var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, interactionService, console);
+
+            var result = await selector.InitializeAsync();
+
+            Assert.True(result);
+            // Verify the configuration value was used, not the environment variable
+            Assert.Equal("9.0.100", sdkInstaller.LastCheckedVersion);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPIRE_DOTNET_SDK_VERSION", null);
+            Environment.SetEnvironmentVariable("ASPIRE_AUTO_INSTALL", null);
+        }
     }
 
     [Fact]
