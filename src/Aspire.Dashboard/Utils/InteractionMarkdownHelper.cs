@@ -15,11 +15,11 @@ public static class InteractionMarkdownHelper
         return (MarkupString)ToHtml(markdown);
     }
 
-    public static string ToHtml(string markdown)
+    public static string ToHtml(string markdown, bool allowAllLinkSchemesInMarkdown = false)
     {
         // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
         var hasNewline = markdown.Contains('\n') || markdown.Contains('\r');
 
-        return MarkdownHelpers.ToHtml(markdown, s_markdownPipeline, !hasNewline);
+        return MarkdownHelpers.ToHtml(markdown, s_markdownPipeline, !hasNewline, allowAllLinkSchemesInMarkdown);
     }
 }
