@@ -27,6 +27,10 @@
         "main";
 }
 
+::deep .details-container fluent-toolbar {
+    padding-left: calc(var(--design-unit) * 2px);
+}
+
 ::deep .details-container > header {
     height: auto;
     grid-row-start: 1;
