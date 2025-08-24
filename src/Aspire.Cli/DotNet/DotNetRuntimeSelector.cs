@@ -26,6 +26,8 @@ internal sealed class DotNetRuntimeSelector(
     private string? _dotNetExecutablePath;
     private DotNetRuntimeMode _mode = DotNetRuntimeMode.System;
     private readonly Dictionary<string, string> _environmentVariables = new();
+    private bool _userDeclinedInstallation;
+    private bool _initializationAttempted;
 
     /// <inheritdoc />
     public string DotNetExecutablePath => _dotNetExecutablePath ?? "dotnet";
@@ -36,6 +38,20 @@ internal sealed class DotNetRuntimeSelector(
     /// <inheritdoc />
     public async Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
     {
+        // If we've already attempted initialization and succeeded, return the cached result
+        if (_initializationAttempted && _dotNetExecutablePath is not null)
+        {
+            return true;
+        }
+        
+        // If we've already attempted initialization and the user declined, don't prompt again
+        if (_initializationAttempted && _userDeclinedInstallation)
+        {
+            return false;
+        }
+
+        _initializationAttempted = true;
+
         // Check configuration first, then environment variables
         var disablePrivateSdk = configuration["ASPIRE_DISABLE_PRIVATE_SDK"] == "1" 
             || Environment.GetEnvironmentVariable("ASPIRE_DISABLE_PRIVATE_SDK") == "1";
@@ -206,6 +222,7 @@ internal sealed class DotNetRuntimeSelector(
             
             if (!await interactionService.ConfirmAsync("Install private .NET SDK?", defaultValue: false, cancellationToken))
             {
+                _userDeclinedInstallation = true;
                 return false;
             }
         }
@@ -255,6 +272,7 @@ internal sealed class DotNetRuntimeSelector(
             else
             {
                 console.MarkupLine("[red]Failed to install private .NET SDK[/]");
+                _userDeclinedInstallation = true;
                 return false;
             }
         }
@@ -262,6 +280,7 @@ internal sealed class DotNetRuntimeSelector(
         {
             logger.LogError(ex, "Failed to install private .NET SDK");
             console.MarkupLine($"[red]Installation failed: {ex.Message}[/]");
+            _userDeclinedInstallation = true;
             return false;
         }
     }
