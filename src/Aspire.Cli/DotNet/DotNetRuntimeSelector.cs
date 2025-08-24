@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -202,6 +203,22 @@ internal sealed class DotNetRuntimeSelector(
             {
                 return false;
             }
+        }
+
+        // Acquire lock for this SDK version to prevent concurrent installations
+        using var sdkLock = await SdkLockHelper.AcquireSdkLockAsync(requiredVersion, cancellationToken);
+
+        // Check again if SDK was installed by another process while we were waiting for the lock
+        if (File.Exists(privateDotNetPath))
+        {
+            _mode = DotNetRuntimeMode.Private;
+            _dotNetExecutablePath = privateDotNetPath;
+            
+            // Set environment variables to isolate the private SDK
+            _environmentVariables["DOTNET_ROOT"] = privateSdkPath;
+            _environmentVariables["DOTNET_HOST_PATH"] = privateDotNetPath;
+            
+            return true;
         }
 
         try
