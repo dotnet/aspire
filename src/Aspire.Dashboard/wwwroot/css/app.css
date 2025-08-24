@@ -455,7 +455,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .property-grid-container > fluent-accordion > fluent-accordion-item::part(heading) {
-    padding-left: calc(var(--design-unit) * 3.5px);
+    padding-left: calc(var(--design-unit) * 2px);
 }
 
 .property-grid-container fluent-accordion .fluent-data-grid {
@@ -483,7 +483,9 @@ fluent-switch.table-switch::part(label) {
 }
 
 .property-grid-container fluent-accordion-item::part(region) {
-    padding-bottom: 0;
+    padding: 0;
+    /* overflow hidden masks content in the item's rounded borders */
+    overflow: hidden;
 }
 
 .property-grid-container fluent-accordion-item::part(heading-content) {
@@ -508,6 +510,11 @@ fluent-switch.table-switch::part(label) {
 /* Under the current dark theme, the fluent-badge background color was too dark on --neutral-layer-1 */
 [data-theme="dark"] .property-grid-container fluent-accordion-item fluent-badge::part(control) {
     background-color: var(--neutral-fill-active);
+}
+
+.property-grid-container tr:last-child td {
+    /* bottom of the table is at the bottom of an accordion item so hide the bottom row's bottom border */
+    border-bottom: none;
 }
 
 .items-footer {
