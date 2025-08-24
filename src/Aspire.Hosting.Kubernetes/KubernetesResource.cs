@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Kubernetes;
 
@@ -16,7 +16,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Host, int? ContainerPort, int? ServicePort, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
@@ -26,6 +26,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     internal List<VolumeMountV1> Volumes { get; } = [];
     internal List<PersistentVolume> PersistentVolumes { get; } = [];
     internal List<PersistentVolumeClaim> PersistentVolumeClaims { get; } = [];
+    internal PortAllocator ContainerPortAllocator { get; } = new(8080);
 
     /// <summary>
     /// </summary>
@@ -163,33 +164,31 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             return;
         }
 
-        foreach (var endpoint in endpoints)
+        int resolveTargetPort(EndpointAnnotation endpoint)
         {
-            if (resource is ProjectResource && endpoint.TargetPort is null)
+            if (endpoint.TargetPort is int port)
             {
-                GenerateDefaultProjectEndpointMapping(endpoint);
-                continue;
+                return port;
             }
 
-            var port = endpoint.TargetPort ?? throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
-            var portValue = port.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
+            if (resource is not ProjectResource)
+            {
+                throw new InvalidOperationException($"Unable to resolve port {endpoint.TargetPort} for endpoint {endpoint.Name} on resource {resource.Name}");
+            }
+
+            var dynamicTargetPort = ContainerPortAllocator.AllocatePort();
+            ContainerPortAllocator.AddUsedPort(dynamicTargetPort);
+            return dynamicTargetPort;
         }
-    }
 
-    private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
-    {
-        const string defaultPort = "8080";
+        foreach(var endpoint in endpoints)
+        {
+            var containerPort = resolveTargetPort(endpoint);
+            var servicePort = endpoint.Port ?? containerPort;
 
-        var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-
-        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
-        Parameters[paramName] = new(helmExpression, defaultPort);
-
-        var aspNetCoreUrlsExpression = "ASPNETCORE_URLS".ToHelmConfigExpression(resource.Name);
-        EnvironmentVariables["ASPNETCORE_URLS"] = new(aspNetCoreUrlsExpression, $"http://+:${defaultPort}");
-
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name, helmExpression);
+            EndpointMappings.Add(endpoint.Name, new(
+                endpoint.UriScheme, resource.Name.ToServiceName(), containerPort, servicePort, endpoint.Name));
+        }
     }
 
     private void ProcessVolumes()
