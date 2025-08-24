@@ -31,7 +31,8 @@ internal static class SdkInstallHelper
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(runtimeSelector);
 
-        // First, try to initialize the runtime selector (which may install a private SDK)
+        // Try to initialize the runtime selector (which may install a private SDK)
+        // If this succeeds, we have a working SDK available (either system or private)
         var isInitialized = await runtimeSelector.InitializeAsync(cancellationToken);
         
         if (!isInitialized)
@@ -41,16 +42,8 @@ internal static class SdkInstallHelper
             return false;
         }
 
-        // Re-check the SDK after initialization
-        var isSdkAvailable = await sdkInstaller.CheckAsync(cancellationToken);
-
-        if (!isSdkAvailable)
-        {
-            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, ErrorStrings.MininumSdkVersionMissing, DotNetSdkInstaller.MinimumSdkVersion);
-            interactionService.DisplayError(sdkErrorMessage);
-            return false;
-        }
-
+        // No need to re-check with sdkInstaller - if runtimeSelector initialized successfully,
+        // it means a working SDK is available and configured properly
         return true;
     }
 
