@@ -24,12 +24,10 @@
             IsSummaryDetailsViewOpen="@(SelectedData is not null)"
             @ref="@_layout">
             <PageTitleSection>
-                <div class="page-header">
-                    <h1>
-                        <span>@GetPageTitle()</span>
-                        <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>
-                </div>
+                <h1 class="page-header">
+                    <span>@GetPageTitle()</span>
+                    <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
+                </h1>
             </PageTitleSection>
             <ToolbarSection>
                 @if (ViewportInformation.IsDesktop)
@@ -329,7 +327,7 @@
         return @<FluentOverflow Class="trace-header-details">
             <ChildContent>
                 <FluentOverflowItem>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
                 </FluentOverflowItem>
                 <FluentOverflowItem>
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
