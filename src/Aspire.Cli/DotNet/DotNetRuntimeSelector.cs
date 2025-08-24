@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -20,13 +19,11 @@ internal sealed class DotNetRuntimeSelector(
     ILogger<DotNetRuntimeSelector> logger,
     IConfiguration configuration,
     IDotNetSdkInstaller sdkInstaller,
-    IInteractionService interactionService,
     IAnsiConsole console) : IDotNetRuntimeSelector
 {
     private string? _dotNetExecutablePath;
     private DotNetRuntimeMode _mode = DotNetRuntimeMode.System;
     private readonly Dictionary<string, string> _environmentVariables = new();
-    private bool _userDeclinedInstallation;
     private bool _initializationAttempted;
 
     /// <inheritdoc />
@@ -44,8 +41,8 @@ internal sealed class DotNetRuntimeSelector(
             return true;
         }
         
-        // If we've already attempted initialization and the user declined, don't prompt again
-        if (_initializationAttempted && _userDeclinedInstallation)
+        // If we've already attempted initialization and failed, don't try again
+        if (_initializationAttempted)
         {
             return false;
         }
@@ -89,7 +86,7 @@ internal sealed class DotNetRuntimeSelector(
                 }
                 else
                 {
-                    logger.LogError("System .NET SDK {Version} not available and private SDK disabled", requiredVersion);
+                    logger.LogError("Required dependencies not available and auto-install is disabled");
                     return false;
                 }
 
@@ -100,7 +97,7 @@ internal sealed class DotNetRuntimeSelector(
                 }
                 else
                 {
-                    logger.LogWarning("Private SDK requested but disabled by environment variable");
+                    logger.LogWarning("Auto-install requested but disabled by environment variable");
                     if (systemSdkAvailable)
                     {
                         _mode = DotNetRuntimeMode.System;
@@ -206,26 +203,23 @@ internal sealed class DotNetRuntimeSelector(
             return true;
         }
 
-        // Private SDK doesn't exist, offer to install it
-        return await OfferToInstallPrivateSdkAsync(requiredVersion, privateSdkPath, privateDotNetPath, cancellationToken);
+        // Private SDK doesn't exist, auto-install it
+        return await AutoInstallPrivateSdkAsync(requiredVersion, privateSdkPath, privateDotNetPath, cancellationToken);
     }
 
-    private async Task<bool> OfferToInstallPrivateSdkAsync(string requiredVersion, string privateSdkPath, string privateDotNetPath, CancellationToken cancellationToken)
+    private async Task<bool> AutoInstallPrivateSdkAsync(string requiredVersion, string privateSdkPath, string privateDotNetPath, CancellationToken cancellationToken)
     {
-        var autoInstall = configuration["ASPIRE_AUTO_INSTALL"] == "1"
-            || Environment.GetEnvironmentVariable("ASPIRE_AUTO_INSTALL") == "1";
+        // Check if auto-install is explicitly disabled
+        var disableAutoInstall = configuration["ASPIRE_DISABLE_AUTO_INSTALL"] == "1"
+            || Environment.GetEnvironmentVariable("ASPIRE_DISABLE_AUTO_INSTALL") == "1";
         
-        if (!autoInstall)
+        if (disableAutoInstall)
         {
-            console.MarkupLine($"[yellow]Required .NET SDK version {requiredVersion} is not available on the system PATH.[/]");
-            console.MarkupLine($"[green]Would you like to install a private copy under ~/.aspire/sdk?[/]");
-            
-            if (!await interactionService.ConfirmAsync("Install private .NET SDK?", defaultValue: false, cancellationToken))
-            {
-                _userDeclinedInstallation = true;
-                return false;
-            }
+            logger.LogError("Required dependencies not available and auto-install is disabled");
+            return false;
         }
+
+        console.MarkupLine($"[yellow]Installing required dependencies...[/]");
 
         // Acquire lock for this SDK version to prevent concurrent installations
         using var sdkLock = await SdkLockHelper.AcquireSdkLockAsync(requiredVersion, cancellationToken);
@@ -247,18 +241,18 @@ internal sealed class DotNetRuntimeSelector(
         {
             await console.Status()
                 .Spinner(Spinner.Known.Dots)
-                .StartAsync($"Installing .NET SDK {requiredVersion}...", async ctx =>
+                .StartAsync($"Installing dependencies...", async ctx =>
                 {
                     ctx.Status($"Creating directory {privateSdkPath}...");
                     Directory.CreateDirectory(privateSdkPath);
 
-                    ctx.Status($"Downloading and installing .NET SDK {requiredVersion}...");
+                    ctx.Status($"Downloading and installing dependencies...");
                     await InstallPrivateSdkAsync(configuration, requiredVersion, privateSdkPath, cancellationToken);
                 });
 
             if (File.Exists(privateDotNetPath))
             {
-                console.MarkupLine($"[green]Successfully installed private .NET SDK to {privateSdkPath}[/]");
+                console.MarkupLine($"[green]Successfully installed required dependencies[/]");
                 
                 _mode = DotNetRuntimeMode.Private;
                 _dotNetExecutablePath = privateDotNetPath;
@@ -271,16 +265,14 @@ internal sealed class DotNetRuntimeSelector(
             }
             else
             {
-                console.MarkupLine("[red]Failed to install private .NET SDK[/]");
-                _userDeclinedInstallation = true;
+                console.MarkupLine("[red]Failed to install required dependencies[/]");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to install private .NET SDK");
+            logger.LogError(ex, "Failed to install required dependencies");
             console.MarkupLine($"[red]Installation failed: {ex.Message}[/]");
-            _userDeclinedInstallation = true;
             return false;
         }
     }

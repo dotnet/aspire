@@ -103,8 +103,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">최소 .NET SDK 버전({0})이 설치되어 있지 않습니다. .NET SDK를 다운로드하고 설치하려면 https://get.dot.net에 방문하세요.</target>
+        <source>Required dependencies are not available. This will be automatically resolved on first use.</source>
+        <target state="new">Required dependencies are not available. This will be automatically resolved on first use.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">

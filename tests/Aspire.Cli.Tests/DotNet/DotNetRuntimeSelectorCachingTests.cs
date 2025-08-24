@@ -30,7 +30,7 @@ public class DotNetRuntimeSelectorCachingTests
         var interactionService = new TestInteractionServiceWithConfirmTracking(false); // User declines
         var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, interactionService, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
 
         // Act - First call should prompt the user
         var firstResult = await selector.InitializeAsync();
@@ -59,7 +59,7 @@ public class DotNetRuntimeSelectorCachingTests
         var interactionService = new TestInteractionServiceWithConfirmTracking(true);
         var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, interactionService, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
 
         // Act
         var firstResult = await selector.InitializeAsync();
