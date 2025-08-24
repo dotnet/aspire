@@ -117,6 +117,11 @@ public class Program
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
+        
+        // .NET Runtime Selection and Process Launching
+        builder.Services.AddSingleton<IDotNetRuntimeSelector, DotNetRuntimeSelector>();
+        builder.Services.AddSingleton<IProcessLauncher, ProcessLauncher>();
+        
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService<NuGetPackagePrefetcher>();
@@ -207,6 +212,10 @@ public class Program
         Console.OutputEncoding = Encoding.UTF8;
 
         using var app = await BuildApplicationAsync(args);
+
+        // Initialize the .NET runtime selector 
+        var runtimeSelector = app.Services.GetRequiredService<IDotNetRuntimeSelector>();
+        await runtimeSelector.InitializeAsync();
 
         await app.StartAsync().ConfigureAwait(false);
 
