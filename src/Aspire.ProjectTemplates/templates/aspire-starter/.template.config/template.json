@@ -589,5 +589,17 @@
       "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
       "continueOnError": true
     }
-  ]
+  ],
+  "specialCustomOperations": {
+    "*.slnx": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "style": "xml"
+          }
+        }
+      ]
+    }
+  }
 }
