@@ -56,6 +56,10 @@ internal sealed class UpdateCommand : BaseCommand
             _interactionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
+        catch (ProjectLocatorException ex)
+        {
+            return HandleProjectLocatorException(ex, _interactionService);
+        }
 
         return 0;
     }
