@@ -48,13 +48,24 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         },
         {
           "condition": "(TestFx == None)",
           "exclude": [
-            "Aspire-StarterApplication.1.Tests/**/*.*"
+            "Aspire-StarterApplication.1.Tests/**/*.*",
+            "Aspire-StarterApplication.1.slnx"
+          ],
+          "rename": {
+            "Aspire-StarterApplication.1.NoTests.slnx": "Aspire-StarterApplication.1.slnx"
+          }
+        },
+        {
+          "condition": "(TestFx != None)",
+          "exclude": [
+            "Aspire-StarterApplication.1.NoTests.slnx"
           ]
         }
       ]
@@ -67,13 +78,24 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
-            "*.sln"
+            "*.sln",
+            "*.slnx"
           ]
         },
         {
           "condition": "(TestFx == None)",
           "exclude": [
-            "Aspire-StarterApplication.1.Tests/**/*.*"
+            "Aspire-StarterApplication.1.Tests/**/*.*",
+            "Aspire-StarterApplication.1.slnx"
+          ],
+          "rename": {
+            "Aspire-StarterApplication.1.NoTests.slnx": "Aspire-StarterApplication.1.slnx"
+          }
+        },
+        {
+          "condition": "(TestFx != None)",
+          "exclude": [
+            "Aspire-StarterApplication.1.NoTests.slnx"
           ]
         }
       ]
@@ -544,7 +566,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire-StarterApplication.1.sln",
+      "path": "Aspire-StarterApplication.1.slnx",
       "condition": "(hostIdentifier == \"dotnetcli\" || hostIdentifier == \"dotnetcli-preview\")"
     },
     {
