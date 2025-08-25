@@ -64,7 +64,10 @@ internal sealed class RunCommand : BaseCommand
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
 
-        var projectArgument = new Argument<FileInfo?>("project");
+        var projectArgument = new Argument<FileInfo?>("project")
+        {
+            Arity = ArgumentArity.ZeroOrOne
+        };
         Arguments.Add(projectArgument);
 
         var projectOption = new Option<FileInfo?>("--project");
@@ -136,13 +139,17 @@ internal sealed class RunCommand : BaseCommand
                 if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                    if (buildExitCode != 0)
+                    // Skip build for single files - they don't need to be built, just run directly
+                    if (!isSingleFile)
                     {
-                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                        return ExitCodeConstants.FailedToBuildArtifacts;
+                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                        if (buildExitCode != 0)
+                        {
+                            _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                            _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                            return ExitCodeConstants.FailedToBuildArtifacts;
+                        }
                     }
                 }
             }
