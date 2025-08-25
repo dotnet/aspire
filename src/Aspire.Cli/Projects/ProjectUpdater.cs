@@ -244,7 +244,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
             var updateStep = new UpdateStep(
                 string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage.Version),
-                () => UpdatePackageReferenceInProject(projectFile, latestPackage, context, cancellationToken));
+                () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken));
             context.UpdateSteps.Enqueue(updateStep);
         }
     }
@@ -256,9 +256,8 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             || packageId.Equals("Microsoft.Extensions.ServiceDiscovery");
     }
 
-    private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, UpdateContext context, CancellationToken cancellationToken)
+    private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, CancellationToken cancellationToken)
     {
-        _ = context;
         var exitCode = await runner.AddPackageAsync(
             projectFilePath: projectFile,
             packageName: package.Id,
@@ -282,14 +281,9 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
 }
 
-internal record UpdateStep(string Description, Func<Task> Callback)
-{
-}
+internal record UpdateStep(string Description, Func<Task> Callback);
 
-internal record AnalyzeStep(string Description, Func<Task> Callback)
-{
-    
-}
+internal record AnalyzeStep(string Description, Func<Task> Callback);
 
 internal sealed class ProjectUpdaterException : System.Exception
 {
