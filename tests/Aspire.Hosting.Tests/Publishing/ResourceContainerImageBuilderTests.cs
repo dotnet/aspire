@@ -474,6 +474,96 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task BuildImageAsync_WithInvalidProject_ReturnsFalseAndThrowsException()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a temporary project structure with invalid project file content
+        // This ensures launch settings processing succeeds but dotnet publish fails
+        // to make accurately reflect the failure mode
+        var (tempProjectPath, tempProjectDirectory) = await CreateTemporaryCorruptedProjectAsync();
+
+        var invalidProject = builder.AddProject("invalid-project", tempProjectPath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // This throws a DistributedApplicationException from the ResourceContainerImageBuilder
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() =>
+            imageBuilder.BuildImagesAsync([invalidProject.Resource], options: null, cts.Token));
+
+        Assert.Equal("Failed to build container image.", exception.Message);
+
+        // Validate that the build process handled the error gracefully
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check that the build was attempted but failed due to the corrupted project file
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource invalid-project"));
+        Assert.Contains(logs, log => log.Message.Contains("dotnet publish") && log.Level >= LogLevel.Error);
+
+        // Clean up the temporary files
+        try
+        {
+            Directory.Delete(tempProjectDirectory, recursive: true);
+        }
+        catch
+        {
+            // Ignore cleanup errors in tests
+        }
+    }
+
+    private static async Task<(string ProjectPath, string ProjectDirectory)> CreateTemporaryCorruptedProjectAsync()
+    {
+        var tempProjectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempProjectDirectory);
+
+        // Create Properties directory for launch settings (so launch settings processing doesn't fail)
+        var propertiesDir = Path.Combine(tempProjectDirectory, "Properties");
+        Directory.CreateDirectory(propertiesDir);
+
+        // Create a valid launchSettings.json to avoid launch settings errors
+        var launchSettingsPath = Path.Combine(propertiesDir, "launchSettings.json");
+        var launchSettingsContent = """
+            {
+              "profiles": {
+                "http": {
+                  "commandName": "Project",
+                  "applicationUrl": "http://localhost:5000"
+                }
+              }
+            }
+            """;
+        await File.WriteAllTextAsync(launchSettingsPath, launchSettingsContent);
+
+        // Create a corrupted project file that will cause dotnet publish to fail
+        var tempProjectPath = Path.Combine(tempProjectDirectory, "InvalidProject.csproj");
+        var corruptedProjectContent = """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup>
+                <TargetFramework>net9.0</TargetFramework>
+                <!-- Missing closing tag to make this invalid XML -->
+                <PublishProfile>DefaultContainer
+              </PropertyGroup>
+              <!-- This will cause MSBuild to fail -->
+              <InvalidElement>
+                This is not valid MSBuild XML
+            """;
+        await File.WriteAllTextAsync(tempProjectPath, corruptedProjectContent);
+
+        return (tempProjectPath, tempProjectDirectory);
+    }
+
     private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
     {
         public string Name => "fake-runtime";
