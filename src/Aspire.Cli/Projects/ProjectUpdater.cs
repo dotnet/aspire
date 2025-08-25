@@ -22,7 +22,7 @@ internal interface IProjectUpdater
 
 internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext) : IProjectUpdater
 {
-    public async Task UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken)
+    public async Task UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
 
@@ -42,13 +42,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             interactionService.DisplayMessage("package", updateStep.Description);
         }
 
-        var result = await interactionService.PromptForSelectionAsync(
-            UpdateCommandStrings.PerformUpdatesPrompt,
-            [TemplatingStrings.Yes, TemplatingStrings.No],
-            s => s,
-            cancellationToken);
-
-        if (result != TemplatingStrings.Yes)
+        if (!await interactionService.ConfirmAsync(UpdateCommandStrings.PerformUpdatesPrompt, true, cancellationToken))
         {
             return;
         }
@@ -152,10 +146,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private Task AnalyzeAppHostAsync(UpdateContext context, CancellationToken cancellationToken)
     {
-    var appHostSdkAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHostSdk, () => AnalyzeAppHostSdkAsync(context, cancellationToken));
+        var appHostSdkAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHostSdk, () => AnalyzeAppHostSdkAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostSdkAnalyzeStep);
 
-    var appHostProjectAnalyzeStep = new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, context.AppHostProjectFile.FullName), () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
+        var appHostProjectAnalyzeStep = new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, context.AppHostProjectFile.FullName), () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostProjectAnalyzeStep);
 
         return Task.CompletedTask;
