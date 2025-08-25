@@ -190,11 +190,12 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
+    public async Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
     {
         // Use provided state or aggregate from all steps
         var finalState = completionState ?? CalculateOverallAggregatedState();
 
+        var operationName = isDeploy ? "Deployment" : "Publishing";
         var state = new PublishingActivity
         {
             Type = PublishingActivityTypes.PublishComplete,
@@ -203,10 +204,10 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 Id = PublishingActivityTypes.PublishComplete,
                 StatusText = completionMessage ?? finalState switch
                 {
-                    CompletionState.Completed => "Publishing completed successfully",
-                    CompletionState.CompletedWithWarning => "Publishing completed with warnings",
-                    CompletionState.CompletedWithError => "Publishing completed with errors",
-                    _ => "Publishing completed"
+                    CompletionState.Completed => $"{operationName} completed successfully",
+                    CompletionState.CompletedWithWarning => $"{operationName} completed with warnings",
+                    CompletionState.CompletedWithError => $"{operationName} completed with errors",
+                    _ => $"{operationName} completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState)
             }
@@ -262,12 +263,6 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 
     private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
     {
-        // Only handle input interaction types
-        if (interaction.InteractionInfo is not Interaction.InputsInteractionInfo inputsInfo || inputsInfo.Inputs.Count == 0)
-        {
-            return;
-        }
-
         if (interaction.State == Interaction.InteractionState.InProgress)
         {
             if (HasStepsInProgress())
@@ -285,33 +280,67 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 return;
             }
 
-            var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
+            // Handle input interaction types
+            if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo && inputsInfo.Inputs.Count > 0)
             {
-                Label = input.Label,
-                InputType = input.InputType.ToString(),
-                Required = input.Required,
-                Options = input.Options,
-                Value = input.Value,
-                ValidationErrors = input.ValidationErrors
-            }).ToList();
-
-            var activity = new PublishingActivity
-            {
-                Type = PublishingActivityTypes.Prompt,
-                Data = new PublishingActivityData
+                var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
-                    Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
-                    StatusText = interaction.Message ?? $"{interaction.Title}: ",
-                    CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                    Inputs = promptInputs
-                }
-            };
+                    Label = input.EffectiveLabel,
+                    InputType = input.InputType.ToString(),
+                    Required = input.Required,
+                    Options = input.Options,
+                    Value = input.Value,
+                    ValidationErrors = input.ValidationErrors
+                }).ToList();
 
-            await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+                var activity = new PublishingActivity
+                {
+                    Type = PublishingActivityTypes.Prompt,
+                    Data = new PublishingActivityData
+                    {
+                        Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
+                        StatusText = interaction.Message ?? $"{interaction.Title}: ",
+                        CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
+                        Inputs = promptInputs
+                    }
+                };
+
+                await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+            }
+            // Handle notification interaction types (PromptNotificationAsync)
+            else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
+            {
+                var promptInputs = new List<PublishingPromptInput>
+                {
+                    new PublishingPromptInput
+                    {
+                        Label = "Confirm",
+                        InputType = "Boolean",
+                        Required = true,
+                        Options = null,
+                        Value = null,
+                        ValidationErrors = null
+                    }
+                };
+
+                var activity = new PublishingActivity
+                {
+                    Type = PublishingActivityTypes.Prompt,
+                    Data = new PublishingActivityData
+                    {
+                        Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
+                        StatusText = interaction.Message ?? $"{interaction.Title}: ",
+                        CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
+                        Inputs = promptInputs
+                    }
+                };
+
+                await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
-    internal async Task CompleteInteractionAsync(string promptId, string?[]? responses, CancellationToken cancellationToken = default)
+    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, CancellationToken cancellationToken = default)
     {
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
@@ -325,7 +354,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         {
                             for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
                             {
-                                inputsInfo.Inputs[i].Value = responses[i] ?? "";
+                                inputsInfo.Inputs[i].Value = responses[i].Value ?? "";
                             }
                         }
 
@@ -333,6 +362,22 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         {
                             Complete = true,
                             State = inputsInfo.Inputs
+                        };
+                    }
+                    else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
+                    {
+                        // Handle notification interactions with boolean result
+                        bool result = false;
+                        if (responses is not null && responses.Length > 0)
+                        {
+                            // Parse the boolean value from the first response
+                            result = bool.TryParse(responses[0].Value, out var parsedValue) && parsedValue;
+                        }
+
+                        return new InteractionCompletionState
+                        {
+                            Complete = true,
+                            State = result
                         };
                     }
 

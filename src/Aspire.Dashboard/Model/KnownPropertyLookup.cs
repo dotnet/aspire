@@ -24,10 +24,10 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             new(KnownProperties.Resource.DisplayName, loc => loc[nameof(ResourcesDetailsDisplayNameProperty)]),
             new(KnownProperties.Resource.State, loc => loc[nameof(ResourcesDetailsStateProperty)]),
+            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.StartTime, loc => loc[nameof(ResourcesDetailsStartTimeProperty)]),
             new(KnownProperties.Resource.StopTime, loc => loc[nameof(ResourcesDetailsStopTimeProperty)]),
             new(KnownProperties.Resource.ExitCode, loc => loc[nameof(ResourcesDetailsExitCodeProperty)]),
-            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.ConnectionString, loc => loc[nameof(ResourcesDetailsConnectionStringProperty)])
         ];
 
@@ -35,6 +35,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             .. _resourceProperties,
             new(KnownProperties.Project.Path, loc => loc[nameof(ResourcesDetailsProjectPathProperty)]),
+            new(KnownProperties.Project.LaunchProfile, loc => loc[nameof(ResourcesDetailsProjectLaunchProfileProperty)]),
             new(KnownProperties.Executable.Pid, loc => loc[nameof(ResourcesDetailsExecutableProcessIdProperty)]),
         ];
 

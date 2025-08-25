@@ -26,7 +26,10 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource> WithHostPort(this ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource> builder, int? port) { throw null; }
 
+        [System.Obsolete("Use WithInitFiles instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source, bool isReadOnly = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithPassword(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> password) { throw null; }
 

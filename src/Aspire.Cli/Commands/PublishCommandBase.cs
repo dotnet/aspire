@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,6 +26,10 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
+    protected readonly IDotNetSdkInstaller _sdkInstaller;
+
+    protected abstract string OperationCompletedPrefix { get; }
+    protected abstract string OperationFailedPrefix { get; }
 
     private static bool IsCompletionStateComplete(string completionState) =>
         completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
@@ -35,18 +40,20 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
         : base(name, description, features, updateNotifier)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
         _interactionService = interactionService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
+        _sdkInstaller = sdkInstaller;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -69,13 +76,17 @@ internal abstract class PublishCommandBase : BaseCommand
     protected abstract string GetOutputPathDescription();
     protected abstract string GetDefaultOutputPath(ArgumentResult result);
     protected abstract string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens);
-    protected abstract string GetSuccessMessage(string fullyQualifiedOutputPath);
-    protected abstract string GetFailureMessage(int exitCode);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Check if the .NET SDK is available
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        {
+            return ExitCodeConstants.SdkNotInstalled;
+        }
+
         var buildOutputCollector = new OutputCollector();
         var operationOutputCollector = new OutputCollector();
 
@@ -189,25 +200,9 @@ internal abstract class PublishCommandBase : BaseCommand
             _interactionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
+        catch (ProjectLocatorException ex)
         {
-            _interactionService.DisplayError(InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
-            return ExitCodeConstants.FailedToFindProject;
+            return HandleProjectLocatorException(ex, _interactionService);
         }
         catch (AppHostIncompatibleException ex)
         {
@@ -396,10 +391,10 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var prefix = hasErrors
-                ? "[red]✗ PUBLISHING FAILED:[/]"
-: hasWarnings
-                    ? "[yellow]⚠ PUBLISHING COMPLETED:[/]"
-                    : "[green]✓ PUBLISHING COMPLETED:[/]";
+                ? $"[red]✗ {OperationFailedPrefix}:[/]"
+                : hasWarnings
+                    ? $"[yellow]⚠ {OperationCompletedPrefix}:[/]"
+                    : $"[green]✓ {OperationCompletedPrefix}:[/]";
 
             AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
         }
@@ -428,11 +423,12 @@ internal abstract class PublishCommandBase : BaseCommand
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
         if (!hasValidationErrors && inputs.Count > 1)
         {
-            AnsiConsole.MarkupLine($"[bold]{activity.Data.StatusText.EscapeMarkup()}[/]");
+            var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+            AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
         }
 
         // Handle multiple inputs
-        var results = new string?[inputs.Count];
+        var answers = new PublishingPromptInputAnswer[inputs.Count];
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
@@ -445,9 +441,13 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 // For multiple inputs, use the input label as the prompt
                 // For single input, use the activity status text as the prompt
-                var promptText = inputs.Count > 1
+                var basePromptText = inputs.Count > 1
                     ? $"{input.Label}: "
-                    : $"[bold]{activity.Data.StatusText}[/]";
+                    : activity.Data.StatusText;
+                
+                var promptText = inputs.Count > 1
+                    ? MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)
+                    : $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)}[/]";
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
@@ -456,11 +456,14 @@ internal abstract class PublishCommandBase : BaseCommand
                 result = input.Value;
             }
 
-            results[i] = result;
+            answers[i] = new PublishingPromptInputAnswer
+            {
+                Value = result
+            };
         }
 
         // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, results, cancellationToken);
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

@@ -2,9 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="translated">正在連接到主控處理程序...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">儀表板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Aspire 儀表板啟動失敗。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -47,6 +57,11 @@
         <target state="translated">無法執行專案。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForDebugging">
+        <source>Do you want to start a debugging session?</source>
+        <target state="translated">您想要啟動偵錯工作階段嗎?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">資源</target>
@@ -58,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">正在啟動 Aspire 儀表板...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">正在啟動儀表板...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_appenv_name": "{existing-appenv-name.value}",
+    "existing_appenv_rg": "{existing-appenv-rg.value}"
+  }
+}

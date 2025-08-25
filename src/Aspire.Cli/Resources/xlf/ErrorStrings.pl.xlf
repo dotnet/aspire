@@ -17,6 +17,11 @@
         <target state="translated">Plik AppHost został określony w ścieżce „{0}”, ale nie istnieje w lokalizacji „{1}”.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">Wartość parametru AspireHostingVersion to null</target>
@@ -82,6 +87,11 @@
         <target state="translated">Nie można przeanalizować wersji szablonu z właściwości StdOut.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nie można pobrać pakietów szablonów za pośrednictwem pamięci podręcznej.</target>
@@ -100,6 +110,11 @@
       <trans-unit id="InvalidSocketPath">
         <source>The provided extension socket path needs two valid parts.</source>
         <target state="translated">Podana ścieżka gniazda rozszerzenia wymaga dwóch prawidłowych części.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MininumSdkVersionMissing">
+        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
+        <target state="translated">Minimalna wersja zestawu .NET SDK ({0}) nie jest zainstalowana. Odwiedź stronę https://get.dot.net, aby pobrać i zainstalować zestaw .NET SDK.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -125,6 +140,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="translated">Plik projektu nie istnieje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="new">Could not build: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

@@ -350,6 +350,42 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.BicepText, extension: "bicep");
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureWebPubSubResource()
+    {
+        // Arrange
+        var webPubSubResource = new AzureWebPubSubResource("test-webpubsub", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(webPubSubResource, "test-webpubsub");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = webPubSubResource.AddAsExistingResource(infrastructure);
+        var secondResult = webPubSubResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureWebPubSubResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-webpubsub-name");
+        var existingResourceGroup = builder.AddParameter("existing-webpubsub-rg");
+
+        var webPubSub = builder.AddAzureWebPubSub("test-webpubsub")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = webPubSub.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

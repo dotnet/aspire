@@ -36,7 +36,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var nuGetPackageCache = provider.GetRequiredService<INuGetPackageCache>();
-        var packages = await nuGetPackageCache.GetCliPackagesAsync(workspace.WorkspaceRoot, prerelease: true, source: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        var packages = await nuGetPackageCache.GetCliPackagesAsync(workspace.WorkspaceRoot, prerelease: true, nugetConfigFile: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Collection(
             packages,

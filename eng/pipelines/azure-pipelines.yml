@@ -81,10 +81,6 @@ variables:
       value: true
 
 resources:
-  containers:
-  - container: LinuxContainer
-    image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
-
   repositories:
   - repository: 1ESPipelineTemplates
     type: git
@@ -109,6 +105,22 @@ extends:
         enabled: true
     customBuildTags:
     - ES365AIMigrationTooling
+    containers:
+      linux_x64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-amd64
+        env:
+          SysRoot: /crossrootfs/x64
+          LinkerFlavor: lld
+      linux_arm64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-arm64
+        env:
+          SysRoot: /crossrootfs/arm64
+          LinkerFlavor: lld
+      linux_musl_x64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-amd64-musl
+        env:
+          SysRoot: /crossrootfs/x64
+          LinkerFlavor: lld
 
     stages:
 
@@ -134,6 +146,8 @@ extends:
           agentOs: linux
           targetRidsForSameOS:
             - linux-x64
+            - linux-arm64
+            - linux-musl-x64
           # no need to sign ELF binaries on linux
           codeSign: false
           teamName: $(_TeamName)
@@ -222,8 +236,6 @@ extends:
                     - win-arm64
                     # non-aot - single file builds
                     - win-x86
-                    - linux-arm64
-                    - linux-musl-x64
 
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
@@ -232,4 +244,3 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
-

@@ -1,4 +1,4 @@
-﻿@using Aspire.Dashboard.Components.Pages
+﻿@using Metrics = Aspire.Dashboard.Resources.Metrics
 
 @inject IStringLocalizer<Metrics> Loc
 
@@ -9,7 +9,7 @@
 
 @if (IncludeLabel)
 {
-    <FluentInputLabel Label="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]" ForId="metric-selector" />
+    <FluentInputLabel Label="@Loc[nameof(Metrics.MetricsInsturementNameGridNameColumnHeader)]" ForId="metric-selector" />
 }
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">

@@ -17,6 +17,7 @@ jobs:
       enableTelemetry: true
       # Publish build logs
       enablePublishBuildArtifacts: true
+      container: ${{ replace(targetRid, '-', '_') }}
 
       jobs:
       - job: BuildNative_${{ replace(targetRid, '-', '_') }}

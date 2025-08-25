@@ -69,16 +69,16 @@ public partial class StructuredLogsTests : DashboardTestContext
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
         {
-            builder.Add(p => p.ApplicationName, "TestApp");
+            builder.Add(p => p.ResourceName, "TestApp");
             builder.Add(p => p.ViewportInformation, viewport);
         });
 
         // Assert
         var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
 
-        Assert.NotNull(viewModel.ApplicationKey);
-        Assert.Equal("TestApp", viewModel.ApplicationKey.Value.Name);
-        Assert.Equal("abc-def", viewModel.ApplicationKey.Value.InstanceId);
+        Assert.NotNull(viewModel.ResourceKey);
+        Assert.Equal("TestApp", viewModel.ResourceKey.Value.Name);
+        Assert.Equal("abc-def", viewModel.ResourceKey.Value.InstanceId);
     }
 
     [Fact]

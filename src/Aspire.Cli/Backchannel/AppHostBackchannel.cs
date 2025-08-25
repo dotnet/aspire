@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -14,14 +15,15 @@ namespace Aspire.Cli.Backchannel;
 internal interface IAppHostBackchannel
 {
     Task RequestStopAsync(CancellationToken cancellationToken);
-    Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken);
+    Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync(CancellationToken cancellationToken);
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken);
+    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
+    void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -46,19 +48,18 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             cancellationToken);
     }
 
-    public async Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken)
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogDebug("Requesting dashboard URL");
 
-        var url = await rpc.InvokeWithCancellationAsync<DashboardUrlsState>(
+        var state = await rpc.InvokeWithCancellationAsync<DashboardUrlsState>(
             "GetDashboardUrlsAsync",
             [],
             cancellationToken);
-
-        return (url.BaseUrlWithLoginToken, url.CodespacesUrlWithLoginToken);
+        return state;
     }
 
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -182,7 +183,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         return capabilities;
     }
 
-    public async Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -211,6 +212,13 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         {
             yield return commandOutput;
         }
+    }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        Debug.Assert(_rpcTaskCompletionSource.Task.IsCompletedSuccessfully);
+        var rpc = _rpcTaskCompletionSource.Task.Result;
+        rpc.Disconnected += onDisconnected;
     }
 }
 

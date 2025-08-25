@@ -52,19 +52,14 @@
         <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane między {0} a {1}, liczba odfiltrowanych dzienników: {2}&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Akcje zasobów</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Wybierz zasób</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Ustawienia dzienników konsoli</target>
+        <source>Settings</source>
+        <target state="translated">Ustawienia</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">

@@ -122,9 +122,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required
                                 };
-                                if (input.Label != null)
+                                if (input.EffectiveLabel != null)
                                 {
-                                    dto.Label = input.Label;
+                                    dto.Label = input.EffectiveLabel;
                                 }
                                 if (input.Description != null)
                                 {
@@ -142,6 +142,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.MaxLength != null)
+                                {
+                                    dto.MaxLength = input.MaxLength.Value;
                                 }
                                 dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;

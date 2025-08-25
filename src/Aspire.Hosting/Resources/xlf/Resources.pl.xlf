@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../Resources.resx">
+    <body>
+      <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
+        <source>Anonymous volumes cannot be read-only.</source>
+        <target state="translated">Woluminy anonimowe nie mogą być tylko do odczytu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">Instalacje powiązań muszą określać ścieżkę bezwzględną.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
+        <source>Bind mounts must specify a source path.</source>
+        <target state="translated">Instalacje wiązania muszą określać ścieżkę źródłową.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpDependencyCheckFailedMessage">
+        <source>Application orchestrator dependency check returned an error: {0}</source>
+        <target state="translated">Kontrola zależności orkiestratora aplikacji zwróciło błąd: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpVersionCheckTooLowMessage">
+        <source>Newer version of the Aspire.Hosting.AppHost package is required to run the application. Ensure you are referencing at least version '{0}'.</source>
+        <target state="translated">Do uruchomienia aplikacji jest wymagana nowsza wersja pakietu Aspire.Hosting.AppHost. Upewnij się, że odwołujesz się do co najmniej wersji „{0}”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
+        <source>Launch settings file does not contain '{0}' profile.</source>
+        <target state="translated">Plik ustawień uruchamiania nie zawiera profilu „{0}”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectDoesNotContainMetadataExceptionMessage">
+        <source>Project does not contain project metadata.</source>
+        <target state="translated">Projekt nie zawiera metadanych projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileNotFoundExceptionMessage">
+        <source>Project file '{0}' was not found.</source>
+        <target state="translated">Nie znaleziono pliku projektu „{0}”.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

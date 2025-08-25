@@ -2,9 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="translated">Connessione all'host delle app in corso...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Dashboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Avvio del dashboard di Aspire non riuscito.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -47,6 +57,11 @@
         <target state="translated">Non è possibile eseguire il progetto. Per altre informazioni, eseguire con l'opzione --debug.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptForDebugging">
+        <source>Do you want to start a debugging session?</source>
+        <target state="translated">Avviare una sessione di debug?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">Risorsa</target>
@@ -58,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Avvio del dashboard Aspire in corso...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">Avvio del dashboard in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

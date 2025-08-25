@@ -26,6 +26,8 @@ internal static class StructuredLogsSetupHelpers
         context.Services.AddSingleton<DashboardTelemetryService>();
         context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
+        context.Services.AddSingleton<PauseManager>();
+        context.Services.AddSingleton<IDashboardClient>(new TestDashboardClient());
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 

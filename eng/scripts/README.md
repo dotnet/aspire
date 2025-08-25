@@ -9,11 +9,11 @@ This directory contains scripts to download and install the Aspire CLI for diffe
 
 ## Current Limitations
 
-⚠️ **Important**: Currently, only the following combination works:
-- **Version**: `9.0`
-- **Quality**: `daily`
+Supported Quality values:
 
-Other version/quality combinations are not yet available through the download URLs.
+- `dev` - builds from the `main` branch
+- `staging` - builds from the current `release` branch like `release/9.4`
+- `release` - build for the latest release
 
 ## Parameters
 
@@ -23,7 +23,7 @@ Other version/quality combinations are not yet available through the download UR
 |------------------|-------|---------------------------------------------------|-----------------------|
 | `--install-path` | `-i`  | Directory to install the CLI                      | `$HOME/.aspire/bin`   |
 | `--version`      |       | Version of the Aspire CLI to download             | `9.0`                 |
-| `--quality`      | `-q`  | Quality to download                               | `daily`               |
+| `--quality`      | `-q`  | Quality to download                               | `release`             |
 | `--os`           |       | Operating system (auto-detected if not specified) | auto-detect           |
 | `--arch`         |       | Architecture (auto-detected if not specified)     | auto-detect           |
 | `--keep-archive` | `-k`  | Keep downloaded archive files after installation  | `false`               |
@@ -32,15 +32,15 @@ Other version/quality combinations are not yet available through the download UR
 
 ### PowerShell Script (`get-aspire-cli.ps1`)
 
-| Parameter       | Description                                       | Default                          |
-|-----------------|---------------------------------------------------|----------------------------------|
-| `-InstallPath`  | Directory to install the CLI                     | `$HOME/.aspire/bin` (Unix) / `%USERPROFILE%\.aspire\bin` (Windows) |
-| `-Version`      | Version of the Aspire CLI to download             | `9.0`                            |
-| `-Quality`      | Quality to download                               | `daily`                          |
-| `-OS`           | Operating system (auto-detected if not specified) | auto-detect                      |
-| `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect                      |
-| `-KeepArchive`  | Keep downloaded archive files after installation  | `false`                          |
-| `-Help`         | Show help message                                 |                                  |
+| Parameter       | Description                                       | Default                                                            |
+|-----------------|---------------------------------------------------|--------------------------------------------------------------------|
+| `-InstallPath`  | Directory to install the CLI                      | `$HOME/.aspire/bin` (Unix) / `%USERPROFILE%\.aspire\bin` (Windows) |
+| `-Version`      | Version of the Aspire CLI to download             | `9.0`                                                              |
+| `-Quality`      | Quality to download                               | `release`                                                          |
+| `-OS`           | Operating system (auto-detected if not specified) | auto-detect                                                        |
+| `-Architecture` | Architecture (auto-detected if not specified)     | auto-detect                                                        |
+| `-KeepArchive`  | Keep downloaded archive files after installation  | `false`                                                            |
+| `-Help`         | Show help message                                 |                                                                    |
 
 ## Install Path Parameter
 
@@ -160,3 +160,38 @@ When modifying these scripts, ensure:
 - Error handling is comprehensive and user-friendly
 - Platform detection logic is robust
 - Security best practices are followed for downloads and file handling
+
+## PR Artifact Retrieval Scripts
+
+Additional scripts exist to fetch CLI and NuGet artifacts from a pull request build:
+
+- `get-aspire-cli-pr.sh`
+- `get-aspire-cli-pr.ps1`
+
+Quick fetch (Bash):
+```bash
+curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
+```
+
+Quick fetch (PowerShell):
+```powershell
+iex "& { $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1) } <PR_NUMBER>"
+```
+
+NuGet hive path pattern: `~/.aspire/hives/pr-<PR_NUMBER>/packages`
+
+### Repository Override
+
+You can point the PR artifact retrieval scripts at a fork by setting the `ASPIRE_REPO` environment variable to `owner/name` before invoking the script (defaults to `dotnet/aspire`).
+
+Examples:
+
+```bash
+export ASPIRE_REPO=myfork/aspire
+./get-aspire-cli-pr.sh 1234
+```
+
+```powershell
+$env:ASPIRE_REPO = 'myfork/aspire'
+./get-aspire-cli-pr.ps1 1234
+```

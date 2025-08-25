@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Tests.Orchestrator;
 public class ParameterProcessorTests
 {
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParameters_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParameters_SetsRunningState()
     {
         // Arrange
         var parameterProcessor = CreateParameterProcessor();
@@ -34,12 +34,14 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsRunningState()
     {
         // Arrange
         var interactionService = CreateInteractionService(disableDashboard: false);
@@ -58,7 +60,9 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
@@ -89,8 +93,7 @@ public class ParameterProcessorTests
         // Assert
         var (resource, snapshot) = Assert.Single(updates);
         Assert.Same(secretParam, resource);
-        Assert.Equal(KnownResourceStates.Active, snapshot.State?.Text);
-        Assert.Equal(KnownResourceStateStyles.Success, snapshot.State?.Style);
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
     }
 
     [Fact]
@@ -242,17 +245,17 @@ public class ParameterProcessorTests
         Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
 
         // Notification service should have received updates for each parameter
-        // Marking them as Active with the provided values
+        // Marking them as Running with the provided values
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
         Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
     }
