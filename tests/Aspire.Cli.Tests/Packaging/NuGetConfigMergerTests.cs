@@ -208,7 +208,7 @@ public class NuGetConfigMergerTests
     var channel = CreateChannel(mappings);
     await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
 
-        var xml = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
         var psm = xml.Root!.Element("packageSourceMapping");
         Assert.NotNull(psm);
         Assert.Equal(2, psm!.Elements("packageSource").Count());
