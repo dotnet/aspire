@@ -269,7 +269,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             projectFilePath: projectFile,
             packageName: package.Id,
             packageVersion: package.Version,
-            nugetSource: null, // When source is null we apped --no-restore.
+            nugetSource: null, // When source is null we append --no-restore.
             options: new(),
             cancellationToken: cancellationToken);
 
