@@ -162,7 +162,7 @@
                                             {
                                                 <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                             }
-                                            <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
+                                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" />
                                             @if (context.HasUninstrumentedPeer)
                                             {
                                                 <span class="uninstrumented-peer">
@@ -189,9 +189,13 @@
                                                     <FluentHighlighter HighlightedText="@_filter" Text="@context.UninstrumentedPeer" />
                                                 </span>
                                             }
-                                            <span class="span-row-name"><FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" /></span>
                                         </span>
                                     </span>
+                                </AspireTemplateColumn>
+                                <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Tooltip="true" TooltipText="@(c => GetResourceName(c.Span.Source))" Class="expand-col">
+                                    <div class="resource-name">
+                                        <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
+                                    </div>
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager">
                                     <HeaderCellItemTemplate>
