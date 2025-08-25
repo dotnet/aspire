@@ -335,8 +335,10 @@ internal sealed class ApplicationOrchestrator
     {
         await _dcpExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(_serviceProvider, _model);
         await _eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         foreach (var lifecycleHook in _lifecycleHooks)
         {

@@ -4,9 +4,11 @@
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 
@@ -218,10 +220,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
         
         var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
-            resourcesCreatedTcs.SetResult();
-            return Task.CompletedTask;
-        });
+        builder.Services.AddSingleton<IDistributedApplicationLifecycleHook>(new TestLifecycleHook(resourcesCreatedTcs));
 
         using var app = builder.Build();
         var pendingRun = app.RunAsync();
@@ -244,4 +243,13 @@ file sealed class HostLifetimeStub(Action stopImplementation) : IHostApplication
     public CancellationToken ApplicationStopping => throw new NotImplementedException();
 
     public void StopApplication() => stopImplementation();
+}
+
+file sealed class TestLifecycleHook(TaskCompletionSource tcs) : IDistributedApplicationLifecycleHook
+{
+    public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    {
+        tcs.SetResult();
+        return Task.CompletedTask;
+    }
 }
