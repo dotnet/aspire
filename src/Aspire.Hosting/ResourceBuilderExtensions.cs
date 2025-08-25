@@ -2259,4 +2259,56 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
+
+    /// <summary>
+    /// Adds a liveness probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="type">Type of the probe.</param>
+    /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <param name="path">The path to be used.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <param name="timeoutSeconds">Number of seconds after which the probe times out.</param>
+    /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
+    /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string endpointName, string path, int initialDelaySeconds = 5, int periodSeconds = 5, int timeoutSeconds = 1, int failureThreshold = 3, int successThreshold = 1)
+        where T : IResourceWithEndpoints, IResourceWithProbes
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var endpoint = builder.Resource.GetEndpoint(endpointName);
+
+        return builder.WithProbe(
+            new EndpointProbeAnnotation
+            {
+                Type = type,
+                EndpointReference = endpoint,
+                Path = path,
+                InitialDelaySeconds = initialDelaySeconds,
+                PeriodSeconds = periodSeconds,
+                TimeoutSeconds = timeoutSeconds,
+                FailureThreshold = failureThreshold,
+                SuccessThreshold = successThreshold,
+            });
+    }
+
+    /// <summary>
+    /// Adds a probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="probeAnnotation">Probe annotation to add to resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    private static IResourceBuilder<T> WithProbe<T>(this IResourceBuilder<T> builder, ProbeAnnotation probeAnnotation) where T : IResourceWithProbes
+    {
+        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().Any(e => e.Type == probeAnnotation.Type))
+        {
+            throw new DistributedApplicationException($"A probe with type '{probeAnnotation.Type}' already exists");
+        }
+
+        return builder.WithAnnotation(probeAnnotation);
+    }
 }

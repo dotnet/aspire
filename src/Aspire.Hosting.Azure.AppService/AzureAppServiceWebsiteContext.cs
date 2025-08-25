@@ -116,7 +116,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReference ep)
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
-            return (GetValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
+            return (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
         }
 
         if (value is ParameterResource param)
@@ -154,7 +154,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
             var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
-            var val = GetValue(mapping, epExpr.Property);
+            var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);
         }
 
@@ -306,6 +306,21 @@ internal sealed class AzureAppServiceWebsiteContext(
             });
         }
 
+        // Probes
+        if (resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            // AppService allow only one "health check" with only path, so prioritize "liveness" and/or take the first one
+            var endpointProbeAnnotation = probeAnnotations
+                .OfType<EndpointProbeAnnotation>()
+                .OrderBy(probeAnnotation => probeAnnotation.Type == ProbeType.Liveness ? 0 : 1)
+                .FirstOrDefault();
+
+            if (endpointProbeAnnotation is not null)
+            {
+                webSite.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+            }
+        }
+
         infra.Add(webSite);
 
         // Allow users to customize the web app here
@@ -318,7 +333,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    private BicepValue<string> GetValue(EndpointMapping mapping, EndpointProperty property)
+    private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
         return property switch
         {
