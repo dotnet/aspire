@@ -161,7 +161,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         else if (appHostProjects.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
-                InteractionServiceStrings.SelectAppHostToRun,
+                InteractionServiceStrings.SelectAppHostToUse,
                 appHostProjects,
                 projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})",
                 cancellationToken

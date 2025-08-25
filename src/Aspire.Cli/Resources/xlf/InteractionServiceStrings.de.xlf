@@ -112,9 +112,9 @@
         <target state="translated">Suche wird ausgeführt...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Wählen Sie den auszuführenden App-Host aus.</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select app host to use</source>
+        <target state="new">Select app host to use</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">

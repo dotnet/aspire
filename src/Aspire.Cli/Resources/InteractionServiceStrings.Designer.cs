@@ -135,9 +135,9 @@ namespace Aspire.Cli.Resources {
             }
         }
         
-        public static string SelectAppHostToRun {
+        public static string SelectAppHostToUse {
             get {
-                return ResourceManager.GetString("SelectAppHostToRun", resourceCulture);
+                return ResourceManager.GetString("SelectAppHostToUse", resourceCulture);
             }
         }
         
