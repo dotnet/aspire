@@ -23,6 +23,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisposable
 {
     private const string NameColumn = nameof(NameColumn);
+    private const string ResourceColumn = nameof(ResourceColumn);
     private const string TicksColumn = nameof(TicksColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
     private const int RootSpanDepth = 1;
@@ -89,6 +90,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "6fr", MobileWidth: "6fr"),
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "4fr", MobileWidth: null),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "100px", MobileWidth: null)
         ];

@@ -22,7 +22,6 @@
 }
 
 ::deep .trace-view-grid {
-    width: 100%;
 }
 
 ::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']):hover .span-bar-label-detail {
@@ -56,10 +55,6 @@
     min-height: 32px !important;
     height: 32px !important;
     border-bottom: 0;
-}
-
-::deep .trace-view-grid th[col-index="2"] fluent-divider {
-    display: none;
 }
 
 ::deep .ticks {
@@ -133,6 +128,8 @@
 
 ::deep .uninstrumented-peer {
     padding-left: 0.25rem;
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
 }
 
 ::deep .span-kind-icon {
@@ -168,7 +165,11 @@
 ::deep .span-overview-container {
     height: 24px;
     display: inline-flex;
-    align-items: baseline;
+    align-items: center;
+}
+
+::deep .resource-name {
+    margin-left: 16px;
 }
 
 ::deep .trace-header {
