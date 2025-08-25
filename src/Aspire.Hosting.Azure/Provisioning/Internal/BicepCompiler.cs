@@ -70,7 +70,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
         }
     }
 
-    private static string? FindFullPathFromPath(string command)
+    internal static string? FindFullPathFromPath(string command)
     {
         return FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), File.Exists);
     }

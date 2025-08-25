@@ -77,13 +77,15 @@ public sealed class AzureEnvironmentResource : AzureBicepResource
         var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
             userSecretsManager,
             bicepProvisioner,
-            activityPublisher);
+            activityPublisher,
+            containerImageBuilder);
 
-        return azureCtx.DeployModelAsync(this, context.CancellationToken);
+        return azureCtx.DeployModelAsync(this, context.Model, context.CancellationToken);
     }
 }

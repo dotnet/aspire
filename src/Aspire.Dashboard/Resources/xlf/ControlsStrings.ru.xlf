@@ -107,6 +107,11 @@
         <target state="translated">Удалить данные</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollapseAllSpansText">
+        <source>Collapse all</source>
+        <target state="new">Collapse all</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Сведения</target>
@@ -130,6 +135,11 @@
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
         <target state="translated">Подробности исключения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpandAllSpansText">
+        <source>Expand all</source>
+        <target state="new">Expand all</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -575,6 +585,11 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Разделить по вертикали</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="new">View structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

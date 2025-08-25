@@ -4,32 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">Ujistěte se, že je spuštěný Docker a že je dostupný démon Dockeru. Pokud je povolen režim spořiče prostředků, kontejnery se nemusí spustit.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">Ujistěte se, že je spuštěný modul runtime kontejneru.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">Další informace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Nepovedlo se najít modul runtime kontejneru. Další podrobnosti o podporovaných modulech runtime kontejnerů najdete na https://aka.ms/dotnet/aspire/containers.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="translated">Modul runtime kontejneru není nainstalovaný</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">Ověřuje se, jestli je spuštěný Podman...</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">Modul runtime kontejneru {0} byl nalezen, ale zdá se, že není v pořádku. </target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">Modul runtime kontejneru není ve stavu V pořádku</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

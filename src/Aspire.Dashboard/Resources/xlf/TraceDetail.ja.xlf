@@ -27,6 +27,11 @@
         <target state="translated">{0} のトレース</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="TraceDetailResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
         <target state="translated">リソース</target>

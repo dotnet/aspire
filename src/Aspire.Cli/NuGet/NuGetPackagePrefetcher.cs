@@ -20,11 +20,11 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
              {
                  var channels = await packagingService.GetChannelsAsync();
 
-                 await Parallel.ForEachAsync(channels, stoppingToken, async (channel, ct) =>
+                 foreach (var channel in channels)
                  {
                      // Discard the results here, we just want them in the cache.
-                     _ = await channel.GetTemplatePackagesAsync(executionContext.WorkingDirectory, ct);
-                 });
+                     _ = await channel.GetTemplatePackagesAsync(executionContext.WorkingDirectory, stoppingToken);
+                 }
              }
              catch (System.Exception ex)
              {

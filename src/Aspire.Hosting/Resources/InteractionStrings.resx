@@ -172,4 +172,10 @@
   <data name="ContainerRuntimeLinkText" xml:space="preserve">
     <value>Learn more</value>
   </data>
+  <data name="ContainerRuntimeNotInstalledTitle" xml:space="preserve">
+    <value>Container Runtime Not Installed</value>
+  </data>
+  <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
+    <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
+  </data>
 </root>

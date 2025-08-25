@@ -4,32 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">Upewnij się, że platforma Docker jest uruchomiona i że demon platformy Docker jest dostępny. Jeśli tryb oszczędzania zasobów jest włączony, kontenery mogą nie działać.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">Upewnij się, że środowisko uruchomieniowe kontenera jest uruchomione.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">Dowiedz się więcej</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Nie można odnaleźć środowiska uruchomieniowego kontenera. Aby uzyskać więcej informacji o obsługiwanych środowiskach uruchomieniowych kontenerów, zobacz https://aka.ms/dotnet/aspire/containers.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="translated">Nie zainstalowano środowiska uruchomieniowego kontenera</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">Upewnij się, że narzędzie Podman jest uruchomione.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">Znaleziono środowisko uruchomieniowe kontenera „{0}”, ale wygląda na to, że jest w złej kondycji. </target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">Środowisko uruchomieniowe kontenera jest w złej kondycji</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

@@ -27,10 +27,6 @@
     user-select: none;
 }
 
-::deep .log-content > .timestamp + fluent-badge {
-    margin-left: 1ch;
-}
-
 ::deep .ansi-fg-black {
     color: var(--console-theme-black);
 }
@@ -149,5 +145,5 @@
     line-height: var(--type-ramp-minus-1-line-height);
     font-weight: initial;
     font-variation-settings: var(--type-ramp-minus-1-font-variations);
-    margin-right: calc(var(--design-unit) * 1.5px);
+    user-select: none;
 }

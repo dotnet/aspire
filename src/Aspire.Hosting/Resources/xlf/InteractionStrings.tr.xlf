@@ -4,32 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">Docker'ın çalıştığından ve Docker daemon'a erişilebildiğinden emin olun. Kaynak Tasarrufu modu etkinleştirilirse, kapsayıcılar çalışmayabilir.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">Kapsayıcı çalışma zamanının çalıştığından emin olun.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">Daha fazla bilgi edinin</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Kapsayıcı çalışma zamanı bulunamadı. Desteklenen konteyner çalışma zamanları hakkında daha fazla ayrıntı için https://aka.ms/dotnet/aspire/containers adresine bakın.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="translated">Kapsayıcı Çalışma Zamanı Yüklü Değil</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">Podman'ın çalıştığından emin olun.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">Kapsayıcı çalışma zamanı '{0}' bulundu, ancak iyi durumda değil. </target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">Kapsayıcı Çalışma Süresi İyi Durumda Değil</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

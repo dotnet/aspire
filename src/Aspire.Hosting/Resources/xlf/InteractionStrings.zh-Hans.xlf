@@ -4,32 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">确保 Docker 正在运行且 Docker 守护程序可访问。如果启用了资源保护模式，则容器可能无法运行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">确保容器运行时正在运行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">了解详细信息</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">找不到容器运行时。有关支持的容器运行时的更多详细信息，请参阅 https://aka.ms/dotnet/aspire/containers。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container Runtime Not Installed</source>
+        <target state="translated">未安装容器运行时</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">确保 Podman 正在运行。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">找到容器运行时 ‘{0}’，但它似乎运行不正常。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">容器运行时不正常</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
