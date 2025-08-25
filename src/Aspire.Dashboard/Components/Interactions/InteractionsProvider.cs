@@ -316,7 +316,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        return InteractionMarkdownHelper.ToHtml(item.Message);
+        return InteractionMarkdownHelper.ToHtml(item.Message, item.AllowAllLinkSchemesInMarkdown);
     }
 
     private async Task WatchInteractionsAsync()
