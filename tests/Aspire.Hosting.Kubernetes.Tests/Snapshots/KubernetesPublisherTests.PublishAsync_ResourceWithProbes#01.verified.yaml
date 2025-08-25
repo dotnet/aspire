@@ -18,27 +18,33 @@ spec:
       containers:
         - image: "{{ .Values.parameters.project1.project1_image }}"
           livenessProbe:
+            failureThreshold: 3
+            successThreshold: 1
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 1
             httpGet:
               scheme: "https"
               path: "/health"
-              port: 8080
+              port: "{{ .Values.parameters.project1.port_https }}"
           name: "project1"
           readinessProbe:
+            failureThreshold: 3
+            successThreshold: 1
             initialDelaySeconds: 60
             periodSeconds: 5
+            timeoutSeconds: 1
             httpGet:
               scheme: "https"
               path: "/ready"
-              port: 8080
+              port: "{{ .Values.parameters.project1.port_https }}"
           envFrom:
             - configMapRef:
                 name: "project1-config"
           ports:
             - name: "https"
               protocol: "TCP"
-              containerPort: 8080
+              containerPort: "{{ .Values.parameters.project1.port_https }}"
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:

@@ -2270,8 +2270,11 @@ public static class ResourceBuilderExtensions
     /// <param name="path">The path to be used.</param>
     /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
     /// <param name="periodSeconds">The period between each probe.</param>
+    /// <param name="timeoutSeconds">Number of seconds after which the probe times out.</param>
+    /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
+    /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string endpointName, string path, int initialDelaySeconds = 5, int periodSeconds = 5)
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string endpointName, string path, int initialDelaySeconds = 5, int periodSeconds = 5, int timeoutSeconds = 1, int failureThreshold = 3, int successThreshold = 1)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2286,6 +2289,9 @@ public static class ResourceBuilderExtensions
                 Path = path,
                 InitialDelaySeconds = initialDelaySeconds,
                 PeriodSeconds = periodSeconds,
+                TimeoutSeconds = timeoutSeconds,
+                FailureThreshold = failureThreshold,
+                SuccessThreshold = successThreshold,
             });
     }
 

@@ -354,14 +354,15 @@ internal static class ResourceExtensions
         foreach (var probeAnnotation in probeAnnotations)
         {
             ProbeV1? probe = null;
-            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation && endpointProbeAnnotation.EndpointReference.TargetPort.HasValue)
+            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
+                && context.EndpointMappings.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
             {
                 probe = new ProbeV1()
                 {
                     HttpGet = new()
                     {
                         Path = endpointProbeAnnotation.Path,
-                        Port = endpointProbeAnnotation.EndpointReference.TargetPort.Value,
+                        Port = endpointMapping.Port,
                         Scheme = endpointProbeAnnotation.EndpointReference.Scheme,
                     },
                 };
@@ -371,6 +372,9 @@ internal static class ResourceExtensions
             {
                 probe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
                 probe.PeriodSeconds = probeAnnotation.PeriodSeconds;
+                probe.TimeoutSeconds = probeAnnotation.TimeoutSeconds;
+                probe.FailureThreshold = probeAnnotation.FailureThreshold;
+                probe.SuccessThreshold = probeAnnotation.SuccessThreshold;
 
                 switch (probeAnnotation.Type)
                 {

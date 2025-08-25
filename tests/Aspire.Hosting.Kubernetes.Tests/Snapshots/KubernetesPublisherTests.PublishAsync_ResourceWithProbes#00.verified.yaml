@@ -18,16 +18,22 @@ spec:
       containers:
         - image: "mcr.microsoft.com/dotnet/aspnet:8.0"
           livenessProbe:
+            failureThreshold: 3
+            successThreshold: 1
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 1
             httpGet:
               scheme: "http"
               path: "/health"
               port: 8080
           name: "myapp"
           readinessProbe:
+            failureThreshold: 3
+            successThreshold: 1
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 1
             httpGet:
               scheme: "http"
               path: "/ready"

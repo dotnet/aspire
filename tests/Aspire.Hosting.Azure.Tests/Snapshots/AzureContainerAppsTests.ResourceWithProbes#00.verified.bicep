@@ -23,6 +23,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
         {
           probes: [
             {
+              failureThreshold: 3
               httpGet: {
                 path: '/ready'
                 port: int('8080')
@@ -30,9 +31,12 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               }
               initialDelaySeconds: 5
               periodSeconds: 5
+              successThreshold: 1
+              timeoutSeconds: 1
               type: 'Readiness'
             }
             {
+              failureThreshold: 3
               httpGet: {
                 path: '/health'
                 port: int('8080')
@@ -40,6 +44,8 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               }
               initialDelaySeconds: 5
               periodSeconds: 5
+              successThreshold: 1
+              timeoutSeconds: 1
               type: 'Liveness'
             }
           ]

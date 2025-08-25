@@ -42,6 +42,7 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           probes: [
             {
+              failureThreshold: 3
               httpGet: {
                 path: '/ready'
                 port: int(project1_containerport)
@@ -49,9 +50,12 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
               }
               initialDelaySeconds: 60
               periodSeconds: 5
+              successThreshold: 1
+              timeoutSeconds: 1
               type: 'Readiness'
             }
             {
+              failureThreshold: 3
               httpGet: {
                 path: '/health'
                 port: int(project1_containerport)
@@ -59,6 +63,8 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
               }
               initialDelaySeconds: 5
               periodSeconds: 5
+              successThreshold: 1
+              timeoutSeconds: 1
               type: 'Liveness'
             }
           ]

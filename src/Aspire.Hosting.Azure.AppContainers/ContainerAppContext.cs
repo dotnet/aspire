@@ -846,6 +846,9 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                     },
                     InitialDelaySeconds = probeAnnotation.InitialDelaySeconds,
                     PeriodSeconds = probeAnnotation.PeriodSeconds,
+                    TimeoutSeconds = probeAnnotation.TimeoutSeconds,
+                    SuccessThreshold = probeAnnotation.SuccessThreshold,
+                    FailureThreshold = probeAnnotation.FailureThreshold,
                     HttpGet = new()
                     {
                         Path = endpointProbeAnnotation.Path,

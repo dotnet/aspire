@@ -25,7 +25,7 @@ public enum ProbeType
 }
 
 /// <summary>
-/// Represents an annotation that specifies the probes (health, readiness, liveness, etc.) of a resource
+/// Represents an annotation that specifies the probes (health, readiness, liveness, etc.) of a resource.
 /// </summary>
 public abstract class ProbeAnnotation : IResourceAnnotation
 {
@@ -35,18 +35,33 @@ public abstract class ProbeAnnotation : IResourceAnnotation
     public required ProbeType Type { get; init; }
 
     /// <summary>
-    /// The initial delay before the probe should be called
+    /// The initial delay before the probe should be called.
     /// </summary>
     public int InitialDelaySeconds { get; init; }
 
     /// <summary>
-    /// The period between each probe call
+    /// The period between each probe call.
     /// </summary>
     public int PeriodSeconds { get; init; }
+
+    /// <summary>
+    /// Number of seconds after which the probe times out.
+    /// </summary>
+    public int TimeoutSeconds { get; set; }
+
+    /// <summary>
+    /// Number of failures in a row before considers that the overall check has failed.
+    /// </summary>
+    public int FailureThreshold { get; init; }
+
+    /// <summary>
+    /// Minimum consecutive successes for the probe to be considered successful after having failed.
+    /// </summary>
+    public int SuccessThreshold { get; init; }
 }
 
 /// <summary>
-/// Represents an annotation that specifies the HTTP probes (health, readiness, liveness, etc.) of a resource
+/// Represents an annotation that specifies the HTTP probes (health, readiness, liveness, etc.) of a resource.
 /// </summary>
 public sealed class EndpointProbeAnnotation : ProbeAnnotation
 {
