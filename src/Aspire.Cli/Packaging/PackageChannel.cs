@@ -118,6 +118,22 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
             .SelectMany(p => p)
             .DistinctBy(p => $"{p.Id}-{p.Version}");
 
+        // In the event that we have no stable packages we fallback to
+        // returning prerelease packages. Example a package that is currently
+        // in preview (Aspire.Hosting.Docker circa 9.4).
+        if (Quality is PackageChannelQuality.Stable && !packages.Any())
+        {
+            packages = await nuGetPackageCache.GetPackagesAsync(
+                workingDirectory: workingDirectory,
+                packageId: packageId,
+                filter: id => id.Equals(packageId, StringComparison.OrdinalIgnoreCase),
+                prerelease: true,
+                nugetConfigFile: tempNuGetConfig?.ConfigFile,
+                cancellationToken: cancellationToken);
+
+            return packages;
+        }
+
         // When doing a `dotnet package search` the the results may include stable packages even when searching for
         // prerelease packages. This filters out this noise.
         var filteredPackages = packages.Where(p => new { SemVer = SemVersion.Parse(p.Version), Quality = Quality } switch
