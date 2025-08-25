@@ -145,17 +145,11 @@ if [ -n "$CONFIG" ]; then
     exit 1
   fi
 else
-  # Try Release, then Debug
   log "Building and packing NuGet packages [-c Release] with versionsuffix '$VERSION_SUFFIX'"
-  if "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX"; then
-    PKG_DIR="$REPO_ROOT/artifacts/packages/Release/Shipping"
-  else
-  warn "Release build/pack failed; trying Debug"
-    "$REPO_ROOT/build.sh" -r -b --pack -c Debug /p:VersionSuffix="$VERSION_SUFFIX"
-    PKG_DIR="$REPO_ROOT/artifacts/packages/Debug/Shipping"
-  fi
+  "$REPO_ROOT/build.sh" -r -b --pack -c Release /p:VersionSuffix="$VERSION_SUFFIX"
+  PKG_DIR="$REPO_ROOT/artifacts/packages/Release/Shipping"
   if [ ! -d "$PKG_DIR" ]; then
-    error "Could not find packages path in $REPO_ROOT/artifacts/packages for Release or Debug"
+    error "Could not find packages path $PKG_DIR for CONFIG=Release"
     exit 1
   fi
 fi
