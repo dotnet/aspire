@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(DefaultTargetFramework);net472</TargetFrameworks>
+    <TargetFrameworks>$(DefaultTargetFramework);netstandard2.0</TargetFrameworks>
     <IsTestUtilityProject>true</IsTestUtilityProject>
   </PropertyGroup>
 
@@ -10,9 +10,9 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
   
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="Microsoft.Bcl.Memory" />
   </ItemGroup>
 
-  <Import Condition=" '$(TargetFramework)' == 'net472' " Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'netstandard2.0' " Project="../../src/Shared/FxPolyfills/FxPolyfills.targets" />
 </Project>

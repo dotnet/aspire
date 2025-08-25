@@ -233,7 +233,7 @@
   </ItemGroup>
 
   <!-- These are 9.x versions which are STS so should ONLY be referenced by netfx projects -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net472'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageVersion Include="Microsoft.Bcl.Memory" Version="$(MicrosoftBclMemoryVersion)" />
     <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="$(MicrosoftBclTimeProviderVersion)" />
   </ItemGroup>

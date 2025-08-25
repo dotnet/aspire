@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="System.Net.Http" />
+    <Reference Condition=" '$(TargetFramework)' != 'netstandard2.0' " Include="System.Net.Http" />
 
     <Using Include="System.Net.Http" />
     <Using Include="System.Threading.Tasks" />
