@@ -17,6 +17,11 @@
         <target state="translated">AppHost ファイルが '{0}' で指定されましたが、'{1}' に存在していません。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion が null です</target>
@@ -138,8 +143,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
-        <source>Project file '{0}' may be an app host but could not be used because it is unbuildable.</source>
-        <target state="new">Project file '{0}' may be an app host but could not be used because it is unbuildable.</target>
+        <source>Could not build: {0}</source>
+        <target state="new">Could not build: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

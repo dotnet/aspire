@@ -132,6 +132,11 @@
         <target state="translated">証明書の信頼を処理中です...</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No buildable app hosts were found, but unbuildable app hosts were detected.</source>
+        <target state="new">No buildable app hosts were found, but unbuildable app hosts were detected.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
         <source>An unexpected error occurred: {0}</source>
         <target state="translated">予期しないエラーが発生しました: {0}</target>

@@ -21,13 +21,14 @@ internal interface IProjectLocator
 internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
 
-    private async Task<List<FileInfo>> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
+    private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
         return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
+            var unbuildableSuspectedAppHostProjects = new List<FileInfo>();
             var lockObject = new object();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
@@ -63,7 +64,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
                 else if (IsPossiblyUnbuildableAppHost(projectFile))
                 {
-                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, projectFile.FullName));
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
+                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                    unbuildableSuspectedAppHostProjects.Add(projectFile);
                 }
                 else
                 {
@@ -75,7 +78,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
-            return appHostProjects;
+            return (appHostProjects, unbuildableSuspectedAppHostProjects);
         });
     }
 
@@ -154,26 +157,30 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         }
 
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", executionContext.WorkingDirectory);
-        var appHostProjects = await FindAppHostProjectFilesAsync(executionContext.WorkingDirectory, cancellationToken);
+        var results = await FindAppHostProjectFilesAsync(executionContext.WorkingDirectory, cancellationToken);
         interactionService.DisplayEmptyLine();
 
-        logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
+        logger.LogDebug("Found {ProjectFileCount} project files.", results.BuildableAppHost.Count);
 
         FileInfo? selectedAppHost = null;
 
-        if (appHostProjects.Count == 0)
+        if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count == 0)
         {
             throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
         }
-        else if (appHostProjects.Count == 1)
+        else if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count > 0)
         {
-            selectedAppHost = appHostProjects[0];
+            throw new ProjectLocatorException(ErrorStrings.AppHostsMayNotBeBuildable);
         }
-        else if (appHostProjects.Count > 1)
+        else if (results.BuildableAppHost.Count == 1)
+        {
+            selectedAppHost = results.BuildableAppHost[0];
+        }
+        else if (results.BuildableAppHost.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
                 InteractionServiceStrings.SelectAppHostToUse,
-                appHostProjects,
+                results.BuildableAppHost,
                 projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
                 );

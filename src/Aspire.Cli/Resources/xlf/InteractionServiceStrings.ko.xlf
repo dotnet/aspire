@@ -132,6 +132,11 @@
         <target state="translated">인증서를 신뢰하는 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No buildable app hosts were found, but unbuildable app hosts were detected.</source>
+        <target state="new">No buildable app hosts were found, but unbuildable app hosts were detected.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
         <source>An unexpected error occurred: {0}</source>
         <target state="translated">예기치 않은 오류가 발생했습니다. {0}</target>

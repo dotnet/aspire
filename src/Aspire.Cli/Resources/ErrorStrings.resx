@@ -215,6 +215,9 @@
     <value>Input was required for prompt '{0}' but not provided.</value>
   </data>
   <data name="ProjectFileMayBeUnbuildableAppHost" xml:space="preserve">
-    <value>Project file '{0}' may be an app host but could not be used because it is unbuildable.</value>
+    <value>Could not build: {0}</value>
+  </data>
+  <data name="AppHostsMayNotBeBuildable" xml:space="preserve">
+    <value>No buildable app hosts were found, but there may have been unbuildable app hosts.</value>
   </data>
 </root>

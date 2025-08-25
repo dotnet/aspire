@@ -208,4 +208,8 @@
     <value>[dim]For more information, see: [link]{0}[/][/]</value>
     <comment>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</comment>
   </data>
+  <data name="UnbuildableAppHostsDetected" xml:space="preserve">
+    <value>No buildable app hosts were found, but unbuildable app hosts were detected.</value>
+    <comment></comment>
+  </data>
 </root>

@@ -308,5 +308,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ProjectFileMayBeUnbuildableAppHost", resourceCulture);
             }
         }
+        public static string AppHostsMayNotBeBuildable
+        {
+            get
+            {
+                return ResourceManager.GetString("AppHostsMayNotBeBuildable", resourceCulture);
+            }
+        }
     }
 }

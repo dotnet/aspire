@@ -66,6 +66,11 @@ internal abstract class BaseCommand : Command
             interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
             return ExitCodeConstants.FailedToFindProject;
         }
+        if (string.Equals(ex.Message, ErrorStrings.AppHostsMayNotBeBuildable, StringComparisons.CliInputOrOutput))
+        {
+            interactionService.DisplayError(InteractionServiceStrings.UnbuildableAppHostsDetected);
+            return ExitCodeConstants.FailedToFindProject;
+        }
 
         interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
         return ExitCodeConstants.FailedToFindProject;
