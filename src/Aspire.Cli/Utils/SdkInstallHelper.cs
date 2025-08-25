@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -14,7 +13,41 @@ namespace Aspire.Cli.Utils;
 internal static class SdkInstallHelper
 {
     /// <summary>
+    /// Ensures that the .NET SDK is installed and available, attempting installation if needed.
+    /// </summary>
+    /// <param name="sdkInstaller">The SDK installer service.</param>
+    /// <param name="interactionService">The interaction service for user communication.</param>
+    /// <param name="runtimeSelector">The runtime selector for managing private SDK installation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the SDK is available or was successfully installed, false otherwise.</returns>
+    public static async Task<bool> EnsureSdkInstalledAsync(
+        IDotNetSdkInstaller sdkInstaller,
+        IInteractionService interactionService,
+        IDotNetRuntimeSelector runtimeSelector,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(runtimeSelector);
+
+        // Try to initialize the runtime selector (which may install a private SDK)
+        // If this succeeds, we have a working SDK available (either system or private)
+        var isInitialized = await runtimeSelector.InitializeAsync(cancellationToken);
+        
+        if (!isInitialized)
+        {
+            interactionService.DisplayError(ErrorStrings.MininumSdkVersionMissing);
+            return false;
+        }
+
+        // No need to re-check with sdkInstaller - if runtimeSelector initialized successfully,
+        // it means a working SDK is available and configured properly
+        return true;
+    }
+
+    /// <summary>
     /// Ensures that the .NET SDK is installed and available, displaying an error message if it's not.
+    /// This is the legacy method signature for backwards compatibility.
     /// </summary>
     /// <param name="sdkInstaller">The SDK installer service.</param>
     /// <param name="interactionService">The interaction service for user communication.</param>
@@ -32,8 +65,7 @@ internal static class SdkInstallHelper
 
         if (!isSdkAvailable)
         {
-            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, ErrorStrings.MininumSdkVersionMissing, DotNetSdkInstaller.MinimumSdkVersion);
-            interactionService.DisplayError(sdkErrorMessage);
+            interactionService.DisplayError(ErrorStrings.MininumSdkVersionMissing);
             return false;
         }
 
