@@ -362,14 +362,32 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         else
         {
             // For executables, the corresponding DLL is named after the base executable name
-            // Handle both Windows (.exe) and Unix (no extension) executables
+            // Handle Windows (.exe), Unix (no extension), and direct DLL cases
             var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
             var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
-            var baseName = Path.GetExtension(fileName) switch
+            
+            string baseName;
+            if (fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
-                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
-                _ => fileName // Unix or other: use full filename as base
-            };
+                // Windows executable: remove .exe extension
+                baseName = fileName.Substring(0, fileName.Length - 4);
+            }
+            else if (fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                // Already a DLL: use as-is
+                dashboardDll = fullyQualifiedDashboardPath;
+                if (!File.Exists(dashboardDll))
+                {
+                    throw new DistributedApplicationException($"Dashboard DLL not found: {dashboardDll}");
+                }
+                return;
+            }
+            else
+            {
+                // Unix executable (no extension) or other: use full filename as base
+                baseName = fileName;
+            }
+            
             dashboardDll = Path.Combine(directory, $"{baseName}.dll");
             
             if (!File.Exists(dashboardDll))
