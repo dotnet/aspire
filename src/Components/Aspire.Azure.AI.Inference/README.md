@@ -81,7 +81,6 @@ Alternatively, a custom connection string can be used.
 The library supports multiple formats for specifying the deployment:
 
 - **`Deployment={deploymentName}`** - Preferred format for Azure AI Foundry deployments
-- **`DeploymentId={deploymentId}`** - Legacy format (maintained for backward compatibility)  
 - **`Model={modelName}`** - Format used by GitHub Models
 
 Only one of these keys should be present in a connection string. If multiple are provided, an `ArgumentException` will be thrown.
