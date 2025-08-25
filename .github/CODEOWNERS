@@ -3,10 +3,10 @@
 /dogfood.sh                           @radical @eerhardt
 /src/Aspire.Hosting.Testing           @reubenbond
 /src/Components                       @radical @eerhardt @sebastienros
-/src/Aspire.Hosting.Azure             @captainsafia
+/src/Aspire.Hosting.Azure             @captainsafia @eerhardt
 /src/Aspire.Hosting.Azure.Functions   @captainsafia
-/src/Aspire.Hosting.Azure.AppContainers  @captainsafia
-/src/Aspire.Hosting.Azure.AppService  @captainsafia
+/src/Aspire.Hosting.Azure.AppContainers  @captainsafia @eerhardt
+/src/Aspire.Hosting.Azure.AppService  @captainsafia @eerhardt
 /src/Aspire.Hosting.Docker            @captainsafia
 
 # tests
