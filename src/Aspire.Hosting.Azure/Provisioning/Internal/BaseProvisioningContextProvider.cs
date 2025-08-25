@@ -4,11 +4,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure.Resources;
-using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
@@ -20,13 +18,13 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
 /// <summary>
-/// Default implementation of <see cref="IProvisioningContextProvider"/>.
+/// Base implementation for <see cref="IProvisioningContextProvider"/> that provides common functionality.
 /// </summary>
-internal sealed partial class DefaultProvisioningContextProvider(
+internal abstract partial class BaseProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
-    ILogger<DefaultProvisioningContextProvider> logger,
+    ILogger logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
@@ -37,14 +35,21 @@ internal sealed partial class DefaultProvisioningContextProvider(
     internal const string SubscriptionIdName = "SubscriptionId";
     internal const string ResourceGroupName = "ResourceGroup";
 
-    private readonly AzureProvisionerOptions _options = options.Value;
+    protected readonly IInteractionService _interactionService = interactionService;
+    protected readonly AzureProvisionerOptions _options = options.Value;
+    protected readonly IHostEnvironment _environment = environment;
+    protected readonly ILogger _logger = logger;
+    protected readonly IArmClientProvider _armClientProvider = armClientProvider;
+    protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
+    protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
+    protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
     private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
-    private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    protected readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    protected virtual void EnsureProvisioningOptions(JsonObject userSecrets)
     {
-        if (!interactionService.IsAvailable ||
+        if (!_interactionService.IsAvailable ||
             (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
         {
             // If the interaction service is not available, or
@@ -60,17 +65,17 @@ internal sealed partial class DefaultProvisioningContextProvider(
             {
                 await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
 
-                logger.LogDebug("Azure provisioning options have been handled successfully.");
+                _logger.LogDebug("Azure provisioning options have been handled successfully.");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
                 _provisioningOptionsAvailable.SetException(ex);
             }
         });
     }
 
-    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    protected virtual async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
         var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
                             .Where(p => p.PropertyType == typeof(AzureLocation))
@@ -81,7 +86,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
         while (_options.Location == null || _options.SubscriptionId == null)
         {
-            var messageBarResult = await interactionService.PromptNotificationAsync(
+            var messageBarResult = await _interactionService.PromptNotificationAsync(
                  AzureProvisioningStrings.NotificationTitle,
                  AzureProvisioningStrings.NotificationMessage,
                  new NotificationInteractionOptions
@@ -101,7 +106,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
             if (messageBarResult.Data)
             {
-                var result = await interactionService.PromptInputsAsync(
+                var result = await _interactionService.PromptInputsAsync(
                     AzureProvisioningStrings.InputsTitle,
                     AzureProvisioningStrings.InputsMessage,
                     [
@@ -154,7 +159,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
 
-    private static bool IsValidResourceGroupName(string? name)
+    protected static bool IsValidResourceGroupName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 90)
         {
@@ -191,21 +196,21 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
-        var credential = tokenCredentialProvider.TokenCredential;
+        var credential = _tokenCredentialProvider.TokenCredential;
 
-        if (tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
+        if (_tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
         {
             defaultProvider.LogCredentialType();
         }
 
-        var armClient = armClientProvider.GetArmClient(credential, subscriptionId);
+        var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
 
-        logger.LogInformation("Getting default subscription and tenant...");
+        _logger.LogInformation("Getting default subscription and tenant...");
 
         var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
-        logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
+        _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
+        _logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
 
         if (string.IsNullOrEmpty(_options.Location))
         {
@@ -241,7 +246,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
 
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
+            _logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
         }
         catch (Exception)
         {
@@ -252,17 +257,17 @@ internal sealed partial class DefaultProvisioningContextProvider(
 
             // REVIEW: Is it possible to do this without an exception?
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+            _logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
             var rgData = new ResourceGroupData(location);
             rgData.Tags.Add("aspire", "true");
             var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;
 
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
+            _logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
         }
 
-        var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
+        var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
         var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
@@ -274,31 +279,9 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     location,
                     principal,
                     userSecrets,
-                    distributedApplicationExecutionContext,
+                    _distributedApplicationExecutionContext,
                     outputPath);
     }
 
-    private string GetDefaultResourceGroupName()
-    {
-        var prefix = "rg-aspire";
-
-        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
-        {
-            prefix = _options.ResourceGroupPrefix;
-        }
-
-        var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
-
-        var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
-
-        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
-        if (normalizedApplicationName.Length > maxApplicationNameSize)
-        {
-            normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
-        }
-
-        return distributedApplicationExecutionContext.IsPublishMode
-            ? $"{prefix}-{normalizedApplicationName}"
-            : $"{prefix}-{normalizedApplicationName}-{suffix}";
-    }
+    protected abstract string GetDefaultResourceGroupName();
 }

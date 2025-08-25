@@ -66,14 +66,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var runTask = Task.Run(app.Run);
 
-        // Assert - Wait for the first interaction (message bar)
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
-        Assert.Contains("Azure resources that require an Azure Subscription", messageBarInteraction.Message ?? "");
-
-        // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
-
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure provisioning", inputsInteraction.Title);
@@ -126,7 +118,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton(logger);
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton(interactionService);
-        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         builder.Services.AddSingleton<IBicepProvisioner, NoOpBicepProvisioner>();
     }
