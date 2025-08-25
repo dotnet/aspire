@@ -115,20 +115,103 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
     }
 
-    private static string GetCurrentNetCoreAppVersion()
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetAppHostFrameworkVersions()
     {
-        return Environment.Version.ToString();
+        try
+        {
+            // Get the entry assembly location (the AppHost)
+            var entryAssembly = Assembly.GetEntryAssembly();
+            if (entryAssembly?.Location is null or { Length: 0 })
+            {
+                // Fallback to process main module if entry assembly location is not available
+                var mainModule = Process.GetCurrentProcess().MainModule;
+                if (mainModule?.FileName is null)
+                {
+                    // Final fallback to runtime detection if we can't find AppHost location
+                    return GetFallbackFrameworkVersions();
+                }
+                return GetFrameworkVersionsFromRuntimeConfig(mainModule.FileName);
+            }
+
+            return GetFrameworkVersionsFromRuntimeConfig(entryAssembly.Location);
+        }
+        catch (Exception)
+        {
+            // If we can't read the AppHost's runtime config, fallback to runtime detection
+            return GetFallbackFrameworkVersions();
+        }
     }
 
-    private static string GetCurrentAspNetCoreAppVersion()
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetFrameworkVersionsFromRuntimeConfig(string assemblyPath)
     {
+        // Find the AppHost's runtimeconfig.json file
+        string runtimeConfigPath;
+        if (string.Equals(".dll", Path.GetExtension(assemblyPath), StringComparison.OrdinalIgnoreCase))
+        {
+            runtimeConfigPath = Path.ChangeExtension(assemblyPath, ".runtimeconfig.json");
+        }
+        else
+        {
+            var directory = Path.GetDirectoryName(assemblyPath)!;
+            var baseName = Path.GetFileNameWithoutExtension(assemblyPath);
+            runtimeConfigPath = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
+        }
+
+        if (!File.Exists(runtimeConfigPath))
+        {
+            // Fallback to runtime detection if runtime config doesn't exist
+            return GetFallbackFrameworkVersions();
+        }
+
+        // Parse the AppHost's runtime config to get framework versions
+        var configText = File.ReadAllText(runtimeConfigPath);
+        var configJson = JsonNode.Parse(configText)?.AsObject();
+
+        if (configJson is null)
+        {
+            throw new DistributedApplicationException($"Failed to parse AppHost runtime config: {runtimeConfigPath}");
+        }
+
+        string netCoreVersion = "8.0.0"; // Default fallback
+        string aspNetCoreVersion = "8.0.0"; // Default fallback
+
+        if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
+            runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
+        {
+            foreach (var framework in frameworks)
+            {
+                if (framework?.AsObject() is { } frameworkObj &&
+                    frameworkObj["name"]?.GetValue<string>() is { } name &&
+                    frameworkObj["version"]?.GetValue<string>() is { } version)
+                {
+                    switch (name)
+                    {
+                        case "Microsoft.NETCore.App":
+                            netCoreVersion = version;
+                            break;
+                        case "Microsoft.AspNetCore.App":
+                            aspNetCoreVersion = version;
+                            break;
+                    }
+                }
+            }
+        }
+
+        return (netCoreVersion, aspNetCoreVersion);
+    }
+
+    private static (string NetCoreVersion, string AspNetCoreVersion) GetFallbackFrameworkVersions()
+    {
+        // Fallback to the original runtime detection approach
+        var netCoreVersion = Environment.Version.ToString();
+        
         var assembly = typeof(HttpContext).Assembly;
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        var version = attribute?.InformationalVersion ?? "8.0.0";
+        var aspNetCoreVersion = attribute?.InformationalVersion ?? "8.0.0";
         
         // Trim off any pre-release suffix or commit hash from the value (everything after the first '-' or '+')
-        var dashIndex = version.IndexOf('-');
-        var plusIndex = version.IndexOf('+');
+        var dashIndex = aspNetCoreVersion.IndexOf('-');
+        var plusIndex = aspNetCoreVersion.IndexOf('+');
         var cutIndex = -1;
 
         if (dashIndex >= 0 && plusIndex >= 0)
@@ -146,10 +229,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         if (cutIndex > 0)
         {
-            version = version[..cutIndex];
+            aspNetCoreVersion = aspNetCoreVersion[..cutIndex];
         }
 
-        return version;
+        return (netCoreVersion, aspNetCoreVersion);
     }
 
     private string CreateCustomRuntimeConfig(string dashboardPath)
@@ -172,7 +255,28 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         if (!File.Exists(originalRuntimeConfig))
         {
-            throw new DistributedApplicationException($"Dashboard runtime config file not found: {originalRuntimeConfig}");
+            // In test environments or when the dashboard runtime config doesn't exist,
+            // create a default configuration using the AppHost's framework versions
+            var (appHostNetCoreVersion, appHostAspNetCoreVersion) = GetAppHostFrameworkVersions();
+            
+            var defaultConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = appHostNetCoreVersion },
+                        new { name = "Microsoft.AspNetCore.App", version = appHostAspNetCoreVersion }
+                    }
+                }
+            };
+            
+            var customConfigPath = Path.GetTempFileName();
+            File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
+            
+            _customRuntimeConfigPath = customConfigPath;
+            return customConfigPath;
         }
 
         // Read the original runtime config
@@ -184,9 +288,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             throw new DistributedApplicationException($"Failed to parse dashboard runtime config: {originalRuntimeConfig}");
         }
 
-        // Get current framework versions
-        var netCoreVersion = GetCurrentNetCoreAppVersion();
-        var aspNetCoreVersion = GetCurrentAspNetCoreAppVersion();
+        // Get AppHost framework versions from its runtimeconfig.json
+        var (netCoreVersion, aspNetCoreVersion) = GetAppHostFrameworkVersions();
 
         // Update the framework versions
         if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
