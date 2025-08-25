@@ -141,15 +141,9 @@
     vertical-align: text-bottom;
 }
 
-::deep .span-row-name {
-    color: var(--foreground-subtext-rest);
-    padding-left: 0.5rem;
-    font-size: 12px;
-}
-
-::deep .selected-row .span-row-name,
-::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
-::deep .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
+::deep .selected-row .uninstrumented-peer,
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .uninstrumented-peer,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .uninstrumented-peer,
 ::deep .selected-row .span-container .span-bar-label,
 ::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label,
 ::deep .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label {
