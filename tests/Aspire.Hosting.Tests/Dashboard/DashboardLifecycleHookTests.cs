@@ -415,6 +415,76 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         }
     }
 
+    [Fact]
+    public async Task AddDashboardResource_WithDirectDllPath_CreatesCorrectArguments()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Create a temporary test dashboard directory with direct dll and runtimeconfig.json
+        var tempDir = Path.GetTempFileName();
+        File.Delete(tempDir);
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
+            var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
+
+            // Create mock files
+            File.WriteAllText(dashboardDll, "mock dll content");
+
+            var originalConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    rollForward = "Major",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = "8.0.0" },
+                        new { name = "Microsoft.AspNetCore.App", version = "8.0.0" }
+                    }
+                }
+            };
+
+            File.WriteAllText(runtimeConfig, JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            var dashboardOptions = Options.Create(new DashboardOptions { DashboardPath = dashboardDll });
+            var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+            var model = new DistributedApplicationModel(new ResourceCollection());
+
+            // Act
+            await hook.BeforeStartAsync(model, CancellationToken.None);
+
+            // Assert
+            var dashboardResource = Assert.Single(model.Resources);
+            var executableResource = Assert.IsType<ExecutableResource>(dashboardResource);
+            Assert.Equal("dotnet", executableResource.Command);
+
+            var argsAnnotation = executableResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+            var args = new List<object>();
+            await argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+            Assert.Equal(4, args.Count);
+            Assert.Equal("exec", args[0]);
+            Assert.Equal("--runtimeconfig", args[1]);
+            Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
+            Assert.Equal(dashboardDll, args[3]); // Should point to the same DLL, not modify it
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
     private static DashboardLifecycleHook CreateHook(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,
