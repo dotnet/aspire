@@ -1,12 +1,30 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Azure.Identity;
 using StackExchange.Redis;
+using StackExchange.Redis.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddRedisClient("redis");
+
+var azureOptionsProvider = new AzureOptionsProvider();
+
+var configurationOptions = ConfigurationOptions.Parse(
+    builder.Configuration.GetConnectionString("redis") ??
+    throw new InvalidOperationException("Could not find a 'redis' connection string."));
+
+if (configurationOptions.EndPoints.Any(azureOptionsProvider.IsMatch))
+{
+    await configurationOptions.ConfigureForAzureWithTokenCredentialAsync(
+        new DefaultAzureCredential());
+}
+
+builder.AddRedisClient("redis", configureOptions: options =>
+{
+    options.Defaults = configurationOptions.Defaults;
+});
 builder.AddKeyedRedisClient("garnet");
 builder.AddKeyedRedisClient("valkey");
 
