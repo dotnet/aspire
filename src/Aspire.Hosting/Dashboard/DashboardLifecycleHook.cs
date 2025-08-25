@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -50,6 +51,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private Task? _dashboardLogsTask;
     private CancellationTokenSource? _dashboardLogsCts;
+    private string? _customRuntimeConfigPath;
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -98,6 +100,106 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 distributedApplicationLogger.LogError(ex, "Unexpected error while watching dashboard logs.");
             }
         }
+
+        // Clean up the temporary runtime config file
+        if (_customRuntimeConfigPath is not null)
+        {
+            try
+            {
+                File.Delete(_customRuntimeConfigPath);
+            }
+            catch (Exception ex)
+            {
+                distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
+            }
+        }
+    }
+
+    private static string GetCurrentNetCoreAppVersion()
+    {
+        return Environment.Version.ToString();
+    }
+
+    private static string GetCurrentAspNetCoreAppVersion()
+    {
+        var assembly = typeof(HttpContext).Assembly;
+        var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        var version = attribute?.InformationalVersion ?? "8.0.0";
+        
+        // Trim off any pre-release suffix from the value (everything after the first '-')
+        var dashIndex = version.IndexOf('-');
+        if (dashIndex > 0)
+        {
+            version = version[..dashIndex];
+        }
+
+        return version;
+    }
+
+    private string CreateCustomRuntimeConfig(string dashboardPath)
+    {
+        // Find the dashboard runtimeconfig.json
+        string originalRuntimeConfig;
+
+        if (string.Equals(".dll", Path.GetExtension(dashboardPath), StringComparison.OrdinalIgnoreCase))
+        {
+            // Dashboard path is already a DLL
+            originalRuntimeConfig = Path.ChangeExtension(dashboardPath, ".runtimeconfig.json");
+        }
+        else
+        {
+            // Dashboard path is an executable, find the corresponding runtime config
+            var directory = Path.GetDirectoryName(dashboardPath)!;
+            var baseName = Path.GetFileNameWithoutExtension(dashboardPath);
+            originalRuntimeConfig = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
+        }
+
+        if (!File.Exists(originalRuntimeConfig))
+        {
+            throw new DistributedApplicationException($"Dashboard runtime config file not found: {originalRuntimeConfig}");
+        }
+
+        // Read the original runtime config
+        var originalConfigText = File.ReadAllText(originalRuntimeConfig);
+        var configJson = JsonNode.Parse(originalConfigText)?.AsObject();
+
+        if (configJson is null)
+        {
+            throw new DistributedApplicationException($"Failed to parse dashboard runtime config: {originalRuntimeConfig}");
+        }
+
+        // Get current framework versions
+        var netCoreVersion = GetCurrentNetCoreAppVersion();
+        var aspNetCoreVersion = GetCurrentAspNetCoreAppVersion();
+
+        // Update the framework versions
+        if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
+            runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
+        {
+            foreach (var framework in frameworks)
+            {
+                if (framework?.AsObject() is { } frameworkObj &&
+                    frameworkObj["name"]?.GetValue<string>() is { } name)
+                {
+                    switch (name)
+                    {
+                        case "Microsoft.NETCore.App":
+                            frameworkObj["version"] = netCoreVersion;
+                            break;
+                        case "Microsoft.AspNetCore.App":
+                            frameworkObj["version"] = aspNetCoreVersion;
+                            break;
+                    }
+                }
+            }
+        }
+
+        // Create a temporary file for the custom runtime config
+        var tempPath = Path.GetTempFileName();
+        File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+        _customRuntimeConfigPath = tempPath;
+        return tempPath;
     }
 
     private void AddDashboardResource(DistributedApplicationModel model)
@@ -110,23 +212,39 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        ExecutableResource? dashboardResource = default;
+        // Create custom runtime config with AppHost's framework versions
+        var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
 
+        // Find the dashboard DLL path
+        string dashboardDll;
         if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
         {
-            // The dashboard path is a DLL, so run it with `dotnet <dll>`
-            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
-
-            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
-            {
-                args.Add(fullyQualifiedDashboardPath);
-            }));
+            // Dashboard path is already a DLL
+            dashboardDll = fullyQualifiedDashboardPath;
         }
         else
         {
-            // Assume the dashboard path is directly executable
-            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
+            // Dashboard path is an executable, find the corresponding DLL
+            var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
+            var baseName = Path.GetFileNameWithoutExtension(fullyQualifiedDashboardPath);
+            dashboardDll = Path.Combine(directory, $"{baseName}.dll");
+            
+            if (!File.Exists(dashboardDll))
+            {
+                throw new DistributedApplicationException($"Dashboard DLL not found: {dashboardDll}");
+            }
         }
+
+        // Always use dotnet exec with the custom runtime config
+        var dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
+
+        dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+        {
+            args.Add("exec");
+            args.Add("--runtimeconfig");
+            args.Add(customRuntimeConfigPath);
+            args.Add(dashboardDll);
+        }));
 
         nameGenerator.EnsureDcpInstancesPopulated(dashboardResource);
 
