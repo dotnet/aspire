@@ -26,8 +26,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <_HelixLogsPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/logs</_HelixLogsPath>
-    <_HelixLogsPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/logs</_HelixLogsPath>
+    <_HelixUploadRoot Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT</_HelixUploadRoot>
+    <_HelixUploadRoot Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%</_HelixUploadRoot>
+
+    <_HelixLogsPath>$(_HelixUploadRoot)/logs</_HelixLogsPath>
 
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
