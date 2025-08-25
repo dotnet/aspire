@@ -121,11 +121,11 @@ public class AspireAzureAIInferenceExtensionTests
         ]);
         if (useKeyed)
         {
-            builder.AddKeyedAzureChatCompletionsClient("inference").AddKeyedChatClient("inference", deploymentId: "other");
+            builder.AddKeyedAzureChatCompletionsClient("inference").AddKeyedChatClient("inference", deploymentName: "other");
         }
         else
         {
-            builder.AddAzureChatCompletionsClient("inference").AddChatClient(deploymentId: "other");
+            builder.AddAzureChatCompletionsClient("inference").AddChatClient(deploymentName: "other");
         }
 
         using var host = builder.Build();
@@ -150,12 +150,12 @@ public class AspireAzureAIInferenceExtensionTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
         ]);
-        
+
         builder.AddAzureChatCompletionsClient("inference");
-        
+
         using var host = builder.Build();
         var client = host.Services.GetService<ChatCompletionsClient>();
-        
+
         Assert.NotNull(client);
     }
 
@@ -170,7 +170,7 @@ public class AspireAzureAIInferenceExtensionTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:inference", connectionString)
         ]);
-        
+
         // The exception should be thrown during this call
         var ex = Assert.Throws<ArgumentException>(() => builder.AddAzureChatCompletionsClient("inference"));
         Assert.Contains("multiple deployment/model keys", ex.Message);

@@ -4,9 +4,8 @@
 using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Aspire.Azure.AI.Inference;
 
 /// <summary>
 /// Represents configuration settings for Azure AI Chat Completions client.
@@ -19,14 +18,14 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets the connection string used to connect to the AI Foundry account.
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentId"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentName"/> and <see cref="TokenCredential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the ID of the AI model deployment to use for chat completions.
+    /// Gets or sets the name of the AI model deployment to use for chat completions.
     /// </summary>
-    public string? DeploymentId { get; set; }
+    public string? DeploymentName { get; set; }
 
     /// <summary>
     /// Gets or sets the endpoint URI for the Azure AI service.
@@ -126,18 +125,17 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             throw new ArgumentException($"The connection string contains multiple deployment/model keys: {string.Join(", ", deploymentKeys)}. Only one of 'Deployment', 'DeploymentId', or 'Model' should be specified.");
         }
 
-        // Set DeploymentId based on priority: Deployment > DeploymentId > Model
         if (connectionBuilder.TryGetValue("Deployment", out var deployment))
         {
-            DeploymentId = deployment.ToString();
+            DeploymentName = deployment.ToString();
         }
         else if (connectionBuilder.TryGetValue("DeploymentId", out var deploymentId))
         {
-            DeploymentId = deploymentId.ToString();
+            DeploymentName = deploymentId.ToString();
         }
         else if (connectionBuilder.TryGetValue("Model", out var model))
         {
-            DeploymentId = model.ToString();
+            DeploymentName = model.ToString();
         }
 
         // Use the EndpointAIInference key if available, otherwise fallback to Endpoint.

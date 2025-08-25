@@ -40,7 +40,7 @@ See the [Azure AI Foundry SDK quickstarts](https://learn.microsoft.com/azure/ai-
 
 ## Configuration
 
-The .NET Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and a deployment identifier (`Deployment`, `DeploymentId`, or `Model`), or a `ConnectionString` is required to be supplied.
+The .NET Aspire Azure AI Inference library provides multiple options to configure the Azure AI Foundry Service based on the requirements and conventions of your project. Note that either an `Endpoint` and a deployment identifier (`Deployment` or `Model`), or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
