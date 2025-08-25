@@ -126,11 +126,27 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         var version = attribute?.InformationalVersion ?? "8.0.0";
         
-        // Trim off any pre-release suffix from the value (everything after the first '-')
+        // Trim off any pre-release suffix or commit hash from the value (everything after the first '-' or '+')
         var dashIndex = version.IndexOf('-');
-        if (dashIndex > 0)
+        var plusIndex = version.IndexOf('+');
+        var cutIndex = -1;
+
+        if (dashIndex >= 0 && plusIndex >= 0)
         {
-            version = version[..dashIndex];
+            cutIndex = Math.Min(dashIndex, plusIndex);
+        }
+        else if (dashIndex >= 0)
+        {
+            cutIndex = dashIndex;
+        }
+        else if (plusIndex >= 0)
+        {
+            cutIndex = plusIndex;
+        }
+
+        if (cutIndex > 0)
+        {
+            version = version[..cutIndex];
         }
 
         return version;
