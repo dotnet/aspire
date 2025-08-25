@@ -64,6 +64,9 @@ internal sealed class RunCommand : BaseCommand
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
 
+        var projectArgument = new Argument<FileInfo?>("project");
+        Arguments.Add(projectArgument);
+
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
@@ -91,8 +94,9 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project") ?? parseResult.GetValue<FileInfo?>("project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var isSingleFile = effectiveAppHostProjectFile?.FullName.EndsWith(".cs") == true;
 
             if (effectiveAppHostProjectFile is null)
             {
@@ -143,7 +147,15 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            if (!isSingleFile)
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            }
+            else
+            {
+                // HACK: We can't do dotnet msbuild on single file to extract this information.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -160,6 +172,15 @@ internal sealed class RunCommand : BaseCommand
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
+            if (isSingleFile)
+            {
+                env["ASPNETCORE_ENVIRONMENT"] = "Development";
+                env["DOTNET_ENVIRONMENT"] = "Development";
+                env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
+                env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
+            }
 
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
