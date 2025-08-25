@@ -44,6 +44,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
     internal const string OtlpHttpEndpointName = "otlp-http";
 
+    // Fallback defaults for framework versions and TFM
+    private const string FallbackTargetFrameworkMoniker = "net8.0";
+    private const string FallbackNetCoreVersion = "8.0.0";
+    private const string FallbackAspNetCoreVersion = "8.0.0";
+
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         KnownConfigNames.DashboardCorsAllowedOrigins // Set on the dashboard's Dashboard:Otlp:Cors type
@@ -152,8 +157,15 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
         else
         {
+            // For executables, the runtime config is named after the base executable name
+            // Handle both Windows (.exe) and Unix (no extension) executables
             var directory = Path.GetDirectoryName(assemblyPath)!;
-            var baseName = Path.GetFileNameWithoutExtension(assemblyPath);
+            var fileName = Path.GetFileName(assemblyPath);
+            var baseName = Path.GetExtension(fileName) switch
+            {
+                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
+                _ => fileName // Unix or other: use full filename as base
+            };
             runtimeConfigPath = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
         }
 
@@ -172,8 +184,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             throw new DistributedApplicationException($"Failed to parse AppHost runtime config: {runtimeConfigPath}");
         }
 
-        string netCoreVersion = "8.0.0"; // Default fallback
-        string aspNetCoreVersion = "8.0.0"; // Default fallback
+        string netCoreVersion = FallbackNetCoreVersion; // Default fallback
+        string aspNetCoreVersion = FallbackAspNetCoreVersion; // Default fallback
 
         if (configJson["runtimeOptions"]?.AsObject() is { } runtimeOptions &&
             runtimeOptions["frameworks"]?.AsArray() is { } frameworks)
@@ -207,7 +219,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         
         var assembly = typeof(HttpContext).Assembly;
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        var aspNetCoreVersion = attribute?.InformationalVersion ?? "8.0.0";
+        var aspNetCoreVersion = attribute?.InformationalVersion ?? FallbackAspNetCoreVersion;
         
         // Trim off any pre-release suffix or commit hash from the value (everything after the first '-' or '+')
         var dashIndex = aspNetCoreVersion.IndexOf('-');
@@ -247,9 +259,15 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
         else
         {
-            // Dashboard path is an executable, find the corresponding runtime config
+            // For executables, the runtime config is named after the base executable name
+            // Handle both Windows (.exe) and Unix (no extension) executables
             var directory = Path.GetDirectoryName(dashboardPath)!;
-            var baseName = Path.GetFileNameWithoutExtension(dashboardPath);
+            var fileName = Path.GetFileName(dashboardPath);
+            var baseName = Path.GetExtension(fileName) switch
+            {
+                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
+                _ => fileName // Unix or other: use full filename as base
+            };
             originalRuntimeConfig = Path.Combine(directory, $"{baseName}.runtimeconfig.json");
         }
 
@@ -263,7 +281,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             {
                 runtimeOptions = new
                 {
-                    tfm = "net8.0",
+                    tfm = FallbackTargetFrameworkMoniker,
                     frameworks = new[]
                     {
                         new { name = "Microsoft.NETCore.App", version = appHostNetCoreVersion },
@@ -343,9 +361,15 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
         else
         {
-            // Dashboard path is an executable, find the corresponding DLL
+            // For executables, the corresponding DLL is named after the base executable name
+            // Handle both Windows (.exe) and Unix (no extension) executables
             var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
-            var baseName = Path.GetFileNameWithoutExtension(fullyQualifiedDashboardPath);
+            var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
+            var baseName = Path.GetExtension(fileName) switch
+            {
+                ".exe" => Path.GetFileNameWithoutExtension(fileName), // Windows: remove .exe
+                _ => fileName // Unix or other: use full filename as base
+            };
             dashboardDll = Path.Combine(directory, $"{baseName}.dll");
             
             if (!File.Exists(dashboardDll))
