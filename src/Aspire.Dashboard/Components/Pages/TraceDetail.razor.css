@@ -18,6 +18,7 @@
     padding-left: 0.5rem;
     font-size: 12px;
     font-weight: normal;
+    line-height: 1;
 }
 
 ::deep .trace-view-grid {
