@@ -17,12 +17,12 @@ namespace Aspire.Cli.Projects;
 
 internal interface IProjectUpdater
 {
-    Task UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken);
+    Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken);
 }
 
 internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext) : IProjectUpdater
 {
-    public async Task UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
+    public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
 
@@ -31,7 +31,8 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         if (!updateSteps.Any())
         {
             logger.LogInformation("No updates required for project: {ProjectFile}", projectFile.FullName);
-            return;
+            interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
         interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectHasUpdatesMessage);
@@ -44,7 +45,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         if (!await interactionService.ConfirmAsync(UpdateCommandStrings.PerformUpdatesPrompt, true, cancellationToken))
         {
-            return;
+            return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
         if (channel.Type == PackageChannelType.Explicit)
@@ -83,7 +84,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 isSecret: false,
                 required: true,
                 cancellationToken: cancellationToken);
-                
+
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel);
         }
@@ -95,7 +96,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
-        return;
+        return new ProjectUpdateResult { UpdatedApplied = true };
     }
 
     private static bool IsGlobalNuGetConfig(string path)
@@ -115,7 +116,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         var context = new UpdateContext(projectFile, channel);
 
-    var appHostAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHost, () => AnalyzeAppHostAsync(context, cancellationToken));
+        var appHostAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHost, () => AnalyzeAppHostAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostAnalyzeStep);
 
         while (context.AnalyzeSteps.TryDequeue(out var analyzeStep))
@@ -178,6 +179,12 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
+        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        {
+            logger.LogInformation("App Host SDK is up to date.");
+            return;
+        }
+
         var sdkUpdateStep = new UpdateStep(
             string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdateAppHostSdkFormat, sdkVersionElement.GetString(), latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
@@ -188,7 +195,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
-        
+
         projectDocument.Load(projectFile.FullName);
 
         var projectNode = projectDocument.SelectSingleNode("/Project");
@@ -202,7 +209,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
         }
-        
+
         sdkNode.Attributes?["Version"]?.Value = package.Version;
 
         projectDocument.Save(projectFile.FullName);
@@ -236,8 +243,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
             var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
+            if (packageVersion == latestPackage?.Version)
+            {
+                logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
+                continue;
+            }
+
             var updateStep = new UpdateStep(
-                string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage.Version),
+                string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
                 () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken));
             context.UpdateSteps.Enqueue(updateStep);
         }
@@ -265,6 +278,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
         }
     }
+}
+
+internal sealed class ProjectUpdateResult
+{
+    public bool UpdatedApplied { get; set; }
 }
 
 internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel channel)

@@ -92,6 +92,11 @@
         <target state="new">Project reference does not have FullPath.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectUpToDateMessage">
+        <source>Project is up to date! (no updates necessary)</source>
+        <target state="new">Project is up to date! (no updates necessary)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="new">Select a channel:</target>

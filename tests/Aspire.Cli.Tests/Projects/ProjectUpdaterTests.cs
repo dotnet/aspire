@@ -179,7 +179,8 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         // If this throws then it means that the updater prompted
         // for confirmation to do an update when no update was required!
         var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext);
-        await projectUpdater.UpdateProjectAsync(appHostProjectFile, implicitChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+        var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, implicitChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.False(updateResult.UpdatedApplied);
     }
 
     private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)

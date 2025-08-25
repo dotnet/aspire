@@ -61,6 +61,7 @@ namespace Aspire.Cli.Resources {
     internal static string SelectChannelPrompt => ResourceManager.GetString("SelectChannelPrompt", resourceCulture);
     internal static string AnalyzingProjectStatus => ResourceManager.GetString("AnalyzingProjectStatus", resourceCulture);
     internal static string ProjectHasUpdatesMessage => ResourceManager.GetString("ProjectHasUpdatesMessage", resourceCulture);
+    internal static string ProjectUpToDateMessage => ResourceManager.GetString("ProjectUpToDateMessage", resourceCulture);
     internal static string PerformUpdatesPrompt => ResourceManager.GetString("PerformUpdatesPrompt", resourceCulture);
     internal static string WhichDirectoryNuGetConfigPrompt => ResourceManager.GetString("WhichDirectoryNuGetConfigPrompt", resourceCulture);
     internal static string ExecutingUpdateStepFormat => ResourceManager.GetString("ExecutingUpdateStepFormat", resourceCulture);

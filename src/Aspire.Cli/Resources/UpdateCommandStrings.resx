@@ -24,6 +24,9 @@
   <data name="ProjectHasUpdatesMessage" xml:space="preserve">
     <value>Project has updates!</value>
   </data>
+  <data name="ProjectUpToDateMessage" xml:space="preserve">
+    <value>Project is up to date! (no updates necessary)</value>
+  </data>
   <data name="PerformUpdatesPrompt" xml:space="preserve">
     <value>Perform updates?</value>
   </data>
