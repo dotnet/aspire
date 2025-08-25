@@ -20,7 +20,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.GitHub.Models
 {
-    public partial class GitHubModelResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithoutLifetime
+    public partial class GitHubModelResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public GitHubModelResource(string name, string model, ApplicationModel.ParameterResource? organization, ApplicationModel.ParameterResource key) : base(default!) { }
 

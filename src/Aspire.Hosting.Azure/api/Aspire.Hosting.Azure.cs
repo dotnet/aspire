@@ -186,15 +186,19 @@ namespace Aspire.Hosting.Azure
 
     public sealed partial class AzureBicepResourceScope
     {
+        public AzureBicepResourceScope(object resourceGroup, object subscription) { }
+
         public AzureBicepResourceScope(object resourceGroup) { }
 
         public object ResourceGroup { get { throw null; } }
+
+        public object? Subscription { get { throw null; } }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public sealed partial class AzureEnvironmentResource : ApplicationModel.Resource
+    public sealed partial class AzureEnvironmentResource : AzureBicepResource
     {
-        public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!) { }
+        public AzureEnvironmentResource(string name, ApplicationModel.ParameterResource location, ApplicationModel.ParameterResource resourceGroupName, ApplicationModel.ParameterResource principalId) : base(default!, default, default, default) { }
 
         public ApplicationModel.ParameterResource Location { get { throw null; } set { } }
 
@@ -244,6 +248,8 @@ namespace Aspire.Hosting.Azure
         public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) { throw null; }
 
         public override string GetBicepTemplateString() { throw null; }
+
+        public static bool TryApplyExistingResourceNameAndScope(ApplicationModel.IAzureResource aspireResource, AzureResourceInfrastructure infra, global::Azure.Provisioning.Primitives.ProvisionableResource provisionableResource) { throw null; }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
