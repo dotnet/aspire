@@ -256,9 +256,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             var netCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.NETCore.App");
             var aspNetCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.AspNetCore.App");
 
-            // The versions should be updated to match the current runtime
-            Assert.NotEqual("8.0.0", netCoreFramework.GetProperty("version").GetString());
-            Assert.NotEqual("8.0.0", aspNetCoreFramework.GetProperty("version").GetString());
+            // The versions should be updated to match the AppHost's target framework versions
+            // In the test environment, the AppHost targets .NET 8.0, so the versions should be "8.0.0"
+            Assert.Equal("8.0.0", netCoreFramework.GetProperty("version").GetString());
+            Assert.Equal("8.0.0", aspNetCoreFramework.GetProperty("version").GetString());
         }
         finally
         {
