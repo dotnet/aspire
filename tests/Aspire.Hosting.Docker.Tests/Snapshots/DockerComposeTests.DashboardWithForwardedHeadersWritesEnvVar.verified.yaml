@@ -1,0 +1,18 @@
+﻿services:
+  env-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    environment:
+      ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED: "true"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+  api:
+    image: "myimage:latest"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
