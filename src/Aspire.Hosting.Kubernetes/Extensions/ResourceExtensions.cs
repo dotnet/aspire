@@ -346,50 +346,26 @@ internal static class ResourceExtensions
 
     private static ContainerV1 WithContainerProbes(this ContainerV1 container, KubernetesResource context)
     {
-        if (!context.TargetResource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        if (context.Probes.Count == 0)
         {
             return container;
         }
 
-        foreach (var probeAnnotation in probeAnnotations)
+        foreach (var (probeType, probe) in context.Probes)
         {
-            ProbeV1? probe = null;
-            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
-                && context.EndpointMappings.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
+            switch (probeType)
             {
-                probe = new ProbeV1()
-                {
-                    HttpGet = new()
-                    {
-                        Path = endpointProbeAnnotation.Path,
-                        Port = endpointMapping.Port,
-                        Scheme = endpointProbeAnnotation.EndpointReference.Scheme,
-                    },
-                };
-            }
+                case ProbeType.Startup:
+                    container.StartupProbe = probe;
+                    break;
 
-            if (probe is not null)
-            {
-                probe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
-                probe.PeriodSeconds = probeAnnotation.PeriodSeconds;
-                probe.TimeoutSeconds = probeAnnotation.TimeoutSeconds;
-                probe.FailureThreshold = probeAnnotation.FailureThreshold;
-                probe.SuccessThreshold = probeAnnotation.SuccessThreshold;
+                case ProbeType.Readiness:
+                    container.ReadinessProbe = probe;
+                    break;
 
-                switch (probeAnnotation.Type)
-                {
-                    case ProbeType.Startup:
-                        container.StartupProbe = probe;
-                        break;
-
-                    case ProbeType.Readiness:
-                        container.ReadinessProbe = probe;
-                        break;
-
-                    case ProbeType.Liveness:
-                        container.LivenessProbe = probe;
-                        break;
-                }
+                case ProbeType.Liveness:
+                    container.LivenessProbe = probe;
+                    break;
             }
         }
 
