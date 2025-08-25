@@ -166,7 +166,7 @@
     <value>Finding app hosts...</value>
   </data>
   <data name="SelectAppHostToUse" xml:space="preserve">
-    <value>Select app host to use</value>
+    <value>Select app host to use:</value>
   </data>
   <data name="CreatedSettingsFile" xml:space="preserve">
     <value>Created settings file at {0}.</value>
