@@ -44,7 +44,7 @@ The .NET Aspire Azure AI Inference library provides multiple options to configur
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys, Deployment ID and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};Deployment={deploymentName}`. You can provide the name of the connection string when calling `builder.AddChatCompletionsClient()`:
+A connection can be constructed from the **Keys, Deployment ID and Endpoint** tab with the format `Endpoint={endpoint};Key={key};Deployment={deploymentName}`. You can provide the name of the connection string when calling `builder.AddChatCompletionsClient()`:
 
 ```csharp
 builder.AddChatCompletionsClient("connectionName");
