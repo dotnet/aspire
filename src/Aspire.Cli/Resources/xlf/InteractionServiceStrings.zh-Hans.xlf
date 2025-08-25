@@ -113,8 +113,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use</source>
-        <target state="new">Select app host to use</target>
+        <source>Select app host to use:</source>
+        <target state="new">Select app host to use:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
