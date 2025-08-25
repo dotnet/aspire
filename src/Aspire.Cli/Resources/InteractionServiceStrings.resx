@@ -209,7 +209,7 @@
     <comment>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</comment>
   </data>
   <data name="UnbuildableAppHostsDetected" xml:space="preserve">
-    <value>No buildable app hosts were found, but unbuildable app hosts were detected.</value>
+    <value>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</value>
     <comment></comment>
   </data>
 </root>

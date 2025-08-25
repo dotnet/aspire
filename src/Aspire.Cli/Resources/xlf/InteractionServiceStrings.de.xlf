@@ -133,8 +133,8 @@
         <note />
       </trans-unit>
       <trans-unit id="UnbuildableAppHostsDetected">
-        <source>No buildable app hosts were found, but unbuildable app hosts were detected.</source>
-        <target state="new">No buildable app hosts were found, but unbuildable app hosts were detected.</target>
+        <source>No app hosts were found (there may be app hosts that could not be built due to syntax errors/invalid SDK versions).</source>
+        <target state="new">No app hosts were found (there may be app hosts that could not be built due to syntax errors/invalid SDK versions).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">
