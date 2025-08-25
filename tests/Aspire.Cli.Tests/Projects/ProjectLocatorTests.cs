@@ -16,13 +16,13 @@ namespace Aspire.Cli.Tests.Projects;
 
 public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 {
-    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory, Dictionary<string, string?>? environmentVariables = null)
     {
         // NOTE: This would normally be in the users home directory, but for tests we create
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, environmentVariables ?? new());
     }
 
     [Fact]

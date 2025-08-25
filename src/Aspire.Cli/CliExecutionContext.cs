@@ -3,8 +3,9 @@
 
 namespace Aspire.Cli;
 
-internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory)
+internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, Dictionary<string, string?> environmentVariables)
 {
     public DirectoryInfo WorkingDirectory { get; } = workingDirectory;
     public DirectoryInfo HivesDirectory { get; } = hivesDirectory;
+    public Dictionary<string, string?> EnvironmentVariables { get; } = environmentVariables;
 }

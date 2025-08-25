@@ -16,13 +16,13 @@ namespace Aspire.Cli.Tests.DotNet;
 
 public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 {
-    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory, Dictionary<string, string?>? environmentVariables = null)
     {
         // NOTE: This would normally be in the users home directory, but for tests we create
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, environmentVariables ?? new());
     }
 
     [Fact]
@@ -398,6 +398,88 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         await launchAppHostCalledTcs.Task;
         Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncSubstitutesPropagationFilter()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (_, _, _, _, _, options) =>
+                Assert.NotEqual(
+                    DotNetCliRunnerInvocationOptions.DefaultEnvironmentPropagationFilter,
+                    options.EnvironmentPropagationFilter),
+            42);
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: false,
+            noBuild: false,
+            args: ["--operation", "run"],
+            env: new Dictionary<string, string>(),
+            null,
+            new (),
+            CancellationToken.None
+            );
+
+        Assert.Equal(42, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncPropagationFilterPassesThroughEnvironmentVariables()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            (_, _, _, _, _, options) =>
+            {
+                Assert.True(options.EnvironmentPropagationFilter("DOTNET_SYSTEM_NET_SECURITY_NOREVOCATIONCHECKBYDEFAULT", "true"));
+            },
+            42);
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: false,
+            noBuild: false,
+            args: ["--operation", "run"],
+            env: new Dictionary<string, string>(),
+            null,
+            new (),
+            CancellationToken.None
+            );
+
+        Assert.Equal(42, exitCode);
     }
 }
 
