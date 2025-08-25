@@ -479,32 +479,6 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.False(File.Exists(composePath));
     }
 
-    [Fact]
-    public async Task ResourceWithProbes()
-    {
-        using var tempDir = new TempDirectory();
-
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
-
-        builder.AddDockerComposeEnvironment("docker-compose");
-
-        builder.AddContainer("resource", "mcr.microsoft.com/dotnet/aspnet:8.0")
-               .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-               .WithHttpEndpoint(targetPort: 8080)
-               .WithHttpProbe(ProbeType.Readiness, "http", "/ready", initialDelaySeconds: 60)
-               .WithHttpProbe(ProbeType.Liveness, "http", "/health");
-
-        var app = builder.Build();
-
-        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(60));
-
-        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
-        Assert.True(File.Exists(composePath));
-
-        await Verify(File.ReadAllText(composePath), "yaml");
-    }
-
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }

@@ -25,7 +25,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
             {
               httpGet: {
                 path: '/ready'
-                port: 8080
+                port: int('8080')
                 scheme: 'HTTP'
               }
               initialDelaySeconds: 5
@@ -35,7 +35,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
             {
               httpGet: {
                 path: '/health'
-                port: 8080
+                port: int('8080')
                 scheme: 'HTTP'
               }
               initialDelaySeconds: 5

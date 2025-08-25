@@ -86,7 +86,6 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         AddEnvironmentVariablesAndCommandLineArgs(composeService);
         AddPorts(composeService);
         AddVolumes(composeService);
-        AddProbes(composeService);
         SetDependsOn(composeService);
         return composeService;
     }
@@ -264,35 +263,6 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         foreach (var volume in Volumes)
         {
             composeService.AddVolume(volume);
-        }
-    }
-
-    private void AddProbes(Service composeService)
-    {
-        if (!TargetResource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
-        {
-            return;
-        }
-
-        // Docker compose allow only one probe called "HealthCheck", prioritize "liveness"
-        var probeAnnotation = probeAnnotations
-            .OrderBy(probeAnnotation => probeAnnotation.Type == ProbeType.Liveness ? 0 : 1)
-            .First();
-
-        if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation && endpointProbeAnnotation.EndpointReference.TargetPort.HasValue)
-        {
-            composeService.Healthcheck = new()
-            {
-                StartPeriod = $"{probeAnnotation.InitialDelaySeconds}s",
-                Interval = $"{probeAnnotation.PeriodSeconds}s",
-                Timeout = "10s",
-                Test = [
-                    "CMD",
-                    "curl",
-                    "-f",
-                    $"{endpointProbeAnnotation.EndpointReference.Scheme}://localhost:{endpointProbeAnnotation.EndpointReference.TargetPort}/{endpointProbeAnnotation.Path}",
-                ],
-            };
         }
     }
 }

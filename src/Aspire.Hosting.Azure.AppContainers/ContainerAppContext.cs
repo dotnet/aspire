@@ -833,7 +833,8 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         foreach (var probeAnnotation in probeAnnotations)
         {
             ContainerAppProbe? containerAppProbe = null;
-            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation && endpointProbeAnnotation.EndpointReference.TargetPort.HasValue)
+            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
+                && _endpointMapping.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
             {
                 containerAppProbe = new ContainerAppProbe()
                 {
@@ -848,7 +849,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                     HttpGet = new()
                     {
                         Path = endpointProbeAnnotation.Path,
-                        Port = endpointProbeAnnotation.EndpointReference.TargetPort.Value,
+                        Port = AsInt(GetValue(endpointMapping, EndpointProperty.TargetPort)),
                         Scheme = endpointProbeAnnotation.EndpointReference.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
                     },
                 };

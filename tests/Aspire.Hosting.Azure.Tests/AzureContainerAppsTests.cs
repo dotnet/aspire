@@ -1588,7 +1588,7 @@ public class AzureContainerAppsTests
 
         builder
             .AddProject<Project>("project1", launchProfileName: null)
-            .WithHttpsEndpoint(targetPort: 8080)
+            .WithHttpsEndpoint()
             .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60)
             .WithHttpProbe(ProbeType.Liveness, "https", "/health");
 
