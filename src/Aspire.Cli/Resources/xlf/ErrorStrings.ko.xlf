@@ -137,6 +137,11 @@
         <target state="translated">프로젝트 파일이 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Project file '{0}' may be an app host but could not be used because it is unbuildable.</source>
+        <target state="new">Project file '{0}' may be an app host but could not be used because it is unbuildable.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire app host project.</source>
         <target state="translated">프로젝트 파일이 Aspire 앱 호스트 프로젝트가 아닙니다.</target>

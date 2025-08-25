@@ -61,6 +61,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                         appHostProjects.Add(projectFile);
                     }
                 }
+                else if (IsPossiblyUnbuildableAppHost(projectFile))
+                {
+                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, projectFile.FullName));
+                }
                 else
                 {
                     logger.LogTrace("Project file {ProjectFile} in {SearchDirectory} is not an Aspire host", projectFile.FullName, searchDirectory.FullName);
@@ -73,6 +77,13 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
             return appHostProjects;
         });
+    }
+
+    private static bool IsPossiblyUnbuildableAppHost(FileInfo projectFile)
+    {
+        var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
+        var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
+        return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)

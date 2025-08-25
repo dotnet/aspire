@@ -214,4 +214,7 @@
   <data name="NoSelectionMade" xml:space="preserve">
     <value>Input was required for prompt '{0}' but not provided.</value>
   </data>
+  <data name="ProjectFileMayBeUnbuildableAppHost" xml:space="preserve">
+    <value>Project file '{0}' may be an app host but could not be used because it is unbuildable.</value>
+  </data>
 </root>
