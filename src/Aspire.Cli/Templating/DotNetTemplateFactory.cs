@@ -221,12 +221,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
 
+            var source = parseResult.GetValue<string?>("--source");
+            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+
             // Some templates have additional arguments that need to be applied to the `dotnet new` command
             // when it is executed. This callback will get those arguments and potentially prompt for them.
             var extraArgs = await extraArgsCallback(parseResult, cancellationToken);
-
-            var source = parseResult.GetValue<string?>("--source");
-            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
             using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
             var templateInstallCollector = new OutputCollector();
