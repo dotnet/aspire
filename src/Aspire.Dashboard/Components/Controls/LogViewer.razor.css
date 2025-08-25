@@ -27,10 +27,6 @@
     user-select: none;
 }
 
-::deep .log-content > .timestamp + fluent-badge {
-    margin-left: 1ch;
-}
-
 ::deep .ansi-fg-black {
     color: var(--console-theme-black);
 }
