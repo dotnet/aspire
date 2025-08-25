@@ -6,7 +6,7 @@ import * as tls from 'tls';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 import { getAndActivateExtension } from '../common';
-import { RpcServerInformation } from '../../server/rpcServer';
+import { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 
 suite('End-to-end RPC server auth tests', () => {
 	vscode.window.showInformationMessage('Starting end-to-end rpc server tests.');
@@ -17,7 +17,7 @@ suite('End-to-end RPC server auth tests', () => {
 
 		// Act & Assert
 		const response = await connection.sendRequest('ping', rpcServerInfo.token);
-		assert.deepStrictEqual(response, { message: 'pong' });
+		assert.deepStrictEqual(response, 'pong');
 
 		connection.dispose();
 		client.end();
@@ -39,7 +39,7 @@ suite('End-to-end RPC server auth tests', () => {
 			assert.ok(extension.exports.rpcServerInfo);
 		}, 2000, 50);
 
-		const rpcServerInfo = extension.exports.rpcServerInfo as RpcServerInformation;
+		const rpcServerInfo = extension.exports.rpcServerInfo as RpcServerConnectionInfo;
 
 		const port = Number(rpcServerInfo.address.replace('localhost:', ''));
 		const client = tls.connect({

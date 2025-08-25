@@ -9,6 +9,8 @@ internal sealed class TestProjectLocator : IProjectLocator
 {
     public Func<FileInfo?, CancellationToken, Task<FileInfo?>>? UseOrFindAppHostProjectFileAsyncCallback { get; set; }
 
+    public Func<string, CancellationToken, Task<List<FileInfo>>>? FindAppHostProjectFilesAsyncCallback { get; set; }
+
     public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
     {
         if (UseOrFindAppHostProjectFileAsyncCallback != null)
@@ -24,6 +26,18 @@ internal sealed class TestProjectLocator : IProjectLocator
 
         var fakeProjectFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "AppHost.csproj");
         return new FileInfo(fakeProjectFilePath);
+    }
+
+    public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+    {
+        if (FindAppHostProjectFilesAsyncCallback != null)
+        {
+            return FindAppHostProjectFilesAsyncCallback(searchDirectory, cancellationToken);
+        }
+
+        // Fallback behavior if not overridden.
+        var fakeProjectFilePath = Path.Combine(searchDirectory, "AppHost.csproj");
+        return Task.FromResult(new List<FileInfo> { new FileInfo(fakeProjectFilePath) });
     }
 }
 

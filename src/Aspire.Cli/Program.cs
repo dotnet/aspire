@@ -137,6 +137,7 @@ public class Program
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
+        builder.Services.AddTransient<ExtensionInternalCommand>();
 
         var app = builder.Build();
         return app;
@@ -192,12 +193,13 @@ public class Program
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        var settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Detect,
             Interactive = InteractionSupport.Detect,
             ColorSystem = ColorSystemSupport.Detect
         };
+
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
     }
@@ -236,6 +238,7 @@ public class Program
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),

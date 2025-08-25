@@ -21,6 +21,7 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
+using Humanizer;
 using Json.Patch;
 using k8s;
 using k8s.Autorest;
@@ -961,6 +962,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
+
+            // Transform the type name into an identifier, stripping out
+            // the ending "AppResource" or "Resource" and converting from
+            // PascalCase to snake_case.
+            // e.g. "PythonAppResource" becomes "python",
+            // and "ProjectResource" becomes "project".
+            var resourceType = executable.GetType().Name
+                .RemoveSuffix("AppResource")
+                .RemoveSuffix("Resource")
+                .Underscore();
+
+            if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains(resourceType) is not false)
+            {
+                exe.Spec.ExecutionType = ExecutionType.IDE;
+                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                projectLaunchConfiguration.Type = resourceType;
+                projectLaunchConfiguration.ProjectPath = executable.WorkingDirectory;
+
+                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
+                {
+                    projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
+                }
+
+                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+            }
+            else
+            {
+                exe.Spec.ExecutionType = ExecutionType.Process;
+            }
+
             SetInitialResourceState(executable, exe);
 
             var exeAppResource = new AppResource(executable, exe);
@@ -1003,9 +1034,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var projectArgs = new List<string>();
 
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
+                // We cannot use the IDE execution type if the Aspire extension does not support c# projects
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains("project") is not false)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
+
+                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
+                    {
+                        projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
+                    }
 
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
                     if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -1986,6 +2023,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
+    }
+
+    /// <summary>
+    /// Returns a list of resource types that are supported for IDE launch. Always contains project
+    /// </summary>
+    private List<string>? GetDebugSupportedResourceTypes()
+    {
+        return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
+            ? null
+            : capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)

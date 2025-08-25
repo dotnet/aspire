@@ -1,4 +1,29 @@
 import * as vscode from 'vscode';
+import { projectDebuggerExtension } from './debugger/languages/dotnet';
+import { pythonDebuggerExtension } from './debugger/languages/python';
+import { AspireExtendedDebugConfiguration, EnvVar, LaunchConfiguration, LaunchOptions } from './dcp/types';
+
+export interface ResourceDebuggerExtension {
+    resourceType: string;
+    debugAdapter: string;
+    displayName: string;
+
+    createDebugSessionConfiguration: (launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions) => Promise<AspireExtendedDebugConfiguration>;
+}
+
+export function getResourceDebuggerExtensions(): ResourceDebuggerExtension[] {
+    const extensions = [];
+    if (isCsharpInstalled()) {
+        extensions.push(projectDebuggerExtension);
+    }
+
+    if (isPythonInstalled()) {
+        extensions.push(pythonDebuggerExtension);
+    }
+
+    return extensions;
+}
+
 
 function isExtensionInstalled(extensionId: string): boolean {
     const extension = vscode.extensions.getExtension(extensionId);
@@ -13,16 +38,20 @@ function isCsharpInstalled() {
     return isExtensionInstalled("ms-dotnettools.csharp");
 }
 
-export function getSupportedCapabilities(): string[] {
+function isPythonInstalled() {
+    return isExtensionInstalled("ms-python.python");
+}
+
+export function getSupportedCapabilities(debuggerExtensions: ResourceDebuggerExtension[]): string[] {
     const capabilities = ['prompting', 'baseline.v1'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");
     }
 
-    if (isCsharpInstalled()) {
-        capabilities.push("csharp");
-    }
+    debuggerExtensions.forEach(extension => {
+        capabilities.push(...extension.resourceType);
+    });
 
     return capabilities;
 }

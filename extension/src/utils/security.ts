@@ -1,7 +1,7 @@
-import { randomBytes } from 'crypto';
+import { randomBytes, X509Certificate } from 'crypto';
 import forge from 'node-forge';
 
-export function generateSelfSignedCert(commonName: string = 'localhost') {
+export function createSelfSignedCert(commonName: string = 'localhost') {
   const pki = forge.pki;
   const keys = pki.rsa.generateKeyPair(2048);
   const cert = pki.createCertificate();
@@ -21,16 +21,19 @@ export function generateSelfSignedCert(commonName: string = 'localhost') {
       name: 'subjectAltName',
       altNames: [
         { type: 2, value: 'localhost' }, // DNS
-        { type: 7, ip: '127.0.0.1' }    // IP
       ]
     }
   ]);
 
   cert.sign(keys.privateKey);
 
+  const certPem = pki.certificateToPem(cert);
+  const x509Cert = new X509Certificate(certPem);
+
   return {
     key: pki.privateKeyToPem(keys.privateKey),
-    cert: pki.certificateToPem(cert)
+    cert: certPem,
+    certBase64: x509Cert.raw.toString('base64')
   };
 }
 

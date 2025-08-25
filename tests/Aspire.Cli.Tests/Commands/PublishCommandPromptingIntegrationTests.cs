@@ -561,8 +561,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var promptCalls = consoleService.StringPromptCalls;
         Assert.Single(promptCalls);
         var promptCall = promptCalls[0];
-        
-        // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):" 
+
+        // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
         // should be converted to Spectre markup with URL instead of text
         var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
@@ -794,7 +794,6 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message) { }
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
