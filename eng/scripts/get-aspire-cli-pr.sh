@@ -580,15 +580,15 @@ find_workflow_run() {
     local head_sha="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Finding ci.yml workflow run for SHA: $head_sha"
+    say_verbose "Finding latest successful ci.yml workflow run for SHA: $head_sha"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | map(select(.status == \"completed\" and .conclusion == \"success\")) | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-    say_error "No ci.yml workflow run found for PR SHA: $head_sha. This could mean no workflow has been triggered for this SHA $head_sha . Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    say_error "No successful ci.yml workflow run found for PR SHA: $head_sha. This could mean no workflow has been triggered for this SHA $head_sha or all runs have failed. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
