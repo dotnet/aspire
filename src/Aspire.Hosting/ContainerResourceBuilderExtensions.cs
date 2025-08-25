@@ -52,6 +52,10 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the volume.</param>
     /// <param name="target">The target path where the volume is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if the volume should be mounted as read-only.</param>
+    /// <param name="userId">The user ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="groupId">The group ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="directoryMode">The default permission mode for directories. Best-effort; provider may ignore.</param>
+    /// <param name="fileMode">The default permission mode for files. Best-effort; provider may ignore.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -65,6 +69,9 @@ public static class ContainerResourceBuilderExtensions
     /// <para>
     /// The <paramref name="target"/> path specifies the path the volume will be mounted inside the container's file system.
     /// </para>
+    /// <para>
+    /// The ownership and permission parameters are optional and are best-effort hints that providers may ignore. Only permission bits (read, write, execute for user, group, other) are allowed for file modes.
+    /// </para>
     /// <example>
     /// Adds a volume named <c>data</c> that will be mounted in the container's file system at the path <c>/usr/data</c>:
     /// <code language="csharp">
@@ -76,13 +83,28 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <example>
+    /// Adds a volume named <c>data</c> that will be mounted in the container's file system at the path <c>/usr/data</c> with specific ownership and permissions:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithVolume("data", "/usr/data", isReadOnly: false,
+    ///            userId: 999, groupId: 999,
+    ///            directoryMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+    ///            fileMode: UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false,
+        int? userId = null, int? groupId = null, UnixFileMode? directoryMode = null, UnixFileMode? fileMode = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(target);
 
-        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
+        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly, userId, groupId, directoryMode, fileMode);
         return builder.WithAnnotation(annotation);
     }
 
@@ -100,7 +122,7 @@ public static class ContainerResourceBuilderExtensions
     /// </para>
     /// <para>
     /// This overload will create an "anonymous volume" and will be given a random name by the container runtime. To share a volume between multiple containers, call
-    /// <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool)"/> and specify the same value for <c>name</c>.
+    /// <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool, int?, int?, UnixFileMode?, UnixFileMode?)"/> and specify the same value for <c>name</c>.
     /// </para>
     /// <para>
     /// The <paramref name="target"/> path specifies the path the volume will be mounted inside the container's file system.
@@ -127,6 +149,57 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds an anonymous volume to a container resource with ownership and permission settings.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="target">The target path where the volume is mounted in the container.</param>
+    /// <param name="userId">The user ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="groupId">The group ID for ownership. Best-effort; provider may ignore.</param>
+    /// <param name="directoryMode">The default permission mode for directories. Best-effort; provider may ignore.</param>
+    /// <param name="fileMode">The default permission mode for files. Best-effort; provider may ignore.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Volumes are used to persist file-based data generated by and used by the container. They are managed by the container runtime and can be shared among multiple containers.
+    /// They are not shared with the host's file-system. To mount files from the host inside the container, call <see cref="WithBindMount{T}(IResourceBuilder{T}, string, string, bool)"/>.
+    /// </para>
+    /// <para>
+    /// This overload will create an "anonymous volume" and will be given a random name by the container runtime. To share a volume between multiple containers, call
+    /// <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool, int?, int?, UnixFileMode?, UnixFileMode?)"/> and specify the same value for <c>name</c>.
+    /// </para>
+    /// <para>
+    /// The <paramref name="target"/> path specifies the path the volume will be mounted inside the container's file system.
+    /// </para>
+    /// <para>
+    /// The ownership and permission parameters are best-effort hints that providers may ignore. Only permission bits (read, write, execute for user, group, other) are allowed for file modes.
+    /// </para>
+    /// <example>
+    /// Adds an anonymous volume that will be mounted in the container's file system at the path <c>/usr/data</c> with specific ownership and permissions:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithVolume("/usr/data",
+    ///            userId: 999, groupId: 999,
+    ///            directoryMode: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+    ///            fileMode: UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target,
+        int? userId, int? groupId, UnixFileMode? directoryMode = null, UnixFileMode? fileMode = null) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(target);
+
+        var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Volume, false, userId, groupId, directoryMode, fileMode);
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
     /// Adds a bind mount to a container resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -138,7 +211,7 @@ public static class ContainerResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// Bind mounts are used to mount files or directories from the host file-system into the container. If the host doesn't require access to the files, consider
-    /// using volumes instead via <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool)"/>.
+    /// using volumes instead via <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool, int?, int?, UnixFileMode?, UnixFileMode?)"/>.
     /// </para>
     /// <para>
     /// The <paramref name="source"/> path specifies the path of the file or directory on the host that will be mounted in the container. If the path is not absolute,

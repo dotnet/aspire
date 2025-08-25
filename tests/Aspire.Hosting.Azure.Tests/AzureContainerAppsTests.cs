@@ -663,6 +663,49 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
+    public async Task VolumesWithMountOptionsAreTranslated()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var container = builder.AddContainer("api", "myimage")
+            .WithVolume("vol1", "/path1")
+            .WithBindMount("bind1", "/path3");
+
+        // Add mount annotation with ownership and permissions directly for /path2
+        // 0750 octal = 488 decimal = 111 101 000 binary (rwx r-x ---)
+        // 0640 octal = 416 decimal = 110 100 000 binary (rw- r-- ---)
+        var directoryMode = (UnixFileMode)488; // 0750 = rwx r-x ---
+        var fileMode = (UnixFileMode)416;      // 0640 = rw- r-- ---
+
+        var mountAnnotation = new ContainerMountAnnotation(
+            "vol2", "/path2", ContainerMountType.Volume, false,
+            userId: 999, groupId: 999, directoryMode: directoryMode, fileMode: fileMode);
+        
+        container.WithAnnotation(mountAnnotation);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(model.GetContainerResources());
+
+        containerResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
     public async Task KeyVaultReferenceHandling()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
