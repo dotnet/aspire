@@ -21,6 +21,9 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
 
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixUploadRoot)/dotnet.config ./dotnet.config" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixUploadRoot)\dotnet.config&quot; &quot;dotnet.config&quot;" />
+
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(_TestNameEnvVar).trx" />
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(_TestNameEnvVar).trx&quot;" />
   </ItemGroup>
@@ -35,7 +38,7 @@
       <_TestBlameArguments Include="--crashdump-type Full" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test -- --results-directory $(_HelixLogsPath) --report-trx --report-trx-filename TestResults.trx" />
+      <_TestRunCommandArguments Include="dotnet test --results-directory $(_HelixLogsPath) --no-progress --report-trx --report-trx-filename TestResults.trx" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
       <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
