@@ -66,31 +66,35 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var runTask = Task.Run(app.Run);
 
-        // Assert - Wait for the first interaction (message bar)
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
-        Assert.Contains("Azure resources that require an Azure Subscription", messageBarInteraction.Message ?? "");
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+        Assert.True(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
-        // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
+        // Verify the expected input for subscription selection (fallback to manual entry)
+        Assert.Collection(subscriptionInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Subscription ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", inputsInteraction.Title);
-        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
 
-        // Verify the expected inputs for Azure provisioning
-        Assert.Collection(inputsInteraction.Inputs,
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+        Assert.True(locationInteraction.Options!.EnableMessageMarkdown);
+
+        // Verify the expected inputs for location and resource group (fallback to manual entry)
+        Assert.Collection(locationInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
-                Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
@@ -100,12 +104,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 Assert.False(input.Required);
             });
 
-        // Complete the inputs interaction with valid values
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "test-rg";
-
-        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
@@ -277,7 +279,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         {
             builder.Services.AddSingleton(interactionService);
         }
-        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         if (bicepProvisioner is not null)
         {
