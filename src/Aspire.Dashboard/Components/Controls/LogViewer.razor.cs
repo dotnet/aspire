@@ -15,6 +15,8 @@ namespace Aspire.Dashboard.Components;
 /// </summary>
 public sealed partial class LogViewer
 {
+    private static readonly MarkupString s_spaceMarkup = new MarkupString("&#32;");
+
     private LogEntries? _logEntries;
     private bool _logsChanged;
 
