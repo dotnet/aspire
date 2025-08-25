@@ -5,8 +5,6 @@
   <Project Path="Aspire-StarterApplication.1.AppHost\Aspire-StarterApplication.1.AppHost.csproj" />
   <Project Path="Aspire-StarterApplication.1.ServiceDefaults\Aspire-StarterApplication.1.ServiceDefaults.csproj" />
   <Project Path="Aspire-StarterApplication.1.ApiService\Aspire-StarterApplication.1.ApiService.csproj" />
-<!--#if (TestFx != 'None')-->
   <Project Path="Aspire-StarterApplication.1.Tests\Aspire-StarterApplication.1.Tests.csproj" />
-<!--#endif-->
   <Project Path="Aspire-StarterApplication.1.Web\Aspire-StarterApplication.1.Web.csproj" />
 </Solution>
