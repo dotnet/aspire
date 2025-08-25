@@ -332,7 +332,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempPath = Path.GetTempFileName();
+        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
