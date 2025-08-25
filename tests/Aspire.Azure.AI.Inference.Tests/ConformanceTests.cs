@@ -29,7 +29,7 @@ public class ConformanceTests : ConformanceTests<ChatCompletionsClient, ChatComp
                 "Inference": {
                   "Endpoint": "http://YOUR_URI",
                   "Key": "YOUR_KEY",
-                  "DeploymentId": "DEPLOYMENT_ID",
+                  "Deployment": "DEPLOYMENT_NAME",
                   "DisableTracing": false,
                   "DisableMetrics": false
                 }

@@ -112,13 +112,21 @@ public class AzureAIFoundryExtensionsTests
         }
     }
 
-    [Fact]
-    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasDeploymentProperty()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasDeploymentProperty(bool useLocalFoundry)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
-        foundry.RunAsFoundryLocal();
+
+        // Even with local foundry the deployment name is used, but substituted with the actual model name when loaded
+        if (useLocalFoundry)
+        {
+            foundry.RunAsFoundryLocal();
+        }
+        
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.Single(resource.Deployments);
         var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
