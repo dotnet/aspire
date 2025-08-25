@@ -923,14 +923,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var exeInstance = GetDcpInstance(containerExecutable, instanceIndex: 0);
 
             // Container exec runs against a dcp container resource, so its required to resolve a DCP name of the resource
-            // since this is ContainerExec resource, we will run against one of the container instances
-            var containerDcpName = containerExecutable.TargetContainerResource!.GetResolvedResourceName();
+            // since this is ContainerExec resource, we will run first of the instances (same behavior as plain executables).
+            var containerDcpName = containerExecutable.Parent.GetResolvedResourceNames().First();
 
             var containerExec = ContainerExec.Create(
                 name: exeInstance.Name,
                 containerName: containerDcpName,
                 command: containerExecutable.Command,
-                args: containerExecutable.Args?.ToList(),
                 workingDirectory: containerExecutable.WorkingDirectory);
 
             containerExec.Annotate(CustomResource.OtelServiceNameAnnotation, containerExecutable.Name);
@@ -1169,11 +1168,31 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private async Task CreateContainerExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var modelResource = er.ModelResource;
+
         if (er.DcpResource is not ContainerExec containerExe)
         {
             throw new InvalidOperationException($"Expected an {nameof(ContainerExec)} resource, but got {er.DcpResource.Kind} instead");
         }
+
+        // evaluate args
+        List<string>? args = null;
+        if (modelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
+        {
+            var context = new CommandLineArgsCallbackContext([], modelResource, cancellationToken)
+            {
+                ExecutionContext = _executionContext
+            };
+            foreach (var c in commandLineArgsCallbackAnnotations)
+            {
+                await c.Callback(context).ConfigureAwait(false);
+            }
+
+            args = context.Args.Select(x => (string)x).ToList();
+        }
+
         var spec = containerExe.Spec;
+        spec.Args = args;
 
         try
         {
@@ -1750,6 +1769,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         return false;
                     }
 
+                case ContainerExec e:
+                    throw new InvalidOperationException($"ContainerExec '{resourceReference.DcpResourceName}' does not support stopping the resource");
+
                 default:
                     throw new InvalidOperationException($"Unexpected resource type: {appResource.DcpResource.GetType().FullName}");
             }
@@ -1802,6 +1824,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
+                    break;
+
+                case ContainerExec e:
+                    await EnsureResourceDeletedAsync<ContainerExec>(appResource.DcpResourceName).ConfigureAwait(false);
+
+                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+                    await CreateContainerExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
 
                 default:
