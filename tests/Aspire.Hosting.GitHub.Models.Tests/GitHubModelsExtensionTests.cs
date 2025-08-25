@@ -58,7 +58,7 @@ public class GitHubModelsExtensionTests
 
         Assert.Contains("Endpoint=https://models.github.ai/inference", connectionString);
         Assert.Contains("Model=openai/gpt-4o-mini", connectionString);
-        Assert.Contains("DeploymentId=openai/gpt-4o-mini", connectionString);
+        Assert.DoesNotContain("DeploymentId=", connectionString);
         Assert.Contains("Key=", connectionString);
     }
 
@@ -136,7 +136,7 @@ public class GitHubModelsExtensionTests
         Assert.Contains("Endpoint=https://models.github.ai/orgs/", connectionString);
         Assert.Contains("/inference", connectionString);
         Assert.Contains("Model=openai/gpt-4o-mini", connectionString);
-        Assert.Contains("DeploymentId=openai/gpt-4o-mini", connectionString);
+        Assert.DoesNotContain("DeploymentId=", connectionString);
         Assert.Contains("Key=", connectionString);
     }
 
@@ -155,7 +155,7 @@ public class GitHubModelsExtensionTests
 
         Assert.Contains("Endpoint=https://models.github.ai/orgs/myorg/inference", connectionString);
         Assert.Contains("Model=openai/gpt-4o-mini", connectionString);
-        Assert.Contains("DeploymentId=openai/gpt-4o-mini", connectionString);
+        Assert.DoesNotContain("DeploymentId=", connectionString);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class GitHubModelsExtensionTests
         Assert.Contains("Endpoint=https://models.github.ai/inference", connectionString);
         Assert.DoesNotContain("/orgs/", connectionString);
         Assert.Contains("Model=openai/gpt-4o-mini", connectionString);
-        Assert.Contains("DeploymentId=openai/gpt-4o-mini", connectionString);
+        Assert.DoesNotContain("DeploymentId=", connectionString);
     }
 
     [Fact]

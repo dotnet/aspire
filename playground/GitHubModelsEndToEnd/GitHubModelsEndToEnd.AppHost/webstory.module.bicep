@@ -24,7 +24,7 @@ resource webstory 'Microsoft.App/containerApps@2025-02-02-preview' = {
       secrets: [
         {
           name: 'connectionstrings--chat'
-          value: 'Endpoint=https://models.github.ai/inference;Key=${chat_gh_apikey_value};Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini'
+          value: 'Endpoint=https://models.github.ai/inference;Key=${chat_gh_apikey_value};Model=openai/gpt-4o-mini'
         }
       ]
       activeRevisionsMode: 'Single'

@@ -4,9 +4,8 @@
 using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Aspire.Azure.AI.Inference;
 
 /// <summary>
 /// Represents configuration settings for Azure AI Chat Completions client.
@@ -19,14 +18,14 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets the connection string used to connect to the AI Foundry account.
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentId"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentName"/> and <see cref="TokenCredential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the ID of the AI model deployment to use for chat completions.
+    /// Gets or sets the name of the AI model deployment to use for chat completions.
     /// </summary>
-    public string? DeploymentId { get; set; }
+    public string? DeploymentName { get; set; }
 
     /// <summary>
     /// Gets or sets the endpoint URI for the Azure AI service.
@@ -92,9 +91,12 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// <param name="connectionString">The connection string containing configuration values.</param>
     /// <remarks>
     /// The connection string can contain the following keys:
-    /// - DeploymentId: The ID of the AI model
+    /// - Deployment: The deployment name (preferred)
+    /// - DeploymentId: The deployment ID (legacy, for backward compatibility)
+    /// - Model: The model name (used by GitHub Models)
     /// - Endpoint: The service endpoint URI
     /// - Key: The API key for authentication
+    /// Note: Only one of Deployment, DeploymentId, or Model should be specified.
     /// </remarks>
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
@@ -103,9 +105,37 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue("DeploymentId", out var modelId))
+        // Check for deployment/model keys and ensure only one is provided
+        var deploymentKeys = new List<string>();
+        if (connectionBuilder.ContainsKey("Deployment"))
         {
-            DeploymentId = modelId.ToString();
+            deploymentKeys.Add("Deployment");
+        }
+        if (connectionBuilder.ContainsKey("DeploymentId"))
+        {
+            deploymentKeys.Add("DeploymentId");
+        }
+        if (connectionBuilder.ContainsKey("Model"))
+        {
+            deploymentKeys.Add("Model");
+        }
+
+        if (deploymentKeys.Count > 1)
+        {
+            throw new ArgumentException($"The connection string contains multiple deployment/model keys: {string.Join(", ", deploymentKeys)}. Only one of 'Deployment', 'DeploymentId', or 'Model' should be specified.");
+        }
+
+        if (connectionBuilder.TryGetValue("Deployment", out var deployment))
+        {
+            DeploymentName = deployment.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("DeploymentId", out var deploymentId))
+        {
+            DeploymentName = deploymentId.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("Model", out var model))
+        {
+            DeploymentName = model.ToString();
         }
 
         // Use the EndpointAIInference key if available, otherwise fallback to Endpoint.

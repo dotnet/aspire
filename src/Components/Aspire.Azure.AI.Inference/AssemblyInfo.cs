@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire;
+using Aspire.Azure.AI.Inference;
 using Azure.AI.Inference;
-using Microsoft.Extensions.Hosting;
 
 [assembly: ConfigurationSchema("Aspire:Azure:AI:Inference", typeof(ChatCompletionsClientSettings))]
 [assembly: ConfigurationSchema("Aspire:Azure:AI:Inference:ClientOptions", typeof(AzureAIInferenceClientOptions))]

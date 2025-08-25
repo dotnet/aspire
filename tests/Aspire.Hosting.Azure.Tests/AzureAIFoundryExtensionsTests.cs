@@ -113,7 +113,7 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
+    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasDeploymentProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
@@ -122,8 +122,9 @@ public class AzureAIFoundryExtensionsTests
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.Single(resource.Deployments);
         var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
-        Assert.Contains("Model=deployment1", connectionString);
-        Assert.Contains("DeploymentId=deployment1", connectionString);
+        Assert.Contains("Deployment=deployment1", connectionString);
+        Assert.DoesNotContain("Model=", connectionString);
+        Assert.DoesNotContain("DeploymentId=", connectionString);
         Assert.Contains("Endpoint=", connectionString);
         Assert.Contains("Key=", connectionString);
     }
