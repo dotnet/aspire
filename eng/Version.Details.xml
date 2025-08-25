@@ -151,17 +151,17 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
     </Dependency>
-    <Dependency Name="System.Threading.Channels" Version="9.0.7">
+    <Dependency Name="System.Threading.Channels" Version="9.0.8">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>3c298d9f00936d651cc47d221762474e25277672</Sha>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Bcl.Memory" Version="9.0.7">
+    <Dependency Name="Microsoft.Bcl.Memory" Version="9.0.8">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>3c298d9f00936d651cc47d221762474e25277672</Sha>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Bcl.TimeProvider" Version="9.0.7">
+    <Dependency Name="Microsoft.Bcl.TimeProvider" Version="9.0.8">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>3c298d9f00936d651cc47d221762474e25277672</Sha>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
     </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
