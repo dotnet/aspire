@@ -32,6 +32,11 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the "hostName" output reference from the bicep template for the Azure Redis resource.
+    /// </summary>
+    private BicepOutputReference HostNameOutput => new("hostName", this);
+
+    /// <summary>
     /// Gets the inner Redis resource.
     /// 
     /// This is set when RunAsContainer is called on the AzureRedisEnterpriseResource resource to create a local Redis container.
@@ -46,6 +51,30 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         InnerResource?.ConnectionStringExpression ?? ReferenceExpression.Create($"{ConnectionStringOutput}");
+
+    /// <summary>
+    /// Gets the host name for the Redis server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint host and port.
+    /// In Azure mode, resolves to the Azure Redis server's hostname.
+    /// </remarks>
+    public ReferenceExpression HostName =>
+        InnerResource is not null ?
+            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the password for the Redis server when running as a container.
+    /// </summary>
+    /// <remarks>
+    /// This property returns null when running in Azure mode, as Redis access is handled via connection strings.
+    /// When running as a container, it resolves to the password parameter value if one exists.
+    /// </remarks>
+    public ReferenceExpression? Password =>
+        InnerResource is not null && InnerResource.PasswordParameter is not null ?
+            ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
+            null;
 
     internal void SetInnerResource(RedisResource innerResource)
     {
@@ -74,7 +103,15 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
 
         // Create and add new resource if it doesn't exist
         var cluster = RedisEnterpriseCluster.FromExisting(bicepIdentifier);
-        cluster.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            cluster))
+        {
+            cluster.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(cluster);
         return cluster;
     }

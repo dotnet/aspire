@@ -102,75 +102,6 @@ public static class AzureRedisEnterpriseExtensions
         return builder;
     }
 
-    ///// <summary>
-    ///// Configures the resource to use access key authentication for Azure Cache for Redis.
-    ///// </summary>
-    ///// <param name="builder">The Azure Cache for Redis resource builder.</param>
-    ///// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
-    ///// <remarks>
-    ///// <example>
-    ///// The following example creates an Azure Cache for Redis resource that uses access key authentication.
-    ///// <code lang="csharp">
-    ///// var builder = DistributedApplication.CreateBuilder(args);
-    /////
-    ///// var cache = builder.AddAzureRedis("cache")
-    /////     .WithAccessKeyAuthentication();
-    /////
-    ///// builder.AddProject&lt;Projects.ProductService&gt;()
-    /////     .WithReference(cache);
-    /////
-    ///// builder.Build().Run();
-    ///// </code>
-    ///// </example>
-    ///// </remarks>
-    //public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
-    //{
-    //    ArgumentNullException.ThrowIfNull(builder);
-
-    //    var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
-    //                                       .WithParentRelationship(builder.Resource);
-
-    //    // remove the KeyVault from the model if the emulator is used during run mode.
-    //    // need to do this later in case builder becomes an emulator after this method is called.
-    //    if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-    //    {
-    //        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
-    //        {
-    //            if (builder.Resource.IsContainer())
-    //            {
-    //                data.Model.Resources.Remove(kv.Resource);
-    //            }
-    //            return Task.CompletedTask;
-    //        });
-    //    }
-
-    //    return builder.WithAccessKeyAuthentication(kv);
-    //}
-
-    ///// <summary>
-    ///// Configures the resource to use access key authentication for Azure Cache for Redis.
-    ///// </summary>
-    ///// <param name="builder">The Azure Cache for Redis resource builder.</param>
-    ///// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
-    ///// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
-    //public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
-    //{
-    //    ArgumentNullException.ThrowIfNull(builder);
-    //    ArgumentNullException.ThrowIfNull(keyVaultBuilder);
-
-    //    var azureResource = builder.Resource;
-    //    azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
-
-    //    // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
-    //    var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
-    //    foreach (var annotation in roleAssignmentAnnotations)
-    //    {
-    //        azureResource.Annotations.Remove(annotation);
-    //    }
-
-    //    return builder;
-    //}
-
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var redis = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
@@ -187,7 +118,8 @@ public static class AzureRedisEnterpriseExtensions
                 Sku = new RedisEnterpriseSku
                 {
                     Name = RedisEnterpriseSkuName.BalancedB0
-                }
+                },
+                MinimumTlsVersion = RedisEnterpriseTlsVersion.Tls1_2
             };
             infra.Add(cluster);
 
@@ -195,7 +127,8 @@ public static class AzureRedisEnterpriseExtensions
             {
                 Name = "default",
                 Parent = cluster,
-                Port = 10000
+                Port = 10000,
+                AccessKeysAuthentication = AccessKeysAuthentication.Disabled
             });
 
             return cluster;
@@ -208,5 +141,8 @@ public static class AzureRedisEnterpriseExtensions
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+
+        // Always output the hostName for the Redis server.
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = redis.HostName });
     }
 }

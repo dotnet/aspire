@@ -58,6 +58,7 @@ public class AzureBicepResourceTests
 #pragma warning restore CS0618 // Type or member is obsolete
             { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
             { builder => builder.AddAzureRedis(resourceName) },
+            { builder => builder.AddAzureRedisEnterprise(resourceName) },
             { builder => builder.AddAzureSearch(resourceName) },
             { builder => builder.AddAzureServiceBus(resourceName) },
             { builder => builder.AddAzureSignalR(resourceName) },

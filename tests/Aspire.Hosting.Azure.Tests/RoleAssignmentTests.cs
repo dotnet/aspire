@@ -163,6 +163,19 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
+    public Task RedisEnterpriseSupport()
+    {
+        return RoleAssignmentTest("redis",
+            builder =>
+            {
+                var redis = builder.AddAzureRedisEnterprise("redis");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            });
+    }
+
+    [Fact]
     public Task PostgresSupport()
     {
         return RoleAssignmentTest("postgres",

@@ -357,6 +357,22 @@ public class ExistingAzureResourceTests
     }
 
     [Fact]
+    public async Task SupportsExistingAzureRedisEnterpriseWithResourceGroup()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var existingResourceName = builder.AddParameter("existingResourceName");
+        var existingResourceGroupName = builder.AddParameter("existingResourceGroupName");
+        var redis = builder.AddAzureRedisEnterprise("redis")
+            .PublishAsExisting(existingResourceName, existingResourceGroupName);
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(redis.Resource);
+
+        await Verify(manifest.ToString(), "json")
+            .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
     public async Task SupportsExistingAzureApplicationInsightsWithResourceGroup()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
