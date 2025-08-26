@@ -152,7 +152,6 @@
     "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
     "gulp-filter": "^7.0.0",
-    "gulp-sourcemaps": "^3.0.0",
     "gulp-typescript": "^6.0.0-alpha.1",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.3",
