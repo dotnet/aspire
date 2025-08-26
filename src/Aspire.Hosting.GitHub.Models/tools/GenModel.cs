@@ -120,7 +120,7 @@ internal sealed class GitHubModelClassGenerator
                            .Replace('@', ' ').Replace('!', ' ').Replace('?', ' ').Replace('<', ' ')
                            .Replace('>', ' ').Replace('=', ' ').Replace('~', ' ')
                            .Replace('`', ' ').Replace('^', ' ').Replace('*', ' ');
-        
+
         var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var sb = new StringBuilder();
         foreach (var p in parts)
@@ -134,20 +134,28 @@ internal sealed class GitHubModelClassGenerator
                 sb.Append(p);
                 continue;
             }
-            sb.Append(char.ToUpperInvariant(p[0]));
-            if (p.Length > 1)
+            // Preserve original casing; only capitalize a leading lowercase letter for each token.
+            if (char.IsLower(p[0]))
             {
-                sb.Append(p.Substring(1).ToLowerInvariant());
+                sb.Append(char.ToUpperInvariant(p[0]));
+                if (p.Length > 1)
+                {
+                    sb.Append(p.AsSpan(1));
+                }
+            }
+            else
+            {
+                sb.Append(p);
             }
         }
         var result = sb.ToString();
-        
+
         // Ensure we have a valid identifier (start with letter or underscore)
         if (result.Length == 0 || char.IsDigit(result[0]))
         {
             result = "_" + result;
         }
-        
+
         return result;
     }
     private static string Clean(string s) => s.Replace('\n', ' ').Replace('\r', ' ').Replace("  ", " ").Trim();

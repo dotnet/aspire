@@ -10,17 +10,17 @@ public partial class GitHubModel
     /// <summary>
     /// Models published by AI21 Labs.
     /// </summary>
-    public static class Ai21Labs
+    public static class AI21Labs
     {
         /// <summary>
         /// A 398B parameters (94B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
-        public static readonly GitHubModel Ai21Jamba15Large = new() { Id = "ai21-labs/ai21-jamba-1.5-large" };
+        public static readonly GitHubModel AI21Jamba15Large = new() { Id = "ai21-labs/ai21-jamba-1.5-large" };
 
         /// <summary>
         /// A 52B parameters (12B active) multilingual model, offering a 256K long context window, function calling, structured output, and grounded generation.
         /// </summary>
-        public static readonly GitHubModel Ai21Jamba15Mini = new() { Id = "ai21-labs/ai21-jamba-1.5-mini" };
+        public static readonly GitHubModel AI21Jamba15Mini = new() { Id = "ai21-labs/ai21-jamba-1.5-mini" };
 
     }
 
@@ -64,29 +64,29 @@ public partial class GitHubModel
         /// <summary>
         /// JAIS 30b Chat is an auto-regressive bilingual LLM for Arabic &amp; English with state-of-the-art capabilities in Arabic.
         /// </summary>
-        public static readonly GitHubModel Jais30bChat = new() { Id = "core42/jais-30b-chat" };
+        public static readonly GitHubModel JAIS30bChat = new() { Id = "core42/jais-30b-chat" };
 
     }
 
     /// <summary>
     /// Models published by DeepSeek.
     /// </summary>
-    public static class Deepseek
+    public static class DeepSeek
     {
         /// <summary>
         /// DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks.
         /// </summary>
-        public static readonly GitHubModel DeepseekR1 = new() { Id = "deepseek/deepseek-r1" };
+        public static readonly GitHubModel DeepSeekR1 = new() { Id = "deepseek/deepseek-r1" };
 
         /// <summary>
         /// The DeepSeek R1 0528 model has improved reasoning capabilities, this version also offers a reduced hallucination rate, enhanced support for function calling, and better experience for vibe coding.
         /// </summary>
-        public static readonly GitHubModel DeepseekR10528 = new() { Id = "deepseek/deepseek-r1-0528" };
+        public static readonly GitHubModel DeepSeekR10528 = new() { Id = "deepseek/deepseek-r1-0528" };
 
         /// <summary>
         /// DeepSeek-V3-0324 demonstrates notable improvements over its predecessor, DeepSeek-V3, in several key aspects, including enhanced reasoning, improved function calling, and superior code generation capabilities.
         /// </summary>
-        public static readonly GitHubModel DeepseekV30324 = new() { Id = "deepseek/deepseek-v3-0324" };
+        public static readonly GitHubModel DeepSeekV30324 = new() { Id = "deepseek/deepseek-v3-0324" };
 
     }
 
@@ -98,7 +98,7 @@ public partial class GitHubModel
         /// <summary>
         /// Llama 4 Maverick 17B 128E Instruct FP8 is great at precise image understanding and creative writing, offering high quality at a lower price compared to Llama 3.3 70B
         /// </summary>
-        public static readonly GitHubModel Llama4Maverick17B128EInstructFp8 = new() { Id = "meta/llama-4-maverick-17b-128e-instruct-fp8" };
+        public static readonly GitHubModel Llama4Maverick17B128EInstructFP8 = new() { Id = "meta/llama-4-maverick-17b-128e-instruct-fp8" };
 
         /// <summary>
         /// Llama 4 Scout 17B 16E Instruct is great at multi-document summarization, parsing extensive user activity for personalized tasks, and reasoning over vast codebases.
@@ -140,7 +140,7 @@ public partial class GitHubModel
         /// <summary>
         /// MAI-DS-R1 is a DeepSeek-R1 reasoning model that has been post-trained by the Microsoft AI team to fill in information gaps in the previous version of the model and improve its harm protections while maintaining R1 reasoning capabilities.
         /// </summary>
-        public static readonly GitHubModel MaiDsR1 = new() { Id = "microsoft/mai-ds-r1" };
+        public static readonly GitHubModel MAIDSR1 = new() { Id = "microsoft/mai-ds-r1" };
 
         /// <summary>
         /// Same Phi-3-medium model, but with a larger context size for RAG or few shot prompting.
@@ -180,7 +180,7 @@ public partial class GitHubModel
         /// <summary>
         /// A new mixture of experts model
         /// </summary>
-        public static readonly GitHubModel Phi35MoeInstruct128k = new() { Id = "microsoft/phi-3.5-moe-instruct" };
+        public static readonly GitHubModel Phi35MoEInstruct128k = new() { Id = "microsoft/phi-3.5-moe-instruct" };
 
         /// <summary>
         /// Refresh of Phi-3-vision model.
@@ -217,7 +217,7 @@ public partial class GitHubModel
     /// <summary>
     /// Models published by Mistral AI.
     /// </summary>
-    public static class MistralAi
+    public static class MistralAI
     {
         /// <summary>
         /// Codestral 25.01 by Mistral AI is designed for code generation, supporting 80+ programming languages, and optimized for tasks like code completion and fill-in-the-middle
@@ -254,99 +254,99 @@ public partial class GitHubModel
     /// <summary>
     /// Models published by OpenAI.
     /// </summary>
-    public static class Openai
+    public static class OpenAI
     {
         /// <summary>
         /// gpt-4.1 outperforms gpt-4o across the board, with major gains in coding, instruction following, and long-context understanding
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt41 = new() { Id = "openai/gpt-4.1" };
+        public static readonly GitHubModel OpenAIGPT41 = new() { Id = "openai/gpt-4.1" };
 
         /// <summary>
         /// gpt-4.1-mini outperform gpt-4o-mini across the board, with major gains in coding, instruction following, and long-context handling
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt41Mini = new() { Id = "openai/gpt-4.1-mini" };
+        public static readonly GitHubModel OpenAIGPT41Mini = new() { Id = "openai/gpt-4.1-mini" };
 
         /// <summary>
         /// gpt-4.1-nano provides gains in coding, instruction following, and long-context handling along with lower latency and cost
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt41Nano = new() { Id = "openai/gpt-4.1-nano" };
+        public static readonly GitHubModel OpenAIGPT41Nano = new() { Id = "openai/gpt-4.1-nano" };
 
         /// <summary>
         /// OpenAI&apos;s most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt4o = new() { Id = "openai/gpt-4o" };
+        public static readonly GitHubModel OpenAIGPT4o = new() { Id = "openai/gpt-4o" };
 
         /// <summary>
         /// An affordable, efficient AI solution for diverse text and image tasks.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt4oMini = new() { Id = "openai/gpt-4o-mini" };
+        public static readonly GitHubModel OpenAIGPT4oMini = new() { Id = "openai/gpt-4o-mini" };
 
         /// <summary>
         /// gpt-5 is designed for logic-heavy and multi-step tasks.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt5 = new() { Id = "openai/gpt-5" };
+        public static readonly GitHubModel OpenAIGpt5 = new() { Id = "openai/gpt-5" };
 
         /// <summary>
         /// gpt-5-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt5ChatPreview = new() { Id = "openai/gpt-5-chat" };
+        public static readonly GitHubModel OpenAIGpt5ChatPreview = new() { Id = "openai/gpt-5-chat" };
 
         /// <summary>
         /// gpt-5-mini is a lightweight version for cost-sensitive applications.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt5Mini = new() { Id = "openai/gpt-5-mini" };
+        public static readonly GitHubModel OpenAIGpt5Mini = new() { Id = "openai/gpt-5-mini" };
 
         /// <summary>
         /// gpt-5-nano is optimized for speed, ideal for applications requiring low latency.
         /// </summary>
-        public static readonly GitHubModel OpenaiGpt5Nano = new() { Id = "openai/gpt-5-nano" };
+        public static readonly GitHubModel OpenAIGpt5Nano = new() { Id = "openai/gpt-5-nano" };
 
         /// <summary>
         /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
         /// </summary>
-        public static readonly GitHubModel OpenaiO1 = new() { Id = "openai/o1" };
+        public static readonly GitHubModel OpenAIO1 = new() { Id = "openai/o1" };
 
         /// <summary>
         /// Smaller, faster, and 80% cheaper than o1-preview, performs well at code generation and small context operations.
         /// </summary>
-        public static readonly GitHubModel OpenaiO1Mini = new() { Id = "openai/o1-mini" };
+        public static readonly GitHubModel OpenAIO1Mini = new() { Id = "openai/o1-mini" };
 
         /// <summary>
         /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
         /// </summary>
-        public static readonly GitHubModel OpenaiO1Preview = new() { Id = "openai/o1-preview" };
+        public static readonly GitHubModel OpenAIO1Preview = new() { Id = "openai/o1-preview" };
 
         /// <summary>
         /// o3 includes significant improvements on quality and safety while supporting the existing features of o1 and delivering comparable or better performance.
         /// </summary>
-        public static readonly GitHubModel OpenaiO3 = new() { Id = "openai/o3" };
+        public static readonly GitHubModel OpenAIO3 = new() { Id = "openai/o3" };
 
         /// <summary>
         /// o3-mini includes the o1 features with significant cost-efficiencies for scenarios requiring high performance.
         /// </summary>
-        public static readonly GitHubModel OpenaiO3Mini = new() { Id = "openai/o3-mini" };
+        public static readonly GitHubModel OpenAIO3Mini = new() { Id = "openai/o3-mini" };
 
         /// <summary>
         /// o4-mini includes significant improvements on quality and safety while supporting the existing features of o3-mini and delivering comparable or better performance.
         /// </summary>
-        public static readonly GitHubModel OpenaiO4Mini = new() { Id = "openai/o4-mini" };
+        public static readonly GitHubModel OpenAIO4Mini = new() { Id = "openai/o4-mini" };
 
         /// <summary>
         /// Text-embedding-3 series models are the latest and most capable embedding model from OpenAI.
         /// </summary>
-        public static readonly GitHubModel OpenaiTextEmbedding3Large = new() { Id = "openai/text-embedding-3-large" };
+        public static readonly GitHubModel OpenAITextEmbedding3Large = new() { Id = "openai/text-embedding-3-large" };
 
         /// <summary>
         /// Text-embedding-3 series models are the latest and most capable embedding model from OpenAI.
         /// </summary>
-        public static readonly GitHubModel OpenaiTextEmbedding3Small = new() { Id = "openai/text-embedding-3-small" };
+        public static readonly GitHubModel OpenAITextEmbedding3Small = new() { Id = "openai/text-embedding-3-small" };
 
     }
 
     /// <summary>
     /// Models published by xAI.
     /// </summary>
-    public static class Xai
+    public static class XAI
     {
         /// <summary>
         /// Grok 3 is xAI&apos;s debut model, pretrained by Colossus at supermassive scale to excel in specialized domains like finance, healthcare, and the law.
