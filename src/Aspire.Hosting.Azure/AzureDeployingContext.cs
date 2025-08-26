@@ -25,18 +25,14 @@ internal sealed class AzureDeployingContext(
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner)
 {
-    public async Task DeployModelAsync(AzureEnvironmentResource resource, DistributedApplicationModel model, CancellationToken cancellationToken = default)
+    public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        if (resource.PublishingContext is null)
-        {
-            throw new InvalidOperationException($"Publishing context is not initialized. Please ensure that the {nameof(AzurePublishingContext)} has been initialized before deploying.");
-        }
-
-        // Step 1: Provision main Azure infrastructure (compute environment, resources, container registry)
-        if (!await TryProvisionAzureInfrastructure(resource, provisioningContext, cancellationToken).ConfigureAwait(false))
+        // Step 1: Provision Azure Bicep resources from the distributed application model
+        var bicepResources = GetBicepResourcesInDependencyOrder(model);
+        if (!await TryProvisionAzureBicepResources(bicepResources, provisioningContext, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
@@ -61,42 +57,24 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private async Task<bool> TryProvisionAzureInfrastructure(AzureEnvironmentResource resource, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
+    private async Task<bool> TryProvisionAzureBicepResources(List<AzureBicepResource> bicepResources, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var deployingStep = await activityReporter.CreateStepAsync("Deploying to Azure", cancellationToken).ConfigureAwait(false);
+        var deployingStep = await activityReporter.CreateStepAsync("Deploying Azure resources", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
         {
             try
             {
-                foreach (var (parameterResource, provisioningParameter) in resource.PublishingContext!.ParameterLookup)
+                // Provision each Bicep resource in dependency order
+                foreach (var bicepResource in bicepResources)
                 {
-                    if (parameterResource == resource.Location)
+                    var resourceTask = await deployingStep.CreateTaskAsync($"Provisioning {bicepResource.Name}", cancellationToken).ConfigureAwait(false);
+                    await using (resourceTask.ConfigureAwait(false))
                     {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.Location.Name;
-                    }
-                    else if (parameterResource == resource.ResourceGroupName)
-                    {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.ResourceGroup.Name;
-                    }
-                    else if (parameterResource == resource.PrincipalId)
-                    {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.Principal.Id.ToString();
-                    }
-                    else
-                    {
-                        // TODO: Prompt here.
-                        await deployingStep.FailAsync("Deployment contains unresolvable parameters.", cancellationToken).ConfigureAwait(false);
-                    }
-                }
+                        // Provision the resource
+                        await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
 
-                // Set the scope for this resource to indicate that it is a subscription-level resource.
-                resource.Scope = new AzureBicepResourceScope(provisioningContext.ResourceGroup.Name, provisioningContext.Subscription.Id.ToString());
-
-                var azureTask = await deployingStep.CreateTaskAsync("Provisioning Azure environment", cancellationToken).ConfigureAwait(false);
-                await using (azureTask.ConfigureAwait(false))
-                {
-                    await bicepProvisioner.GetOrCreateResourceAsync(resource, provisioningContext, cancellationToken).ConfigureAwait(false);
-                    PropagateOutputsToResources(resource);
+                        await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -152,7 +130,8 @@ internal sealed class AzureDeployingContext(
     private async Task<bool> TryDeployComputeResources(DistributedApplicationModel model,
         ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var computeResources = model.GetComputeResources();
+        // Create a snapshot to avoid collection modification during enumeration
+        var computeResources = model.GetComputeResources().ToList();
 
         if (!computeResources.Any())
         {
@@ -169,7 +148,7 @@ internal sealed class AzureDeployingContext(
                     await DeployComputeResource(computeStep, computeResource, provisioningContext, cancellationToken).ConfigureAwait(false);
                 }
 
-                await computeStep.CompleteAsync($"Successfully deployed {computeResources.Count()} compute resources", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                await computeStep.CompleteAsync($"Successfully deployed {computeResources.Count} compute resources", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -258,17 +237,6 @@ internal sealed class AzureDeployingContext(
             {
                 await acrStep.CompleteAsync($"Failed to push images to {registryName}: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
                 throw;
-            }
-        }
-    }
-
-    private static void PropagateOutputsToResources(AzureEnvironmentResource resource)
-    {
-        foreach (var (populatedMainOutputName, populatedMainOutputValue) in resource.Outputs)
-        {
-            if (resource.PublishingContext!.ReverseOutputLookup.TryGetValue(populatedMainOutputName, out var outputRef))
-            {
-                outputRef.Resource.Outputs[outputRef.Name] = populatedMainOutputValue;
             }
         }
     }
@@ -372,7 +340,9 @@ internal sealed class AzureDeployingContext(
     // need to expand this to support dashboards across compute environments.
     private static string? TryGetDashboardUrl(DistributedApplicationModel model)
     {
-        foreach (var resource in model.Resources)
+        // Create a snapshot to avoid collection modification during enumeration
+        var resourcesSnapshot = model.Resources.ToList();
+        foreach (var resource in resourcesSnapshot)
         {
             if (resource is IAzureComputeEnvironmentResource &&
                 resource is AzureBicepResource environmentBicepResource)
@@ -476,4 +446,136 @@ internal sealed class AzureDeployingContext(
 
         return string.Empty;
     }
+
+    private static List<AzureBicepResource> GetBicepResourcesInDependencyOrder(DistributedApplicationModel model)
+    {
+        var bicepResources = model.Resources.OfType<AzureBicepResource>()
+            .Where(r => !r.IsExcludedFromPublish())
+            .ToList();
+
+        // Build dependency graph based on parameter references
+        var dependencies = BuildDependencyGraph(bicepResources);
+
+        // Perform topological sort to get deployment order
+        return TopologicalSort(bicepResources, dependencies);
+    }
+
+    private static Dictionary<AzureBicepResource, HashSet<AzureBicepResource>> BuildDependencyGraph(List<AzureBicepResource> resources)
+    {
+        var dependencies = new Dictionary<AzureBicepResource, HashSet<AzureBicepResource>>();
+        var resourceByName = resources.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+
+        var resourcesSnapshot = resources.ToList();
+        foreach (var resource in resourcesSnapshot)
+        {
+            dependencies[resource] = [];
+        }
+
+        foreach (var resource in resourcesSnapshot)
+        {
+            var parametersSnapshot = resource.Parameters.Values.ToList();
+            foreach (var parameter in parametersSnapshot)
+            {
+                var referencedResources = ExtractResourceReferences(parameter, resourceByName);
+                foreach (var referencedResource in referencedResources)
+                {
+                    // resource depends on referencedResource
+                    dependencies[resource].Add(referencedResource);
+                }
+            }
+        }
+
+        return dependencies;
+    }
+
+    private static HashSet<AzureBicepResource> ExtractResourceReferences(object? parameterValue, Dictionary<string, AzureBicepResource> resourceByName)
+    {
+        var references = new HashSet<AzureBicepResource>();
+
+        switch (parameterValue)
+        {
+            case BicepOutputReference outputRef:
+                // Direct reference to another resource's output
+                references.Add(outputRef.Resource);
+                break;
+
+            case IValueWithReferences valueWithRefs:
+                // Recursively extract references from complex values
+                foreach (var reference in valueWithRefs.References)
+                {
+                    references.UnionWith(ExtractResourceReferences(reference, resourceByName));
+                }
+                break;
+
+            case string stringValue:
+                // Look for resource name patterns in string parameters
+                foreach (var (name, resource) in resourceByName)
+                {
+                    if (stringValue.Contains(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        references.Add(resource);
+                    }
+                }
+                break;
+        }
+
+        return references;
+    }
+
+    private static List<AzureBicepResource> TopologicalSort(List<AzureBicepResource> resources, Dictionary<AzureBicepResource, HashSet<AzureBicepResource>> dependencies)
+    {
+        var result = new List<AzureBicepResource>();
+        var visited = new HashSet<AzureBicepResource>();
+        var visiting = new HashSet<AzureBicepResource>();
+
+        // Create a snapshot to avoid collection modification during enumeration
+        var resourcesSnapshot = resources.ToList();
+        foreach (var resource in resourcesSnapshot)
+        {
+            if (!visited.Contains(resource))
+            {
+                TopologicalSortVisit(resource, dependencies, visited, visiting, result);
+            }
+        }
+
+        return result;
+    }
+
+    private static void TopologicalSortVisit(
+        AzureBicepResource resource,
+        Dictionary<AzureBicepResource, HashSet<AzureBicepResource>> dependencies,
+        HashSet<AzureBicepResource> visited,
+        HashSet<AzureBicepResource> visiting,
+        List<AzureBicepResource> result)
+    {
+        if (visiting.Contains(resource))
+        {
+            // Circular dependency detected - fall back to simple ordering
+            if (!visited.Contains(resource))
+            {
+                visited.Add(resource);
+                result.Add(resource);
+            }
+            return;
+        }
+
+        if (visited.Contains(resource))
+        {
+            return;
+        }
+
+        visiting.Add(resource);
+
+        // Visit all dependencies first - create a snapshot to avoid collection modification during enumeration
+        var resourceDependencies = dependencies[resource].ToList();
+        foreach (var dependency in resourceDependencies)
+        {
+            TopologicalSortVisit(dependency, dependencies, visited, visiting, result);
+        }
+
+        visiting.Remove(resource);
+        visited.Add(resource);
+        result.Add(resource);
+    }
+
 }

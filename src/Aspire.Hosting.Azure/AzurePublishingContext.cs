@@ -8,7 +8,6 @@ using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
-using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
@@ -24,28 +23,17 @@ namespace Aspire.Hosting.Azure;
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class AzurePublishingContext(
     string outputPath,
-    AzureProvisioningOptions provisioningOptions,
     ILogger logger,
     IPublishingActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
-
     private IPublishingActivityReporter ActivityReporter => activityReporter;
-
-    /// <summary>
-    /// Gets the main.bicep infrastructure for the distributed application.
-    /// </summary>
-    public Infrastructure MainInfrastructure { get; } = new()
-    {
-        TargetScope = DeploymentScope.Subscription
-    };
 
     /// <summary>
     /// Gets a dictionary that maps parameter resources to provisioning parameters.
     /// </summary>
     /// <remarks>
-    /// The value is the <see cref="ProvisioningParameter"/> of the <see cref="MainInfrastructure"/>
-    /// that was created to be filled with the value of the Aspire <see cref="ParameterResource"/>.
+    /// The value is the <see cref="ProvisioningParameter"/> that was created to be filled with the value of the Aspire <see cref="ParameterResource"/>.
     /// </remarks>
     public Dictionary<ParameterResource, ProvisioningParameter> ParameterLookup { get; } = [];
 
@@ -53,8 +41,7 @@ public sealed class AzurePublishingContext(
     /// Gets a dictionary that maps output references to provisioning outputs.
     /// </summary>
     /// <remarks>
-    /// The value is the <see cref="ProvisioningOutput"/> of the <see cref="MainInfrastructure"/>
-    /// that was created with the value of the output referenced by the Aspire <see cref="BicepOutputReference"/>.
+    /// The value is the <see cref="ProvisioningOutput"/> that was created with the value of the output referenced by the Aspire <see cref="BicepOutputReference"/>.
     /// </remarks>
     public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
 
@@ -100,8 +87,6 @@ public sealed class AzurePublishingContext(
                 {
                     await WriteAzureArtifactsOutputAsync(step, model, environment, cancellationToken).ConfigureAwait(false);
 
-                    await SaveToDiskAsync(outputPath).ConfigureAwait(false);
-
                     await writeTask.SucceedAsync($"Azure Bicep templates written successfully to {outputPath}.", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -132,19 +117,8 @@ public sealed class AzurePublishingContext(
         await MapParameterAsync(environment.PrincipalId, cancellationToken).ConfigureAwait(false);
 
         var resourceGroupParam = ParameterLookup[environment.ResourceGroupName];
-        MainInfrastructure.Add(resourceGroupParam);
-
         var locationParam = ParameterLookup[environment.Location];
-        MainInfrastructure.Add(locationParam);
-
         var principalId = ParameterLookup[environment.PrincipalId];
-        MainInfrastructure.Add(principalId);
-
-        var rg = new ResourceGroup("rg")
-        {
-            Name = resourceGroupParam,
-            Location = locationParam,
-        };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
 
@@ -246,7 +220,7 @@ public sealed class AzurePublishingContext(
             {
                 string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
                 ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), ParameterLookup[p].Value.Compile()),
-                _ => new IdentifierExpression(rg.BicepIdentifier)
+                _ => new FunctionCallExpression(new IdentifierExpression("resourceGroup"))
             };
 
             var module = moduleMap[resource];
@@ -346,18 +320,6 @@ public sealed class AzurePublishingContext(
             }
         }
 
-        foreach (var (_, pp) in ParameterLookup)
-        {
-            MainInfrastructure.Add(pp);
-        }
-
-        MainInfrastructure.Add(rg);
-
-        foreach (var (_, module) in moduleMap)
-        {
-            MainInfrastructure.Add(module);
-        }
-
         foreach (var (_, output) in outputs)
         {
             var module = moduleMap[output.Resource];
@@ -371,7 +333,6 @@ public sealed class AzurePublishingContext(
 
             OutputLookup[output] = bicepOutput;
             ReverseOutputLookup[bicepOutput.BicepIdentifier] = output;
-            MainInfrastructure.Add(bicepOutput);
         }
     }
 
@@ -439,21 +400,5 @@ public sealed class AzurePublishingContext(
                 await VisitAsync(reference, visitor, visited, cancellationToken).ConfigureAwait(false);
             }
         }
-    }
-
-    /// <summary>
-    /// Saves the compiled Bicep template to disk.
-    /// </summary>
-    /// <param name="outputDirectoryPath">The path to the output directory where the Bicep template will be saved.</param>
-    /// <returns>A task that represents the asynchronous save operation.</returns>
-    private async Task SaveToDiskAsync(string outputDirectoryPath)
-    {
-        var plan = MainInfrastructure.Build(provisioningOptions.ProvisioningBuildOptions);
-        var compiledBicep = plan.Compile().First();
-
-        logger.LogDebug("Writing Bicep module {BicepName}.bicep to {TargetPath}", MainInfrastructure.BicepName, outputDirectoryPath);
-
-        var bicepPath = Path.Combine(outputDirectoryPath, $"{MainInfrastructure.BicepName}.bicep");
-        await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
     }
 }
