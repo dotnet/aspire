@@ -113,20 +113,35 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasDeploymentProperty()
+    public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
         foundry.RunAsFoundryLocal();
+
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
         Assert.Single(resource.Deployments);
-        var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
-        Assert.Contains("Deployment=deployment1", connectionString);
-        Assert.DoesNotContain("Model=", connectionString);
-        Assert.DoesNotContain("DeploymentId=", connectionString);
-        Assert.Contains("Endpoint=", connectionString);
-        Assert.Contains("Key=", connectionString);
+
+        // NB: The value of the ModelName property is updated with the downloaded model id when the resource is starting.
+        // We are only testing that the value in the ModelName property is referenced in the connection string.
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=gpt-4", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AIFoundry_DeploymentConnectionString_HasDeploymentProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
+        Assert.Single(resource.Deployments);
+        Assert.Equal("{myAIFoundry.connectionString};Deployment=deployment1", deployment.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

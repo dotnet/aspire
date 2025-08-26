@@ -272,8 +272,11 @@ public static class AzureAIFoundryExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        deployment.DeploymentName = progress.ModelInfo.ModelId;
-                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.DeploymentName);
+                        // Substitute the model alias with the one actually downloaded for the current machine.
+                        // e.g. "phi-4" -> "Phi-4-generic-gpu"
+
+                        deployment.ModelName = progress.ModelInfo.ModelId;
+                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelName);
 
                         // Re-publish the connection string since the model id is now known
                         var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
@@ -291,7 +294,7 @@ public static class AzureAIFoundryExtensions
 
                         try
                         {
-                            _ = await manager.LoadModelAsync(deployment.DeploymentName, ct: ct).ConfigureAwait(false);
+                            _ = await manager.LoadModelAsync(deployment.ModelName, ct: ct).ConfigureAwait(false);
 
                             await rns.PublishUpdateAsync(deployment, state => state with
                             {
@@ -336,7 +339,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new LocalModelHealthCheck(modelAlias: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelId: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default
