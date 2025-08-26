@@ -409,28 +409,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cancellationToken: cancellationToken);
     }
 
-    internal static string GetBackchannelSocketPath(FileInfo? projectFile)
+    internal static string GetBackchannelSocketPath(FileInfo projectFile)
     {
-        if (projectFile is not null)
-        {
-            // Use predictable socket path based on the AppHost project file path
-            return BackchannelHelper.GetSocketPath(projectFile.FullName);
-        }
-        else
-        {
-            // Fallback to old behavior when project file is not available
-            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-
-            if (!Directory.Exists(aspireCliPath))
-            {
-                Directory.CreateDirectory(aspireCliPath);
-            }
-
-            var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
-            var socketPath = Path.Combine(aspireCliPath, $"cli.sock.{uniqueSocketPathSegment}");
-            return socketPath;
-        }
+        ArgumentNullException.ThrowIfNull(projectFile);
+        
+        // Use predictable socket path based on the AppHost project file path
+        return BackchannelHelper.GetSocketPath(projectFile.FullName);
     }
 
     public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -460,9 +444,15 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             startInfo.ArgumentList.Add(a);
         }
 
-        var socketPath = GetBackchannelSocketPath(projectFile);
+        string? socketPath = null;
         if (backchannelCompletionSource is not null)
         {
+            if (projectFile is null)
+            {
+                throw new InvalidOperationException("Project file is required when using backchannel.");
+            }
+            
+            socketPath = GetBackchannelSocketPath(projectFile);
             startInfo.EnvironmentVariables[KnownConfigNames.UnixSocketPath] = socketPath;
         }
 
@@ -493,7 +483,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
                 options.StartDebugSession);
 
-            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelAsync(null, socketPath!, backchannelCompletionSource, cancellationToken);
 
             return ExitCodeConstants.Success;
         }
@@ -506,7 +496,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null)
         {
-            _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelAsync(process, socketPath!, backchannelCompletionSource, cancellationToken);
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
