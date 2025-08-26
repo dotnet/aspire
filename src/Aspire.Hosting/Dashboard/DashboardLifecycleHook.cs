@@ -290,7 +290,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 }
             };
             
-            var customConfigPath = Path.GetTempFileName();
+            var customConfigPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
             
             _customRuntimeConfigPath = customConfigPath;
@@ -378,7 +378,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 dashboardDll = fullyQualifiedDashboardPath;
                 if (!File.Exists(dashboardDll))
                 {
-                    throw new DistributedApplicationException($"Dashboard DLL not found: {dashboardDll}");
+                    distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
                 }
                 return;
             }
@@ -392,7 +392,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             
             if (!File.Exists(dashboardDll))
             {
-                throw new DistributedApplicationException($"Dashboard DLL not found: {dashboardDll}");
+                distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
         }
 
