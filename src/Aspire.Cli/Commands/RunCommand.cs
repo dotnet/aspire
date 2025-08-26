@@ -42,8 +42,9 @@ internal sealed class RunCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        IServiceProvider serviceProvider)
-        : base("run", RunCommandStrings.Description, features, updateNotifier)
+        IServiceProvider serviceProvider,
+        CliExecutionContext executionContext)
+        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
