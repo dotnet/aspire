@@ -10,6 +10,7 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
@@ -57,8 +58,10 @@ public sealed class AzureEnvironmentResource : Resource
 
     private Task PublishAsync(PublishingContext context)
     {
+        var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
         var publishingContext = new AzurePublishingContext(
             context.OutputPath,
+            azureProvisioningOptions.Value,
             context.Logger,
             context.ActivityReporter);
 
