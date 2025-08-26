@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Generate updated Github model descriptors
-        working-directory: src/Aspire.Hosting.Github.Models/tools
+        working-directory: src/Aspire.Hosting.GitHub.Models/tools
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CI: false
