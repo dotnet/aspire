@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- required for dotnet test -->
+    <None Include="$(RepoRoot)dotnet.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build"
