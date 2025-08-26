@@ -221,11 +221,11 @@ internal sealed class ApplicationOrchestrator
                     urls.Add(url);
 
                     // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
-                        // additional URLs to indicate to the user other ways their service can be reached. If the service
-                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
-                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
-                        // as an additional URL.
-                        var additionalUrl = allocatedEndpoint.BindingMode switch
+                    // additional URLs to indicate to the user other ways their service can be reached. If the service
+                    // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                    // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                    // as an additional URL.
+                    var additionalUrl = allocatedEndpoint.BindingMode switch
                     {
                         // The allocated address doesn't match the original target host, so include the target host as
                         // an additional URL.
@@ -322,13 +322,14 @@ internal sealed class ApplicationOrchestrator
 
         // Check if the resource has transitioned to a terminal/stopped state
         var currentState = context.Status.State;
-        if (currentState != null && 
+        if (currentState is not null &&
             KnownResourceStates.TerminalStates.Contains(currentState) &&
             previousState != currentState &&
-            !KnownResourceStates.TerminalStates.Contains(previousState))
+            (previousState is null ||
+            !KnownResourceStates.TerminalStates.Contains(previousState)))
         {
             // Resource has transitioned from a non-terminal state to a terminal state - fire ResourceStoppedEvent
-            await _eventing.PublishAsync(new ResourceStoppedEvent(context.Resource, _serviceProvider), context.CancellationToken).ConfigureAwait(false);
+            await PublishEventToHierarchy(r => new ResourceStoppedEvent(r, _serviceProvider), context.Resource, context.CancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -481,6 +482,22 @@ internal sealed class ApplicationOrchestrator
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
                 await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task PublishEventToHierarchy<TEvent>(Func<IResource, TEvent> createEvent, IResource resource, CancellationToken cancellationToken)
+        where TEvent : IDistributedApplicationResourceEvent
+    {
+        // Publish the event to the resource itself.
+        await _eventing.PublishAsync(createEvent(resource), cancellationToken).ConfigureAwait(false);
+
+        // Publish the event to all parent resources.
+        if (_parentChildLookup[resource] is { } children)
+        {
+            foreach (var child in children.Where(c => c is IResourceWithParent))
+            {
+                await PublishEventToHierarchy(createEvent, child, cancellationToken).ConfigureAwait(false);
             }
         }
     }
