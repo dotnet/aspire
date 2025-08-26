@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../LogCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Show logs from a specific resource.</source>
+        <target state="new">Show logs from a specific resource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToGetLogs">
+        <source>Failed to get logs for resource '{0}': {1}</source>
+        <target state="new">Failed to get logs for resource '{0}': {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinesArgumentDescription">
+        <source>The number of recent log lines to show (default: 100).</source>
+        <target state="new">The number of recent log lines to show (default: 100).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHost">
+        <source>No running Aspire app host found. Please start the app host with 'aspire run' first.</source>
+        <target state="new">No running Aspire app host found. Please start the app host with 'aspire run' first.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="new">The path to the Aspire app host project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>The name of the resource to show logs for.</source>
+        <target state="new">The name of the resource to show logs for.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNameRequired">
+        <source>Resource name is required.</source>
+        <target state="new">Resource name is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowingRecentLogs">
+        <source>Showing {1} recent log lines for resource '{0}'...</source>
+        <target state="new">Showing {1} recent log lines for resource '{0}'...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailArgumentDescription">
+        <source>Follow the log output in real-time.</source>
+        <target state="new">Follow the log output in real-time.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailingLogs">
+        <source>Tailing logs for resource '{0}' (press Ctrl+C to exit)...</source>
+        <target state="new">Tailing logs for resource '{0}' (press Ctrl+C to exit)...</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../StopCommandStrings.resx">
+    <body>
+      <trans-unit id="Description">
+        <source>Stop a specific resource by name.</source>
+        <target state="new">Stop a specific resource by name.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToStopResource">
+        <source>Failed to stop resource '{0}': {1}</source>
+        <target state="new">Failed to stop resource '{0}': {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHost">
+        <source>No running Aspire app host found. Please start the app host with 'aspire run' first.</source>
+        <target state="new">No running Aspire app host found. Please start the app host with 'aspire run' first.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire app host project file.</source>
+        <target state="new">The path to the Aspire app host project file.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceArgumentDescription">
+        <source>The name of the resource to stop.</source>
+        <target state="new">The name of the resource to stop.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNameRequired">
+        <source>Resource name is required.</source>
+        <target state="new">Resource name is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceStopped">
+        <source>Resource '{0}' stopped successfully.</source>
+        <target state="new">Resource '{0}' stopped successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoppingResource">
+        <source>Stopping resource '{0}'...</source>
+        <target state="new">Stopping resource '{0}'...</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

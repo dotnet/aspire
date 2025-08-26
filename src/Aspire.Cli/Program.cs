@@ -138,6 +138,9 @@ public class Program
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
+        builder.Services.AddTransient<StartCommand>();
+        builder.Services.AddTransient<StopCommand>();
+        builder.Services.AddTransient<LogCommand>();
         builder.Services.AddTransient<RootCommand>();
 
         var app = builder.Build();
