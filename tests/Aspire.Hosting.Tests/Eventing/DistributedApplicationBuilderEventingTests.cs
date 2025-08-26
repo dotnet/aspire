@@ -280,6 +280,8 @@ public class DistributedApplicationBuilderEventingTests
                 resourceStopped = res;
                 Assert.NotNull(evt.Services);
                 Assert.Equal(res, evt.Resource);
+                Assert.NotNull(evt.ResourceEvent);
+                Assert.Equal(res, evt.ResourceEvent.Resource);
                 return Task.CompletedTask;
             });
 
@@ -292,7 +294,13 @@ public class DistributedApplicationBuilderEventingTests
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 
         // Manually fire the event to test the subscription
-        var testEvent = new ResourceStoppedEvent(resource.Resource, app.Services);
+        var testSnapshot = new CustomResourceSnapshot
+        {
+            ResourceType = "TestResource",
+            Properties = []
+        };
+        var testResourceEvent = new ResourceEvent(resource.Resource, "test-resource", testSnapshot);
+        var testEvent = new ResourceStoppedEvent(resource.Resource, app.Services, testResourceEvent);
         await eventing.PublishAsync(testEvent, CancellationToken.None);
 
         Assert.True(eventFired);

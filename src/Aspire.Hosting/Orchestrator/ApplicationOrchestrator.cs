@@ -328,8 +328,12 @@ internal sealed class ApplicationOrchestrator
             (previousState is null ||
             !KnownResourceStates.TerminalStates.Contains(previousState)))
         {
-            // Resource has transitioned from a non-terminal state to a terminal state - fire ResourceStoppedEvent
-            await PublishEventToHierarchy(r => new ResourceStoppedEvent(r, _serviceProvider), context.Resource, context.CancellationToken).ConfigureAwait(false);
+            // Get the current state from notification service after the update
+            if (_notificationService.TryGetCurrentState(context.DcpResourceName, out var currentResourceEvent))
+            {
+                // Resource has transitioned from a non-terminal state to a terminal state - fire ResourceStoppedEvent
+                await PublishEventToHierarchy(r => new ResourceStoppedEvent(r, _serviceProvider, currentResourceEvent), context.Resource, context.CancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
