@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -35,14 +36,57 @@ internal static class BackchannelHelper
     }
     
     /// <summary>
-    /// Checks if an AppHost is currently running by checking if the socket file exists.
+    /// Checks if an AppHost is currently running by attempting to connect to the socket.
     /// </summary>
     /// <param name="appHostProjectPath">Full path to the AppHost project file</param>
-    /// <returns>True if the socket exists and AppHost is likely running</returns>
+    /// <returns>True if the socket exists and AppHost is actively listening</returns>
     public static bool IsAppHostRunning(string appHostProjectPath)
     {
         var socketPath = GetSocketPath(appHostProjectPath);
-        return File.Exists(socketPath);
+        
+        // First check if the socket file exists
+        if (!File.Exists(socketPath))
+        {
+            return false;
+        }
+
+        // Try to connect to the socket to verify something is actually listening
+        try
+        {
+            using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+            
+            // Use a short timeout for the connection attempt
+            socket.ReceiveTimeout = 1000; // 1 second
+            socket.SendTimeout = 1000;    // 1 second
+            
+            socket.Connect(endpoint);
+            
+            // If we got here, something is listening on the socket
+            return true;
+        }
+        catch (SocketException)
+        {
+            // Connection failed, either nothing listening or socket is stale
+            // Clean up stale socket file if it exists
+            try
+            {
+                if (File.Exists(socketPath))
+                {
+                    File.Delete(socketPath);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+            return false;
+        }
+        catch
+        {
+            // Any other exception means we couldn't determine the state
+            return false;
+        }
     }
     
     private static string GetUserAspireDirectory()

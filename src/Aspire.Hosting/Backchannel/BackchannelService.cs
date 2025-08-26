@@ -20,6 +20,7 @@ internal sealed class BackchannelService(
     : BackgroundService
 {
     private JsonRpc? _rpc;
+    private string? _socketPath;
     
     public bool IsBackchannelExpected => configuration.GetValue<string>(KnownConfigNames.UnixSocketPath) is {};
 
@@ -38,6 +39,8 @@ internal sealed class BackchannelService(
                 logger.LogDebug("Backchannel socket path was not specified.");
                 return;
             }
+
+            _socketPath = unixSocketPath;
 
             logger.LogDebug("Listening for backchannel connection on socket path: {SocketPath}", unixSocketPath);
             var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -108,6 +111,25 @@ internal sealed class BackchannelService(
             // a socket and just means that we don't need to wait anymore.
             logger.LogDebug("Backchannel service was cancelled: {Message}", ex.Message);
             return;
+        }
+        finally
+        {
+            // Clean up socket file when service stops
+            if (_socketPath is not null)
+            {
+                try
+                {
+                    if (File.Exists(_socketPath))
+                    {
+                        File.Delete(_socketPath);
+                        logger.LogDebug("Cleaned up backchannel socket file: {SocketPath}", _socketPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Failed to clean up backchannel socket file: {SocketPath}", _socketPath);
+                }
+            }
         }
     }
 }
