@@ -67,13 +67,6 @@ internal sealed class GitHubModelClient : IDisposable
     public void Dispose() => _http.Dispose();
 }
 
-public partial class GitHubModelDescriptor
-{
-    public string Name { get; init; } = string.Empty;
-    public string Version { get; init; } = string.Empty;
-    public string Publisher { get; init; } = string.Empty;
-}
-
 internal sealed class GitHubModelClassGenerator
 {
     public static string GenerateCode(string ns, List<GitHubModel> models)
