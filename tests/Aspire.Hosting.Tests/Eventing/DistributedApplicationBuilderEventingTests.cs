@@ -286,8 +286,8 @@ public class DistributedApplicationBuilderEventingTests
         // Verify the subscription was registered (the event handler is stored in the eventing service)
         Assert.NotNull(resource);
 
-        // We can't easily test the actual firing without complex setup, but we can verify
-        // that the extension method works and the callback is properly structured
+        // This test focuses on verifying subscription registration and callback structure.
+        // The following integration test handles actual event firing with complex setup.
         using var app = builder.Build();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
 

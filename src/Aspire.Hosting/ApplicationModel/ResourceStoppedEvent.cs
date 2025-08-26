@@ -6,7 +6,7 @@ using Aspire.Hosting.Eventing;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This event is raised by orchestrators after a resource has stopped.
+/// This event is raised after a resource has stopped.
 /// </summary>
 /// <param name="resource">The resource that has stopped.</param>
 /// <param name="services">The <see cref="IServiceProvider"/> for the app host.</param>
