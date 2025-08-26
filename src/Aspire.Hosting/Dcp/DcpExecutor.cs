@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -21,7 +22,6 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
-using Humanizer;
 using Json.Patch;
 using k8s;
 using k8s.Autorest;
@@ -963,22 +963,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            // Transform the type name into an identifier, stripping out
-            // the ending "AppResource" or "Resource" and converting from
-            // PascalCase to snake_case.
-            // e.g. "PythonAppResource" becomes "python",
-            // and "ProjectResource" becomes "project".
-            var resourceType = executable.GetType().Name
-                .RemoveSuffix("AppResource")
-                .RemoveSuffix("Resource")
-                .Underscore();
-
-            if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains(resourceType) is not false)
+            if (!Debugger.IsAttached){}
+            if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
+                && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetDebugSupportedResourceTypes()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.Type = resourceType;
-                projectLaunchConfiguration.ProjectPath = executable.WorkingDirectory;
+                projectLaunchConfiguration.Type = supportsDebuggingAnnotation.DebugAdapterId;
+                projectLaunchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
 
                 if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
                 {
