@@ -24,7 +24,7 @@ internal class AppHostRpcTarget(
     PublishingActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
-    IDcpExecutor dcpExecutor)
+    DistributedApplicationExecutionContext executionContext)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
@@ -227,10 +227,16 @@ internal class AppHostRpcTarget(
     {
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
 
+        if (!executionContext.IsRunMode)
+        {
+            throw new InvalidOperationException("Resource control is only available in run mode.");
+        }
+
         logger.LogDebug("Starting resource '{ResourceName}' via backchannel", resourceName);
         
         try
         {
+            var dcpExecutor = serviceProvider.GetRequiredService<IDcpExecutor>();
             var resourceReference = dcpExecutor.GetResource(resourceName);
             await dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
             
@@ -247,10 +253,16 @@ internal class AppHostRpcTarget(
     {
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
 
+        if (!executionContext.IsRunMode)
+        {
+            throw new InvalidOperationException("Resource control is only available in run mode.");
+        }
+
         logger.LogDebug("Stopping resource '{ResourceName}' via backchannel", resourceName);
         
         try
         {
+            var dcpExecutor = serviceProvider.GetRequiredService<IDcpExecutor>();
             var resourceReference = dcpExecutor.GetResource(resourceName);
             await dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
             
@@ -266,6 +278,11 @@ internal class AppHostRpcTarget(
     public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int? lineCount)
     {
         ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        if (!executionContext.IsRunMode)
+        {
+            throw new InvalidOperationException("Resource log access is only available in run mode.");
+        }
 
         logger.LogDebug("Getting log entries for resource '{ResourceName}' (lines: {LineCount})", resourceName, lineCount);
 
