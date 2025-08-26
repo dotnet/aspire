@@ -1,44 +1,32 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { debugProject, noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
-import { mergeEnvs } from '../../utils/environment';
 import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
 import { ResourceDebuggerExtension } from '../../capabilities';
+import { AspireExtendedDebugConfiguration } from '../../dcp/types';
 
 const execFileAsync = util.promisify(execFile);
 
 export const projectDebuggerExtension: ResourceDebuggerExtension = {
     resourceType: 'project',
     debugAdapter: 'coreclr',
+    extensionId: 'ms-dotnettools.csharp',
     displayName: 'C#',
-    createDebugSessionConfiguration: async (launchConfig, args, env, launchOptions) => {
+    createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireExtendedDebugConfiguration): Promise<void> => {
         const projectPath = launchConfig.project_path;
         const workingDirectory = path.dirname(launchConfig.project_path);
-        
+
         const outputPath = await getDotNetTargetPath(projectPath);
 
         if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
             await buildDotNetProject(projectPath);
         }
 
-        return {
-            type: 'coreclr',
-            request: 'launch',
-            name: debugProject(path.basename(projectPath)),
-            program: outputPath,
-            args: args,
-            cwd: workingDirectory,
-            env: mergeEnvs(process.env, env),
-            justMyCode: false,
-            stopAtEntry: false,
-            noDebug: !launchOptions.debug,
-            runId: launchOptions.runId,
-            dcpId: launchOptions.dcpId,
-            console: 'internalConsole'
-        };
+        debugConfiguration.program = outputPath;
+        debugConfiguration.cwd = workingDirectory;
     }
 };
 

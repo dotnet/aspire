@@ -7,7 +7,7 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
-import { ResourceDebuggerExtension } from "../capabilities";
+import { createDebugSessionConfiguration, ResourceDebuggerExtension } from "../capabilities";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
 
@@ -52,7 +52,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
+        this.spawnRunCommand(message.arguments?.noDebug ? ['run', '--wait-for-debugger'] : ['run', '--start-debug-session', '--wait-for-debugger'], appHostPath);
       }
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
@@ -146,7 +146,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
-    const appHostDebugSessionConfiguration = await projectDebuggerExtension.createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null });
+    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null }, projectDebuggerExtension);
     const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
     if (!appHostDebugSession) {

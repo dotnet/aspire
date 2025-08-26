@@ -7,7 +7,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import path from 'path';
 import { unsupportedResourceType } from '../loc/strings';
-import { ResourceDebuggerExtension } from '../capabilities';
+import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../capabilities';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export default class AspireDcpServer {
@@ -85,35 +85,29 @@ export default class AspireDcpServer {
                 const processes: AspireResourceDebugSession[] = [];
 
                 for (const launchConfig of payload.launch_configurations) {
-                    const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type);
-                    if (foundDebuggerExtension) {
-                        const aspireDebugSession = getDebugSession();
-                        const config = await foundDebuggerExtension.createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, dcpId });
-                        const debugSession = await aspireDebugSession.startAndGetDebugSession(config);
+                    const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
+                    const aspireDebugSession = getDebugSession();
+                    const config = await createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, dcpId }, foundDebuggerExtension);
+                    const debugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
-                        if (!debugSession) {
-                            const error: ErrorDetails = {
-                                code: 'DebugSessionFailed',
-                                message: `Failed to start debug session for run ID ${runId}`,
-                                details: []
-                            };
+                    if (!debugSession) {
+                        const error: ErrorDetails = {
+                            code: 'DebugSessionFailed',
+                            message: `Failed to start debug session for run ID ${runId}`,
+                            details: []
+                        };
 
-                            extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
-                            const response: ErrorResponse = { error };
-                            res.status(400).json(response).end();
-                            return;
-                        }
-
-                        processes.push(debugSession);
-                    }
-                    else {
-                        extensionLogOutputChannel.error(`Unsupported type: ${launchConfig.type}.`);
-                        vscode.window.showErrorMessage(unsupportedResourceType(launchConfig.type));
-                        throw new Error(unsupportedResourceType(launchConfig.type));
+                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                        const response: ErrorResponse = { error };
+                        res.status(400).json(response).end();
+                        return;
                     }
 
-                    extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);
+                    processes.push(debugSession);
                 }
+
+                extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);
+
 
                 runsBySession.set(runId, processes);
                 res.status(201).set('Location', `https://${req.get('host')}/run_session/${runId}`).end();
