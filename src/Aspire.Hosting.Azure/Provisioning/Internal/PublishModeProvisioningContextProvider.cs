@@ -105,8 +105,8 @@ internal sealed class PublishModeProvisioningContextProvider(
                     .ToList();
 
                 var result = await _interactionService.PromptInputsAsync(
-                    "Azure subscription",
-                    "Select your Azure subscription:",
+                    AzureProvisioningStrings.SubscriptionDialogTitle,
+                    AzureProvisioningStrings.SubscriptionSelectionMessage,
                     [
                         new InteractionInput
                         {
@@ -137,8 +137,8 @@ internal sealed class PublishModeProvisioningContextProvider(
 
         // Fallback to manual subscription entry
         var manualResult = await _interactionService.PromptInputsAsync(
-            "Azure subscription",
-            "Enter your Azure subscription ID:",
+            AzureProvisioningStrings.SubscriptionDialogTitle,
+            AzureProvisioningStrings.SubscriptionManualEntryMessage,
             [
                 new InteractionInput
                 {
@@ -188,8 +188,8 @@ internal sealed class PublishModeProvisioningContextProvider(
                     .ToList();
 
                 var result = await _interactionService.PromptInputsAsync(
-                    "Azure location and resource group",
-                    "Select your Azure location and specify resource group:",
+                    AzureProvisioningStrings.LocationDialogTitle,
+                    AzureProvisioningStrings.LocationSelectionMessage,
                     [
                         new InteractionInput
                         {
@@ -245,8 +245,8 @@ internal sealed class PublishModeProvisioningContextProvider(
                             .ToList();
 
         var manualResult = await _interactionService.PromptInputsAsync(
-            "Azure location and resource group",
-            "Select your Azure location and specify resource group:",
+            AzureProvisioningStrings.LocationDialogTitle,
+            AzureProvisioningStrings.LocationSelectionMessage,
             [
                 new InteractionInput
                 {
