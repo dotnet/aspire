@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>(preview) Update integrations in the Aspire project.</source>
-        <target state="new">(preview) Update integrations in the Aspire project.</target>
+        <source>Update integrations in the Aspire project. (Preview)</source>
+        <target state="new">Update integrations in the Aspire project. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
