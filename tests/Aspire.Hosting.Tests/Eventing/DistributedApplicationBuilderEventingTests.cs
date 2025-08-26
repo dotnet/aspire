@@ -4,7 +4,6 @@
 using Aspire.TestUtilities;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -267,6 +266,39 @@ public class DistributedApplicationBuilderEventingTests
     }
 
     [Fact]
+    public async Task ResourceStoppedEventCanBeSubscribedTo()
+    {
+        var eventFired = false;
+        var resourceStopped = default(IResource);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new TestResource("test-resource"))
+            .OnResourceStopped((res, evt, ct) =>
+            {
+                eventFired = true;
+                resourceStopped = res;
+                Assert.NotNull(evt.Services);
+                Assert.Equal(res, evt.Resource);
+                return Task.CompletedTask;
+            });
+
+        // Verify the subscription was registered (the event handler is stored in the eventing service)
+        Assert.NotNull(resource);
+        
+        // We can't easily test the actual firing without complex setup, but we can verify
+        // that the extension method works and the callback is properly structured
+        using var app = builder.Build();
+        var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
+        
+        // Manually fire the event to test the subscription
+        var testEvent = new ResourceStoppedEvent(resource.Resource, app.Services);
+        await eventing.PublishAsync(testEvent, CancellationToken.None);
+        
+        Assert.True(eventFired);
+        Assert.Equal(resource.Resource, resourceStopped);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task ResourceStoppedEventFiresWhenResourceStops()
     {
@@ -299,5 +331,11 @@ public class DistributedApplicationBuilderEventingTests
 
     public class DummyEvent : IDistributedApplicationEvent
     {
+    }
+
+    private sealed class TestResource(string name) : IResource
+    {
+        public string Name { get; } = name;
+        public ResourceAnnotationCollection Annotations { get; } = new();
     }
 }
