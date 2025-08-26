@@ -16,12 +16,14 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureDeployerTests(ITestOutputHelper output)
 {
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11105")]
     public void DeployAsync_EmitsPublishedResources()
     {
         // Arrange
