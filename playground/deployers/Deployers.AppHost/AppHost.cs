@@ -12,7 +12,10 @@ var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("foobarbaz");
 var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
+var ehName = builder.AddParameter("existingEventHubName");
+var ehRg = builder.AddParameter("existingEventHubResourceGroup");
 var eventHub = builder.AddAzureEventHubs("eventhubs")
+    .PublishAsExisting(ehName, ehRg)
     .RunAsEmulator()
     .AddHub("myhub");
 var serviceBus = builder.AddAzureServiceBus("messaging")

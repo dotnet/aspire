@@ -396,6 +396,68 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task DeployAsync_WithUnresolvedParameters_PromptsForParameterValues()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter that will be unresolved
+        var param = builder.AddParameter("test-param");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the parameter input
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("test-param", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal("Value for parameter test-param", input.Placeholder);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "test-value";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.WaitForValueTcs!.Task;
+        Assert.Equal("test-value", setValue);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithResolvedParameters_SkipsPrompting()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+        builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
+
+        // Add a parameter with a resolved value
+        var param = builder.AddParameter("test-param", () => "resolved-value");
+        var secondParam = builder.AddParameter("test-param-2");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
+    }
+
+    [Fact]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange

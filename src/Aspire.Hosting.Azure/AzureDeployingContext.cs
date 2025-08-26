@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,12 +24,19 @@ internal sealed class AzureDeployingContext(
     IBicepProvisioner bicepProvisioner,
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
-    IProcessRunner processRunner)
+    IProcessRunner processRunner,
+    IInteractionService interactionService)
 {
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+
+        // Step 0: Resolve parameter resources using interaction service
+        if (!await TryResolveParameterResources(model, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
 
         // Step 1: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
@@ -447,6 +455,91 @@ internal sealed class AzureDeployingContext(
         }
 
         return string.Empty;
+    }
+
+    private async Task<bool> TryResolveParameterResources(DistributedApplicationModel model, CancellationToken cancellationToken)
+    {
+        // Check if there are any parameter resources that might need resolution
+        var parameters = model.Resources.OfType<ParameterResource>().ToList();
+        if (parameters.Count == 0 || !interactionService.IsAvailable)
+        {
+            return true;
+        }
+
+        var unresolvedParameters = new List<ParameterResource>();
+
+        foreach (var parameter in parameters)
+        {
+            try
+            {
+                var value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(value))
+                {
+                    unresolvedParameters.Add(parameter);
+                }
+            }
+            catch (MissingParameterValueException)
+            {
+                unresolvedParameters.Add(parameter);
+            }
+            catch
+            {
+                unresolvedParameters.Add(parameter);
+            }
+        }
+
+        if (unresolvedParameters.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var parameter in unresolvedParameters)
+        {
+            parameter.WaitForValueTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        var inputs = new List<InteractionInput>();
+        foreach (var parameter in unresolvedParameters)
+        {
+            inputs.Add(new InteractionInput
+            {
+                Name = parameter.Name,
+                InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
+                Label = parameter.Name,
+                Description = parameter.Description,
+                EnableDescriptionMarkdown = parameter.EnableDescriptionMarkdown,
+                Placeholder = $"Value for parameter {parameter.Name}"
+            });
+        }
+
+        var inputsResult = await interactionService.PromptInputsAsync(
+            "Set unresolved parameters",
+            "Please provide values for unresolved parameters.",
+            inputs,
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false,
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (inputsResult.Canceled)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < unresolvedParameters.Count; i++)
+        {
+            var parameter = unresolvedParameters[i];
+            var input = inputs[i];
+            var inputValue = input.Value;
+
+            if (!string.IsNullOrEmpty(inputValue))
+            {
+                parameter.WaitForValueTcs?.TrySetResult(inputValue);
+            }
+        }
+
+        return true;
     }
 
 }
