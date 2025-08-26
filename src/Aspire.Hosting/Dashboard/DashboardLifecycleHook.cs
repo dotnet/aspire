@@ -214,37 +214,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private static (string NetCoreVersion, string AspNetCoreVersion) GetFallbackFrameworkVersions()
     {
-        // Fallback to the original runtime detection approach
-        var netCoreVersion = Environment.Version.ToString();
-        
-        var assembly = typeof(HttpContext).Assembly;
-        var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        var aspNetCoreVersion = attribute?.InformationalVersion ?? FallbackAspNetCoreVersion;
-        
-        // Trim off any pre-release suffix or commit hash from the value (everything after the first '-' or '+')
-        var dashIndex = aspNetCoreVersion.IndexOf('-');
-        var plusIndex = aspNetCoreVersion.IndexOf('+');
-        var cutIndex = -1;
-
-        if (dashIndex >= 0 && plusIndex >= 0)
-        {
-            cutIndex = Math.Min(dashIndex, plusIndex);
-        }
-        else if (dashIndex >= 0)
-        {
-            cutIndex = dashIndex;
-        }
-        else if (plusIndex >= 0)
-        {
-            cutIndex = plusIndex;
-        }
-
-        if (cutIndex > 0)
-        {
-            aspNetCoreVersion = aspNetCoreVersion[..cutIndex];
-        }
-
-        return (netCoreVersion, aspNetCoreVersion);
+        return (FallbackNetCoreVersion, FallbackAspNetCoreVersion);
     }
 
     private string CreateCustomRuntimeConfig(string dashboardPath)
