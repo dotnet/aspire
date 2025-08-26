@@ -6,6 +6,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.Dashboard;
 
 namespace Aspire.Hosting.Tests.Eventing;
 
@@ -177,7 +178,7 @@ public class DistributedApplicationBuilderEventingTests
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis")
-            .OnBeforeResourceStarted((_, e, _) =>    
+            .OnBeforeResourceStarted((_, e, _) =>
             {
                 Assert.NotNull(e.Services);
                 Assert.NotNull(e.Resource);
@@ -284,16 +285,16 @@ public class DistributedApplicationBuilderEventingTests
 
         // Verify the subscription was registered (the event handler is stored in the eventing service)
         Assert.NotNull(resource);
-        
+
         // We can't easily test the actual firing without complex setup, but we can verify
         // that the extension method works and the callback is properly structured
         using var app = builder.Build();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
-        
+
         // Manually fire the event to test the subscription
         var testEvent = new ResourceStoppedEvent(resource.Resource, app.Services);
         await eventing.PublishAsync(testEvent, CancellationToken.None);
-        
+
         Assert.True(eventFired);
         Assert.Equal(resource.Resource, resourceStopped);
     }
@@ -319,11 +320,9 @@ public class DistributedApplicationBuilderEventingTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Get the resource notification service to wait for the resource to start
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("redis", KnownResourceStates.Running).DefaultTimeout();
+        await app.ResourceNotifications.WaitForResourceAsync("redis", KnownResourceStates.Running).DefaultTimeout();
 
-        // Stop the app, which should trigger ResourceStoppedEvent
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+        await app.ResourceCommands.ExecuteCommandAsync("redis", KnownResourceCommands.StopCommand);
 
         // Verify that ResourceStoppedEvent was fired
         await resourceStoppedTcs.Task.DefaultTimeout();
