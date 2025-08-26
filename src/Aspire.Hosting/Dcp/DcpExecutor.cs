@@ -1031,7 +1031,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
 
-                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
+                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
                     {
                         projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
                     }
