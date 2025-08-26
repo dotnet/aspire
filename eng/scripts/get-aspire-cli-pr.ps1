@@ -645,42 +645,42 @@ function Invoke-GitHubAPICall {
     return $output
 }
 
-# Function to get PR head SHA
-function Get-PRHeadSHA {
+# Function to get PR head branch information
+function Get-PRHeadInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [int]$PRNumber
     )
 
-    Write-Message "Getting HEAD SHA for PR #$PRNumber" -Level Verbose
+    Write-Message "Getting HEAD branch info for PR #$PRNumber" -Level Verbose
 
-    $headSha = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/pulls/$PRNumber" -JqFilter ".head.sha" -ErrorMessage "Failed to get HEAD SHA for PR #$PRNumber"
-    if ([string]::IsNullOrWhiteSpace($headSha) -or $headSha -eq "null") {
+    $headRef = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/pulls/$PRNumber" -JqFilter ".head.ref" -ErrorMessage "Failed to get HEAD branch for PR #$PRNumber"
+    if ([string]::IsNullOrWhiteSpace($headRef) -or $headRef -eq "null") {
         Write-Message "This could mean:" -Level Info
         Write-Message "  - The PR number does not exist" -Level Info
         Write-Message "  - You don't have access to the repository" -Level Info
-        throw "Could not retrieve HEAD SHA for PR #$PRNumber"
+        throw "Could not retrieve HEAD branch for PR #$PRNumber"
     }
 
-    Write-Message "PR #$PRNumber HEAD SHA: $headSha" -Level Verbose
-    return $headSha.Trim()
+    Write-Message "PR #$PRNumber HEAD branch: $headRef" -Level Verbose
+    return $headRef.Trim()
 }
 
-# Function to find workflow run for SHA
+# Function to find workflow run for branch
 function Find-WorkflowRun {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$HeadSHA
+        [string]$HeadBranch
     )
 
-    Write-Message "Finding latest successful ci.yml workflow run for SHA: $HeadSHA" -Level Verbose
+    Write-Message "Finding latest successful ci.yml workflow run for branch: $HeadBranch" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | map(select(.status == `"completed`" and .conclusion == `"success`")) | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch" -JqFilter ".workflow_runs | map(select(.status == `"completed`" and .conclusion == `"success`")) | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
-        throw "No successful ci.yml workflow run found for PR SHA: $HeadSHA. This could mean no workflow has been triggered for this SHA $HeadSHA or all runs have failed. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+        throw "No successful ci.yml workflow run found for PR branch: $HeadBranch. This could mean no workflow has been triggered for this branch $HeadBranch or all runs have failed. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
     }
 
     Write-Message "Found workflow run ID: $runId" -Level Verbose
@@ -883,11 +883,11 @@ function Start-DownloadAndInstall {
         # When only PR number is provided, find the workflow run
         Write-Message "Starting download and installation for PR #$PRNumber" -Level Info
 
-        # Get the PR head SHA
-        $headSha = Get-PRHeadSHA -PRNumber $PRNumber
+        # Get the PR head branch
+        $headBranch = Get-PRHeadInfo -PRNumber $PRNumber
 
         # Find the workflow run
-        $runId = Find-WorkflowRun -HeadSHA $headSha
+        $runId = Find-WorkflowRun -HeadBranch $headBranch
     }
 
     Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
