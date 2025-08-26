@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_search_name": "{existing-search-name.value}",
+    "existing_search_rg": "{existing-search-rg.value}"
+  }
+}

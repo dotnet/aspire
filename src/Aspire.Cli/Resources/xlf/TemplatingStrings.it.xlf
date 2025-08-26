@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="CreateNugetConfigConfirmation">
         <source>Create NuGet.config for selected channels?</source>
-        <target state="new">Create NuGet.config for selected channels?</target>
+        <target state="translated">Creare il file NuGet.config per i canali selezionati?</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="NuGetConfigCreatedConfirmationMessage">
         <source>Created NuGet.config for the selected package channel.</source>
-        <target state="new">Created NuGet.config for the selected package channel.</target>
+        <target state="translated">Creazione del file NuGet.config per il canale del pacchetto selezionato completata.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

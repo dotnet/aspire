@@ -6,64 +6,64 @@
         <source>The model contains Azure resources that require an Azure Subscription.
 
 To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.
+        <target state="translated">Il modello contiene risorse di Azure che richiedono una sottoscrizione di Azure.
 
-To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
+Per altre informazioni, vedere la [documentazione sul provisioning di Azure](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="InputsTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Provisioning Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
-        <target state="new">Location</target>
+        <target state="translated">Posizione</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
-        <target state="new">Select location</target>
+        <target state="translated">Seleziona posizione</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
         <source>The model contains Azure resources that require an Azure Subscription.</source>
-        <target state="new">The model contains Azure resources that require an Azure Subscription.</target>
+        <target state="translated">Il modello contiene risorse di Azure che richiedono una sottoscrizione di Azure.</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationPrimaryButtonText">
         <source>Enter values</source>
-        <target state="new">Enter values</target>
+        <target state="translated">Immetti i valori</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationTitle">
         <source>Azure provisioning</source>
-        <target state="new">Azure provisioning</target>
+        <target state="translated">Provisioning Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
-        <target state="new">Resource group</target>
+        <target state="translated">Gruppo di risorse</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
-        <target state="new">Subscription ID</target>
+        <target state="translated">ID sottoscrizione</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
-        <target state="new">Select subscription ID</target>
+        <target state="translated">Selezionare l'ID sottoscrizione</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
-        <target state="new">Resource group name must be a valid Azure resource group name.</target>
+        <target state="translated">Il nome del gruppo di risorse deve essere un nome valido per un gruppo di risorse di Azure.</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
-        <target state="new">Subscription ID must be a valid GUID.</target>
+        <target state="translated">L'ID sottoscrizione deve essere un GUID valido.</target>
         <note />
       </trans-unit>
     </body>

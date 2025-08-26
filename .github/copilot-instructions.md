@@ -6,6 +6,8 @@
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
 * Never change global.json unless explicitly asked to.
+* Never change package.json or package-lock.json files unless explicitly asked to.
+* Never change NuGet.config files unless explicitly asked to.
 * Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
 
 ## Formatting
@@ -37,6 +39,7 @@ In building and testing, never use `dotnet` without extension. Use `./dotnet.sh`
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Do not leave newly-added tests commented out. All added tests should be building and passing.
 * Do not use Directory.SetCurrentDirectory in tests as it can cause side effects when tests execute concurrently.
 
 ## Running tests

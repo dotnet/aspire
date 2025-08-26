@@ -12,6 +12,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public Action<string>? DisplayErrorCallback { get; set; }
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
+    public Func<string, bool, bool>? ConfirmCallback { get; set; }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
@@ -66,7 +67,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(true);
+        return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
     }
 
     public void DisplaySubtleMessage(string message)

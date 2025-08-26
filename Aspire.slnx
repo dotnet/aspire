@@ -107,6 +107,10 @@
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
   </Folder>
+  <Folder Name="/playground/AzureAppConfiguration/">
+    <Project Path="playground/AzureAppConfiguration/AzureAppConfiguration.AppHost/AzureAppConfiguration.AppHost.csproj" Id="e404ee0a-0d56-4db9-9119-c0d5989f3c85" />
+    <Project Path="playground/AzureAppConfiguration/AzureAppConfiguration.Web/AzureAppConfiguration.Web.csproj" Id="2a9eb860-d873-4a00-be81-c05d5dc1d30c" />
+  </Folder>
   <Folder Name="/playground/AzureAppService/">
     <Project Path="playground/AzureAppService/AzureAppService.ApiService/AzureAppService.ApiService.csproj" />
     <Project Path="playground/AzureAppService/AzureAppService.AppHost/AzureAppService.AppHost.csproj" />

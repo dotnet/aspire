@@ -280,20 +280,9 @@ internal sealed class RunCommand : BaseCommand
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
+        catch (ProjectLocatorException ex)
         {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
-            return ExitCodeConstants.FailedToFindProject;
+            return HandleProjectLocatorException(ex, _interactionService);
         }
         catch (AppHostIncompatibleException ex)
         {

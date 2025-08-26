@@ -1112,5 +1112,32 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("VolumePathColumnHeader", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Collapse all.
+        /// </summary>
+        public static string CollapseAllSpansText {
+            get {
+                return ResourceManager.GetString("CollapseAllSpansText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expand all.
+        /// </summary>
+        public static string ExpandAllSpansText {
+            get {
+                return ResourceManager.GetString("ExpandAllSpansText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View structured logs.
+        /// </summary>
+        public static string ViewStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ViewStructuredLogsText", resourceCulture);
+            }
+        }
     }
 }

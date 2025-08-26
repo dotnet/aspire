@@ -112,9 +112,9 @@
         <target state="translated">Suche wird ausgeführt...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Wählen Sie den auszuführenden App-Host aus.</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select app host to use:</source>
+        <target state="new">Select app host to use:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -130,6 +130,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">Zertifikate werden als vertrauenswürdig eingestuft...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="new">No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

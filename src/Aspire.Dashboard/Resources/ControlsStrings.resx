@@ -469,6 +469,15 @@
   <data name="ToggleNesting" xml:space="preserve">
     <value>Toggle nesting</value>
   </data>
+  <data name="CollapseAllSpansText" xml:space="preserve">
+    <value>Collapse all</value>
+  </data>
+  <data name="ExpandAllSpansText" xml:space="preserve">
+    <value>Expand all</value>
+  </data>
+  <data name="ViewStructuredLogsText" xml:space="preserve">
+    <value>View structured logs</value>
+  </data>
   <data name="ShowHiddenResources" xml:space="preserve">
     <value>Show hidden resources</value>
   </data>

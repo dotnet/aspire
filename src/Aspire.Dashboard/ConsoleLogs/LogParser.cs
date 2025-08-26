@@ -16,7 +16,7 @@ internal sealed class LogParser
         _defaultBackgroundColor = defaultBackgroundColor;
     }
 
-    public LogEntry CreateLogEntry(string rawText, bool isErrorOutput)
+    public LogEntry CreateLogEntry(string rawText, bool isErrorOutput, string? resourcePrefix)
     {
         // Several steps to do here:
         //
@@ -63,7 +63,7 @@ internal sealed class LogParser
         }
 
         // 5. Create the LogEntry
-        var logEntry = LogEntry.Create(timestamp, content, rawText, isErrorOutput);
+        var logEntry = LogEntry.Create(timestamp, content, rawText, isErrorOutput, resourcePrefix);
 
         return logEntry;
     }

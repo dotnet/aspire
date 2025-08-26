@@ -32,9 +32,9 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
-    /// Gets the parameter that contains the MySQL server password.
+    /// Gets or sets the parameter that contains the MySQL server password.
     /// </summary>
-    public ParameterResource PasswordParameter { get; }
+    public ParameterResource PasswordParameter { get; set; }
 
     /// <summary>
     /// Gets the connection string expression for the MySQL server.

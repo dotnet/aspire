@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_openai_name": "{existing-openai-name.value}",
+    "existing_openai_rg": "{existing-openai-rg.value}"
+  }
+}
