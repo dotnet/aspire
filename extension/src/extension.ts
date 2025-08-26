@@ -11,7 +11,6 @@ import { errorMessage } from './loc/strings';
 import { extensionLogOutputChannel } from './utils/logging';
 import { initializeTelemetry, sendTelemetryEvent } from './utils/telemetry';
 import { AspireDebugAdapterDescriptorFactory } from './debugger/AspireDebugAdapterDescriptorFactory';
-import { runCommand } from './commands/run';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
 import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServer';
@@ -35,7 +34,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const dcpServer = await AspireDcpServer.create(debuggerExtensions, () => aspireExtensionContext.aspireDebugSession);
 
-	const cliRunCommandRegistration = vscode.commands.registerCommand('aspire-vscode.run', () => tryExecuteCommand('aspire-vscode.run', rpcServer.connectionInfo, runCommand));
 	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', rpcServer.connectionInfo, addCommand));
 	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', rpcServer.connectionInfo, newCommand));
 	const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', rpcServer.connectionInfo, configCommand));
@@ -43,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', rpcServer.connectionInfo, publishCommand));
 	const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', rpcServer.connectionInfo, configureLaunchJsonCommand));
 
-	context.subscriptions.push(cliRunCommandRegistration, cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, configureLaunchJsonCommandRegistration);
+	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, configureLaunchJsonCommandRegistration);
 
 	const debugConfigProvider = new AspireDebugConfigurationProvider(rpcServer);
 	context.subscriptions.push(
