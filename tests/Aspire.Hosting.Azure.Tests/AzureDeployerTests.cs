@@ -65,7 +65,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Wait for the first interaction (subscription selection)
         var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure subscription", subscriptionInteraction.Title);
-        Assert.True(subscriptionInteraction.Options!.EnableMessageMarkdown);
+        Assert.False(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
         // Verify the expected input for subscription selection (fallback to manual entry)
         Assert.Collection(subscriptionInteraction.Inputs,
@@ -83,7 +83,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Wait for the second interaction (location and resource group selection)
         var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure location and resource group", locationInteraction.Title);
-        Assert.True(locationInteraction.Options!.EnableMessageMarkdown);
+        Assert.False(locationInteraction.Options!.EnableMessageMarkdown);
 
         // Verify the expected inputs for location and resource group (fallback to manual entry)
         Assert.Collection(locationInteraction.Inputs,
