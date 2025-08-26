@@ -126,7 +126,11 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                var buildOptions = new DotNetCliRunnerInvocationOptions { StandardOutputCallback = buildOutputCollector.AppendOutput, StandardErrorCallback = buildOutputCollector.AppendError, };
+                var buildOptions = new DotNetCliRunnerInvocationOptions
+                {
+                    StandardOutputCallback = buildOutputCollector.AppendOutput,
+                    StandardErrorCallback = buildOutputCollector.AppendError,
+                };
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
                 if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel)
@@ -150,7 +154,12 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            var runOptions = new DotNetCliRunnerInvocationOptions { StandardOutputCallback = runOutputCollector.AppendOutput, StandardErrorCallback = runOutputCollector.AppendError, StartDebugSession = startDebugSession };
+            var runOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = runOutputCollector.AppendOutput,
+                StandardErrorCallback = runOutputCollector.AppendError,
+                StartDebugSession = startDebugSession
+            };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
@@ -209,14 +218,14 @@ internal sealed class RunCommand : BaseCommand
 
             _ansiConsole.Write(topPadder);
 
-            AppendCtrlCMessage(longestLocalizedLength);
-
             // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
             // than environment variables since it comes from the same backend detection logic
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
             var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
                               && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
+
+            AppendCtrlCMessage(longestLocalizedLength);
 
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
@@ -253,9 +262,9 @@ internal sealed class RunCommand : BaseCommand
 
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
                             _ansiConsole.Write(endpointsPadder);
+                            firstEndpoint = false;
 
                             AppendCtrlCMessage(longestLocalizedLength);
-                            firstEndpoint = false;
                         });
                     }
                 }
@@ -332,7 +341,7 @@ internal sealed class RunCommand : BaseCommand
         ctrlCGrid.AddColumn();
         ctrlCGrid.Columns[0].Width = longestLocalizedLength;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis});
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 
         var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
         _ansiConsole.Write(ctrlCPadder);
