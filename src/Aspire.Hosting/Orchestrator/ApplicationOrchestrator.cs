@@ -492,7 +492,7 @@ internal sealed class ApplicationOrchestrator
         // Publish the event to the resource itself.
         await _eventing.PublishAsync(createEvent(resource), cancellationToken).ConfigureAwait(false);
 
-        // Publish the event to all parent resources.
+        // Publish the event to all child resources.
         if (_parentChildLookup[resource] is { } children)
         {
             foreach (var child in children.Where(c => c is IResourceWithParent))
