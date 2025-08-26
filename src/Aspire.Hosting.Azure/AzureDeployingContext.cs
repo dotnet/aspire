@@ -116,7 +116,7 @@ internal sealed class AzureDeployingContext(
 
     private async Task<bool> TryDeployContainerImages(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        var computeResources = model.GetComputeResources();
+        var computeResources = model.GetComputeResources().Where(r => r.RequiresImageBuildAndPush());
 
         if (!computeResources.Any())
         {
@@ -188,7 +188,7 @@ internal sealed class AzureDeployingContext(
         {
             try
             {
-                if (computeResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+                if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget)
                 {
                     if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
                     {
@@ -223,7 +223,7 @@ internal sealed class AzureDeployingContext(
 
     private static bool TryGetContainerRegistry(IResource computeResource, [NotNullWhen(true)] out IContainerRegistry? containerRegistry)
     {
-        if (computeResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget) &&
+        if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget &&
             deploymentTarget.ContainerRegistry is { } registry)
         {
             containerRegistry = registry;
