@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 using System.Text.Json.Nodes;
 using System.Text.Json;
+using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Utils;
 
@@ -22,7 +23,10 @@ public sealed class ManifestUtils
 
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+        {
+            ServiceProvider = TestServiceProvider.Instance
+        });
         writer.WriteStartObject();
         var context = new ManifestPublishingContext(executionContext, Path.Combine(manifestDirectory, "manifest.json"), writer);
         await context.WriteResourceAsync(resource);
