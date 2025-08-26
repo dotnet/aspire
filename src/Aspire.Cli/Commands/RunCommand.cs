@@ -272,7 +272,7 @@ internal sealed class RunCommand : BaseCommand
                             // to remove the CTRL-C message that was appended
                             // previously. So we can write the endpoint.
                             // We will append the CTRL-C message again after
-                            // writing the endpoint.
+                            // writing the endpoint. 
                             ClearLines(2);
 
                             var endpointsGrid = new Grid();
