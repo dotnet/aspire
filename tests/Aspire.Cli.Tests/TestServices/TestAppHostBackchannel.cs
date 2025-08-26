@@ -252,4 +252,20 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         AddDisconnectHandlerCalled?.SetResult();
         AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
+
+    public Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int? lineCount, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
+    }
 }

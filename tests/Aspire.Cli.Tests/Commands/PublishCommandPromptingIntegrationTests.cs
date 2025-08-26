@@ -700,6 +700,14 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     {
         // No-op for test implementation
     }
+
+    public Task StartResourceAsync(string resourceName, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopResourceAsync(string resourceName, CancellationToken cancellationToken) => Task.CompletedTask;
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int? lineCount, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Suppress CS1998
+        yield break;
+    }
 }
 
 // Data structures for tracking prompts

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Exec;
 using Aspire.Hosting.Publishing;
@@ -22,7 +23,8 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options)
+    DistributedApplicationOptions options,
+    IDcpExecutor dcpExecutor)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
@@ -219,5 +221,61 @@ internal class AppHostRpcTarget(
     public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        logger.LogDebug("Starting resource '{ResourceName}' via backchannel", resourceName);
+        
+        try
+        {
+            var resourceReference = dcpExecutor.GetResource(resourceName);
+            await dcpExecutor.StartResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
+            
+            logger.LogInformation("Resource '{ResourceName}' started successfully", resourceName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to start resource '{ResourceName}'", resourceName);
+            throw;
+        }
+    }
+
+    public async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        logger.LogDebug("Stopping resource '{ResourceName}' via backchannel", resourceName);
+        
+        try
+        {
+            var resourceReference = dcpExecutor.GetResource(resourceName);
+            await dcpExecutor.StopResourceAsync(resourceReference, cancellationToken).ConfigureAwait(false);
+            
+            logger.LogInformation("Resource '{ResourceName}' stopped successfully", resourceName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to stop resource '{ResourceName}'", resourceName);
+            throw;
+        }
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int? lineCount)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(resourceName);
+
+        logger.LogDebug("Getting log entries for resource '{ResourceName}' (lines: {LineCount})", resourceName, lineCount);
+
+        // This is a simplified implementation - in practice, we'd need to:
+        // 1. Store logs as they're written by resources
+        // 2. Implement log retrieval from storage
+        // 3. Support real-time tailing of logs
+        
+        // For now, we'll yield an empty result as a placeholder
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
     }
 }
