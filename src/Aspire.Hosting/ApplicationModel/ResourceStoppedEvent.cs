@@ -1,0 +1,25 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.Eventing;
+
+namespace Aspire.Hosting.ApplicationModel;
+
+/// <summary>
+/// This event is raised by orchestrators after a resource has stopped.
+/// </summary>
+/// <param name="resource">The resource that has stopped.</param>
+/// <param name="services">The <see cref="IServiceProvider"/> for the app host.</param>
+/// <remarks>
+/// This event allows for cleanup or unregistration logic when a resource is stopped by an orchestrator.
+/// </remarks>
+public class ResourceStoppedEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
+{
+    /// <inheritdoc />
+    public IResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The <see cref="IServiceProvider"/> for the app host.
+    /// </summary>
+    public IServiceProvider Services { get; } = services;
+}

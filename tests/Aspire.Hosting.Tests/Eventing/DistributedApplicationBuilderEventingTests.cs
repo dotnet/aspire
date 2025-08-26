@@ -4,6 +4,7 @@
 using Aspire.TestUtilities;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -263,6 +264,37 @@ public class DistributedApplicationBuilderEventingTests
 
         Assert.True(allFired);
         await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task ResourceStoppedEventFiresWhenResourceStops()
+    {
+        var resourceStoppedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis")
+            .OnResourceStopped((resource, e, _) =>
+            {
+                Assert.NotNull(e.Services);
+                Assert.NotNull(e.Resource);
+                Assert.Equal(resource, e.Resource);
+                resourceStoppedTcs.TrySetResult();
+                return Task.CompletedTask;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Get the resource notification service to wait for the resource to start
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync("redis", KnownResourceStates.Running).DefaultTimeout();
+
+        // Stop the app, which should trigger ResourceStoppedEvent
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // Verify that ResourceStoppedEvent was fired
+        await resourceStoppedTcs.Task.DefaultTimeout();
     }
 
     public class DummyEvent : IDistributedApplicationEvent

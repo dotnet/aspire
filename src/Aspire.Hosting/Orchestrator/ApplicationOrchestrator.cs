@@ -306,11 +306,29 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
     {
+        // Get the previous state before updating to detect transitions to stopped states
+        string? previousState = null;
+        if (_notificationService.TryGetCurrentState(context.DcpResourceName, out var previousResourceEvent))
+        {
+            previousState = previousResourceEvent.Snapshot.State?.Text;
+        }
+
         await _notificationService.PublishUpdateAsync(context.Resource, context.DcpResourceName, context.UpdateSnapshot).ConfigureAwait(false);
 
         if (context.ResourceType == KnownResourceTypes.Container)
         {
             await SetChildResourceAsync(context.Resource, context.Status.State, context.Status.StartupTimestamp, context.Status.FinishedTimestamp).ConfigureAwait(false);
+        }
+
+        // Check if the resource has transitioned to a terminal/stopped state
+        var currentState = context.Status.State;
+        if (currentState != null && 
+            KnownResourceStates.TerminalStates.Contains(currentState) &&
+            previousState != currentState &&
+            !KnownResourceStates.TerminalStates.Contains(previousState))
+        {
+            // Resource has transitioned from a non-terminal state to a terminal state - fire ResourceStoppedEvent
+            await _eventing.PublishAsync(new ResourceStoppedEvent(context.Resource, _serviceProvider), context.CancellationToken).ConfigureAwait(false);
         }
     }
 
