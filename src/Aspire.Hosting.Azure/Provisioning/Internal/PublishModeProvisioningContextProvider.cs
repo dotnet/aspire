@@ -3,10 +3,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
+using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -117,7 +119,7 @@ internal sealed class PublishModeProvisioningContextProvider(
                     ],
                     new InputsDialogInteractionOptions
                     {
-                        EnableMessageMarkdown = true
+                        EnableMessageMarkdown = false
                     },
                     cancellationToken).ConfigureAwait(false);
 
@@ -149,7 +151,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             ],
             new InputsDialogInteractionOptions
             {
-                EnableMessageMarkdown = true,
+                EnableMessageMarkdown = false,
                 ValidationCallback = static (validationContext) =>
                 {
                     var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
@@ -207,7 +209,7 @@ internal sealed class PublishModeProvisioningContextProvider(
                     ],
                     new InputsDialogInteractionOptions
                     {
-                        EnableMessageMarkdown = true,
+                        EnableMessageMarkdown = false,
                         ValidationCallback = static (validationContext) =>
                         {
                             var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
@@ -234,18 +236,25 @@ internal sealed class PublishModeProvisioningContextProvider(
             _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
         }
 
-        // Fallback to manual location entry
+        // Fallback to manual location entry using reflection on AzureLocation enum
+        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                            .Where(p => p.PropertyType == typeof(AzureLocation))
+                            .Select(p => (AzureLocation)p.GetValue(null)!)
+                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+                            .OrderBy(kvp => kvp.Value)
+                            .ToList();
+
         var manualResult = await _interactionService.PromptInputsAsync(
             "Azure location and resource group",
-            "Enter your Azure location and specify resource group:",
+            "Select your Azure location and specify resource group:",
             [
                 new InteractionInput
                 {
                     Name = LocationName,
-                    InputType = InputType.Text,
+                    InputType = InputType.Choice,
                     Label = AzureProvisioningStrings.LocationLabel,
-                    Placeholder = AzureProvisioningStrings.LocationPlaceholder,
-                    Required = true
+                    Required = true,
+                    Options = [..locations]
                 },
                 new InteractionInput
                 {
@@ -257,7 +266,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             ],
             new InputsDialogInteractionOptions
             {
-                EnableMessageMarkdown = true,
+                EnableMessageMarkdown = false,
                 ValidationCallback = static (validationContext) =>
                 {
                     var resourceGroupInput = validationContext.Inputs[ResourceGroupName];

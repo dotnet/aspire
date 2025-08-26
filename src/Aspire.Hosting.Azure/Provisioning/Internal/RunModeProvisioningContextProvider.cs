@@ -3,9 +3,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
+using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -56,5 +60,86 @@ internal sealed class RunModeProvisioningContextProvider(
 
         // Run mode always includes random suffix for uniqueness
         return $"{prefix}-{normalizedApplicationName}-{suffix}";
+    }
+
+    protected override async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                            .Where(p => p.PropertyType == typeof(AzureLocation))
+                            .Select(p => (AzureLocation)p.GetValue(null)!)
+                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+                            .OrderBy(kvp => kvp.Value)
+                            .ToList();
+
+        while (_options.Location == null || _options.SubscriptionId == null)
+        {
+            var messageBarResult = await _interactionService.PromptNotificationAsync(
+                 AzureProvisioningStrings.NotificationTitle,
+                 AzureProvisioningStrings.NotificationMessage,
+                 new NotificationInteractionOptions
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = AzureProvisioningStrings.NotificationPrimaryButtonText
+                 },
+                 cancellationToken)
+                 .ConfigureAwait(false);
+
+            if (messageBarResult.Canceled)
+            {
+                // User canceled the prompt, so we exit the loop
+                _provisioningOptionsAvailable.SetException(new MissingConfigurationException("Azure provisioning options were not provided."));
+                return;
+            }
+
+            if (messageBarResult.Data)
+            {
+                var result = await _interactionService.PromptInputsAsync(
+                    AzureProvisioningStrings.InputsTitle,
+                    AzureProvisioningStrings.InputsMessage,
+                    [
+                        new InteractionInput { Name = LocationName, InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
+                        new InteractionInput { Name = SubscriptionIdName, InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
+                        new InteractionInput { Name = ResourceGroupName, InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
+                    ],
+                    new InputsDialogInteractionOptions
+                    {
+                        EnableMessageMarkdown = true,
+                        ValidationCallback = static (validationContext) =>
+                        {
+                            var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
+                            if (!Guid.TryParse(subscriptionInput.Value, out var _))
+                            {
+                                validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
+                            }
+
+                            var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
+                            if (!IsValidResourceGroupName(resourceGroupInput.Value))
+                            {
+                                validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!result.Canceled)
+                {
+                    _options.Location = result.Data[LocationName].Value;
+                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                    _options.ResourceGroup = result.Data[ResourceGroupName].Value;
+                    _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
+
+                    var azureSection = userSecrets.Prop("Azure");
+
+                    // Persist the parameter value to user secrets so they can be reused in the future
+                    azureSection["Location"] = _options.Location;
+                    azureSection["SubscriptionId"] = _options.SubscriptionId;
+                    azureSection["ResourceGroup"] = _options.ResourceGroup;
+
+                    _provisioningOptionsAvailable.SetResult();
+                }
+            }
+        }
     }
 }
