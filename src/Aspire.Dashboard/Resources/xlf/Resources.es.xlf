@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ResourceActionCommandsText">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">Comandos</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceActionUrlsText">
         <source>URLs</source>
-        <target state="new">URLs</target>
+        <target state="translated">Direcciones URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
@@ -162,16 +162,16 @@
         <target state="translated">Ruta de acceso del proyecto</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="translated">Iniciar perfil</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
         <target state="translated">Hora de inicio</target>
         <note />
       </trans-unit>
-        <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
-          <source>Launch profile</source>
-          <target>Perfil de inicio</target>
-          <note />
-        </trans-unit>
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
         <target state="translated">Estado</target>

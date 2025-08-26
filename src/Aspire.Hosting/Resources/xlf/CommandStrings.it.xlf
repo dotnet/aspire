@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="RestartDescription">
         <source>Restart resource</source>
-        <target state="new">Restart resource</target>
+        <target state="translated">Riavvia risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartName">
         <source>Restart</source>
-        <target state="new">Restart</target>
+        <target state="translated">Riavvia</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start resource</source>
-        <target state="new">Start resource</target>
+        <target state="translated">Avvia risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="StartName">
         <source>Start</source>
-        <target state="new">Start</target>
+        <target state="translated">Avvia</target>
         <note />
       </trans-unit>
       <trans-unit id="StopDescription">
         <source>Stop resource</source>
-        <target state="new">Stop resource</target>
+        <target state="translated">Arresta risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="StopName">
         <source>Stop</source>
-        <target state="new">Stop</target>
+        <target state="translated">Arresta</target>
         <note />
       </trans-unit>
     </body>

@@ -75,3 +75,5 @@ resource db2_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
 }
 
 output name string = postgres2.name
+
+output hostName string = postgres2.properties.fullyQualifiedDomainName

@@ -70,7 +70,7 @@ internal sealed class ParameterProcessor(
                 return s with
                 {
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, value, parameterResource.Secret),
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                    State = KnownResourceStates.Running
                 };
             })
             .ConfigureAwait(false);
@@ -151,6 +151,7 @@ internal sealed class ParameterProcessor(
 
                 var saveParameters = new InteractionInput
                 {
+                    Name = "RememberParameters",
                     InputType = InputType.Boolean,
                     Label = InteractionStrings.ParametersInputsRememberLabel
                 };
@@ -189,7 +190,7 @@ internal sealed class ParameterProcessor(
                             return s with
                             {
                                 Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
-                                State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                                State = KnownResourceStates.Running
                             };
                         })
                         .ConfigureAwait(false);

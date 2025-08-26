@@ -132,4 +132,27 @@ public class TelemetryRepositoryTests
         }
     }
 
+    [Fact]
+    public void Subscription_MultipleDisposes_UnsubscribeOnce()
+    {
+        // Arrange
+        var telemetryRepository = CreateRepository();
+        var unsubscribeCallCount = 0;
+
+        var subscription = new Subscription(
+            name: "Test",
+            resourceKey: null,
+            subscriptionType: SubscriptionType.Read,
+            callback: () => Task.CompletedTask,
+            unsubscribe: () => unsubscribeCallCount++,
+            executionContext: null,
+            telemetryRepository: telemetryRepository);
+
+        // Act
+        subscription.Dispose();
+        subscription.Dispose();
+
+        // Assert
+        Assert.Equal(1, unsubscribeCallCount);
+    }
 }

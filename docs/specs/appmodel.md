@@ -931,7 +931,7 @@ This guide describes each pattern and shows a **verbatim Redis example** at the 
 
 ## Adding Resources with `AddX(...)`
 
-An `AddX(...)` method executes:
+An `AddX(...)` method will:
 
 1. **Validate inputs** (`builder`, `name`, required arguments).  
 2. **Instantiate** the data-only resource (`new TResource(...)`).  

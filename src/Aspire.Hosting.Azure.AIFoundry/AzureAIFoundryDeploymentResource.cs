@@ -27,7 +27,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public AzureAIFoundryDeploymentResource(string name, string modelName, string modelVersion, string format, AzureAIFoundryResource parent)
         : base(name)
     {
-        DeploymentName = modelName;
+        DeploymentName = name;
         ModelName = modelName;
         ModelVersion = modelVersion;
         Format = format;

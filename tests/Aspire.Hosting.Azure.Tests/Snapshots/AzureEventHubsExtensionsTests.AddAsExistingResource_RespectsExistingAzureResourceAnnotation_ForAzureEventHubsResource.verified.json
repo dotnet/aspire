@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_eventhubs_name": "{existing-eventhubs-name.value}",
+    "existing_eventhubs_rg": "{existing-eventhubs-rg.value}"
+  }
+}

@@ -37,6 +37,11 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the "hostName" output reference from the bicep template for the Azure Redis resource.
+    /// </summary>
+    private BicepOutputReference HostNameOutput => new("hostName", this);
+
+    /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
@@ -60,6 +65,30 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
             (UseAccessKeyAuthentication ?
                 ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
                 ReferenceExpression.Create($"{ConnectionStringOutput}"));
+
+    /// <summary>
+    /// Gets the host name for the Redis server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint host and port.
+    /// In Azure mode, resolves to the Azure Redis server's hostname.
+    /// </remarks>
+    public ReferenceExpression HostName => 
+        InnerResource is not null ?
+            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the password for the Redis server when running as a container.
+    /// </summary>
+    /// <remarks>
+    /// This property returns null when running in Azure mode, as Redis access is handled via connection strings.
+    /// When running as a container, it resolves to the password parameter value if one exists.
+    /// </remarks>
+    public ReferenceExpression? Password => 
+        InnerResource is not null && InnerResource.PasswordParameter is not null ?
+            ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
+            null;
 
     internal void SetInnerResource(RedisResource innerResource)
     {
@@ -88,7 +117,15 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
         
         // Create and add new resource if it doesn't exist
         var store = CdkRedisResource.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }
