@@ -409,19 +409,28 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             cancellationToken: cancellationToken);
     }
 
-    internal static string GetBackchannelSocketPath()
+    internal static string GetBackchannelSocketPath(FileInfo? projectFile)
     {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-
-        if (!Directory.Exists(aspireCliPath))
+        if (projectFile is not null)
         {
-            Directory.CreateDirectory(aspireCliPath);
+            // Use predictable socket path based on the AppHost project file path
+            return BackchannelHelper.GetSocketPath(projectFile.FullName);
         }
+        else
+        {
+            // Fallback to old behavior when project file is not available
+            var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
 
-        var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
-        var socketPath = Path.Combine(aspireCliPath, $"cli.sock.{uniqueSocketPathSegment}");
-        return socketPath;
+            if (!Directory.Exists(aspireCliPath))
+            {
+                Directory.CreateDirectory(aspireCliPath);
+            }
+
+            var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
+            var socketPath = Path.Combine(aspireCliPath, $"cli.sock.{uniqueSocketPathSegment}");
+            return socketPath;
+        }
     }
 
     public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -451,7 +460,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             startInfo.ArgumentList.Add(a);
         }
 
-        var socketPath = GetBackchannelSocketPath();
+        var socketPath = GetBackchannelSocketPath(projectFile);
         if (backchannelCompletionSource is not null)
         {
             startInfo.EnvironmentVariables[KnownConfigNames.UnixSocketPath] = socketPath;

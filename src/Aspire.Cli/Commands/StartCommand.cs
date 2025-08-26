@@ -72,10 +72,9 @@ internal sealed class StartCommand : BaseCommand
         
         try
         {
-            // Find the socket path - this would need to be stored somewhere accessible
-            // For now, we'll assume it's passed via environment or config
-            var socketPath = GetAppHostSocketPath(effectiveAppHostProjectFile);
-            if (socketPath is null)
+            // Get the predictable socket path based on AppHost project file
+            var socketPath = BackchannelHelper.GetSocketPath(effectiveAppHostProjectFile.FullName);
+            if (!BackchannelHelper.IsAppHostRunning(effectiveAppHostProjectFile.FullName))
             {
                 _interactionService.DisplayError(StartCommandStrings.NoRunningAppHost);
                 return ExitCodeConstants.FailedToConnectToAppHost;
@@ -96,16 +95,5 @@ internal sealed class StartCommand : BaseCommand
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, StartCommandStrings.FailedToStartResource, resourceName, ex.Message));
             return ExitCodeConstants.FailedOperation;
         }
-    }
-
-    private static string? GetAppHostSocketPath(FileInfo appHostProjectFile)
-    {
-        // This is a simplified implementation - in practice, we'd need a way to discover running AppHosts
-        // For now, we'll check for a well-known location or environment variable
-        var socketDir = Path.Combine(Path.GetTempPath(), "aspire");
-        var projectName = Path.GetFileNameWithoutExtension(appHostProjectFile.Name);
-        var socketPath = Path.Combine(socketDir, $"{projectName}.sock");
-        
-        return File.Exists(socketPath) ? socketPath : null;
     }
 }

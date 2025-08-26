@@ -86,8 +86,9 @@ internal sealed class LogCommand : BaseCommand
         
         try
         {
-            var socketPath = GetAppHostSocketPath(effectiveAppHostProjectFile);
-            if (socketPath is null)
+            // Get the predictable socket path based on AppHost project file
+            var socketPath = BackchannelHelper.GetSocketPath(effectiveAppHostProjectFile.FullName);
+            if (!BackchannelHelper.IsAppHostRunning(effectiveAppHostProjectFile.FullName))
             {
                 _interactionService.DisplayError(LogCommandStrings.NoRunningAppHost);
                 return ExitCodeConstants.FailedToConnectToAppHost;
@@ -135,15 +136,5 @@ internal sealed class LogCommand : BaseCommand
     {
         var timestamp = entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
         return $"[{timestamp}] {entry.Message}";
-    }
-
-    private static string? GetAppHostSocketPath(FileInfo appHostProjectFile)
-    {
-        // This is a simplified implementation - in practice, we'd need a way to discover running AppHosts
-        var socketDir = Path.Combine(Path.GetTempPath(), "aspire");
-        var projectName = Path.GetFileNameWithoutExtension(appHostProjectFile.Name);
-        var socketPath = Path.Combine(socketDir, $"{projectName}.sock");
-        
-        return File.Exists(socketPath) ? socketPath : null;
     }
 }

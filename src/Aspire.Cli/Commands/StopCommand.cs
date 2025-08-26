@@ -72,9 +72,9 @@ internal sealed class StopCommand : BaseCommand
         
         try
         {
-            // Find the socket path - this would need to be stored somewhere accessible
-            var socketPath = GetAppHostSocketPath(effectiveAppHostProjectFile);
-            if (socketPath is null)
+            // Get the predictable socket path based on AppHost project file
+            var socketPath = BackchannelHelper.GetSocketPath(effectiveAppHostProjectFile.FullName);
+            if (!BackchannelHelper.IsAppHostRunning(effectiveAppHostProjectFile.FullName))
             {
                 _interactionService.DisplayError(StopCommandStrings.NoRunningAppHost);
                 return ExitCodeConstants.FailedToConnectToAppHost;
@@ -95,15 +95,5 @@ internal sealed class StopCommand : BaseCommand
             _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, StopCommandStrings.FailedToStopResource, resourceName, ex.Message));
             return ExitCodeConstants.FailedOperation;
         }
-    }
-
-    private static string? GetAppHostSocketPath(FileInfo appHostProjectFile)
-    {
-        // This is a simplified implementation - in practice, we'd need a way to discover running AppHosts
-        var socketDir = Path.Combine(Path.GetTempPath(), "aspire");
-        var projectName = Path.GetFileNameWithoutExtension(appHostProjectFile.Name);
-        var socketPath = Path.Combine(socketDir, $"{projectName}.sock");
-        
-        return File.Exists(socketPath) ? socketPath : null;
     }
 }

@@ -51,10 +51,11 @@ internal sealed class BackchannelService(
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
 
-            var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
-            var stream = new NetworkStream(clientSocket, true);
-            var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
-            _rpc = rpc;
+            // Accept the first connection and mark backchannel as ready
+            var firstClientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
+            var firstStream = new NetworkStream(firstClientSocket, true);
+            var firstRpc = JsonRpc.Attach(firstStream, appHostRpcTarget);
+            _rpc = firstRpc;
 
             // NOTE: The DistributedApplicationRunner will await this TCS
             //       when a backchannel is expected, and will not stop
@@ -67,6 +68,39 @@ internal sealed class BackchannelService(
                 backchannelConnectedEvent,
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
+
+            // Continue accepting additional connections for transient commands
+            // We don't await this task to avoid blocking the first connection
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!stoppingToken.IsCancellationRequested)
+                    {
+                        var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
+                        logger.LogDebug("Accepted additional backchannel connection");
+                        
+                        // Handle each additional connection on a separate task
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var stream = new NetworkStream(clientSocket, true);
+                                var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
+                                await rpc.Completion.ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogDebug(ex, "Additional backchannel connection closed");
+                            }
+                        }, stoppingToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Stopped accepting additional backchannel connections");
+                }
+            }, stoppingToken);
         }
         catch (TaskCanceledException ex)
         {
