@@ -33,10 +33,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
-        // Add a container that will use the container app environment
-        builder.AddContainer("api", "my-api-image:latest")
-            .WithHttpEndpoint();
-
         // Act
         using var app = builder.Build();
         app.Run();
