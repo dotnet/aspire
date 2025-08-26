@@ -7,9 +7,9 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
-import { createDebugSessionConfiguration, ResourceDebuggerExtension } from "../capabilities";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
+import { ResourceDebuggerExtension, createDebugSessionConfiguration } from "./debuggerExtensions";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();

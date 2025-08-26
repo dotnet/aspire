@@ -4,7 +4,7 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { aspireDebugSessionNotInitialized, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { ResourceDebuggerExtension } from './capabilities';
+import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
 
 export class AspireExtensionContext {
     private _rpcServer: AspireRpcServer | undefined;

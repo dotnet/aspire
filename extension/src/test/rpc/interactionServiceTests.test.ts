@@ -199,14 +199,13 @@ async function createTestRpcServer(hasAspireDebugSession?: () => boolean, getAsp
     getAspireDebugSession ??= () => {
         throw new Error();
     };
-    
+
 	const rpcClient = new TestCliRpcClient();
 	const interactionService = new InteractionService(hasAspireDebugSession, getAspireDebugSession);
 
 	const rpcServer = await AspireRpcServer.create(
 		() => interactionService,
-		() => rpcClient,
-        []
+		() => rpcClient
 	);
 
 	if (!rpcServer) {

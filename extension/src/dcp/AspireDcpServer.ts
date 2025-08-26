@@ -1,14 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
 import https from 'https';
 import WebSocket, { WebSocketServer } from 'ws';
-import * as vscode from 'vscode';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
-import path from 'path';
-import { unsupportedResourceType } from '../loc/strings';
-import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../capabilities';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 
 export default class AspireDcpServer {
     private readonly app: express.Express;

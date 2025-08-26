@@ -963,7 +963,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            if (!Debugger.IsAttached){}
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
                 && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetDebugSupportedResourceTypes()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
@@ -973,7 +972,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 projectLaunchConfiguration.Type = supportsDebuggingAnnotation.DebugAdapterId;
                 projectLaunchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
 
-                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is "Debug")
+                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
                 {
                     projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
                 }

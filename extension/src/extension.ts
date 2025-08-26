@@ -15,8 +15,8 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { getResourceDebuggerExtensions } from './capabilities';
 import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
+import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -28,8 +28,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const rpcServer = await AspireRpcServer.create(
 		_ => new InteractionService(() => aspireExtensionContext.hasAspireDebugSession(), () => aspireExtensionContext.aspireDebugSession),
-		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection, token: string) => new RpcClient(rpcServerConnectionInfo, connection, token),
-        debuggerExtensions
+		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection, token: string) => new RpcClient(rpcServerConnectionInfo, connection, token)
 	);
 
     const dcpServer = await AspireDcpServer.create(debuggerExtensions, () => aspireExtensionContext.aspireDebugSession);

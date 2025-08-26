@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { ResourceDebuggerExtension } from "../capabilities";
 import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireExtendedDebugConfiguration } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
 import { dcpServerNotInitialized } from '../loc/strings';
+import { ResourceDebuggerExtension } from './debuggerExtensions';
 
 export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): vscode.Disposable[] {
     const disposables: vscode.Disposable[] = [];

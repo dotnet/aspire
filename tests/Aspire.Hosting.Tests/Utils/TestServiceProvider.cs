@@ -4,6 +4,7 @@
 using System.ComponentModel.Design;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Dcp;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Tests.Utils;
 
@@ -14,6 +15,11 @@ public sealed class TestServiceProvider : IServiceProvider
     private TestServiceProvider()
     {
         _serviceContainer.AddService(typeof(IDcpDependencyCheckService), new TestDcpDependencyCheckService());
+    }
+
+    public TestServiceProvider(IConfiguration configuration): this()
+    {
+        _serviceContainer.AddService(typeof(IConfiguration), configuration);
     }
 
     public object? GetService(Type serviceType)

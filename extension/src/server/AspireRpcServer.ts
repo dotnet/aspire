@@ -7,7 +7,8 @@ import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { getSupportedCapabilities, ResourceDebuggerExtension } from '../capabilities';
+import { getSupportedCapabilities } from '../capabilities';
+import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -38,7 +39,7 @@ export default class AspireRpcServer {
         this.connections.forEach(connection => connection.stopCli());
     }
 
-    static create(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string) => ICliRpcClient, debuggerExtensions: ResourceDebuggerExtension[]): Promise<AspireRpcServer> {
+    static create(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string) => ICliRpcClient): Promise<AspireRpcServer> {
         const token = generateToken();
         const { key, cert } = createSelfSignedCert();
 
@@ -87,7 +88,7 @@ export default class AspireRpcServer {
                         );
 
                         connection.onRequest('getCapabilities', withAuthentication(async () => {
-                            return getSupportedCapabilities(debuggerExtensions);
+                            return getSupportedCapabilities();
                         }));
 
                         connection.onRequest('ping', withAuthentication(async () => {

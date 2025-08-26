@@ -5,8 +5,8 @@ import { execFile } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
-import { ResourceDebuggerExtension } from '../../capabilities';
 import { AspireExtendedDebugConfiguration } from '../../dcp/types';
+import { ResourceDebuggerExtension } from '../debuggerExtensions';
 
 const execFileAsync = util.promisify(execFile);
 

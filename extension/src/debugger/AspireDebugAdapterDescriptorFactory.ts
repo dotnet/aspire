@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from './AspireDebugSession';
 import AspireDcpServer from '../dcp/AspireDcpServer';
-import { ResourceDebuggerExtension } from '../capabilities';
 import AspireRpcServer from '../server/AspireRpcServer';
+import { ResourceDebuggerExtension } from './debuggerExtensions';
 
 export class AspireDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
   private readonly _rpcServer: AspireRpcServer;
