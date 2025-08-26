@@ -8,11 +8,10 @@ public class ResourceWithProbeTests
     [Fact]
     public void CreatesAnnotation()
     {
-        const string endpointName = "http";
         var appBuilder = DistributedApplication.CreateBuilder();
         var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
-        resource.WithHttpsEndpoint(8080, 8080, endpointName);
-        resource.WithHttpProbe(ProbeType.Startup, endpointName, "/health");
+        resource.WithHttpsEndpoint();
+        resource.WithHttpProbe(ProbeType.Startup, "/health");
 
         var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 
@@ -24,12 +23,11 @@ public class ResourceWithProbeTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            const string endpointName = "http";
             var appBuilder = DistributedApplication.CreateBuilder();
             var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
-            resource.WithHttpEndpoint(8080, 8080, endpointName);
-            resource.WithHttpProbe(ProbeType.Readiness, endpointName, "/health");
-            resource.WithHttpProbe(ProbeType.Readiness, endpointName, "/ready");
+            resource.WithHttpEndpoint();
+            resource.WithHttpProbe(ProbeType.Readiness, "/health");
+            resource.WithHttpProbe(ProbeType.Readiness, "/ready");
         });
 
         Assert.Equal("A probe with type 'Readiness' already exists", ex.Message);
@@ -42,8 +40,8 @@ public class ResourceWithProbeTests
         var appBuilder = DistributedApplication.CreateBuilder();
         var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
         resource.WithHttpsEndpoint(8080, 8080, endpointName);
-        resource.WithHttpProbe(ProbeType.Liveness, endpointName, "/health");
-        resource.WithHttpProbe(ProbeType.Readiness, endpointName, "/ready");
+        resource.WithHttpProbe(ProbeType.Liveness, "/health", endpointName: endpointName);
+        resource.WithHttpProbe(ProbeType.Readiness, "/ready", endpointName: endpointName);
 
         var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 

@@ -374,8 +374,8 @@ public class AzureAppServiceTests
             .AddProject<Project>("project1", launchProfileName: null)
             .WithHttpsEndpoint()
             .WithExternalHttpEndpoints()
-            .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60) // This will be ignored
-            .WithHttpProbe(ProbeType.Liveness, "https", "/health");
+            .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60) // This will be ignored
+            .WithHttpProbe(ProbeType.Liveness, "/health");
 
         using var app = builder.Build();
 

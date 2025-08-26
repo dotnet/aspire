@@ -119,7 +119,8 @@ public class KubernetesPublisherTests()
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
-            .PublishAsKubernetesService(serviceResource => {
+            .PublishAsKubernetesService(serviceResource =>
+            {
                 serviceResource.Workload = new ArgoRollout
                 {
                     Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
@@ -235,14 +236,14 @@ public class KubernetesPublisherTests()
             .AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
-            .WithHttpProbe(ProbeType.Readiness, "http", "/ready")
-            .WithHttpProbe(ProbeType.Liveness, "http", "/health");
+            .WithHttpProbe(ProbeType.Readiness, "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "/health");
 
         builder
             .AddProject<TestProject>("project1", launchProfileName: null)
             .WithHttpsEndpoint()
-            .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60)
-            .WithHttpProbe(ProbeType.Liveness, "https", "/health");
+            .WithHttpProbe(ProbeType.Readiness,"/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
 
         var app = builder.Build();
 

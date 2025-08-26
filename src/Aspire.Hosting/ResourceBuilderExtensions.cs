@@ -2261,12 +2261,38 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a liveness probe to the resource to check its health state.
+    /// Adds a HTTP probe to the resource.
     /// </summary>
     /// <typeparam name="T">Type of resource.</typeparam>
     /// <param name="builder">Resource builder.</param>
     /// <param name="type">Type of the probe.</param>
+    /// <param name="path">The path to be used.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <param name="timeoutSeconds">Number of seconds after which the probe times out.</param>
+    /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
+    /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
+        where T : IResourceWithEndpoints, IResourceWithProbes
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var endpointSelector = endpointName is not null
+            ? NamedEndpointSelector(builder, [endpointName], "HTTP probe")
+            : NamedEndpointSelector(builder, s_httpSchemes, "HTTP probe");
+
+        return builder.WithHttpProbe(type, endpointSelector, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold);
+    }
+
+    /// <summary>
+    /// Adds a HTTP probe to the resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="type">Type of the probe.</param>
+    /// <param name="endpointSelector">The selector used to get endpoint reference.</param>
     /// <param name="path">The path to be used.</param>
     /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
     /// <param name="periodSeconds">The period between each probe.</param>
@@ -2274,12 +2300,20 @@ public static class ResourceBuilderExtensions
     /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
     /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string endpointName, string path, int initialDelaySeconds = 5, int periodSeconds = 5, int timeoutSeconds = 1, int failureThreshold = 3, int successThreshold = 1)
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, Func<EndpointReference>? endpointSelector, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
-        ArgumentNullException.ThrowIfNull(builder);
+        endpointSelector ??= DefaultEndpointSelector(builder);
 
-        var endpoint = builder.Resource.GetEndpoint(endpointName);
+        var endpoint = endpointSelector()
+                     ?? throw new DistributedApplicationException($"Could not create HTTP probe for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+
+        path ??= "/";
+        initialDelaySeconds ??= 5;
+        periodSeconds ??= 5;
+        timeoutSeconds ??= 1;
+        failureThreshold ??= 3;
+        successThreshold ??= 1;
 
         return builder.WithProbe(
             new EndpointProbeAnnotation
@@ -2287,11 +2321,11 @@ public static class ResourceBuilderExtensions
                 Type = type,
                 EndpointReference = endpoint,
                 Path = path,
-                InitialDelaySeconds = initialDelaySeconds,
-                PeriodSeconds = periodSeconds,
-                TimeoutSeconds = timeoutSeconds,
-                FailureThreshold = failureThreshold,
-                SuccessThreshold = successThreshold,
+                InitialDelaySeconds = initialDelaySeconds.Value,
+                PeriodSeconds = periodSeconds.Value,
+                TimeoutSeconds = timeoutSeconds.Value,
+                FailureThreshold = failureThreshold.Value,
+                SuccessThreshold = successThreshold.Value,
             });
     }
 

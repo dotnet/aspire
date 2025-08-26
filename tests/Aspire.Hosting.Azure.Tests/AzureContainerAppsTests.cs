@@ -1583,14 +1583,14 @@ public class AzureContainerAppsTests
         builder
             .AddContainer("api", "myimage")
             .WithHttpEndpoint(targetPort: 8080)
-            .WithHttpProbe(ProbeType.Readiness, "http", "/ready")
-            .WithHttpProbe(ProbeType.Liveness, "http", "/health");
+            .WithHttpProbe(ProbeType.Readiness, "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "/health");
 
         builder
             .AddProject<Project>("project1", launchProfileName: null)
             .WithHttpsEndpoint()
-            .WithHttpProbe(ProbeType.Readiness, "https", "/ready", initialDelaySeconds: 60)
-            .WithHttpProbe(ProbeType.Liveness, "https", "/health");
+            .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
 
         using var app = builder.Build();
 
