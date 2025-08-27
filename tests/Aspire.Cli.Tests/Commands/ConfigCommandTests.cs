@@ -354,4 +354,35 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var hasDeployCommand = rootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
         Assert.True(hasDeployCommand);
     }
+
+    [Fact]
+    public async Task FilterDeprecatedPackagesEnabled_CanBeConfiguredViaCommandLine()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        
+        // Set the filter deprecated packages feature flag to false
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.FilterDeprecatedPackagesEnabled} false");
+        var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, setExitCode);
+
+        // Verify the feature flag is disabled
+        var featureFlags = provider.GetRequiredService<IFeatures>();
+        Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true));
+    }
+
+    [Fact]
+    public void FilterDeprecatedPackagesEnabled_DefaultsToTrue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        // Verify the feature flag defaults to true
+        var featureFlags = provider.GetRequiredService<IFeatures>();
+        Assert.True(featureFlags.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true));
+    }
 }
