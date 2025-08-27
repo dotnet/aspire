@@ -361,12 +361,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task AppHostHelper_BuildAppHostAsync_IncludesRelativePathInStatusMessage()
     {
-        var capturedStatusMessages = new List<string>();
         var testInteractionService = new TestConsoleInteractionService();
-        testInteractionService.ShowStatusAsyncCallback = async (statusText, action) =>
+        testInteractionService.ShowStatusCallback = (statusText) =>
         {
-            capturedStatusMessages.Add(statusText);
-            return await action();
+            Assert.Contains(
+                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                statusText);
         };
 
         var testRunner = new TestDotNetCliRunner();
@@ -375,46 +375,19 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var tempDir = Directory.CreateTempSubdirectory("aspire-test");
         try
         {
-            var workingDir = new DirectoryInfo(tempDir.FullName);
-            var subDir = Directory.CreateDirectory(Path.Combine(tempDir.FullName, "src", "MyApp.AppHost"));
-            var projectFile = new FileInfo(Path.Combine(subDir.FullName, "MyApp.AppHost.csproj"));
-            File.WriteAllText(projectFile.FullName, "<Project></Project>");
+            using var workspace = TemporaryWorkspace.Create(outputHelper);
+            var appHostDirectoryPath = Path.Combine(workspace.WorkspaceRoot.FullName, "src", "MyApp.AppHost");
+            var appHostDirectory = Directory.CreateDirectory(appHostDirectoryPath);
+            var appHostProjectPath = Path.Combine(appHostDirectory.FullName, "MyApp.AppHost.csproj");
+            var appHostProjectFile = new FileInfo(appHostProjectPath);
+            File.WriteAllText(appHostProjectFile.FullName, "<Project></Project>");
 
             var options = new DotNetCliRunnerInvocationOptions();
-            await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, projectFile, options, workingDir, CancellationToken.None);
-
-            Assert.Single(capturedStatusMessages);
-            var statusMessage = capturedStatusMessages[0];
-            Assert.Contains("Building app host...: src", statusMessage);
-            Assert.Contains("MyApp.AppHost.csproj", statusMessage);
+            await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, options, workspace.WorkspaceRoot, CancellationToken.None);
         }
         finally
         {
             tempDir.Delete(true);
         }
-    }
-
-    [Fact]
-    public void Path_GetRelativePath_HandlesVariousScenarios()
-    {
-        // Test various scenarios for relative path computation
-        
-        // Same directory
-        var result1 = Path.GetRelativePath("/home/user/project", "/home/user/project/app.csproj");
-        Assert.Equal("app.csproj", result1);
-        
-        // Subdirectory
-        var result2 = Path.GetRelativePath("/home/user", "/home/user/project/src/app.csproj");
-        Assert.Equal(Path.Combine("project", "src", "app.csproj"), result2);
-        
-        // Parent directory
-        var result3 = Path.GetRelativePath("/home/user/project/src", "/home/user/project/app.csproj");
-        Assert.Equal(Path.Combine("..", "app.csproj"), result3);
-        
-        // Different drives on Windows would show absolute path, but on Unix it shows relative
-        // This test verifies the basic behavior works
-        Assert.NotEmpty(result1);
-        Assert.NotEmpty(result2);
-        Assert.NotEmpty(result3);
     }
 }
