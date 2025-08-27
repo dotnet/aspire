@@ -34,6 +34,7 @@ internal interface IDotNetCliRunner
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -683,7 +684,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             packageVersion
         };
 
-        if (!string.IsNullOrEmpty(nugetSource))
+        if (string.IsNullOrEmpty(nugetSource))
+        {
+            cliArgsList.Add("--no-restore");
+        }
+        else
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -794,6 +799,46 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
+        }
+    }
+
+    public async Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["nuget", "config", "paths"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: workingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<string>());
+        }
+        else
+        {
+            return (exitCode, stdoutLines.ToArray());
         }
     }
 }
