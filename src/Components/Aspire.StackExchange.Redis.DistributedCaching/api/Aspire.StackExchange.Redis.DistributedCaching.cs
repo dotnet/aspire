@@ -12,6 +12,8 @@ namespace Microsoft.Extensions.Hosting
     {
         public static void AddKeyedRedisDistributedCache(this IHostApplicationBuilder builder, string name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
 
+        public static void AddKeyedRedisDistributedCache(this IHostApplicationBuilder builder, string name, string serviceKey, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
+
         public static void AddRedisDistributedCache(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
     }
 }
