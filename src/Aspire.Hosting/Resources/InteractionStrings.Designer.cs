@@ -88,6 +88,24 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container Runtime Not Installed.
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledTitle {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Ensure that Podman is running..
         /// </summary>
         internal static string ContainerRuntimePodmanAdvice {

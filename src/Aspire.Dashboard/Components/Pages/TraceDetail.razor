@@ -140,8 +140,8 @@
                                         }
                                     }
 
-                                    <span class="span-overview-container" style="margin-left: @(marginLeft)px;">
-                                        <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
+                                    <div class="span-overview-container">
+                                        <span @onclick:stopPropagation="true" style="margin-left: @(marginLeft)px;" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
                                             @if (context.Children.Count > 0)
                                             {
                                                 <FluentButton aria-label="@ControlStringsLoc[nameof(ControlsStrings.ToggleNesting)]" Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
@@ -190,7 +190,18 @@
                                                 </span>
                                             }
                                         </span>
-                                    </span>
+                                        <span @onclick:stopPropagation="true">
+                                            @if (context.Span.Attributes.GetValue("gen_ai.system") is { Length: > 0 })
+                                            {
+                                                <FluentButton Appearance="Appearance.Lightweight"
+                                                              Class="genai-details-button"
+                                                              OnClick="() => OnGenAIClickedAsync(context)">
+                                                    <FluentIcon Icon="Icons.Regular.Size20.BrainCircuit"
+                                                                Color="Color.Accent" />
+                                                </FluentButton>
+                                            }
+                                        </span>
+                                    </div>
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Tooltip="true" TooltipText="@(c => GetResourceName(c.Span.Source))" Class="expand-col">
                                     <div class="resource-name">

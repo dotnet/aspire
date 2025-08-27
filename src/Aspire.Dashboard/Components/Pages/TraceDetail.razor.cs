@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
@@ -79,7 +80,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Aspire.Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -504,6 +511,17 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 LogEntryViewModel = new StructureLogsDetailsViewModel { LogEntry = logEntry }
             };
         }
+    }
+
+    private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
+    {
+        await GenAIVisualizerDialog.OpenDialogAsync(
+            ViewportInformation,
+            DialogService,
+            DialogsLoc,
+            spanViewModel.Span.Name,
+            spanViewModel.Span,
+            spanViewModel.SpanLogs.Select(l => l.LogEntry).ToList());
     }
 
     public void Dispose()

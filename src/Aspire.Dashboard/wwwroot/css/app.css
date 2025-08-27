@@ -2,7 +2,7 @@
     scrollbar-color: var(--scrollbar-color) transparent;
 }
 
-.visualizer-title-grid {
+.dialog-title-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas: "dialog-icon dialog-title dialog-format";

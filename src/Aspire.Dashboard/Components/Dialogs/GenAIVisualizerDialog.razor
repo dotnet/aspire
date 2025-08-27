@@ -1,0 +1,100 @@
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@implements IDialogContentComponent<Aspire.Dashboard.Model.GenAIVisualizerDialogViewModel>
+
+<FluentDialogHeader ShowDismiss="true">
+    <div class="dialog-title-grid">
+        <FluentIcon Value="@(new Icons.Regular.Size24.BrainCircuit())" Style="grid-area: dialog-icon; align-self: center;" />
+        <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
+            @Content.Title
+        </FluentLabel>
+
+        <div Style="grid-area: dialog-format;">
+            Test
+        </div>
+    </div>
+</FluentDialogHeader>
+
+<FluentDialogBody>
+    <div class="genai-visualizer-container">
+        <FluentSplitter BarHandle="true"
+                        Style="height:100%"
+                        Panel1Size="3fr"
+                        Panel2Size="7fr"
+                        BarSize="5">
+            <Panel1>
+                <TreeGenAISelector @ref="_treeGenAISelector"
+                                   PageViewModel="@Content"
+                                   HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+            </Panel1>
+            <Panel2>
+                <div class="span-events-container">
+                    @RenderEventSection("Input", Content.Events.Where(e => e.Type != GenAIEventType.Choice).ToList())
+                    @RenderEventSection("Output", Content.Events.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                </div>
+            </Panel2>
+        </FluentSplitter>
+    </div>
+</FluentDialogBody>
+
+<FluentDialogFooter Visible="false" />
+
+@{
+    RenderFragment RenderEventSection(string title, List<GenAIEvent> events)
+    {
+        return@<div>
+            <div class="section-title">@title</div>
+            @foreach (var spanEvent in events)
+            {
+                <div class="event-container">
+                    <div class="event-title">@GetEventTitle(spanEvent)</div>
+                    @if (spanEvent.Body is SystemOrUserEvent systemOrUserEvent)
+                    {
+                        <div>@systemOrUserEvent.Content</div>
+                    }
+                    else if (spanEvent.Body is AssistantEvent assistantEvent)
+                    {
+                        @RenderAssistantEvent(assistantEvent)
+                    }
+                    else if (spanEvent.Body is ToolEvent toolEvent)
+                    {
+                        <div>@toolEvent.Content?.ToJsonString()</div>
+                    }
+                    else if (spanEvent.Body is ChoiceEvent choiceEvent)
+                    {
+                        if (choiceEvent.Message != null)
+                        {
+                            @RenderAssistantEvent(choiceEvent.Message)
+                        }
+                    }
+                </div>
+            }
+        </div>;
+    }
+
+    RenderFragment RenderAssistantEvent(AssistantEvent assistantEvent)
+    {
+        if (assistantEvent.Content != null)
+        {
+            return @<div>@assistantEvent.Content</div>;
+        }
+        else if (assistantEvent.ToolCalls is { Length: > 0 } toolCalls)
+        {
+            return @<div>
+                @foreach (var toolCall in toolCalls)
+                {
+                    if (toolCall.Function is { } function)
+                    {
+                        <div>@(function.Name)(@function.Arguments?.ToJsonString())</div>
+                    }
+                }
+            </div>;
+        }
+
+        return@<div></div>;
+    }
+}

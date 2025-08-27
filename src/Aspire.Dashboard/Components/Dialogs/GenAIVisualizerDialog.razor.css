@@ -1,0 +1,82 @@
+::deep .span-events-container {
+    background: var(--neutral-fill-layer-rest);
+    color: var(--neutral-foreground-rest);
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
+    border-radius: calc(var(--layer-corner-radius) * 1px);
+    padding: 16px;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+::deep .event-container {
+    padding: 12px;
+    margin-bottom: 16px;
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-hover);
+    border-radius: calc(var(--layer-corner-radius) * 0.5px);
+}
+
+::deep .section-title {
+    font-size: var(--type-ramp-plus-1-font-size);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+::deep .event-container .event-title {
+    font-size: var(--type-ramp-plus-1-font-size);
+    margin-bottom: 12px;
+}
+
+.genai-visualizer-container ::deep .fluent-splitter::part(median) {
+    opacity: 0;
+}
+
+::deep .genai-event-tree {
+    --base-height-multiplier: 9;
+}
+
+::deep fluent-tree-item::part(positioning-region) {
+    margin-bottom: 1px;
+}
+
+::deep .event-name {
+    display: inline-flex;
+    column-gap: 4px;
+}
+
+
+::deep .genai-badge {
+    border-radius: 4px;
+    display: inline-flex;
+    margin-left: 8px;
+    column-gap: 4px;
+    font-size: 12px;
+    padding: 0px 2px;
+    line-height: 18px;
+}
+
+::deep .category-message {
+    background-color: #063004;
+    color: #5ec75a;
+    --icon-color: #5ec75a;
+}
+
+::deep .category-tool-calls {
+    background-color: #082338;
+    color: #62abf5;
+    --icon-color: #62abf5;
+}
+
+::deep .event-system {
+    background-color: rgb(205, 214, 216);
+}
+
+::deep .event-user {
+    background-color: #7a2101;
+}
+
+::deep .event-assistant {
+    background-color: rgb(244, 191, 171);
+}
+
+::deep .event-tool {
+}

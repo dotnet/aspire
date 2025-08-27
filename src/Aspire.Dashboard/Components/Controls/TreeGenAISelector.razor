@@ -1,0 +1,38 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Metrics = Aspire.Dashboard.Resources.Metrics
+
+@inject IStringLocalizer<Metrics> Loc
+
+@if (PageViewModel.Events is null)
+{
+    return;
+}
+
+<FluentTreeView Class="genai-event-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
+    <ChildContent>
+        @foreach (var spanGroup in PageViewModel.Events.GroupBy(i => i.Parent).OrderBy(g => g.Key.Name))
+        {
+            <FluentTreeItem @key="spanGroup.Key" Text="@spanGroup.Key.Name" Data="@spanGroup.Key" title="@spanGroup.Key.Name" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedEvent == null)" Class="nested">
+                @foreach (var spanEvent in spanGroup.OrderBy(i => i.TimeStamp))
+                {
+                    <FluentTreeItem @key="spanEvent" Class="nested" Data="@spanEvent" title="@spanEvent.Type.ToString()" InitiallySelected="@(spanEvent.InternalId == PageViewModel.SelectedEvent?.InternalId)">
+                        @{
+                            var categoryBadge = GetEventCategory(spanEvent);
+                            var eventBadge = GetEventTitle(spanEvent);
+                        }
+                        <div class="event-tree-item">
+                            <span class="event-name">
+                                <FluentIcon Value="@eventBadge.Icon" Width="16px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(spanEvent.Type is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? PageViewModel.PeerName! : PageViewModel.SourceName!)" />
+                                @eventBadge.Text
+                            </span>
+                            <span class="genai-badge category-@categoryBadge.Class">
+                                <FluentIcon Value="@categoryBadge.Icon" Width="16px" Color="Color.Custom" CustomColor="--icon-color" />
+                                @categoryBadge.Text
+                            </span>
+                        </div>
+                    </FluentTreeItem>
+                }
+            </FluentTreeItem>
+        }
+    </ChildContent>
+</FluentTreeView>
