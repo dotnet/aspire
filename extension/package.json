@@ -75,11 +75,6 @@
     ],
     "commands": [
       {
-        "command": "aspire-vscode.run",
-        "title": "%command.run%",
-        "category": "Aspire"
-      },
-      {
         "command": "aspire-vscode.add",
         "title": "%command.add%",
         "category": "Aspire"

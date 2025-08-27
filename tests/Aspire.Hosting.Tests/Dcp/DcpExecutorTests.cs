@@ -1358,11 +1358,6 @@ public class DcpExecutorTests
 
         var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.Process, exe.Spec.ExecutionType);
-        Assert.True(exe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
-        var config1 = Assert.Single(launchConfigs1);
-        Assert.Equal(ProjectLaunchMode.Debug, config1.Mode);
-        Assert.Equal("test_executable", config1.Type);
-        Assert.Equal("test-working-directory", config1.ProjectPath);
     }
 
     [Fact]

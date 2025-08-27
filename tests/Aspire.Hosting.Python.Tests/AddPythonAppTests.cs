@@ -10,6 +10,7 @@ using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -181,7 +182,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var executableResources = appModel.GetExecutableResources();
 
         var pythonProjectResource = Assert.Single(executableResources);
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, app.Services.GetRequiredService<IConfiguration>());
 
         if (OperatingSystem.IsWindows())
         {

@@ -14,12 +14,16 @@ public sealed class TestServiceProvider : IServiceProvider
 
     private TestServiceProvider()
     {
-        _serviceContainer.AddService(typeof(IDcpDependencyCheckService), new TestDcpDependencyCheckService());
     }
 
-    public TestServiceProvider(IConfiguration configuration): this()
+    public TestServiceProvider(IConfiguration? configuration = null): this()
     {
-        _serviceContainer.AddService(typeof(IConfiguration), configuration);
+        _serviceContainer.AddService(typeof(IDcpDependencyCheckService), new TestDcpDependencyCheckService());
+
+        if (configuration is not null)
+        {
+            _serviceContainer.AddService(typeof(IConfiguration), configuration);
+        }
     }
 
     public object? GetService(Type serviceType)

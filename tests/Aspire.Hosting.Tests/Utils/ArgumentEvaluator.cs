@@ -2,18 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.ExceptionServices;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Utils;
 
 public sealed class ArgumentEvaluator
 {
-    public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource)
+    public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource, IConfiguration? configuration = null)
     {
         var args = new List<string>();
 
         await resource.ProcessArgumentValuesAsync(
-            new(DistributedApplicationOperation.Run),
+            new(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+            {
+                ServiceProvider = new TestServiceProvider(configuration)
+            }),
             (_, processed, ex, _) =>
             {
                 if (ex is not null)
