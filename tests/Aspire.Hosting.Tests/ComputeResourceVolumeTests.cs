@@ -10,7 +10,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Tests;
 
 [SuppressMessage("Experimental", "ASPIRECOMPUTE001", Justification = "Testing experimental API")]
-public class ComputeResourceBuilderExtensionsTests
+public class ComputeResourceVolumeTests
 {
     [Fact]
     public void WithVolumeAddsContainerMountAnnotationToProjectResource()
@@ -178,15 +178,11 @@ public class ComputeResourceBuilderExtensionsTests
     {
         var builder = DistributedApplication.CreateBuilder();
         
-        // This should use ContainerResourceBuilderExtensions.WithVolume, not the new ComputeResourceBuilderExtensions.WithVolume
-        // We can test this by ensuring that both work without issues
-        var container = builder.AddContainer("mycontainer", "nginx");
-        
-        // Container resources should use ContainerResourceBuilderExtensions explicitly to avoid ambiguity
-        var containerWithVolume = ContainerResourceBuilderExtensions.WithVolume(
-            container, "myvolume", "/app/data", isReadOnly: true);
+        // Container resources should use ContainerResourceBuilderExtensions.WithVolume as before
+        var container = builder.AddContainer("mycontainer", "nginx")
+            .WithVolume("myvolume", "/app/data", isReadOnly: true);
 
-        var annotations = containerWithVolume.Resource.Annotations.OfType<ContainerMountAnnotation>();
+        var annotations = container.Resource.Annotations.OfType<ContainerMountAnnotation>();
         var annotation = Assert.Single(annotations);
         
         Assert.Equal("myvolume", annotation.Source);

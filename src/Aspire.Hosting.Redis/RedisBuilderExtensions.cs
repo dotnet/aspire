@@ -312,7 +312,7 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        ContainerResourceBuilderExtensions.WithVolume(builder, name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -392,7 +392,7 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return ContainerResourceBuilderExtensions.WithVolume(builder, name ?? VolumeNameGenerator.Generate(builder, "data"), "/data");
+        return builder.WithVolume(name ?? VolumeNameGenerator.Generate(builder, "data"), "/data");
     }
 
     /// <summary>

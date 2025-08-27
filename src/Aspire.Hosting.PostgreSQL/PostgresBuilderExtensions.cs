@@ -369,7 +369,7 @@ public static class PostgresBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return ContainerResourceBuilderExtensions.WithVolume(builder, 
+        return builder.WithVolume(
             name ?? VolumeNameGenerator.Generate(builder, "data"),
             "/var/lib/postgresql/data", isReadOnly);
     }
