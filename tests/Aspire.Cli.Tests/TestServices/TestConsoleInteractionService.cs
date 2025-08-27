@@ -59,10 +59,6 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
-    {
-    }
-
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
     }

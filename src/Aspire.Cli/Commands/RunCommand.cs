@@ -73,6 +73,13 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
+        if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
+        {
+            var startDebugOption = new Option<bool>("--start-debug-session");
+            startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
+            Options.Add(startDebugOption);
+        }
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -113,13 +120,10 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var startDebugSession = ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel) && string.Equals(await _interactionService.PromptForSelectionAsync(
-                RunCommandStrings.PromptForDebugging,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken), TemplatingStrings.Yes, StringComparisons.CliInputOrOutput);
+            var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+            var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
 
-            var watch = parseResult.GetValue<bool>("--watch") || (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _) && !startDebugSession);
+            var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 
             if (!watch)
             {
@@ -130,8 +134,8 @@ internal sealed class RunCommand : BaseCommand
                 };
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
-                    || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
+                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel)
+                    || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
                     var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
@@ -173,19 +177,13 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () =>
-            {
-                return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken);
-            });
+            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () =>
-            {
-                return await backchannel.GetDashboardUrlsAsync(cancellationToken);
-            });
+            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
             if (dashboardUrls.DashboardHealthy is false)
             {
@@ -195,7 +193,6 @@ internal sealed class RunCommand : BaseCommand
             }
 
             _ansiConsole.WriteLine();
-
             var topGrid = new Grid();
             topGrid.AddColumn();
             topGrid.AddColumn();
@@ -220,6 +217,7 @@ internal sealed class RunCommand : BaseCommand
             {
                 topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
             }
+
             topGrid.AddRow(Text.Empty, Text.Empty);
             topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
 
@@ -230,7 +228,7 @@ internal sealed class RunCommand : BaseCommand
             var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
             var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
             var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
-                                && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
+                              && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
             AppendCtrlCMessage(longestLocalizedLength);
 
@@ -255,7 +253,7 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength + 1;
+                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
 
                             if (firstEndpoint)
                             {
@@ -265,7 +263,7 @@ internal sealed class RunCommand : BaseCommand
                             endpointsGrid.AddRow(
                                 firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
                                 new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
-                                );
+                            );
 
                             var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
                             _ansiConsole.Write(endpointsPadder);
@@ -279,6 +277,13 @@ internal sealed class RunCommand : BaseCommand
                 {
                     // Just swallow this exception because this is an orderly shutdown of the backchannel.
                 }
+            }
+
+            if (ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _))
+            {
+                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
+                extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
+                extensionInteractionService.NotifyAppHostStartupCompleted();
             }
 
             await pendingLogCapture;
@@ -339,9 +344,9 @@ internal sealed class RunCommand : BaseCommand
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
         ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLength + 1;
+        ctrlCGrid.Columns[0].Width = longestLocalizedLength;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
-        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost));
+        ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 
         var ctrlCPadder = new Padder(ctrlCGrid, new Padding(3, 0));
         _ansiConsole.Write(ctrlCPadder);

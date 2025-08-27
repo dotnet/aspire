@@ -32,6 +32,11 @@
         <target state="translated">Конечные точки</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="new">To view AppHost logs in real-time, switch to the AppHost Debug Console.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">Работоспособность ресурса, например "Работоспособен"</target>
@@ -62,15 +67,15 @@
         <target state="translated">Не удалось запустить проект. Для получения дополнительных сведений запустите команду с параметром --debug.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptForDebugging">
-        <source>Do you want to start a debugging session?</source>
-        <target state="translated">Вы хотите начать сеанс отладки?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">Ресурс</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="new">Whether to start a debug session during the run.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
