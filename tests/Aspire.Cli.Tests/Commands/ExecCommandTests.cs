@@ -107,7 +107,7 @@ public class ExecCommandTests
         var result = command.Parse("exec --help", commandLineConfiguration);
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         // Should succeed because exec command is registered when feature flag is enabled
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
@@ -170,6 +170,11 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
@@ -178,11 +183,25 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new List<FileInfo>
+            {
+                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
+                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
+            });
+        }
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }

@@ -88,6 +88,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
     }
 
     [Fact]
@@ -136,6 +141,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -143,6 +153,15 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+        }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new List<FileInfo>
+            {
+                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
+                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
+            });
         }
     }
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -195,7 +214,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
-                // Make a backchannel and return it, but don't return from the run call until the backchannel 
+                // Make a backchannel and return it, but don't return from the run call until the backchannel
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
@@ -387,5 +406,68 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var options = new DotNetCliRunnerInvocationOptions();
         await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, options, workspace.WorkspaceRoot, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
+    {
+        var buildCalled = false;
+
+        var extensionBackchannel = new TestExtensionBackchannel();
+        extensionBackchannel.GetCapabilitiesAsyncCallback = ct => Task.FromResult(new[] { "devkit" });
+
+        var appHostBackchannel = new TestAppHostBackchannel();
+        appHostBackchannel.GetDashboardUrlsAsyncCallback = (ct) => Task.FromResult(new DashboardUrlsState
+        {
+            DashboardHealthy = true,
+            BaseUrlWithLoginToken = "http://localhost/dashboard",
+            CodespacesUrlWithLoginToken = null
+        });
+        appHostBackchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+
+        var backchannelFactory = (IServiceProvider sp) => appHostBackchannel;
+
+        var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
+
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+                buildCalled = true;
+                return 0;
+            };
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+                return 0;
+            };
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.ExtensionBackchannelFactory = _ => extensionBackchannel;
+            options.InteractionServiceFactory = extensionInteractionServiceFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        var pendingRun = result.InvokeAsync(cts.Token);
+        cts.Cancel();
+        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.False(buildCalled, "Build should be skipped when extension DevKit capability is available.");
     }
 }
