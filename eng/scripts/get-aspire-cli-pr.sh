@@ -552,8 +552,8 @@ gh_api_call() {
     printf "%s" "$api_output"
 }
 
-# Function to get PR branch ref information
-get_pr_head_info() {
+# Function to get the PR branch name
+get_pr_branch_name() {
     local pr_number="$1"
 
     say_verbose "Getting branch ref info for PR #$pr_number"
@@ -577,18 +577,18 @@ get_pr_head_info() {
 
 # Function to find workflow run for branch
 find_workflow_run() {
-    local branch_ref="$1"
+    local branch_name="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Finding latest completed ci.yml workflow run for branch: $branch_ref"
+    say_verbose "Finding latest completed ci.yml workflow run for branch: $branch_name"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_ref&status=completed" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $branch_ref"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_name&status=completed" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $branch_name"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-    say_error "No completed ci.yml workflow run found for PR branch: $branch_ref. This could mean no workflow has been triggered for this branch $branch_ref. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    say_error "No completed ci.yml workflow run found for PR branch: $branch_name. This could mean no workflow has been triggered for this branch $branch_name. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
@@ -772,11 +772,11 @@ download_and_install_from_pr() {
         say_info "Starting download and installation for PR #$PR_NUMBER"
 
         # Find the workflow run
-        if ! branch_ref=$(get_pr_head_info "$PR_NUMBER"); then
+        if ! branch_name=$(get_pr_branch_name "$PR_NUMBER"); then
             return 1
         fi
 
-        if ! workflow_run_id=$(find_workflow_run "$branch_ref"); then
+        if ! workflow_run_id=$(find_workflow_run "$branch_name"); then
             return 1
         fi
     fi

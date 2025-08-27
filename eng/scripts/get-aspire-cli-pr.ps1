@@ -645,8 +645,8 @@ function Invoke-GitHubAPICall {
     return $output
 }
 
-# Function to get PR head branch information
-function Get-PRHeadInfo {
+# Function to get PR branch name
+function Get-PRBranchName {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -672,15 +672,15 @@ function Find-WorkflowRun {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$HeadBranch
+        [string]$BranchName
     )
 
-    Write-Message "Finding latest completed ci.yml workflow run for branch: $HeadBranch" -Level Verbose
+    Write-Message "Finding latest completed ci.yml workflow run for branch: $BranchName" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch&status=completed" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$BranchName&status=completed" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $BranchName"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
-        throw "No completed ci.yml workflow run found for PR branch: $HeadBranch. This could mean no workflow has been triggered for this branch $HeadBranch. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+        throw "No completed ci.yml workflow run found for PR branch: $BranchName. This could mean no workflow has been triggered for this branch $BranchName. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
     }
 
     Write-Message "Found workflow run ID: $runId" -Level Verbose
@@ -884,10 +884,10 @@ function Start-DownloadAndInstall {
         Write-Message "Starting download and installation for PR #$PRNumber" -Level Info
 
         # Get the PR head branch
-        $headBranch = Get-PRHeadInfo -PRNumber $PRNumber
+        $branchName = Get-PRBranchName -PRNumber $PRNumber
 
         # Find the workflow run
-        $runId = Find-WorkflowRun -HeadBranch $headBranch
+        $runId = Find-WorkflowRun -BranchName $branchName
     }
 
     Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
