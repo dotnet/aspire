@@ -12,13 +12,13 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class ExtensionInternalCommand : BaseCommand
 {
-    public ExtensionInternalCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator) : base("extension", "Hidden command for extension integration", features, updateNotifier)
+    public ExtensionInternalCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator, CliExecutionContext executionContext) : base("extension", "Hidden command for extension integration", features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(updateNotifier);
 
         this.Hidden = true;
-        this.Subcommands.Add(new GetAppHostCandidatesCommand(features, updateNotifier, projectLocator));
+        this.Subcommands.Add(new GetAppHostCandidatesCommand(features, updateNotifier, projectLocator, executionContext));
     }
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -30,7 +30,7 @@ internal sealed class ExtensionInternalCommand : BaseCommand
     {
         private readonly IProjectLocator _projectLocator;
 
-        public GetAppHostCandidatesCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator) : base("get-apphosts", "Get AppHosts in the specified directory", features, updateNotifier)
+        public GetAppHostCandidatesCommand(IFeatures features, ICliUpdateNotifier updateNotifier, IProjectLocator projectLocator, CliExecutionContext executionContext) : base("get-apphosts", "Get AppHosts in the specified directory", features, updateNotifier, executionContext)
         {
             _projectLocator = projectLocator;
 
