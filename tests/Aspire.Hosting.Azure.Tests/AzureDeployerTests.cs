@@ -17,6 +17,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Aspire.TestUtilities;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -396,6 +397,85 @@ public class AzureDeployerTests(ITestOutputHelper output)
                    cmd.Arguments.StartsWith("push acaregistry.azurecr.io/"));
     }
 
+    [Fact]
+    public async Task DeployAsync_WithAzureFunctionsProject_Works()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var deploymentOutputs = new Dictionary<string, object>
+        {
+            // ACA Environment outputs (needed for containerAppEnv)
+            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" },
+
+            // Storage outputs for funcstorage
+            ["funcstorage_blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+            ["funcstorage_queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
+            ["funcstorage_tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" },
+
+            // Storage outputs for hoststorage
+            ["hoststorage_blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+            ["hoststorage_queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
+            ["hoststorage_tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
+
+            ["funcapp_identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["funcapp_identity_clientId"] = new { type = "String", value = "test-client-id" }
+        };
+        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add Azure Storage for the Functions project
+        var storage = builder.AddAzureStorage("funcstorage");
+        var hostStorage = builder.AddAzureStorage("hoststorage");
+        var blobs = storage.AddBlobs("blobs");
+        var funcApp = builder.AddAzureFunctionsProject<TestFunctionsProject>("funcapp")
+            .WithReference(blobs)
+            .WithHostStorage(hostStorage);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert that container environment outputs are propagated
+        Assert.Equal("testregistry", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
+        Assert.Equal("testregistry.azurecr.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_ENDPOINT"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"]);
+        Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+
+        // Assert that funcapp outputs are propagated
+        var funcAppDeployment = Assert.IsType<AzureProvisioningResource>(funcApp.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
+        Assert.NotNull(funcAppDeployment);
+        Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_default_domain"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_id"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+        Assert.Equal("https://testfuncstorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["funcstorage_outputs_blobendpoint"]!).GetValueAsync());
+        Assert.Equal("https://testhoststorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["hoststorage_outputs_blobendpoint"]!).GetValueAsync());
+
+        // Assert - Verify ACR login command was called since Functions image needs to be built and pushed
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath.Contains("az") &&
+                   cmd.Arguments == "acr login --name testregistry");
+
+        // Assert - Verify Docker tag and push called for Azure Functions project
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath == "docker" &&
+                   cmd.Arguments != null &&
+                   cmd.Arguments.StartsWith("tag funcapp testregistry.azurecr.io/"));
+
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath == "docker" &&
+                   cmd.Arguments != null &&
+                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
@@ -452,5 +532,22 @@ public class AzureDeployerTests(ITestOutputHelper output)
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
+    }
+
+    private sealed class TestFunctionsProject : IProjectMetadata
+    {
+        public string ProjectPath => "functions-project";
+
+        public LaunchSettings LaunchSettings => new()
+        {
+            Profiles = new Dictionary<string, LaunchProfile>
+            {
+                ["funcapp"] = new()
+                {
+                    CommandLineArgs = "--port 7071",
+                    LaunchBrowser = false,
+                }
+            }
+        };
     }
 }
