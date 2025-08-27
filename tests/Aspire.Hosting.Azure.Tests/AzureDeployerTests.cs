@@ -399,29 +399,43 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
-            // ACA Environment outputs (needed for containerAppEnv)
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" },
-
-            // Storage outputs for funcstorage
-            ["funcstorage_blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
-            ["funcstorage_queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
-            ["funcstorage_tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" },
-
-            // Storage outputs for hoststorage
-            ["hoststorage_blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
-            ["hoststorage_queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
-            ["hoststorage_tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
-
-            ["funcapp_identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["funcapp_identity_clientId"] = new { type = "String", value = "test-client-id" }
+            string name when name.StartsWith("env") => new Dictionary<string, object>
+            {
+                ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+            },
+            string name when name.StartsWith("funcstorage") => new Dictionary<string, object>
+            {
+                ["name"] = new { type = "String", value = "testfuncstorage" },
+                ["blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+                ["queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
+                ["tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" }
+            },
+            string name when name.StartsWith("hoststorage") => new Dictionary<string, object>
+            {
+                ["name"] = new { type = "String", value = "testhoststorage" },
+                ["blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+                ["queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
+                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" }
+            },
+            string name when name.StartsWith("funcapp-identity") => new Dictionary<string, object>
+            {
+                ["principalId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            },
+            string name when name.StartsWith("funcapp") => new Dictionary<string, object>
+            {
+                ["identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                ["identity_clientId"] = new { type = "String", value = "test-client-id" }
+            },
+            _ => []
         };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
