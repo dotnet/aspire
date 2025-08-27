@@ -119,17 +119,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ThrowingCertificateService : Aspire.Cli.Certificates.ICertificateService
     {
-        public Task CheckHttpCertificateAsync(CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> CheckIfTrustedCertificateExistsAsync(CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task TrustHttpCertificateAsync(CancellationToken cancellationToken = default)
+        public Task EnsureCertificatesTrustedAsync(IDotNetCliRunner runner, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
