@@ -121,6 +121,7 @@ public class Program
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
+        builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddHostedService<NuGetPackagePrefetcher>();
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();

@@ -77,6 +77,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
+        services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.TemplateProviderFactory);
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
@@ -243,13 +244,20 @@ internal sealed class CliServiceCollectionTestOptions
         return new TestDotNetSdkInstaller();
     };
 
+    public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<DiskCache>>();
+        return new DiskCache(logger);
+    };
+
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry);
+        return new NuGetPackageCache(logger, runner, cache, diskCache, telemetry);
     };
 
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>

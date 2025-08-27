@@ -19,7 +19,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, IDiskCache diskCache, AspireCliTelemetry telemetry) : INuGetPackageCache
 {
 
     private const int SearchPageSize = 1000;
@@ -31,8 +31,23 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
         var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
         {
-            var packages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", null, prerelease, nugetConfigFile, cancellationToken);
-            return packages.Where(p => p.Id.Equals("Aspire.ProjectTemplates", StringComparison.OrdinalIgnoreCase));
+            // Try to get from disk cache first
+            var cachedPackages = await diskCache.GetAsync<List<NuGetPackage>>(key, cancellationToken);
+            if (cachedPackages is not null)
+            {
+                logger.LogDebug("Template packages retrieved from disk cache for key '{Key}'", key);
+                return (IEnumerable<NuGetPackage>)cachedPackages;
+            }
+
+            // If not in disk cache, fetch from NuGet and cache both in memory and disk
+            var fetchedPackages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", null, prerelease, nugetConfigFile, cancellationToken);
+            var filteredPackages = fetchedPackages.Where(p => p.Id.Equals("Aspire.ProjectTemplates", StringComparison.OrdinalIgnoreCase)).ToList();
+            
+            // Cache to disk with default expiration (no expiration for template packages)
+            await diskCache.SetAsync(key, filteredPackages, null, cancellationToken);
+            logger.LogDebug("Template packages cached to disk for key '{Key}'", key);
+            
+            return (IEnumerable<NuGetPackage>)filteredPackages;
 
         }) ?? throw new NuGetPackageCacheException(ErrorStrings.FailedToRetrieveCachedTemplatePackages);
 
@@ -41,7 +56,38 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
     public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
-        return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", null, prerelease, nugetConfigFile, cancellationToken);
+        var nuGetConfigHashSuffix = nugetConfigFile is not null ? await ComputeNuGetConfigHashSuffixAsync(nugetConfigFile, cancellationToken) : string.Empty;
+        var key = $"IntegrationPackages-{workingDirectory.FullName}-{prerelease}-{nuGetConfigHashSuffix}";
+
+        // Check memory cache first, then disk cache, then fetch
+        if (memoryCache.TryGetValue(key, out var memoryPackages) && memoryPackages is IEnumerable<NuGetPackage> cachedMemoryPackages)
+        {
+            return cachedMemoryPackages;
+        }
+
+        // Try disk cache
+        var diskPackages = await diskCache.GetAsync<List<NuGetPackage>>(key, cancellationToken);
+        if (diskPackages is not null)
+        {
+            logger.LogDebug("Integration packages retrieved from disk cache for key '{Key}'", key);
+            
+            // Store in memory cache for faster subsequent access
+            memoryCache.Set(key, diskPackages);
+            return diskPackages;
+        }
+
+        // Fetch from NuGet and cache both in memory and disk
+        var fetchedPackages = await GetPackagesAsync(workingDirectory, "Aspire.Hosting", null, prerelease, nugetConfigFile, cancellationToken);
+        var packagesList = fetchedPackages.ToList();
+        
+        // Cache to disk with default expiration (no expiration for integration packages)
+        await diskCache.SetAsync(key, packagesList, null, cancellationToken);
+        logger.LogDebug("Integration packages cached to disk for key '{Key}'", key);
+        
+        // Cache to memory as well
+        memoryCache.Set(key, packagesList);
+        
+        return packagesList;
     }
 
     public async Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
@@ -53,8 +99,24 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         {
             // Set cache expiration to 1 hour for CLI updates
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            var packages = await GetPackagesAsync(workingDirectory, "Aspire.Cli", null, prerelease, nugetConfigFile, cancellationToken);
-            return packages.Where(p => p.Id.Equals("Aspire.Cli", StringComparison.OrdinalIgnoreCase));
+            
+            // Try to get from disk cache first
+            var cachedPackages = await diskCache.GetAsync<List<NuGetPackage>>(key, cancellationToken);
+            if (cachedPackages is not null)
+            {
+                logger.LogDebug("CLI packages retrieved from disk cache for key '{Key}'", key);
+                return (IEnumerable<NuGetPackage>)cachedPackages;
+            }
+
+            // If not in disk cache, fetch from NuGet and cache both in memory and disk
+            var fetchedPackages = await GetPackagesAsync(workingDirectory, "Aspire.Cli", null, prerelease, nugetConfigFile, cancellationToken);
+            var filteredPackages = fetchedPackages.Where(p => p.Id.Equals("Aspire.Cli", StringComparison.OrdinalIgnoreCase)).ToList();
+            
+            // Cache to disk with 1 hour expiration to match memory cache
+            await diskCache.SetAsync(key, filteredPackages, TimeSpan.FromHours(1), cancellationToken);
+            logger.LogDebug("CLI packages cached to disk for key '{Key}'", key);
+            
+            return (IEnumerable<NuGetPackage>)filteredPackages;
         }) ?? [];
 
         return packages;
