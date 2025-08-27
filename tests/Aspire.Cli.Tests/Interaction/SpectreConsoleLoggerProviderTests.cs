@@ -1,0 +1,121 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.Interaction;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using System.Text;
+
+namespace Aspire.Cli.Tests.Interaction;
+
+public class SpectreConsoleLoggerProviderTests
+{
+    [Fact]
+    public void CreateLogger_ReturnsSpectreConsoleLogger()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(new StringBuilder()))
+        });
+        
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(executionContext);
+        services.AddSingleton<IInteractionService>(provider =>
+        {
+            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+            var context = provider.GetRequiredService<CliExecutionContext>();
+            return new ConsoleInteractionService(ansiConsole, context);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var provider = new SpectreConsoleLoggerProvider(serviceProvider);
+
+        // Act
+        var logger = provider.CreateLogger("Test.Category");
+
+        // Assert
+        Assert.NotNull(logger);
+        Assert.IsType<SpectreConsoleLogger>(logger);
+    }
+
+    [Fact]
+    public void SpectreConsoleLogger_IsEnabled_FiltersCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(new StringBuilder()))
+        });
+        
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(executionContext);
+        services.AddSingleton<IInteractionService>(provider =>
+        {
+            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+            var context = provider.GetRequiredService<CliExecutionContext>();
+            return new ConsoleInteractionService(ansiConsole, context);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var aspireLogger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
+        var systemLogger = new SpectreConsoleLogger(serviceProvider, "System.Test");
+
+        // Act & Assert
+        Assert.True(aspireLogger.IsEnabled(LogLevel.Debug));
+        Assert.True(aspireLogger.IsEnabled(LogLevel.Information));
+        Assert.True(aspireLogger.IsEnabled(LogLevel.Warning));
+        
+        Assert.False(systemLogger.IsEnabled(LogLevel.Debug));
+        Assert.False(systemLogger.IsEnabled(LogLevel.Information));
+        Assert.True(systemLogger.IsEnabled(LogLevel.Warning)); // Warnings and above are allowed for non-Aspire categories
+    }
+
+    [Fact]
+    public void SpectreConsoleLogger_Log_FormatsMessageCorrectly()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+        
+        var services = new ServiceCollection();
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(executionContext);
+        services.AddSingleton<IInteractionService>(provider =>
+        {
+            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+            var context = provider.GetRequiredService<CliExecutionContext>();
+            return new ConsoleInteractionService(ansiConsole, context);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
+
+        // Act
+        logger.LogDebug("Test debug message");
+        logger.LogInformation("Test info message");
+        logger.LogWarning("Test warning message");
+
+        // Assert
+        var outputString = output.ToString();
+        Assert.Contains("[dbug] Aspire.Cli.Test: Test debug message", outputString);
+        Assert.Contains("[info] Aspire.Cli.Test: Test info message", outputString);
+        Assert.Contains("[warn] Aspire.Cli.Test: Test warning message", outputString);
+    }
+}

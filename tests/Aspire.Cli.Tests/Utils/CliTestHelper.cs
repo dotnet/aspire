@@ -215,7 +215,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
-        return new ConsoleInteractionService(ansiConsole);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ConsoleInteractionService(ansiConsole, executionContext);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
