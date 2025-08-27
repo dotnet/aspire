@@ -10,7 +10,6 @@ using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -159,7 +158,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         Assert.Equal(scriptName, commandArguments[0]);
 
@@ -182,7 +181,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var executableResources = appModel.GetExecutableResources();
 
         var pythonProjectResource = Assert.Single(executableResources);
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, app.Services.GetRequiredService<IConfiguration>());
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         if (OperatingSystem.IsWindows())
         {
@@ -234,7 +233,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         Assert.Equal(scriptName, commandArguments[0]);
         Assert.Equal("test", commandArguments[1]);
