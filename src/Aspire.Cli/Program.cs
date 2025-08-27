@@ -106,7 +106,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddSingleton(BuildCliExecutionContext);
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
@@ -122,7 +122,8 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-        builder.Services.AddHostedService<NuGetPackagePrefetcher>();
+        builder.Services.AddSingleton<NuGetPackagePrefetcher>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
@@ -153,16 +154,10 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        
-        // Check if debug mode is enabled by looking at configuration or command line args
-        var debugMode = configuration.GetValue<bool>("debug") || 
-                       Environment.GetCommandLineArgs().Any(a => a == "--debug" || a == "-d");
-        
         return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
     }
 

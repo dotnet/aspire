@@ -36,8 +36,9 @@ internal class ExecCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier)
-        : base("exec", ExecCommandStrings.Description, features, updateNotifier)
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext)
+        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
