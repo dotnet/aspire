@@ -344,9 +344,7 @@ internal sealed class AzureDeployingContext(
     // need to expand this to support dashboards across compute environments.
     private static string? TryGetDashboardUrl(DistributedApplicationModel model)
     {
-        // Create a snapshot to avoid collection modification during enumeration
-        var resourcesSnapshot = model.Resources.ToList();
-        foreach (var resource in resourcesSnapshot)
+        foreach (var resource in model.Resources)
         {
             if (resource is IAzureComputeEnvironmentResource &&
                 resource is AzureBicepResource environmentBicepResource)
