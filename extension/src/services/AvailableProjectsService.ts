@@ -1,18 +1,16 @@
-import { spawnCliProcess } from "../debugger/languages/cli";
-import { RpcServerConnectionInfo } from "../server/AspireRpcServer";
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../utils/logging';
+import path from "path";
 
+// Best effort attempt to provide an available list of runnable projects, including single file AppHosts
+// as calling into the aspire cli to perform this action is too slow, especially on large codebases
 export class AvailableProjectsService implements vscode.Disposable {
-    private _projects: Map<vscode.WorkspaceFolder, string[] | null> = new Map();
-    private _rpcServerConnectionInfo: RpcServerConnectionInfo;
+    private _projects: Map<vscode.WorkspaceFolder, Set<string> | null> = new Map();
     private _fileWatchers: vscode.FileSystemWatcher[] = [];
     private _folderWatchers: Map<vscode.WorkspaceFolder, vscode.FileSystemWatcher[]> = new Map();
     private _disposables: vscode.Disposable[] = [];
 
-    constructor(rpcServerConnectionInfo: RpcServerConnectionInfo) {
-        this._rpcServerConnectionInfo = rpcServerConnectionInfo;
-
+    constructor() {
         // Initialize AppHost candidates for all workspace folders
         this.initializeAppHostCandidates();
 
@@ -30,20 +28,22 @@ export class AvailableProjectsService implements vscode.Disposable {
     }
 
     public getProjects(folder: vscode.WorkspaceFolder): string[] | null {
-        return this._projects.get(folder) || null;
+        const projectSet = this._projects.get(folder);
+        return projectSet ? Array.from(projectSet) : null;
     }
 
     public async getAppHostCandidates(folder: vscode.WorkspaceFolder): Promise<string[]> {
         // Return cached candidates if available
         const cached = this._projects.get(folder);
         if (cached !== undefined) {
-            return cached || [];
+            return cached ? Array.from(cached) : [];
         }
 
         // If not cached, compute and cache them
         try {
             const candidates = await this.computeAppHostCandidates(folder);
-            this._projects.set(folder, candidates);
+            const candidateSet = new Set(candidates);
+            this._projects.set(folder, candidateSet);
             return candidates;
         } catch (error) {
             extensionLogOutputChannel.error(`Error computing app hosts for ${folder.name}: ${error}`);
@@ -60,7 +60,8 @@ export class AvailableProjectsService implements vscode.Disposable {
         for (const folder of vscode.workspace.workspaceFolders) {
             try {
                 const candidates = await this.computeAppHostCandidates(folder);
-                this._projects.set(folder, candidates);
+                const candidateSet = new Set(candidates);
+                this._projects.set(folder, candidateSet);
             } catch (error) {
                 extensionLogOutputChannel.error(`Error initializing app hosts for ${folder.name}: ${error}`);
                 this._projects.set(folder, null);
@@ -90,15 +91,13 @@ export class AvailableProjectsService implements vscode.Disposable {
         );
 
         // Set up event handlers for both watchers
-        const refreshCandidates = () => this.refreshAppHostCandidates(folder);
+        appHostWatcher.onDidCreate((uri) => this.updateCandidateFile(folder, uri.fsPath, 'create'));
+        appHostWatcher.onDidChange((uri) => this.updateCandidateFile(folder, uri.fsPath, 'change'));
+        appHostWatcher.onDidDelete((uri) => this.updateCandidateFile(folder, uri.fsPath, 'delete'));
 
-        appHostWatcher.onDidCreate(refreshCandidates);
-        appHostWatcher.onDidChange(refreshCandidates);
-        appHostWatcher.onDidDelete(refreshCandidates);
-
-        csprojWatcher.onDidCreate(refreshCandidates);
-        csprojWatcher.onDidChange(refreshCandidates);
-        csprojWatcher.onDidDelete(refreshCandidates);
+        csprojWatcher.onDidCreate((uri) => this.updateCandidateFile(folder, uri.fsPath, 'create'));
+        csprojWatcher.onDidChange((uri) => this.updateCandidateFile(folder, uri.fsPath, 'change'));
+        csprojWatcher.onDidDelete((uri) => this.updateCandidateFile(folder, uri.fsPath, 'delete'));
 
         // Track watchers for this specific folder
         const folderWatchers = [appHostWatcher, csprojWatcher];
@@ -120,7 +119,8 @@ export class AvailableProjectsService implements vscode.Disposable {
             for (const addedFolder of event.added) {
                 try {
                     const candidates = await this.computeAppHostCandidates(addedFolder);
-                    this._projects.set(addedFolder, candidates);
+                    const candidateSet = new Set(candidates);
+                    this._projects.set(addedFolder, candidateSet);
                     this.setupFileWatchersForFolder(addedFolder);
                     extensionLogOutputChannel.info(`Added app host candidates for workspace folder: ${addedFolder.name} (${candidates.length} found)`);
                 } catch (error) {
@@ -133,14 +133,28 @@ export class AvailableProjectsService implements vscode.Disposable {
         this._disposables.push(workspaceFoldersChangeListener);
     }
 
-    private async refreshAppHostCandidates(folder: vscode.WorkspaceFolder): Promise<void> {
-        try {
-            const candidates = await this.computeAppHostCandidates(folder);
-            this._projects.set(folder, candidates);
-            extensionLogOutputChannel.info(`Refreshed app host candidates for ${folder.name}: ${candidates.length} found`);
-        } catch (error) {
-            extensionLogOutputChannel.error(`Error refreshing app hosts for ${folder.name}: ${error}`);
-            this._projects.set(folder, null);
+    private updateCandidateFile(folder: vscode.WorkspaceFolder, filePath: string, eventType: 'create' | 'change' | 'delete'): void {
+        const candidateSet = this._projects.get(folder);
+        if (!candidateSet) {
+            // If we don't have a set yet, ignore the event
+            return;
+        }
+
+        // Filter out build artifacts
+        if (this.isBuildArtifact(filePath)) {
+            return;
+        }
+
+        switch (eventType) {
+            case 'create':
+            case 'change':
+                candidateSet.add(filePath);
+                extensionLogOutputChannel.info(`Added/updated candidate: ${filePath} for ${folder.name}`);
+                break;
+            case 'delete':
+                candidateSet.delete(filePath);
+                extensionLogOutputChannel.info(`Removed candidate: ${filePath} for ${folder.name}`);
+                break;
         }
     }
 
@@ -161,29 +175,61 @@ export class AvailableProjectsService implements vscode.Disposable {
 
     private async computeAppHostCandidates(folder: vscode.WorkspaceFolder): Promise<string[]> {
         try {
-            return new Promise((resolve, reject) => {
-                const workspaceFolder = folder.uri.fsPath;
+            // Find AppHost.cs and .csproj files in the given workspace folder
+            const appHostPattern = new vscode.RelativePattern(folder, '**/AppHost.cs');
+            const csprojPattern = new vscode.RelativePattern(folder, '**/*.csproj');
 
-                const stdout: string[] = [];
-                const stderr: string[] = [];
+            const [appHostUris, csprojUris] = await Promise.all([
+                vscode.workspace.findFiles(appHostPattern),
+                vscode.workspace.findFiles(csprojPattern)
+            ]);
 
-                spawnCliProcess(this._rpcServerConnectionInfo, 'aspire', ['extension', 'get-apphosts', '--directory', workspaceFolder], {
-                    excludeExtensionEnvironment: true,
-                    stdoutCallback: (data) => stdout.push(data),
-                    stderrCallback: (data) => stderr.push(data),
-                    exitCallback(code) {
-                        if (code !== 0) {
-                            reject(new Error(`Failed to retrieve app hosts: ${stderr.join('\n')}`));
-                            return;
-                        }
+            const candidates = [
+                ...appHostUris.map(uri => uri.fsPath),
+                ...csprojUris.map(uri => uri.fsPath)
+            ];
 
-                        const candidates = JSON.parse(stdout[stdout.length - 1]) as string[];
-                        resolve(candidates);
-                    },
-                });
-            });
+            // Filter out build artifacts and common excluded directories
+            const filteredCandidates = candidates.filter(filePath =>
+                !this.isBuildArtifact(filePath) && path.basename(filePath).includes('AppHost')
+            );
+
+            // Deduplicate and sort for deterministic output
+            const uniqueCandidates = Array.from(new Set(filteredCandidates)).sort();
+
+            return uniqueCandidates;
         } catch (error) {
+            extensionLogOutputChannel.error(`Error finding AppHost.cs and .csproj files in ${folder.name}: ${error}`);
             throw error;
         }
+    }
+
+    private isBuildArtifact(filePath: string): boolean {
+        // Normalize path separators for cross-platform compatibility
+        const normalizedPath = filePath.replace(/\\/g, '/').toLowerCase();
+
+        // Common build artifact directories and patterns
+        const buildArtifactPatterns = [
+            '/bin/',
+            '/obj/',
+            '/node_modules/',
+            '/packages/',
+            '/.vs/',
+            '/.vscode/',
+            '/debug/',
+            '/release/',
+            '/dist/',
+            '/build/',
+            '/out/',
+            '/target/',
+            '/.git/',
+            '/.nuget/',
+            '/publish/',
+            '/wwwroot/lib/',
+            '/clientapp/dist/',
+            '/artifacts/'
+        ];
+
+        return buildArtifactPatterns.some(pattern => normalizedPath.includes(pattern));
     }
 }

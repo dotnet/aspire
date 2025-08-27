@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const dcpServer = await AspireDcpServer.create(debuggerExtensions, () => aspireExtensionContext.aspireDebugSession);
 
-    const availableProjectsService = new AvailableProjectsService(rpcServer.connectionInfo);
+    const availableProjectsService = new AvailableProjectsService();
 
 	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', rpcServer.connectionInfo, addCommand));
 	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', rpcServer.connectionInfo, newCommand));
