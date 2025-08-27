@@ -919,8 +919,8 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram(testName);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
-        AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis")
-            .WithVolume($"{testName}-volume", "/path-here");
+        var redisContainer = AddRedisContainer(testProgram.AppBuilder, $"{testName}-redis");
+        ContainerResourceBuilderExtensions.WithVolume(redisContainer, $"{testName}-volume", "/path-here");
 
         await using var app = testProgram.Build();
 
@@ -929,13 +929,13 @@ public class DistributedApplicationTests
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
+        var kubernetesContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
                 $"{testName}-redis-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        Assert.NotNull(redisContainer.Spec.VolumeMounts);
-        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
-        Assert.Equal($"{testName}-volume", redisContainer.Spec.VolumeMounts[0].Source);
+        Assert.NotNull(kubernetesContainer.Spec.VolumeMounts);
+        Assert.NotEmpty(kubernetesContainer.Spec.VolumeMounts);
+        Assert.Equal($"{testName}-volume", kubernetesContainer.Spec.VolumeMounts[0].Source);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
