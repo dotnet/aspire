@@ -60,7 +60,22 @@ internal sealed class PublishModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}";
     }
 
-    protected override async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await RetrieveAzureProvisioningOptions(cancellationToken).ConfigureAwait(false);
+            _logger.LogDebug("Azure provisioning options have been handled successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+        }
+
+        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {
@@ -81,8 +96,6 @@ internal sealed class PublishModeProvisioningContextProvider(
                     continue;
                 }
             }
-
-            _provisioningOptionsAvailable.SetResult();
         }
     }
 

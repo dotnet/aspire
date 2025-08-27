@@ -39,6 +39,8 @@ internal sealed class RunModeProvisioningContextProvider(
         distributedApplicationExecutionContext,
         publishingOptions)
 {
+    private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     protected override string GetDefaultResourceGroupName()
     {
         var prefix = "rg-aspire";
@@ -62,7 +64,44 @@ internal sealed class RunModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 
-    protected override async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    {
+        if (!_interactionService.IsAvailable ||
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
+        {
+            // If the interaction service is not available, or
+            // if both options are already set, we can skip the prompt
+            _provisioningOptionsAvailable.TrySetResult();
+            return;
+        }
+
+        // Start the loop that will allow the user to specify the Azure provisioning options
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+
+                _logger.LogDebug("Azure provisioning options have been handled successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                _provisioningOptionsAvailable.SetException(ex);
+            }
+        });
+    }
+
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        EnsureProvisioningOptions(userSecrets);
+
+        await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
+
+        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
         var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
                             .Where(p => p.PropertyType == typeof(AzureLocation))

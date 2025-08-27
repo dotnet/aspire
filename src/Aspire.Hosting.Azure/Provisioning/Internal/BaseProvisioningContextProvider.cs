@@ -43,38 +43,6 @@ internal abstract partial class BaseProvisioningContextProvider(
     protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
     private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
-    protected readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    protected void EnsureProvisioningOptions(JsonObject userSecrets)
-    {
-        if (!_interactionService.IsAvailable ||
-            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
-        {
-            // If the interaction service is not available, or
-            // if both options are already set, we can skip the prompt
-            _provisioningOptionsAvailable.TrySetResult();
-            return;
-        }
-
-        // Start the loop that will allow the user to specify the Azure provisioning options
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
-
-                _logger.LogDebug("Azure provisioning options have been handled successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
-                _provisioningOptionsAvailable.SetException(ex);
-            }
-        });
-    }
-
-    protected abstract Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default);
-
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
 
@@ -107,12 +75,8 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        EnsureProvisioningOptions(userSecrets);
-
-        await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
-
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = _tokenCredentialProvider.TokenCredential;
