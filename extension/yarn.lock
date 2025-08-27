@@ -725,6 +725,11 @@
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/mime/-/mime-1.3.5.tgz#1ef302e01cf7d2b5a0fa526790c9123bf1d06690"
   integrity sha1-HvMC4Bz30rWg+lJnkMkSO/HQZpA=
 
+"@types/minimatch@^3.0.3":
+  version "3.0.5"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/minimatch/-/minimatch-3.0.5.tgz#1001cc5e6a3704b83c236027e77f2f58ea010f40"
+  integrity sha1-EAHMXmo3BLg8I2An538vWOoBD0A=
+
 "@types/mocha@^10.0.10", "@types/mocha@^10.0.2":
   version "10.0.10"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/@types/mocha/-/mocha-10.0.10.tgz"
@@ -1368,10 +1373,10 @@ arr-union@^3.1.0:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/arr-union/-/arr-union-3.1.0.tgz"
   integrity sha1-45sJrqne+Gao8gbiiK9jkZuuOcQ=
 
-array-differ@^4.0.0:
-  version "4.0.0"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/array-differ/-/array-differ-4.0.0.tgz#aa3c891c653523290c880022f45b06a42051b026"
-  integrity sha1-qjyJHGU1IykMiAAi9FsGpCBRsCY=
+array-differ@^3.0.0:
+  version "3.0.0"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/array-differ/-/array-differ-3.0.0.tgz#3cbb3d0f316810eafcc47624734237d6aee4ae6b"
+  integrity sha1-PLs9DzFoEOr8xHYkc0I31q7krms=
 
 array-each@^1.0.1:
   version "1.0.1"
@@ -1383,10 +1388,15 @@ array-slice@^1.0.0:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/array-slice/-/array-slice-1.1.0.tgz"
   integrity sha1-42jqFfibxwaff/uJrsOmx9SsItQ=
 
-array-union@^3.0.1:
-  version "3.0.1"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/array-union/-/array-union-3.0.1.tgz#da52630d327f8b88cfbfb57728e2af5cd9b6b975"
-  integrity sha1-2lJjDTJ/i4jPv7V3KOKvXNm2uXU=
+array-union@^2.1.0:
+  version "2.1.0"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/array-union/-/array-union-2.1.0.tgz#b798420adbeb1de828d84acd8a2e23d3efe85e8d"
+  integrity sha1-t5hCCtvrHego2ErNii4j0+/oXo0=
+
+arrify@^2.0.1:
+  version "2.0.1"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/arrify/-/arrify-2.0.1.tgz#c9655e9331e0abcd588d2a7cad7e9956f66701fa"
+  integrity sha1-yWVekzHgq81YjSp8rX6ZVvZnAfo=
 
 assign-symbols@^1.0.0:
   version "1.0.0"
@@ -2563,7 +2573,7 @@ extend@^3.0.0, extend@^3.0.2:
 
 fancy-log@^1.3.3:
   version "1.3.3"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/fancy-log/-/fancy-log-1.3.3.tgz"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/fancy-log/-/fancy-log-1.3.3.tgz#dbc19154f558690150a23953a0adbd035be45fc7"
   integrity sha1-28GRVPVYaQFQojlToK29A1vkX8c=
   dependencies:
     ansi-gray "^0.1.1"
@@ -3054,16 +3064,15 @@ gulp-concat@^2.6.1:
     through2 "^2.0.0"
     vinyl "^2.0.0"
 
-gulp-filter@^9.0.0:
-  version "9.0.1"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/gulp-filter/-/gulp-filter-9.0.1.tgz#26e9c578be732423028bebde750f764b7b8d6293"
-  integrity sha1-JunFeL5zJCMCi+vedQ92S3uNYpM=
+gulp-filter@^7.0.0:
+  version "7.0.0"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/gulp-filter/-/gulp-filter-7.0.0.tgz#e0712f3e57b5d647f802a1880255cafb54abf158"
+  integrity sha1-4HEvPle11kf4AqGIAlXK+1Sr8Vg=
   dependencies:
-    multimatch "^7.0.0"
-    plugin-error "^2.0.1"
-    slash "^5.1.0"
+    multimatch "^5.0.0"
+    plugin-error "^1.0.1"
     streamfilter "^3.0.0"
-    to-absolute-glob "^3.0.0"
+    to-absolute-glob "^2.0.2"
 
 gulp-sourcemaps@^3.0.0:
   version "3.0.0"
@@ -4068,14 +4077,16 @@ ms@^2.1.1, ms@^2.1.3:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/ms/-/ms-2.1.3.tgz"
   integrity sha1-V0yBOM4dK1hh8LRFedut1gxmFbI=
 
-multimatch@^7.0.0:
-  version "7.0.0"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/multimatch/-/multimatch-7.0.0.tgz#d0a1bf144db9106b8d19e3cb8cabec1a8986c27f"
-  integrity sha1-0KG/FE25EGuNGePLjKvsGomGwn8=
+multimatch@^5.0.0:
+  version "5.0.0"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/multimatch/-/multimatch-5.0.0.tgz#932b800963cea7a31a033328fa1e0c3a1874dbe6"
+  integrity sha1-kyuACWPOp6MaAzMo+h4MOhh02+Y=
   dependencies:
-    array-differ "^4.0.0"
-    array-union "^3.0.1"
-    minimatch "^9.0.3"
+    "@types/minimatch" "^3.0.3"
+    array-differ "^3.0.0"
+    array-union "^2.1.0"
+    arrify "^2.0.1"
+    minimatch "^3.0.4"
 
 mute-stdout@^2.0.0:
   version "2.0.0"
@@ -4541,13 +4552,6 @@ plugin-error@^1.0.1:
     arr-union "^3.1.0"
     extend-shallow "^3.0.2"
 
-plugin-error@^2.0.1:
-  version "2.0.1"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/plugin-error/-/plugin-error-2.0.1.tgz#f2ac92bac8c85e3e23492d76d0c3ca12f30eb00b"
-  integrity sha1-8qySusjIXj4jSS120MPKEvMOsAs=
-  dependencies:
-    ansi-colors "^1.0.1"
-
 pluralize@^2.0.0:
   version "2.0.0"
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/pluralize/-/pluralize-2.0.0.tgz"
@@ -4851,7 +4855,7 @@ resolve-options@^2.0.0:
 
 resolve@^1.20.0:
   version "1.22.10"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/resolve/-/resolve-1.22.10.tgz"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/resolve/-/resolve-1.22.10.tgz#b663e83ffb09bbf2386944736baae803029b8b39"
   integrity sha1-tmPoP/sJu/I4aURza6roAwKbizk=
   dependencies:
     is-core-module "^2.16.0"
@@ -5529,18 +5533,10 @@ tmp@^0.2.3:
   resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/tmp/-/tmp-0.2.3.tgz"
   integrity sha1-63g8wivB6L69BnFHbUbqTrMqea4=
 
-to-absolute-glob@^2.0.0:
+to-absolute-glob@^2.0.0, to-absolute-glob@^2.0.2:
   version "2.0.2"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/to-absolute-glob/-/to-absolute-glob-2.0.2.tgz"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/to-absolute-glob/-/to-absolute-glob-2.0.2.tgz#1865f43d9e74b0822db9f145b78cff7d0f7c849b"
   integrity sha1-GGX0PZ50sIItufFFt4z/fQ98hJs=
-  dependencies:
-    is-absolute "^1.0.0"
-    is-negated-glob "^1.0.0"
-
-to-absolute-glob@^3.0.0:
-  version "3.0.0"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/to-absolute-glob/-/to-absolute-glob-3.0.0.tgz#d13663608718fd44bf68fa0f034abdd4fd157eca"
-  integrity sha1-0TZjYIcY/US/aPoPA0q91P0Vfso=
   dependencies:
     is-absolute "^1.0.0"
     is-negated-glob "^1.0.0"
@@ -5847,7 +5843,7 @@ vinyl-contents@^2.0.0:
 
 vinyl-fs@^3.0.3:
   version "3.0.3"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/vinyl-fs/-/vinyl-fs-3.0.3.tgz"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/vinyl-fs/-/vinyl-fs-3.0.3.tgz#c85849405f67428feabbbd5c5dbdd64f47d31bc7"
   integrity sha1-yFhJQF9nQo/qu71cXb3WT0fTG8c=
   dependencies:
     fs-mkdirp-stream "^1.0.0"

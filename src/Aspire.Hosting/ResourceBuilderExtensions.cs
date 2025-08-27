@@ -2280,6 +2280,11 @@ public static class ResourceBuilderExtensions
         {
             resourceWithArgs.WithArgs(ctx =>
             {
+                if (!ctx.ExecutionContext.IsRunMode)
+                {
+                    return;
+                }
+
                 var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
                 if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
                 {
