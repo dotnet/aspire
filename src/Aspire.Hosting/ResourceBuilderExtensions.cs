@@ -2266,16 +2266,13 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="extensionId">The extension ID (e.g., "ms-python.python").</param>
-    /// <param name="displayName">The display name of the extension.</param>
-    /// <param name="description">The description of the extension (optional).</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    internal static IResourceBuilder<T> WithVSCodeExtensionRecommendation<T>(this IResourceBuilder<T> builder, string extensionId, string displayName, string? description = null)
+    public static IResourceBuilder<T> WithVSCodeExtensionRecommendation<T>(this IResourceBuilder<T> builder, string extensionId)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(extensionId);
-        ArgumentException.ThrowIfNullOrEmpty(displayName);
 
-        return builder.WithAnnotation(new VSCodeExtensionAnnotation(extensionId, displayName, description));
+        return builder.WithAnnotation(new VSCodeExtensionAnnotation(extensionId));
     }
 }

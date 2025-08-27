@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Text;
 
 namespace Aspire.Hosting;
 
@@ -162,10 +163,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
         // Always recommend Aspire extension if not installed
         if (!aspireExtensionInstalled)
         {
-            extensionsToRecommend.Add(new VSCodeExtensionAnnotation(
-                "ms-dotnettools.aspire",
-                "Aspire",
-                "Enhanced support for .NET Aspire applications"));
+            extensionsToRecommend.Add(new VSCodeExtensionAnnotation("ms-dotnettools.aspire"));
         }
 
         // Filter out already installed extensions
@@ -197,25 +195,58 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
 
         try
         {
-            var title = "VSCode Extension Recommendations";
-            var message = extensionsToRecommend.Count == 1
-                ? $"We recommend installing the following VSCode extension to improve your development experience:\n\n• {extensionsToRecommend[0].DisplayName}"
-                : $"We recommend installing the following VSCode extensions to improve your development experience:\n\n{string.Join("\n", extensionsToRecommend.Select(e => $"• {e.DisplayName}"))}";
-
-            var result = await _interactionService.PromptConfirmationAsync(
-                title,
-                message,
-                new MessageBoxInteractionOptions
+            var messageBarResult = await _interactionService.PromptNotificationAsync(
+                "Install VSCode extensions",
+                "There are VSCode extension that are recommended for install.",
+                new NotificationInteractionOptions
                 {
                     Intent = MessageIntent.Information,
-                    PrimaryButtonText = "Install Extensions",
-                    SecondaryButtonText = "Skip"
+                    PrimaryButtonText = "Install"
                 },
                 cancellationToken).ConfigureAwait(false);
 
-            if (!result.Canceled && result.Data)
+            if (messageBarResult.Canceled)
             {
-                await InstallExtensionsAsync(extensionsToRecommend, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var messageBuilder = new StringBuilder();
+            messageBuilder.AppendLine("We recommend installing the following VSCode extensions to improve your development experience:");
+
+            var inputs = new List<InteractionInput>();
+            foreach (var extension in extensionsToRecommend)
+            {
+                var input = new InteractionInput
+                {
+                    InputType = InputType.Choice,
+                    Name = extension.Id,
+                    Description = extension.Id,
+                    Options = [new("Install", "Install"), new("MaybeLater", "Maybe Later"), new("Never", "Never")],
+                    Required = true,
+                    Value = "Install"
+                };
+                inputs.Add(input);
+            }
+
+            var promptResult = await _interactionService.PromptInputsAsync(
+                title: "VSCode Extension Recommendations",
+                message: "Do you want to install the following recommended extensions:",
+                inputs: inputs,
+                new InputsDialogInteractionOptions()
+                {
+                    PrimaryButtonText = "Install"
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (!promptResult.Canceled)
+            {
+                foreach (var extension in extensionsToRecommend)
+                {
+                    if (promptResult.Data[extension.Id].Value == "Install")
+                    {
+                        await InstallExtensionsAsync(new List<VSCodeExtensionAnnotation> { extension }, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -253,8 +284,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
 
                 if (process.ExitCode == 0)
                 {
-                    _logger.LogInformation("Successfully installed VSCode extension: {ExtensionDisplayName} ({ExtensionId})",
-                        extension.DisplayName, extension.Id);
+                    _logger.LogInformation("Successfully installed VSCode extension: {ExtensionId}", extension.Id);
                 }
                 else
                 {

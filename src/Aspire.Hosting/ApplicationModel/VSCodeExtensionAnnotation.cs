@@ -8,37 +8,22 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a Visual Studio Code extension recommendation for a resource.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Id = {Id}, DisplayName = {DisplayName}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Id = {Id}")]
 internal sealed class VSCodeExtensionAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="VSCodeExtensionAnnotation"/> class.
     /// </summary>
     /// <param name="id">The extension ID (e.g., "ms-python.python").</param>
-    /// <param name="displayName">The display name of the extension.</param>
-    /// <param name="description">The description of the extension (optional).</param>
-    public VSCodeExtensionAnnotation(string id, string displayName, string? description = null)
+    public VSCodeExtensionAnnotation(string id)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
-        ArgumentException.ThrowIfNullOrEmpty(displayName);
 
         Id = id;
-        DisplayName = displayName;
-        Description = description;
     }
 
     /// <summary>
     /// Gets the extension ID (e.g., "ms-python.python").
     /// </summary>
     public string Id { get; }
-
-    /// <summary>
-    /// Gets the display name of the extension.
-    /// </summary>
-    public string DisplayName { get; }
-
-    /// <summary>
-    /// Gets the description of the extension.
-    /// </summary>
-    public string? Description { get; }
 }
