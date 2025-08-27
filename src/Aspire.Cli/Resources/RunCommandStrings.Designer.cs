@@ -60,6 +60,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AppHost.
+        /// </summary>
+        public static string AppHost {
+            get {
+                return ResourceManager.GetString("AppHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Connecting to app host....
         /// </summary>
         public static string ConnectingToAppHost {
@@ -227,12 +236,6 @@ namespace Aspire.Cli.Resources {
         public static string WatchArgumentDescription {
             get {
                 return ResourceManager.GetString("WatchArgumentDescription", resourceCulture);
-            }
-        }
-
-        public static string AppHost {
-            get {
-                return ResourceManager.GetString("AppHost", resourceCulture);
             }
         }
     }
