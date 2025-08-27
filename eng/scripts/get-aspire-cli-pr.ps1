@@ -675,12 +675,12 @@ function Get-WorkflowRuns {
         [string]$BranchName
     )
 
-    Write-Message "Getting last 10 completed ci.yml workflow runs for branch: $BranchName" -Level Verbose
+    Write-Message "Getting last 10 ci.yml workflow runs for branch: $BranchName" -Level Verbose
 
-    $runIds = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$BranchName&status=completed&per_page=10" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[].id" -ErrorMessage "Failed to query workflow runs for branch: $BranchName"
+    $runIds = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$BranchName&per_page=10" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[].id" -ErrorMessage "Failed to query workflow runs for branch: $BranchName"
 
     if ([string]::IsNullOrWhiteSpace($runIds) -or $runIds -eq "null") {
-        throw "No completed ci.yml workflow runs found for PR branch: $BranchName. This could mean no workflow has been triggered for this branch $BranchName. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+        throw "No ci.yml workflow runs found for PR branch: $BranchName. This could mean no workflow has been triggered for this branch $BranchName. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
     }
 
     # Split the run IDs into an array
@@ -759,7 +759,7 @@ function Find-WorkflowRunWithArtifacts {
         }
     }
 
-    throw "No completed ci.yml workflow run found with required artifacts for PR branch: $BranchName. Checked last $($runIds.Count) runs. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+    throw "No ci.yml workflow run found with required artifacts for PR branch: $BranchName. Checked last $($runIds.Count) runs. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
 }
 
 # Function to download artifact using gh run download

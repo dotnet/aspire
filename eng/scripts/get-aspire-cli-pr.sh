@@ -580,22 +580,22 @@ get_workflow_runs() {
     local branch_name="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Getting last 10 completed ci.yml workflow runs for branch: $branch_name"
+    say_verbose "Getting last 10 ci.yml workflow runs for branch: $branch_name"
 
     local workflow_run_ids
-    if ! workflow_run_ids=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_name&status=completed&per_page=10" ".workflow_runs | sort_by(.created_at) | reverse | .[].id" "Failed to query workflow runs for branch: $branch_name"); then
+    if ! workflow_run_ids=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_name&per_page=10" ".workflow_runs | sort_by(.created_at) | reverse | .[].id" "Failed to query workflow runs for branch: $branch_name"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_ids" || "$workflow_run_ids" == "null" ]]; then
-        say_error "No completed ci.yml workflow runs found for PR branch: $branch_name. This could mean no workflow has been triggered for this branch $branch_name. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+        say_error "No ci.yml workflow runs found for PR branch: $branch_name. This could mean no workflow has been triggered for this branch $branch_name. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
     # Count the runs
     local run_count
     run_count=$(echo "$workflow_run_ids" | wc -l)
-    say_verbose "Found $run_count completed workflow runs"
+    say_verbose "Found $run_count workflow runs"
     
     printf "%s" "$workflow_run_ids"
 }
@@ -666,7 +666,7 @@ find_workflow_run_with_artifacts() {
 
     local run_count
     run_count=$(echo "$workflow_run_ids" | wc -l)
-    say_error "No completed ci.yml workflow run found with required artifacts for PR branch: $branch_name. Checked last $run_count runs. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    say_error "No ci.yml workflow run found with required artifacts for PR branch: $branch_name. Checked last $run_count runs. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
     return 1
 }
 
