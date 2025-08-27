@@ -355,4 +355,99 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             return Task.FromResult<string?>(null);
         }
     }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileFindsValidSingleFileAppHost()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a valid single file apphost
+        var apphostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(apphostFile.FullName, 
+            "#:sdk Aspire.AppHost.Sdk@9.5.0\n\nvar builder = DistributedApplication.CreateBuilder(args);\n\nbuilder.Build().Run();");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+
+        Assert.Equal(apphostFile.FullName, selectedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileIgnoresInvalidSingleFile()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create an invalid single file (no SDK directive)
+        var invalidFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(invalidFile.FullName, 
+            "var builder = DistributedApplication.CreateBuilder(args);\n\nbuilder.Build().Run();");
+
+        // Create a valid project file
+        var validProjectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(validProjectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) => {
+            if (projectFile.FullName == validProjectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+
+        // Should select the valid project file, not the invalid single file
+        Assert.Equal(validProjectFile.FullName, selectedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFilePrefersProjectFileOverSingleFile()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a valid single file apphost
+        var apphostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(apphostFile.FullName, 
+            "#:sdk Aspire.AppHost.Sdk@9.5.0\n\nvar builder = DistributedApplication.CreateBuilder(args);\n\nbuilder.Build().Run();");
+
+        // Create a valid project file (alphabetically first due to sorting)
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) => {
+            if (file.FullName == projectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null);
+
+        // Should prefer .csproj file due to alphabetical sorting
+        Assert.Equal(projectFile.FullName, selectedProjectFile!.FullName);
+    }
 }
