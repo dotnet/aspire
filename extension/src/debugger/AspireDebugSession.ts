@@ -9,7 +9,7 @@ import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
-import { ResourceDebuggerExtension, createDebugSessionConfiguration } from "./debuggerExtensions";
+import { createDebugSessionConfiguration } from "./debuggerExtensions";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -18,20 +18,19 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _session: vscode.DebugSession;
   private _appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
+  private _trackedDebugAdapters: string[] = [];
 
   private readonly _rpcServer: AspireRpcServer;
   private readonly _dcpServer: AspireDcpServer;
-  private readonly _debuggerExtensions: ResourceDebuggerExtension[];
 
   private readonly _disposables: vscode.Disposable[] = [];
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
 
-  constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]) {
+  constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer) {
     this._session = session;
     this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
-    this._debuggerExtensions = debuggerExtensions;
   }
 
   handleMessage(message: any): void {
@@ -60,8 +59,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
       }
-
-      this._disposables.push(...createDebugAdapterTracker(this._dcpServer, this._debuggerExtensions));
 
       this.sendEvent({
         type: 'response',
@@ -144,7 +141,18 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
+  createDebugAdapterTrackerCore(debugAdapter: string) {
+    if (this._trackedDebugAdapters.includes(debugAdapter)) {
+      return;
+    }
+
+    this._trackedDebugAdapters.push(debugAdapter);
+    this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
+  }
+
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+    this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
+
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
     const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null }, projectDebuggerExtension);
     const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
@@ -168,6 +176,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
   async startAndGetDebugSession(debugConfig: AspireExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
+      this.createDebugAdapterTrackerCore(debugConfig.type);
+
       const disposable = vscode.debug.onDidStartDebugSession(session => {
         if (session.configuration.runId === debugConfig.runId) {
           extensionLogOutputChannel.info(`Debug session started: ${session.name} (run id: ${session.configuration.runId})`);
@@ -211,6 +221,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     extensionLogOutputChannel.info('Stopping the Aspire debug session');
     vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
+    this._trackedDebugAdapters = [];
   }
 
   private sendResponse(request: any, body: any = {}) {

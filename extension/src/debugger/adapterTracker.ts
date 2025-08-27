@@ -4,14 +4,10 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
 import { dcpServerNotInitialized } from '../loc/strings';
-import { ResourceDebuggerExtension } from './debuggerExtensions';
 
-export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): vscode.Disposable[] {
-    const disposables: vscode.Disposable[] = [];
-
-    for (const debugAdapter of debuggerExtensions.map(ext => ext.debugAdapter)) {
-        disposables.push(vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
-            createDebugAdapterTracker(session: vscode.DebugSession) {
+export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapter: string): vscode.Disposable {
+    return vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
+        createDebugAdapterTracker(session: vscode.DebugSession) {
                 return {
                     onDidSendMessage: message => {
                         if (message.type === 'event' && message.event === 'output') {
@@ -63,7 +59,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debuggerEx
                     onExit(code: number | undefined) {
                         if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
                             extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
-                            return;
+                        return;
                         }
 
                         const notification: SessionTerminatedNotification = {
@@ -77,10 +73,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debuggerEx
                     }
                 };
             }
-        }));
-    }
-
-    return disposables;
+    });
 }
 
 function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is AspireExtendedDebugConfiguration {
