@@ -357,4 +357,41 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         // Assert that the command returns the expected failure exit code
         Assert.Equal(ExitCodeConstants.DashboardFailure, exitCode);
     }
+
+    [Fact]
+    public async Task AppHostHelper_BuildAppHostAsync_IncludesRelativePathInStatusMessage()
+    {
+        var capturedStatusMessages = new List<string>();
+        var testInteractionService = new TestConsoleInteractionService();
+        testInteractionService.ShowStatusAsyncCallback = async (statusText, action) =>
+        {
+            capturedStatusMessages.Add(statusText);
+            return await action();
+        };
+
+        var testRunner = new TestDotNetCliRunner();
+        testRunner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+        var tempDir = Directory.CreateTempSubdirectory("aspire-test");
+        try
+        {
+            var workingDir = new DirectoryInfo(tempDir.FullName);
+            var subDir = Directory.CreateDirectory(Path.Combine(tempDir.FullName, "src", "MyApp.AppHost"));
+            var projectFile = new FileInfo(Path.Combine(subDir.FullName, "MyApp.AppHost.csproj"));
+            File.WriteAllText(projectFile.FullName, "<Project></Project>");
+
+            var options = new DotNetCliRunnerInvocationOptions();
+            await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, projectFile, options, workingDir, CancellationToken.None);
+
+            Assert.Single(capturedStatusMessages);
+            var statusMessage = capturedStatusMessages[0];
+            Assert.Contains("Building app host...: src", statusMessage);
+            Assert.Contains("MyApp.AppHost.csproj", statusMessage);
+        }
+        finally
+        {
+            tempDir.Delete(true);
+        }
+    }
+    }
 }
