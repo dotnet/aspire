@@ -32,7 +32,7 @@ jobs:
           base: main
           commit-message: "[Automated] Update AI Foundry Models"
           labels: |
-            area-app-model
+            area-integrations
             area-engineering-systems
           title: "[Automated] Update AI Foundry Models"
           body: "Auto-generated update of Azure AI Foundry model descriptors (AIFoundryModel.Generated.cs)."

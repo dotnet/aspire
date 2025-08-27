@@ -50,7 +50,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Update integrations in the Aspire project.
+        ///   Looks up a localized string similar to Update integrations in the Aspire project. (Preview)
         /// </summary>
         internal static string Description {
             get {

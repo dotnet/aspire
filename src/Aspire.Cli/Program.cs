@@ -100,11 +100,13 @@ public class Program
         if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
-            builder.Logging.AddConsole();
+            builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
+            // Use custom Spectre Console logger for clean debug output instead of built-in console logger
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
         }
 
         // Shared services.
-        builder.Services.AddSingleton(BuildCliExecutionContext);
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
@@ -120,7 +122,8 @@ public class Program
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-        builder.Services.AddHostedService<NuGetPackagePrefetcher>();
+        builder.Services.AddSingleton<NuGetPackagePrefetcher>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
@@ -151,12 +154,11 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
-        _ = serviceProvider;
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
@@ -238,7 +240,8 @@ public class Program
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -251,7 +254,12 @@ public class Program
         }
         else
         {
-            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                return new ConsoleInteractionService(ansiConsole, executionContext);
+            });
         }
     }
 }

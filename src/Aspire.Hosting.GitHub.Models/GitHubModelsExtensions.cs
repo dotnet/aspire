@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.GitHub;
 using Aspire.Hosting.GitHub.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -71,6 +72,31 @@ public static class GitHubModelsExtensions
                 await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
                                   .ConfigureAwait(false);
             });
+    }
+
+    /// <summary>
+    /// Adds a GitHub Model resource to the application model using a <see cref="GitHubModel"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="model">The model descriptor, using the <see cref="GitHubModel"/> class like so: <code lang="csharp">builder.AddGitHubModel(name: "chat", model: GitHubModel.Microsoft.Phi3MediumInstruct)</code></param>
+    /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a GitHub Model resource for the Microsoft Phi-3 Medium Instruct model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var githubModel = builder.AddGitHubModel("chat", GitHubModel.Microsoft.Phi3MediumInstruct);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, GitHubModel model, IResourceBuilder<ParameterResource>? organization = null)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        return AddGitHubModel(builder, name, model.Id, organization);
     }
 
     /// <summary>

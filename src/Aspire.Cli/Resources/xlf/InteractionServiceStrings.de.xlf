@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">App-Host wird erstellt...</target>
+        <source>Building app host</source>
+        <target state="needs-review-translation">App-Host wird erstellt...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">

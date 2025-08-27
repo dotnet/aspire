@@ -13,7 +13,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>(preview) Update integrations in the Aspire project.</value>
+    <value>Update integrations in the Aspire project. (Preview)</value>
   </data>
   <data name="SelectChannelPrompt" xml:space="preserve">
     <value>Select a channel:</value>

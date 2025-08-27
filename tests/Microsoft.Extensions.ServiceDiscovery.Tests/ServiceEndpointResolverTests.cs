@@ -66,7 +66,9 @@ public class ServiceEndpointResolverTests
 
     private sealed class FakeEndpointResolverProvider(Func<ServiceEndpointQuery, (bool Result, IServiceEndpointProvider? Resolver)> createResolverDelegate) : IServiceEndpointProviderFactory
     {
+#pragma warning disable CS0436 // Type conflicts with imported type
         public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? resolver)
+#pragma warning restore CS0436 // Type conflicts with imported type
         {
             bool result;
             (result, resolver) = createResolverDelegate(query);

@@ -152,5 +152,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("PromptForDebugging", resourceCulture);
             }
         }
+
+        public static string AppHost {
+            get {
+                return ResourceManager.GetString("AppHost", resourceCulture);
+            }
+        }
     }
 }

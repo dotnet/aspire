@@ -19,7 +19,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly IPackagingService _packagingService;
     private readonly IProjectUpdater _projectUpdater;
 
-    public UpdateCommand(IProjectLocator projectLocator, IPackagingService packagingService, IProjectUpdater projectUpdater, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier) : base("update", UpdateCommandStrings.Description, features, updateNotifier)
+    public UpdateCommand(IProjectLocator projectLocator, IPackagingService packagingService, IProjectUpdater projectUpdater, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(interactionService);

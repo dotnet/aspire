@@ -15,13 +15,20 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppService" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Functions" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Deployers.ApiService\Deployers.ApiService.csproj" />
+    <ProjectReference Include="..\..\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj" />
+    <ProjectReference Include="..\..\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj" />
   </ItemGroup>
 
 </Project>

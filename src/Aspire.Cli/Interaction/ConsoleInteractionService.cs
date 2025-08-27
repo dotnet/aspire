@@ -17,15 +17,25 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
 
     private readonly IAnsiConsole _ansiConsole;
+    private readonly CliExecutionContext _executionContext;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(executionContext);
         _ansiConsole = ansiConsole;
+        _executionContext = executionContext;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        // In debug mode, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode)
+        {
+            DisplaySubtleMessage(statusText);
+            return await action();
+        }
+        
         return await _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .StartAsync(statusText, (context) => action());
@@ -33,6 +43,14 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
+        // In debug mode, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode)
+        {
+            DisplaySubtleMessage(statusText);
+            action();
+            return;
+        }
+        
         _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .Start(statusText, (context) => action());
