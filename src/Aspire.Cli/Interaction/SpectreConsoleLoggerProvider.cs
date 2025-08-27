@@ -43,8 +43,11 @@ internal class SpectreConsoleLogger(IServiceProvider serviceProvider, string cat
 
         var formattedMessage = exception is not null ? $"{message} {exception}" : message;
         
+        // Extract the last token from the category name to reduce noise
+        var shortCategoryName = GetShortCategoryName(categoryName);
+        
         // Use DisplaySubtleMessage for clean debug output
-        InteractionService.DisplaySubtleMessage($"[{GetLogLevelString(logLevel)}] {categoryName}: {formattedMessage}");
+        InteractionService.DisplaySubtleMessage($"[{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch
@@ -56,4 +59,10 @@ internal class SpectreConsoleLogger(IServiceProvider serviceProvider, string cat
         LogLevel.Critical => "crit",
         _ => logLevel.ToString().ToLower()
     };
+
+    private static string GetShortCategoryName(string categoryName)
+    {
+        var lastDotIndex = categoryName.LastIndexOf('.');
+        return lastDotIndex >= 0 ? categoryName.Substring(lastDotIndex + 1) : categoryName;
+    }
 }

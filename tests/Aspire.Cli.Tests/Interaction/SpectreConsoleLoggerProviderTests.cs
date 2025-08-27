@@ -114,8 +114,44 @@ public class SpectreConsoleLoggerProviderTests
 
         // Assert
         var outputString = output.ToString();
-        Assert.Contains("[dbug] Aspire.Cli.Test: Test debug message", outputString);
-        Assert.Contains("[info] Aspire.Cli.Test: Test info message", outputString);
-        Assert.Contains("[warn] Aspire.Cli.Test: Test warning message", outputString);
+        Assert.Contains("[dbug] Test: Test debug message", outputString);
+        Assert.Contains("[info] Test: Test info message", outputString);
+        Assert.Contains("[warn] Test: Test warning message", outputString);
+    }
+
+    [Fact]
+    public void SpectreConsoleLogger_Log_UsesShortCategoryName()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+        
+        var services = new ServiceCollection();
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(executionContext);
+        services.AddSingleton<IInteractionService>(provider =>
+        {
+            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+            var context = provider.GetRequiredService<CliExecutionContext>();
+            return new ConsoleInteractionService(ansiConsole, context);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.NuGet.NuGetPackageCache");
+
+        // Act
+        logger.LogDebug("Getting integrations from NuGet");
+
+        // Assert
+        var outputString = output.ToString();
+        Assert.Contains("[dbug] NuGetPackageCache: Getting integrations from NuGet", outputString);
+        Assert.DoesNotContain("Aspire.Cli.NuGet.NuGetPackageCache", outputString);
     }
 }
