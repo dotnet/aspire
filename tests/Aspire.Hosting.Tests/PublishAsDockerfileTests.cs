@@ -161,7 +161,7 @@ public class PublishAsDockerfileTests
             {
                 c.WithBuildSecret("buildSecret", secret);
                 c.WithArgs("/app");
-                ContainerResourceBuilderExtensions.WithVolume(c, "vol", "/app/node_modules");
+                c.WithVolume("vol", "/app/node_modules");
             });
 
         // There should be an equivalent container resource with the same name
@@ -222,7 +222,7 @@ public class PublishAsDockerfileTests
                              {
                                  c.WithBuildArg("X", "y");
                                  c.WithArgs("/app");
-                                 ContainerResourceBuilderExtensions.WithVolume(c, "vol", "/app/shared");
+                                 c.WithVolume("vol", "/app/shared");
                              });
         // There should be an equivalent container resource with the same name
         // as the project resource.
