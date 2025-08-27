@@ -219,6 +219,16 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
+        // Mark this project as visited to prevent duplicate analysis in diamond dependencies
+        lock (context.VisitedProjects)
+        {
+            if (!context.VisitedProjects.Add(projectFile.FullName))
+            {
+                // Project already analyzed, skip
+                return;
+            }
+        }
+
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -227,7 +237,18 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
             var referencedProjectFile = new FileInfo(referencedProjectPath);
-            context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+            
+            // Only queue analysis if the project hasn't been visited yet
+            bool shouldAnalyze;
+            lock (context.VisitedProjects)
+            {
+                shouldAnalyze = !context.VisitedProjects.Contains(referencedProjectFile.FullName);
+            }
+            
+            if (shouldAnalyze)
+            {
+                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+            }
         }
 
         var packageReferencesElement = itemsElement.GetProperty("PackageReference").EnumerateArray();
@@ -291,6 +312,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public PackageChannel Channel { get; } = channel;
     public ConcurrentQueue<UpdateStep> UpdateSteps { get; } = new();
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
+    public HashSet<string> VisitedProjects { get; } = new();
 }
 
 internal record UpdateStep(string Description, Func<Task> Callback);
