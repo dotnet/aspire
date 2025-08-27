@@ -675,12 +675,12 @@ function Find-WorkflowRun {
         [string]$HeadBranch
     )
 
-    Write-Message "Finding latest successful ci.yml workflow run for branch: $HeadBranch" -Level Verbose
+    Write-Message "Finding latest completed ci.yml workflow run for branch: $HeadBranch" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch" -JqFilter ".workflow_runs | map(select(.status == `"completed`" and .conclusion == `"success`")) | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch" -JqFilter ".workflow_runs | map(select(.status == `"completed`")) | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
-        throw "No successful ci.yml workflow run found for PR branch: $HeadBranch. This could mean no workflow has been triggered for this branch $HeadBranch or all runs have failed. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+        throw "No completed ci.yml workflow run found for PR branch: $HeadBranch. This could mean no workflow has been triggered for this branch $HeadBranch. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
     }
 
     Write-Message "Found workflow run ID: $runId" -Level Verbose

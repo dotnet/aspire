@@ -580,15 +580,15 @@ find_workflow_run() {
     local head_branch="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Finding latest successful ci.yml workflow run for branch: $head_branch"
+    say_verbose "Finding latest completed ci.yml workflow run for branch: $head_branch"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$head_branch" ".workflow_runs | map(select(.status == \"completed\" and .conclusion == \"success\")) | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $head_branch"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$head_branch" ".workflow_runs | map(select(.status == \"completed\")) | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $head_branch"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-    say_error "No successful ci.yml workflow run found for PR branch: $head_branch. This could mean no workflow has been triggered for this branch $head_branch or all runs have failed. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    say_error "No completed ci.yml workflow run found for PR branch: $head_branch. This could mean no workflow has been triggered for this branch $head_branch. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
