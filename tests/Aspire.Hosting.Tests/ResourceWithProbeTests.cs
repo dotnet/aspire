@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 namespace Aspire.Hosting.Tests;
 
 public class ResourceWithProbeTests
@@ -19,18 +21,22 @@ public class ResourceWithProbeTests
     }
 
     [Fact]
-    public void ProbesWithSameTypeThrows()
+    public void ProbesWithSameTypeReplace()
     {
-        var ex = Assert.Throws<DistributedApplicationException>(() =>
-        {
-            var appBuilder = DistributedApplication.CreateBuilder();
-            var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
-            resource.WithHttpEndpoint();
-            resource.WithHttpProbe(ProbeType.Readiness, "/health");
-            resource.WithHttpProbe(ProbeType.Readiness, "/ready");
-        });
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
+        resource.WithHttpEndpoint();
+        resource.WithHttpProbe(ProbeType.Readiness, "/health");
+        resource.WithHttpProbe(ProbeType.Readiness, "/ready");
 
-        Assert.Equal("A probe with type 'Readiness' already exists", ex.Message);
+        var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
+
+        Assert.Single(annotations);
+
+        var annotation = annotations[0];
+        Assert.IsType<EndpointProbeAnnotation>(annotation);
+        Assert.Equal("/ready", ((EndpointProbeAnnotation)annotation).Path);
+
     }
 
     [Fact]

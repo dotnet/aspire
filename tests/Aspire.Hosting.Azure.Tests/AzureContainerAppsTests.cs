@@ -1580,6 +1580,7 @@ public class AzureContainerAppsTests
 
         builder.AddAzureContainerAppEnvironment("env");
 
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder
             .AddContainer("api", "myimage")
             .WithHttpEndpoint(targetPort: 8080)
@@ -1591,6 +1592,7 @@ public class AzureContainerAppsTests
             .WithHttpsEndpoint()
             .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60)
             .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         using var app = builder.Build();
 

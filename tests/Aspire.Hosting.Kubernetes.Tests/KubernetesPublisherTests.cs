@@ -232,6 +232,7 @@ public class KubernetesPublisherTests()
         builder.AddKubernetesEnvironment("env");
 
         // Add a container to the application
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var api = builder
             .AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -244,6 +245,7 @@ public class KubernetesPublisherTests()
             .WithHttpsEndpoint()
             .WithHttpProbe(ProbeType.Readiness,"/ready", initialDelaySeconds: 60)
             .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var app = builder.Build();
 

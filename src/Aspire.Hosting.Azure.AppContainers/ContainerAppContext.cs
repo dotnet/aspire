@@ -838,17 +838,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             {
                 containerAppProbe = new ContainerAppProbe()
                 {
-                    ProbeType = probeAnnotation.Type switch
-                    {
-                        ProbeType.Startup => ContainerAppProbeType.Startup,
-                        ProbeType.Readiness => ContainerAppProbeType.Readiness,
-                        _ => ContainerAppProbeType.Liveness,
-                    },
-                    InitialDelaySeconds = probeAnnotation.InitialDelaySeconds,
-                    PeriodSeconds = probeAnnotation.PeriodSeconds,
-                    TimeoutSeconds = probeAnnotation.TimeoutSeconds,
-                    SuccessThreshold = probeAnnotation.SuccessThreshold,
-                    FailureThreshold = probeAnnotation.FailureThreshold,
                     HttpGet = new()
                     {
                         Path = endpointProbeAnnotation.Path,
@@ -860,6 +849,18 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
             if (containerAppProbe is not null)
             {
+                containerAppProbe.ProbeType = probeAnnotation.Type switch
+                {
+                    ProbeType.Startup => ContainerAppProbeType.Startup,
+                    ProbeType.Readiness => ContainerAppProbeType.Readiness,
+                    _ => ContainerAppProbeType.Liveness,
+                };
+                containerAppProbe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
+                containerAppProbe.PeriodSeconds = probeAnnotation.PeriodSeconds;
+                containerAppProbe.TimeoutSeconds = probeAnnotation.TimeoutSeconds;
+                containerAppProbe.SuccessThreshold = probeAnnotation.SuccessThreshold;
+                containerAppProbe.FailureThreshold = probeAnnotation.FailureThreshold;
+
                 containerAppContainer.Probes.Add(new BicepValue<ContainerAppProbe>(containerAppProbe));
             }
         }

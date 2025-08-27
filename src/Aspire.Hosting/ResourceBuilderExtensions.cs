@@ -2274,6 +2274,7 @@ public static class ResourceBuilderExtensions
     /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
@@ -2300,6 +2301,7 @@ public static class ResourceBuilderExtensions
     /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
     /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, Func<EndpointReference>? endpointSelector, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
@@ -2336,11 +2338,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">Resource builder.</param>
     /// <param name="probeAnnotation">Probe annotation to add to resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     private static IResourceBuilder<T> WithProbe<T>(this IResourceBuilder<T> builder, ProbeAnnotation probeAnnotation) where T : IResourceWithProbes
     {
-        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().Any(e => e.Type == probeAnnotation.Type))
+        // Replace existing annotation with the same type
+        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().SingleOrDefault(a => a.Type == probeAnnotation.Type) is { } existingAnnotation)
         {
-            throw new DistributedApplicationException($"A probe with type '{probeAnnotation.Type}' already exists");
+            builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
         return builder.WithAnnotation(probeAnnotation);
