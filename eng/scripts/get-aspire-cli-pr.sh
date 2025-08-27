@@ -575,25 +575,99 @@ get_pr_branch_name() {
     printf "%s" "$branch_ref"
 }
 
-# Function to find workflow run for branch
-find_workflow_run() {
+# Function to get last 10 completed workflow runs for a branch
+get_workflow_runs() {
     local branch_name="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Finding latest completed ci.yml workflow run for branch: $branch_name"
+    say_verbose "Getting last 10 completed ci.yml workflow runs for branch: $branch_name"
 
-    local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_name&status=completed" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $branch_name"); then
+    local workflow_run_ids
+    if ! workflow_run_ids=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_name&status=completed&per_page=10" ".workflow_runs | sort_by(.created_at) | reverse | .[].id" "Failed to query workflow runs for branch: $branch_name"); then
         return 1
     fi
 
-    if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-    say_error "No completed ci.yml workflow run found for PR branch: $branch_name. This could mean no workflow has been triggered for this branch $branch_name. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    if [[ -z "$workflow_run_ids" || "$workflow_run_ids" == "null" ]]; then
+        say_error "No completed ci.yml workflow runs found for PR branch: $branch_name. This could mean no workflow has been triggered for this branch $branch_name. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
-    say_verbose "Found workflow run ID: $workflow_run_id"
-    printf "%s" "$workflow_run_id"
+    # Count the runs
+    local run_count
+    run_count=$(echo "$workflow_run_ids" | wc -l)
+    say_verbose "Found $run_count completed workflow runs"
+    
+    printf "%s" "$workflow_run_ids"
+}
+
+# Function to check if a workflow run has required artifacts
+check_workflow_artifacts() {
+    local run_id="$1"
+    local rid="$2"
+    local hive_only="$3"
+
+    say_verbose "Checking artifacts for workflow run: $run_id"
+
+    # Get artifacts for this run
+    local artifacts
+    if ! artifacts=$(gh_api_call "${GH_REPOS_BASE}/actions/runs/$run_id/artifacts" ".artifacts | map(.name)" "Failed to get artifacts for run: $run_id"); then
+        say_verbose "Failed to get artifacts for run $run_id"
+        return 1
+    fi
+
+    if [[ -z "$artifacts" || "$artifacts" == "null" ]]; then
+        say_verbose "No artifacts found for run $run_id"
+        return 1
+    fi
+
+    # Parse artifact names from JSON array
+    local artifact_names
+    artifact_names=$(echo "$artifacts" | jq -r '.[]' 2>/dev/null)
+    say_verbose "Found artifacts: $(echo "$artifact_names" | tr '\n' ', ' | sed 's/,$//')"
+
+    # Check for required artifacts
+    local required_artifacts=("$BUILT_NUGETS_ARTIFACT_NAME" "$BUILT_NUGETS_RID_ARTIFACT_NAME-$rid")
+    
+    if [[ "$hive_only" != "true" ]]; then
+        required_artifacts+=("$CLI_ARCHIVE_ARTIFACT_NAME_PREFIX-$rid")
+    fi
+
+    for required in "${required_artifacts[@]}"; do
+        if ! echo "$artifact_names" | grep -q "^${required}$"; then
+            say_verbose "Missing required artifact: $required"
+            return 1
+        fi
+    done
+
+    say_verbose "All required artifacts found for run $run_id"
+    return 0
+}
+
+# Function to find workflow run with required artifacts
+find_workflow_run_with_artifacts() {
+    local branch_name="$1"
+    local rid="$2"
+    local hive_only="$3"
+
+    # Get the last 10 completed workflow runs
+    local workflow_run_ids
+    if ! workflow_run_ids=$(get_workflow_runs "$branch_name"); then
+        return 1
+    fi
+
+    # Check each run for required artifacts (newest first)
+    while IFS= read -r run_id; do
+        if [[ -n "$run_id" ]] && check_workflow_artifacts "$run_id" "$rid" "$hive_only"; then
+            say_verbose "Found workflow run with required artifacts: $run_id"
+            printf "%s" "$run_id"
+            return 0
+        fi
+    done <<< "$workflow_run_ids"
+
+    local run_count
+    run_count=$(echo "$workflow_run_ids" | wc -l)
+    say_error "No completed ci.yml workflow run found with required artifacts for PR branch: $branch_name. Checked last $run_count runs. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    return 1
 }
 
 # Function to download built-nugets artifact
@@ -771,12 +845,18 @@ download_and_install_from_pr() {
         # When only PR number is provided, find the workflow run
         say_info "Starting download and installation for PR #$PR_NUMBER"
 
-        # Find the workflow run
+        # Get branch name and RID first
         if ! branch_name=$(get_pr_branch_name "$PR_NUMBER"); then
             return 1
         fi
 
-        if ! workflow_run_id=$(find_workflow_run "$branch_name"); then
+        # Compute RID to check for artifacts
+        if ! rid=$(get_runtime_identifier "$OS_ARG" "$ARCH_ARG"); then
+            return 1
+        fi
+
+        # Find workflow run with required artifacts
+        if ! workflow_run_id=$(find_workflow_run_with_artifacts "$branch_name" "$rid" "$HIVE_ONLY"); then
             return 1
         fi
     fi
@@ -789,9 +869,11 @@ download_and_install_from_pr() {
 
     # First, download both artifacts
     local cli_archive_path nuget_download_dir
-    # Compute RID once
-    if ! rid=$(get_runtime_identifier "$OS_ARG" "$ARCH_ARG"); then
-        return 1
+    # Compute RID once (or use already computed value)
+    if [[ -z "$rid" ]]; then
+        if ! rid=$(get_runtime_identifier "$OS_ARG" "$ARCH_ARG"); then
+            return 1
+        fi
     fi
     say_verbose "Computed RID: $rid"
     if [[ "$HIVE_ONLY" == true ]]; then

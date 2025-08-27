@@ -667,24 +667,99 @@ function Get-PRBranchName {
     return $branchRef.Trim()
 }
 
-# Function to find workflow run for branch
-function Find-WorkflowRun {
+# Function to get last 10 completed workflow runs for a branch
+function Get-WorkflowRuns {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$BranchName
     )
 
-    Write-Message "Finding latest completed ci.yml workflow run for branch: $BranchName" -Level Verbose
+    Write-Message "Getting last 10 completed ci.yml workflow runs for branch: $BranchName" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$BranchName&status=completed" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $BranchName"
+    $runIds = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$BranchName&status=completed&per_page=10" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[].id" -ErrorMessage "Failed to query workflow runs for branch: $BranchName"
 
-    if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
-        throw "No completed ci.yml workflow run found for PR branch: $BranchName. This could mean no workflow has been triggered for this branch $BranchName. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
+    if ([string]::IsNullOrWhiteSpace($runIds) -or $runIds -eq "null") {
+        throw "No completed ci.yml workflow runs found for PR branch: $BranchName. This could mean no workflow has been triggered for this branch $BranchName. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
     }
 
-    Write-Message "Found workflow run ID: $runId" -Level Verbose
-    return $runId.Trim()
+    # Split the run IDs into an array
+    $runIdArray = $runIds -split "`n" | Where-Object { $_.Trim() -ne "" } | ForEach-Object { $_.Trim() }
+    Write-Message "Found $($runIdArray.Count) completed workflow runs" -Level Verbose
+    return $runIdArray
+}
+
+# Function to check if a workflow run has required artifacts
+function Test-WorkflowArtifacts {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RunId,
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeIdentifier,
+        [Parameter(Mandatory = $false)]
+        [bool]$HiveOnly = $false
+    )
+
+    Write-Message "Checking artifacts for workflow run: $RunId" -Level Verbose
+
+    # Get artifacts for this run
+    $artifacts = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/runs/$RunId/artifacts" -JqFilter ".artifacts | map(.name)" -ErrorMessage "Failed to get artifacts for run: $RunId"
+    
+    if ([string]::IsNullOrWhiteSpace($artifacts) -or $artifacts -eq "null") {
+        Write-Message "No artifacts found for run $RunId" -Level Verbose
+        return $false
+    }
+
+    # Parse artifact names
+    $artifactNames = ($artifacts | ConvertFrom-Json) -as [string[]]
+    Write-Message "Found artifacts: $($artifactNames -join ', ')" -Level Verbose
+
+    # Check for required artifacts
+    $requiredArtifacts = @(
+        "built-nugets",
+        "built-nugets-for-$RuntimeIdentifier"
+    )
+
+    if (-not $HiveOnly) {
+        $requiredArtifacts += "cli-native-archives-$RuntimeIdentifier"
+    }
+
+    foreach ($required in $requiredArtifacts) {
+        if ($artifactNames -notcontains $required) {
+            Write-Message "Missing required artifact: $required" -Level Verbose
+            return $false
+        }
+    }
+
+    Write-Message "All required artifacts found for run $RunId" -Level Verbose
+    return $true
+}
+
+# Function to find workflow run with required artifacts
+function Find-WorkflowRunWithArtifacts {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BranchName,
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeIdentifier,
+        [Parameter(Mandatory = $false)]
+        [bool]$HiveOnly = $false
+    )
+
+    # Get the last 10 completed workflow runs
+    $runIds = Get-WorkflowRuns -BranchName $BranchName
+
+    # Check each run for required artifacts (newest first)
+    foreach ($runId in $runIds) {
+        if (Test-WorkflowArtifacts -RunId $runId -RuntimeIdentifier $RuntimeIdentifier -HiveOnly $HiveOnly) {
+            Write-Message "Found workflow run with required artifacts: $runId" -Level Verbose
+            return $runId
+        }
+    }
+
+    throw "No completed ci.yml workflow run found with required artifacts for PR branch: $BranchName. Checked last $($runIds.Count) runs. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
 }
 
 # Function to download artifact using gh run download
@@ -886,8 +961,11 @@ function Start-DownloadAndInstall {
         # Get the PR head branch
         $branchName = Get-PRBranchName -PRNumber $PRNumber
 
-        # Find the workflow run
-        $runId = Find-WorkflowRun -BranchName $branchName
+        # Get runtime identifier to check for artifacts
+        $rid = Get-RuntimeIdentifier $OS $Architecture
+
+        # Find workflow run with required artifacts
+        $runId = Find-WorkflowRunWithArtifacts -BranchName $branchName -RuntimeIdentifier $rid -HiveOnly $HiveOnly
     }
 
     Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
