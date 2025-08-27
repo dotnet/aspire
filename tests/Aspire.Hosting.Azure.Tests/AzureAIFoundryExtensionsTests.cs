@@ -132,6 +132,19 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
+    public void RunAsFoundryLocal_DeploymentConnectionString_UsesModelId()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+        foundry.RunAsFoundryLocal();
+
+        deployment.Resource.ModelId = "custom-model-id";
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=gpt-4", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public void AIFoundry_DeploymentConnectionString_HasDeploymentProperty()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

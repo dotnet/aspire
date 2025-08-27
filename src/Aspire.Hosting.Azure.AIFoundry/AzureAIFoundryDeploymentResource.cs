@@ -34,6 +34,8 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
         Parent = parent;
     }
 
+    internal string? ModelId { get; set; }
+
     /// <summary>
     /// Gets or sets the name of the deployment.
     /// </summary>
@@ -86,6 +88,6 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.IsEmulator
-        ? ReferenceExpression.Create($"{Parent};Model={ModelName}")
+        ? ReferenceExpression.Create($"{Parent};Model={ModelId ?? ModelName}")
         : ReferenceExpression.Create($"{Parent};Deployment={DeploymentName}");
 }

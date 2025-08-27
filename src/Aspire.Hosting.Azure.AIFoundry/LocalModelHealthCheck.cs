@@ -6,10 +6,15 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.AIFoundry;
 
-internal sealed class LocalModelHealthCheck(string modelId, FoundryLocalManager manager) : IHealthCheck
+internal sealed class LocalModelHealthCheck(string? modelId, FoundryLocalManager manager) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(modelId))
+        {
+            return HealthCheckResult.Unhealthy("Model has not been loaded.");
+        }
+
         var loadedModels = await manager.ListLoadedModelsAsync(cancellationToken).ConfigureAwait(false);
 
         if (!loadedModels.Any(lm => lm.ModelId.Equals(modelId, StringComparison.InvariantCultureIgnoreCase)))

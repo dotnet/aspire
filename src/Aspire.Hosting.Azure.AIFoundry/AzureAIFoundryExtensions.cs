@@ -272,11 +272,11 @@ public static class AzureAIFoundryExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        // Substitute the model alias with the one actually downloaded for the current machine.
-                        // e.g. "phi-4" -> "Phi-4-generic-gpu"
+                        // Set the model id that was actually downloaded. This is the value that is used in the
+                        // connection string
 
-                        deployment.ModelName = progress.ModelInfo.ModelId;
-                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelName);
+                        deployment.ModelId = progress.ModelInfo.ModelId;
+                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelId);
 
                         // Re-publish the connection string since the model id is now known
                         var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
@@ -284,7 +284,7 @@ public static class AzureAIFoundryExtensions
 
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({progress.ModelInfo.ModelId})")]
+                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({deployment.ModelId})")]
                         }).ConfigureAwait(false);
 
                         await rns.PublishUpdateAsync(deployment, state => state with
@@ -294,7 +294,7 @@ public static class AzureAIFoundryExtensions
 
                         try
                         {
-                            _ = await manager.LoadModelAsync(deployment.ModelName, ct: ct).ConfigureAwait(false);
+                            _ = await manager.LoadModelAsync(deployment.ModelId, ct: ct).ConfigureAwait(false);
 
                             await rns.PublishUpdateAsync(deployment, state => state with
                             {
@@ -339,7 +339,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new LocalModelHealthCheck(modelId: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelId: deployment.ModelId, sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default
