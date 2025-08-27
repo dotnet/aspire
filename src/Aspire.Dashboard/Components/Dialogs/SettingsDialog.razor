@@ -56,6 +56,20 @@
             </div>
         }
 
-        <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
+        <div class="version">
+            @string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)
+            @RenderRuntimeVersion()
+        </div>
     </FluentStack>
 </FluentDialogBody>
+
+@code {
+    private RenderFragment RenderRuntimeVersion()
+    {
+#if DEBUG
+        return @<text><br />.NET version: @System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription</text>;
+#else
+        return @<text></text>;
+#endif
+    }
+}

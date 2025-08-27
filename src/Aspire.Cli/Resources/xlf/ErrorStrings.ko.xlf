@@ -17,6 +17,11 @@
         <target state="translated">appHost 파일이 '{0}'에 지정되었지만, '{1}'에 존재하지 않습니다.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion이 null입니다</target>
@@ -82,6 +87,11 @@
         <target state="translated">stdout에서 템플릿 버전을 구문 분석하지 못했습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">캐시를 통해 템플릿 패키지를 검색하지 못했습니다.</target>
@@ -130,6 +140,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="translated">프로젝트 파일이 없습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="new">Could not build: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

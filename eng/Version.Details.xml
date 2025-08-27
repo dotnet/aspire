@@ -151,6 +151,18 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
     </Dependency>
+    <Dependency Name="System.Threading.Channels" Version="9.0.8">
+      <Uri>https://github.com/dotnet/runtime</Uri>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
+    </Dependency>
+    <Dependency Name="Microsoft.Bcl.Memory" Version="9.0.8">
+      <Uri>https://github.com/dotnet/runtime</Uri>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
+    </Dependency>
+    <Dependency Name="Microsoft.Bcl.TimeProvider" Version="9.0.8">
+      <Uri>https://github.com/dotnet/runtime</Uri>
+      <Sha>aae90fa09086a9be09dac83fa66542232c7269d8</Sha>
+    </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
     <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.25351.1">
