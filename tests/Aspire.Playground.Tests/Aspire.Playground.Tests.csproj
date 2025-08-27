@@ -112,6 +112,8 @@
     <None Include="$(RepoRoot)tests\Aspire.TestUtilities\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="..\helix\xunit.runner.json" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Required for dotnet test -->
+    <None Include="$(RepoRoot)dotnet.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\dotnet.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
