@@ -147,7 +147,7 @@ internal class ExecCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;

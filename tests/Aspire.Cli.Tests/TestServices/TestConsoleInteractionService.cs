@@ -13,9 +13,11 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Func<string, bool, bool>? ConfirmCallback { get; set; }
+    public Action<string>? ShowStatusCallback { get; set;  }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        ShowStatusCallback?.Invoke(statusText);
         return action();
     }
 

@@ -164,4 +164,7 @@
   <data name="PromptForDebugging" xml:space="preserve">
     <value>Do you want to start a debugging session?</value>
   </data>
+  <data name="AppHost" xml:space="preserve">
+    <value>AppHost</value>
+  </data>
 </root>

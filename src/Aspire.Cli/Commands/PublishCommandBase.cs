@@ -112,7 +112,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -125,7 +125,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
             if (buildExitCode != 0)
             {
