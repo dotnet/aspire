@@ -8,6 +8,7 @@ using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using Aspire.Cli.Configuration;
 
 namespace Aspire.Cli.NuGet;
 
@@ -19,10 +20,15 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
 }
 
-internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry) : INuGetPackageCache
+internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry, IFeatures features) : INuGetPackageCache
 {
-
     private const int SearchPageSize = 1000;
+    
+    // List of deprecated packages that should be filtered by default
+    private static readonly HashSet<string> s_deprecatedPackages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Aspire.Hosting.Dapr"
+    };
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
@@ -117,7 +123,24 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
         // If no specific filter is specified we use the fallback filter which is useful in most circumstances
         // other that aspire update which really needs to see all the packages to work effectively.
-        var effectiveFilter = (NuGetPackage p) => filter == null ? IsOfficialOrCommunityToolkitPackage(p.Id) : filter(p.Id);
+        var effectiveFilter = (NuGetPackage p) => 
+        {
+            if (filter is not null)
+            {
+                return filter(p.Id);
+            }
+
+            var isOfficialPackage = IsOfficialOrCommunityToolkitPackage(p.Id);
+            
+            // Apply deprecated package filter if the feature is enabled (default: true)
+            if (isOfficialPackage && features.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true))
+            {
+                return !s_deprecatedPackages.Contains(p.Id);
+            }
+
+            return isOfficialPackage;
+        };
+        
         return collectedPackages.Where(effectiveFilter);
 
         static bool IsOfficialOrCommunityToolkitPackage(string packageName)
