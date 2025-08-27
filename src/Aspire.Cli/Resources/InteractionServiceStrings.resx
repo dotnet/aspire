@@ -151,7 +151,7 @@
     <value>Checking project type...</value>
   </data>
   <data name="BuildingAppHost" xml:space="preserve">
-    <value>Building app host...</value>
+    <value>Building app host</value>
   </data>
   <data name="CheckingCertificates" xml:space="preserve">
     <value>Checking certificates...</value>
