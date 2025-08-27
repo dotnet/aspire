@@ -2269,7 +2269,7 @@ public static class ResourceBuilderExtensions
     /// <param name="displayName">The display name of the extension.</param>
     /// <param name="description">The description of the extension (optional).</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVSCodeExtensionRecommendation<T>(this IResourceBuilder<T> builder, string extensionId, string displayName, string? description = null)
+    internal static IResourceBuilder<T> WithVSCodeExtensionRecommendation<T>(this IResourceBuilder<T> builder, string extensionId, string displayName, string? description = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);

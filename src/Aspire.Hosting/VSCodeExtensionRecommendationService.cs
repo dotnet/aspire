@@ -20,6 +20,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
     private readonly IInteractionService _interactionService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<VSCodeExtensionRecommendationService> _logger;
+    private HashSet<string>? _installedExtensions;
 
     public VSCodeExtensionRecommendationService(
         DistributedApplicationModel applicationModel,
@@ -81,6 +82,26 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
     {
         try
         {
+            // Get cached list of installed extensions
+            var installedExtensions = await GetInstalledExtensionsAsync(cancellationToken).ConfigureAwait(false);
+            return installedExtensions?.Contains(extensionId, StringComparer.OrdinalIgnoreCase) == true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error checking if extension {ExtensionId} is installed", extensionId);
+            return false;
+        }
+    }
+
+    private async Task<HashSet<string>?> GetInstalledExtensionsAsync(CancellationToken cancellationToken)
+    {
+        if (_installedExtensions is not null)
+        {
+            return _installedExtensions;
+        }
+
+        try
+        {
             var startInfo = new ProcessStartInfo
             {
                 FileName = "code",
@@ -95,7 +116,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
             if (process == null)
             {
                 _logger.LogWarning("Failed to start 'code' process to check installed extensions");
-                return false;
+                return null;
             }
 
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
@@ -103,18 +124,19 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
             if (process.ExitCode != 0)
             {
                 _logger.LogWarning("'code --list-extensions' exited with code {ExitCode}", process.ExitCode);
-                return false;
+                return null;
             }
 
             var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-            var installedExtensions = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var extensions = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-            return installedExtensions.Contains(extensionId, StringComparer.OrdinalIgnoreCase);
+            _installedExtensions = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
+            return _installedExtensions;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error checking if extension {ExtensionId} is installed", extensionId);
-            return false;
+            _logger.LogWarning(ex, "Error getting installed extensions list");
+            return null;
         }
     }
 
