@@ -34,6 +34,10 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
         Parent = parent;
     }
 
+    /// <summary>
+    /// This field is used to store the model id that is downloaded by Foundry Local based on the local machine's GPU.
+    /// It is used in the connection string instead of <see cref="ModelName" />.
+    /// <summary>
     internal string? ModelId { get; set; }
 
     /// <summary>
