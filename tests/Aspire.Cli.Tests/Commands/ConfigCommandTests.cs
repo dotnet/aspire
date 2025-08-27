@@ -369,8 +369,12 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
+        // Create new service provider to pick up the configuration change
+        var newServices = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var newProvider = newServices.BuildServiceProvider();
+
         // Verify the feature flag is enabled
-        var featureFlags = provider.GetRequiredService<IFeatures>();
+        var featureFlags = newProvider.GetRequiredService<IFeatures>();
         Assert.True(featureFlags.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false));
     }
 
