@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
-        <target state="new">Analyze App Host</target>
+        <target state="translated">Analizar host de aplicación</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHostSdk">
         <source>Analyze App Host SDK</source>
-        <target state="new">Analyze App Host SDK</target>
+        <target state="translated">Analizar el SDK de host de aplicaciones</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeProjectFormat">
         <source>Analyze project: {0}</source>
-        <target state="new">Analyze project: {0}</target>
+        <target state="translated">Analizar proyecto: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzingProjectStatus">
         <source>Analyzing project...</source>
-        <target state="new">Analyzing project...</target>
+        <target state="translated">Analizando proyecto...</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
-        <target state="new">Central package management is currently not supported by 'aspire update'.</target>
+        <target state="translated">La administración central de paquetes no es compatible actualmente con "aspire update".</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
-        <target state="new">Could not find root &lt;Project&gt; element in {0}</target>
+        <target state="translated">No se encontró el elemento raíz &lt;Project&gt; en {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindSdkElementFormat">
         <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
-        <target state="new">Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</target>
+        <target state="translated">No se encontró el elemento &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; en {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -44,87 +44,87 @@
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
-        <target state="new">Executing: {0}</target>
+        <target state="translated">Ejecutando: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedDiscoverNuGetConfig">
         <source>Failed to discover NuGet.config files.</source>
-        <target state="new">Failed to discover NuGet.config files.</target>
+        <target state="translated">Error al detectar los archivos NuGet.config.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedFetchItemsAndPropertiesFormat">
         <source>Failed to fetch items and properties for project: {0}</source>
-        <target state="new">Failed to fetch items and properties for project: {0}</target>
+        <target state="translated">Error al capturar los elementos y propiedades del proyecto: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedUpdatePackageReferenceFormat">
         <source>Failed to update package reference for {0} in project {1}.</source>
-        <target state="new">Failed to update package reference for {0} in project {1}.</target>
+        <target state="translated">No se pudo actualizar la referencia del paquete para {0} en el proyecto {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
-        <target state="new">No package found with ID '{0}' in channel '{1}'.</target>
+        <target state="translated">No se encontró ningún paquete con id. "{0}" en el canal "{1}".</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
-        <target state="new">Package reference does not have Identity.</target>
+        <target state="translated">La referencia del paquete no tiene identidad.</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoVersion">
         <source>Package reference does not have Version.</source>
-        <target state="new">Package reference does not have Version.</target>
+        <target state="translated">La referencia del paquete no tiene versión.</target>
         <note />
       </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
-        <target state="new">Perform updates?</target>
+        <target state="translated">¿Desea realizar actualizaciones?</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectHasUpdatesMessage">
         <source>Project has updates!</source>
-        <target state="new">Project has updates!</target>
+        <target state="translated">El proyecto tiene actualizaciones.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
-        <target state="new">Project reference does not have FullPath.</target>
+        <target state="translated">La referencia del proyecto no tiene FullPath.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
-        <target state="new">Project is up to date! (no updates necessary)</target>
+        <target state="translated">¡El proyecto está al día! (no es necesario actualizar)</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
-        <target state="new">Select a channel:</target>
+        <target state="translated">Seleccionar un canal:</target>
         <note />
       </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
-        <target state="new">Unexpected code path.</target>
+        <target state="translated">Ruta de acceso al código inesperada.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateAppHostSdkFormat">
         <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="new">Update AppHost SDK from {0} to {1}</target>
+        <target state="translated">Actualizar el SDK de AppHost de {0} a {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
         <source>Update package {0} from {1} to {2}</source>
-        <target state="new">Update package {0} from {1} to {2}</target>
+        <target state="translated">Actualizar paquete {0} de {1} a {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateSuccessfulMessage">
         <source>Update successful!</source>
-        <target state="new">Update successful!</target>
+        <target state="translated">¡Actualización correcta!</target>
         <note />
       </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
-        <target state="new">Which directory for NuGet.config file?</target>
+        <target state="translated">¿Qué directorio del archivo NuGet.config?</target>
         <note />
       </trans-unit>
     </body>
