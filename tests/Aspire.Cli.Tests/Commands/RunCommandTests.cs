@@ -417,5 +417,4 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.NotEmpty(result2);
         Assert.NotEmpty(result3);
     }
-    }
 }
