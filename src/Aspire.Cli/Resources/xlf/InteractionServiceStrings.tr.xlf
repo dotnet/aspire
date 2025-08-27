@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Uygulama ana işlemi oluşturuluyor...</target>
+        <source>Building app host</source>
+        <target state="needs-review-translation">Uygulama ana işlemi oluşturuluyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
