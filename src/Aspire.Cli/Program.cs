@@ -100,7 +100,9 @@ public class Program
         if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
-            builder.Logging.AddConsole();
+            builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
+            // Use custom Spectre Console logger for clean debug output instead of built-in console logger
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
         }
 
         // Shared services.
@@ -153,10 +155,15 @@ public class Program
 
     private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
     {
-        _ = serviceProvider;
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+        
+        // Check if debug mode is enabled by looking at configuration or command line args
+        var debugMode = configuration.GetValue<bool>("debug") || 
+                       Environment.GetCommandLineArgs().Any(a => a == "--debug" || a == "-d");
+        
+        return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
@@ -238,7 +245,8 @@ public class Program
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -251,7 +259,12 @@ public class Program
         }
         else
         {
-            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                return new ConsoleInteractionService(ansiConsole, executionContext);
+            });
         }
     }
 }
