@@ -36,7 +36,7 @@ public class AspireChatCompletionsClientBuilder(
     /// Gets the service key used to register the <see cref="ChatCompletionsClient"/> service, if any.
     /// </summary>
     public string? ServiceKey { get; } = serviceKey;
-
+    
     /// <summary>
     /// The name of the deployment in Azure AI Foundry.
     /// </summary>
