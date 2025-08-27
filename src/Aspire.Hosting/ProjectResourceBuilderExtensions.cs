@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -725,7 +724,6 @@ public static class ProjectResourceBuilderExtensions
     /// Volumes persist data managed by the runtime (not host bind mounts). To mount host paths, use
     /// <see cref="ContainerResourceBuilderExtensions.WithBindMount{T}(IResourceBuilder{T}, string, string, bool)"/>.
     /// </remarks>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithVolume<T>(
         this IResourceBuilder<T> builder,
         string? name,
@@ -748,7 +746,6 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="target">
     /// Absolute path inside the resource's filesystem/container where the volume will be mounted.
     /// </param>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithVolume<T>(
         this IResourceBuilder<T> builder,
         string target)
