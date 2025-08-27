@@ -141,7 +141,7 @@ public class AzureAIFoundryExtensionsTests
 
         deployment.Resource.ModelId = "custom-model-id";
 
-        Assert.Equal("{myAIFoundry.connectionString};Model=gpt-4", deployment.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myAIFoundry.connectionString};Model=custom-model-id", deployment.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
