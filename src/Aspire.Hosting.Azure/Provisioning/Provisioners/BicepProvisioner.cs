@@ -126,7 +126,7 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile(context.OutputPath);
+        var template = resource.GetBicepTemplateFile();
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need

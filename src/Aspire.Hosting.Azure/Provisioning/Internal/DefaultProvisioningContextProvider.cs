@@ -9,7 +9,6 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -30,15 +29,13 @@ internal sealed partial class DefaultProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
     internal const string SubscriptionIdName = "SubscriptionId";
     internal const string ResourceGroupName = "ResourceGroup";
 
     private readonly AzureProvisionerOptions _options = options.Value;
-    private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -263,7 +260,6 @@ internal sealed partial class DefaultProvisioningContextProvider(
         }
 
         var principal = await userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
-        var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
                     credential,
@@ -274,8 +270,7 @@ internal sealed partial class DefaultProvisioningContextProvider(
                     location,
                     principal,
                     userSecrets,
-                    distributedApplicationExecutionContext,
-                    outputPath);
+                    distributedApplicationExecutionContext);
     }
 
     private string GetDefaultResourceGroupName()

@@ -42,8 +42,7 @@ internal static class ProvisioningTestHelpers
         AzureLocation? location = null,
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null,
-        DistributedApplicationExecutionContext? executionContext = null,
-        string? outputPath = null)
+        DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
             credential ?? new TestTokenCredential(),
@@ -54,8 +53,7 @@ internal static class ProvisioningTestHelpers
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? [],
-            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            outputPath);
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
     // Factory methods for test implementations of provisioning services interfaces
