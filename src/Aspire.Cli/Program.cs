@@ -106,7 +106,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddSingleton(BuildCliExecutionContext);
+        builder.Services.AddSingleton(sp => BuildCliExecutionContext(sp, debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
@@ -154,16 +154,10 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider, bool debugMode)
     {
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        
-        // Check if debug mode is enabled by looking at configuration or command line args
-        var debugMode = configuration.GetValue<bool>("debug") || 
-                       Environment.GetCommandLineArgs().Any(a => a == "--debug" || a == "-d");
-        
         return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
     }
 
