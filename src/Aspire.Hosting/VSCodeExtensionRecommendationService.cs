@@ -118,13 +118,13 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
         }
     }
 
-    private List<VisualStudioCodeExtensionAnnotation> GetAllVSCodeExtensionAnnotations()
+    private List<VSCodeExtensionAnnotation> GetAllVSCodeExtensionAnnotations()
     {
-        var annotations = new List<VisualStudioCodeExtensionAnnotation>();
+        var annotations = new List<VSCodeExtensionAnnotation>();
 
         foreach (var resource in _applicationModel.Resources)
         {
-            annotations.AddRange(resource.Annotations.OfType<VisualStudioCodeExtensionAnnotation>());
+            annotations.AddRange(resource.Annotations.OfType<VSCodeExtensionAnnotation>());
         }
 
         return annotations.DistinctBy(a => a.Id).ToList();
@@ -132,15 +132,15 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
 
     private async Task RecommendExtensionsAsync(
         bool aspireExtensionInstalled,
-        List<VisualStudioCodeExtensionAnnotation> extensionAnnotations,
+        List<VSCodeExtensionAnnotation> extensionAnnotations,
         CancellationToken cancellationToken)
     {
-        var extensionsToRecommend = new List<VisualStudioCodeExtensionAnnotation>();
+        var extensionsToRecommend = new List<VSCodeExtensionAnnotation>();
 
         // Always recommend Aspire extension if not installed
         if (!aspireExtensionInstalled)
         {
-            extensionsToRecommend.Add(new VisualStudioCodeExtensionAnnotation(
+            extensionsToRecommend.Add(new VSCodeExtensionAnnotation(
                 "ms-dotnettools.aspire",
                 "Aspire",
                 "Enhanced support for .NET Aspire applications"));
@@ -164,7 +164,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
     }
 
     private async Task PromptUserToInstallExtensionsAsync(
-        List<VisualStudioCodeExtensionAnnotation> extensionsToRecommend,
+        List<VSCodeExtensionAnnotation> extensionsToRecommend,
         CancellationToken cancellationToken)
     {
         if (!_interactionService.IsAvailable)
@@ -203,7 +203,7 @@ internal sealed class VSCodeExtensionRecommendationService : BackgroundService
     }
 
     private async Task InstallExtensionsAsync(
-        List<VisualStudioCodeExtensionAnnotation> extensions,
+        List<VSCodeExtensionAnnotation> extensions,
         CancellationToken cancellationToken)
     {
         foreach (var extension in extensions)

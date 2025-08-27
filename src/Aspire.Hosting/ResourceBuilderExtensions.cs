@@ -2276,6 +2276,6 @@ public static class ResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(extensionId);
         ArgumentException.ThrowIfNullOrEmpty(displayName);
 
-        return builder.WithAnnotation(new VisualStudioCodeExtensionAnnotation(extensionId, displayName, description));
+        return builder.WithAnnotation(new VSCodeExtensionAnnotation(extensionId, displayName, description));
     }
 }

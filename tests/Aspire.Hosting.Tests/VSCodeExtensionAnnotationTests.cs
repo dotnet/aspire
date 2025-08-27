@@ -10,7 +10,7 @@ public class VSCodeExtensionAnnotationTests
     [Fact]
     public void CanCreateVSCodeExtensionAnnotation()
     {
-        var annotation = new VisualStudioCodeExtensionAnnotation("ms-python.python", "Python", "Python language support");
+        var annotation = new VSCodeExtensionAnnotation("ms-python.python", "Python", "Python language support");
 
         Assert.Equal("ms-python.python", annotation.Id);
         Assert.Equal("Python", annotation.DisplayName);
@@ -20,8 +20,8 @@ public class VSCodeExtensionAnnotationTests
     [Fact]
     public void VSCodeExtensionAnnotationRequiredParameters()
     {
-        Assert.Throws<ArgumentException>(() => new VisualStudioCodeExtensionAnnotation("", "Python"));
-        Assert.Throws<ArgumentException>(() => new VisualStudioCodeExtensionAnnotation("ms-python.python", ""));
+        Assert.Throws<ArgumentException>(() => new VSCodeExtensionAnnotation("", "Python"));
+        Assert.Throws<ArgumentException>(() => new VSCodeExtensionAnnotation("ms-python.python", ""));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class VSCodeExtensionAnnotationTests
         var container = builder.AddContainer("container", "image")
                                .WithVSCodeExtensionRecommendation("ms-python.python", "Python", "Python language support");
 
-        var annotation = container.Resource.Annotations.OfType<VisualStudioCodeExtensionAnnotation>().Single();
+        var annotation = container.Resource.Annotations.OfType<VSCodeExtensionAnnotation>().Single();
 
         Assert.Equal("ms-python.python", annotation.Id);
         Assert.Equal("Python", annotation.DisplayName);
