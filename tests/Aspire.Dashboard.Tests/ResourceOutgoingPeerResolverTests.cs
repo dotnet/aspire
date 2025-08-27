@@ -224,7 +224,7 @@ public class ResourceOutgoingPeerResolverTests
     public void ConnectionStringWithEndpoint_Match()
     {
         // Arrange - GitHub Models resource with connection string containing endpoint
-        var connectionString = "Endpoint=https://models.github.ai/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var connectionString = "Endpoint=https://models.github.ai/inference;Key=test-key;Model=openai/gpt-4o-mini";
         var resources = new Dictionary<string, ResourceViewModel>
         {
             ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
@@ -239,7 +239,7 @@ public class ResourceOutgoingPeerResolverTests
     public void ConnectionStringWithEndpointOrganization_Match()
     {
         // Arrange - GitHub Models resource with organization endpoint
-        var connectionString = "Endpoint=https://models.github.ai/orgs/myorg/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var connectionString = "Endpoint=https://models.github.ai/orgs/myorg/inference;Key=test-key;Model=openai/gpt-4o-mini";
         var resources = new Dictionary<string, ResourceViewModel>
         {
             ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
