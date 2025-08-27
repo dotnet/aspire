@@ -6,6 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a resource that has probes associated with it.
 /// </summary>
+[Experimental]
 public interface IResourceWithProbes : IResource
 {
 }
