@@ -552,43 +552,43 @@ gh_api_call() {
     printf "%s" "$api_output"
 }
 
-# Function to get PR head branch information
+# Function to get PR branch ref information
 get_pr_head_info() {
     local pr_number="$1"
 
-    say_verbose "Getting HEAD branch info for PR #$pr_number"
+    say_verbose "Getting branch ref info for PR #$pr_number"
 
-    local head_ref
-    if ! head_ref=$(gh_api_call "${GH_REPOS_BASE}/pulls/$pr_number" ".head.ref" "Failed to get HEAD branch for PR #$pr_number"); then
+    local branch_ref
+    if ! branch_ref=$(gh_api_call "${GH_REPOS_BASE}/pulls/$pr_number" ".head.ref" "Failed to get branch ref for PR #$pr_number"); then
         say_info "This could mean:"
         say_info "  - The PR number does not exist"
         say_info "  - You don't have access to the repository"
         exit 1
     fi
 
-    if [[ -z "$head_ref" || "$head_ref" == "null" ]]; then
-        say_error "Could not retrieve HEAD branch for PR #$pr_number"
+    if [[ -z "$branch_ref" || "$branch_ref" == "null" ]]; then
+        say_error "Could not retrieve branch ref for PR #$pr_number"
         exit 1
     fi
 
-    say_verbose "PR #$pr_number HEAD branch: $head_ref"
-    printf "%s" "$head_ref"
+    say_verbose "PR #$pr_number branch: $branch_ref"
+    printf "%s" "$branch_ref"
 }
 
 # Function to find workflow run for branch
 find_workflow_run() {
-    local head_branch="$1"
+    local branch_ref="$1"
 
     # https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#list-workflow-runs-for-a-repository
-    say_verbose "Finding latest completed ci.yml workflow run for branch: $head_branch"
+    say_verbose "Finding latest completed ci.yml workflow run for branch: $branch_ref"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$head_branch" ".workflow_runs | map(select(.status == \"completed\")) | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $head_branch"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&branch=$branch_ref&status=completed" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for branch: $branch_ref"); then
         return 1
     fi
 
     if [[ -z "$workflow_run_id" || "$workflow_run_id" == "null" ]]; then
-    say_error "No completed ci.yml workflow run found for PR branch: $head_branch. This could mean no workflow has been triggered for this branch $head_branch. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
+    say_error "No completed ci.yml workflow run found for PR branch: $branch_ref. This could mean no workflow has been triggered for this branch $branch_ref. Check at https://github.com/${REPO}/actions/workflows/ci.yml"
         return 1
     fi
 
@@ -772,11 +772,11 @@ download_and_install_from_pr() {
         say_info "Starting download and installation for PR #$PR_NUMBER"
 
         # Find the workflow run
-        if ! head_branch=$(get_pr_head_info "$PR_NUMBER"); then
+        if ! branch_ref=$(get_pr_head_info "$PR_NUMBER"); then
             return 1
         fi
 
-        if ! workflow_run_id=$(find_workflow_run "$head_branch"); then
+        if ! workflow_run_id=$(find_workflow_run "$branch_ref"); then
             return 1
         fi
     fi

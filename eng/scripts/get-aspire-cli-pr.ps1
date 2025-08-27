@@ -653,18 +653,18 @@ function Get-PRHeadInfo {
         [int]$PRNumber
     )
 
-    Write-Message "Getting HEAD branch info for PR #$PRNumber" -Level Verbose
+    Write-Message "Getting branch ref info for PR #$PRNumber" -Level Verbose
 
-    $headRef = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/pulls/$PRNumber" -JqFilter ".head.ref" -ErrorMessage "Failed to get HEAD branch for PR #$PRNumber"
-    if ([string]::IsNullOrWhiteSpace($headRef) -or $headRef -eq "null") {
+    $branchRef = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/pulls/$PRNumber" -JqFilter ".head.ref" -ErrorMessage "Failed to get branch ref for PR #$PRNumber"
+    if ([string]::IsNullOrWhiteSpace($branchRef) -or $branchRef -eq "null") {
         Write-Message "This could mean:" -Level Info
         Write-Message "  - The PR number does not exist" -Level Info
         Write-Message "  - You don't have access to the repository" -Level Info
-        throw "Could not retrieve HEAD branch for PR #$PRNumber"
+        throw "Could not retrieve branch ref for PR #$PRNumber"
     }
 
-    Write-Message "PR #$PRNumber HEAD branch: $headRef" -Level Verbose
-    return $headRef.Trim()
+    Write-Message "PR #$PRNumber branch: $branchRef" -Level Verbose
+    return $branchRef.Trim()
 }
 
 # Function to find workflow run for branch
@@ -677,7 +677,7 @@ function Find-WorkflowRun {
 
     Write-Message "Finding latest completed ci.yml workflow run for branch: $HeadBranch" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch" -JqFilter ".workflow_runs | map(select(.status == `"completed`")) | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&branch=$HeadBranch&status=completed" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for branch: $HeadBranch"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
         throw "No completed ci.yml workflow run found for PR branch: $HeadBranch. This could mean no workflow has been triggered for this branch $HeadBranch. Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
