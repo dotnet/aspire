@@ -2274,6 +2274,24 @@ public static class ResourceBuilderExtensions
     /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a probe and implicit adds an http health check to the resource based on probe parameters.
+    /// </para>
+    /// <example>
+    /// For example add a probe to a resource in this way:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health");
+    /// </code>
+    /// Is the same of writing:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health")
+    ///     .WithHttpHealthCheck("/health");
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
@@ -2301,34 +2319,46 @@ public static class ResourceBuilderExtensions
     /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
     /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a probe and implicit adds an http health check to the resource based on probe parameters.
+    /// </para>
+    /// <example>
+    /// For example add a probe to a resource in this way:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health");
+    /// </code>
+    /// Is the same of writing:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health")
+    ///     .WithHttpHealthCheck("/health");
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, Func<EndpointReference>? endpointSelector, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null)
         where T : IResourceWithEndpoints, IResourceWithProbes
     {
         endpointSelector ??= DefaultEndpointSelector(builder);
 
-        var endpoint = endpointSelector()
-                     ?? throw new DistributedApplicationException($"Could not create HTTP probe for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+        var endpoint = endpointSelector() ?? throw new DistributedApplicationException($"Could not create HTTP probe for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+        var endpointProbeAnnotation = new EndpointProbeAnnotation
+        {
+            Type = type,
+            EndpointReference = endpoint,
+            Path = path ?? "/",
+            InitialDelaySeconds = initialDelaySeconds ?? 5,
+            PeriodSeconds = periodSeconds ?? 5,
+            TimeoutSeconds = timeoutSeconds ?? 1,
+            FailureThreshold = failureThreshold ?? 3,
+            SuccessThreshold = successThreshold ?? 1,
+        };
 
-        path ??= "/";
-        initialDelaySeconds ??= 5;
-        periodSeconds ??= 5;
-        timeoutSeconds ??= 1;
-        failureThreshold ??= 3;
-        successThreshold ??= 1;
-
-        return builder.WithProbe(
-            new EndpointProbeAnnotation
-            {
-                Type = type,
-                EndpointReference = endpoint,
-                Path = path,
-                InitialDelaySeconds = initialDelaySeconds.Value,
-                PeriodSeconds = periodSeconds.Value,
-                TimeoutSeconds = timeoutSeconds.Value,
-                FailureThreshold = failureThreshold.Value,
-                SuccessThreshold = successThreshold.Value,
-            });
+        return builder
+            .WithProbe(endpointProbeAnnotation)
+            .WithHttpHealthCheck(endpointSelector, path);
     }
 
     /// <summary>
