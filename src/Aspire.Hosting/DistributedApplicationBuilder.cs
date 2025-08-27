@@ -355,6 +355,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
+            // VSCode Extension Recommendations (only if environment variable is set)
+            if (_innerBuilder.Configuration.GetValue<bool>("ASPIRE_VSCODE_EXTENSION_RECOMMENDATIONS"))
+            {
+                _innerBuilder.Services.AddHostedService<VSCodeExtensionRecommendationService>();
+            }
+
             // Devcontainers & Codespaces & SSH Remote
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
             _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();

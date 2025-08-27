@@ -30,6 +30,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IFeatures _features;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -63,6 +64,7 @@ internal sealed class RunCommand : BaseCommand
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -108,6 +110,12 @@ internal sealed class RunCommand : BaseCommand
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
+            }
+
+            // Check if VSCode extension recommendations feature is enabled
+            if (_features.IsFeatureEnabled(KnownFeatures.VscodeExtensionRecommendationsEnabled, defaultValue: false))
+            {
+                env["ASPIRE_VSCODE_EXTENSION_RECOMMENDATIONS"] = "true";
             }
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);

@@ -149,6 +149,12 @@ public static class PythonAppResourceBuilderExtensions
 
         resourceBuilder.PublishAsDockerFile();
 
+        // Add VSCode extension recommendation for Python
+        resourceBuilder.WithVSCodeExtensionRecommendation(
+            "ms-python.python",
+            "Python",
+            "IntelliSense (Pylance), Linting, Debugging (multi-threaded, remote), code formatting, refactoring, unit tests, and more.");
+
         return resourceBuilder;
     }
 
