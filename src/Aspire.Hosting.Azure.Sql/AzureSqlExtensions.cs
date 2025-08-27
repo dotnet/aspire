@@ -89,6 +89,8 @@ public static class AzureSqlExtensions
         var azureSqlServer = builder.AddResource(resource)
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
+        azureSqlServer.WithVSCodeExtensionRecommendation("ms-mssql.mssql");
+
         return azureSqlServer;
     }
 

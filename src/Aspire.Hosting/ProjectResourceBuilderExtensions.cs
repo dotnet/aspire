@@ -237,7 +237,8 @@ public static class ProjectResourceBuilderExtensions
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(new TProject())
-                      .WithProjectDefaults(options);
+                      .WithProjectDefaults(options)
+                      .WithVSCodeExtensionRecommendation("ms-dotnettools.csdevkit");
     }
 
     /// <summary>

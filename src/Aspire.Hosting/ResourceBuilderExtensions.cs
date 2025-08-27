@@ -2259,4 +2259,20 @@ public static class ResourceBuilderExtensions
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
     }
+
+    /// <summary>
+    /// Adds a Visual Studio Code extension recommendation to the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="extensionId">The extension ID (e.g., "ms-python.python").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithVSCodeExtensionRecommendation<T>(this IResourceBuilder<T> builder, string extensionId)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(extensionId);
+
+        return builder.WithAnnotation(new VSCodeExtensionAnnotation(extensionId));
+    }
 }

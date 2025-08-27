@@ -149,6 +149,9 @@ public static class PythonAppResourceBuilderExtensions
 
         resourceBuilder.PublishAsDockerFile();
 
+        // Add VSCode extension recommendation for Python
+        resourceBuilder.WithVSCodeExtensionRecommendation("ms-python.python");
+
         return resourceBuilder;
     }
 
