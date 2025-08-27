@@ -80,13 +80,13 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task DeprecatedPackagesAreIncludedWhenFilteringDisabled()
+    public async Task DeprecatedPackagesAreIncludedWhenShowDeprecatedPackagesEnabled()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, configure =>
         {
-            // Disable the deprecated packages filter
-            configure.DisabledFeatures = [Aspire.Cli.KnownFeatures.FilterDeprecatedPackagesEnabled];
+            // Enable showing deprecated packages
+            configure.EnabledFeatures = [Aspire.Cli.KnownFeatures.ShowDeprecatedPackages];
             
             configure.DotNetCliRunnerFactory = (sp) =>
             {
@@ -110,7 +110,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
         var nuGetPackageCache = provider.GetRequiredService<INuGetPackageCache>();
         var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
-        // Should include all packages including deprecated Dapr package
+        // Should include all packages including deprecated Dapr package when showing deprecated is enabled
         var packageIds = packages.Select(p => p.Id).ToList();
         Assert.Contains("Aspire.Hosting.Redis", packageIds);
         Assert.Contains("Aspire.Hosting.PostgreSQL", packageIds);

@@ -132,8 +132,8 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
             var isOfficialPackage = IsOfficialOrCommunityToolkitPackage(p.Id);
             
-            // Apply deprecated package filter if the feature is enabled (default: true)
-            if (isOfficialPackage && features.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true))
+            // Apply deprecated package filter unless the user wants to show deprecated packages
+            if (isOfficialPackage && !features.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false))
             {
                 return !s_deprecatedPackages.Contains(p.Id);
             }

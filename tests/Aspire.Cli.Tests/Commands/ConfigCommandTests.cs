@@ -356,7 +356,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task FilterDeprecatedPackagesEnabled_CanBeConfiguredViaCommandLine()
+    public async Task ShowDeprecatedPackages_CanBeConfiguredViaCommandLine()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -364,25 +364,25 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
         
-        // Set the filter deprecated packages feature flag to false
-        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.FilterDeprecatedPackagesEnabled} false");
+        // Set the show deprecated packages feature flag to true
+        var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.ShowDeprecatedPackages} true");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, setExitCode);
 
-        // Verify the feature flag is disabled
+        // Verify the feature flag is enabled
         var featureFlags = provider.GetRequiredService<IFeatures>();
-        Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true));
+        Assert.True(featureFlags.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false));
     }
 
     [Fact]
-    public void FilterDeprecatedPackagesEnabled_DefaultsToTrue()
+    public void ShowDeprecatedPackages_DefaultsToFalse()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
 
-        // Verify the feature flag defaults to true
+        // Verify the feature flag defaults to false
         var featureFlags = provider.GetRequiredService<IFeatures>();
-        Assert.True(featureFlags.IsFeatureEnabled(KnownFeatures.FilterDeprecatedPackagesEnabled, defaultValue: true));
+        Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false));
     }
 }
