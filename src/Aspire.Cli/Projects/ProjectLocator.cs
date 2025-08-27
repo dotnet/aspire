@@ -38,8 +38,14 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             };
 
             interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
+            
+            // Search for both .csproj files and apphost.cs files
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
-            logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
+            var singleFiles = searchDirectory.GetFiles("apphost.cs", enumerationOptions);
+            var allFiles = projectFiles.Concat(singleFiles).ToArray();
+            
+            logger.LogDebug("Found {ProjectFileCount} project files and {SingleFileCount} single files in {SearchDirectory}", 
+                projectFiles.Length, singleFiles.Length, searchDirectory.FullName);
 
             var parallelOptions = new ParallelOptions
             {
@@ -47,30 +53,49 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
+            await Parallel.ForEachAsync(allFiles, parallelOptions, async (file, ct) =>
             {
-                logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-                var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
-
-                if (information.ExitCode == 0 && information.IsAspireHost)
+                logger.LogDebug("Checking file {File}", file.FullName);
+                
+                bool isAspireHost = false;
+                string? aspireHostingVersion = null;
+                int exitCode = 0;
+                
+                if (file.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
-                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
-                    interactionService.DisplaySubtleMessage(relativePath);
-                    lock (lockObject)
-                    {
-                        appHostProjects.Add(projectFile);
-                    }
-                }
-                else if (IsPossiblyUnbuildableAppHost(projectFile))
-                {
-                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
-                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
-                    unbuildableSuspectedAppHostProjects.Add(projectFile);
+                    // Handle single C# file
+                    var (isSingleFileAppHost, version) = await IsSingleFileAppHostAsync(file, ct);
+                    isAspireHost = isSingleFileAppHost;
+                    aspireHostingVersion = version;
                 }
                 else
                 {
-                    logger.LogTrace("Project file {ProjectFile} in {SearchDirectory} is not an Aspire host", projectFile.FullName, searchDirectory.FullName);
+                    // Handle project file
+                    var information = await runner.GetAppHostInformationAsync(file, new DotNetCliRunnerInvocationOptions(), ct);
+                    exitCode = information.ExitCode;
+                    isAspireHost = information.IsAspireHost;
+                    aspireHostingVersion = information.AspireHostingVersion;
+                }
+
+                if (exitCode == 0 && isAspireHost)
+                {
+                    logger.LogDebug("Found AppHost file {File} in {SearchDirectory}", file.FullName, searchDirectory.FullName);
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName);
+                    interactionService.DisplaySubtleMessage(relativePath);
+                    lock (lockObject)
+                    {
+                        appHostProjects.Add(file);
+                    }
+                }
+                else if (!file.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase) && IsPossiblyUnbuildableAppHost(file))
+                {
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName);
+                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                    unbuildableSuspectedAppHostProjects.Add(file);
+                }
+                else
+                {
+                    logger.LogTrace("File {File} in {SearchDirectory} is not an Aspire host", file.FullName, searchDirectory.FullName);
                 }
             });
 
@@ -87,6 +112,39 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
         var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
         return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
+    }
+
+    private static async Task<(bool IsSingleFileAppHost, string? AspireVersion)> IsSingleFileAppHostAsync(FileInfo singleFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Read the first few lines of the file to check for the SDK directive
+            var lines = await File.ReadAllLinesAsync(singleFile.FullName, cancellationToken);
+            
+            // Look for the SDK directive in the first few lines
+            foreach (var line in lines.Take(5))
+            {
+                var trimmedLine = line.Trim();
+                if (trimmedLine.StartsWith("#:sdk", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Parse the SDK directive to extract version
+                    // Format: #:sdk Aspire.AppHost.Sdk@version
+                    var parts = trimmedLine.Split('@');
+                    if (parts.Length == 2 && parts[0].Contains("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var version = parts[1].Trim();
+                        return (true, version);
+                    }
+                }
+            }
+            
+            return (false, null);
+        }
+        catch (Exception)
+        {
+            // If we can't read the file, assume it's not an AppHost
+            return (false, null);
+        }
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)

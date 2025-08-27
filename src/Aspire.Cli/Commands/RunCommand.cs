@@ -65,6 +65,12 @@ internal sealed class RunCommand : BaseCommand
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
 
+        var projectArgument = new Argument<FileInfo?>("project")
+        {
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        Arguments.Add(projectArgument);
+
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
@@ -92,8 +98,9 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project") ?? parseResult.GetValue<FileInfo?>("project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var isSingleFile = effectiveAppHostProjectFile?.FullName.EndsWith(".cs") == true;
 
             if (effectiveAppHostProjectFile is null)
             {
@@ -133,18 +140,30 @@ internal sealed class RunCommand : BaseCommand
                 if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(ExtensionHelper.DevKitCapability, cancellationToken))
                 {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
-
-                    if (buildExitCode != 0)
+                    // Skip build for single files - they don't need to be built, just run directly
+                    if (!isSingleFile)
                     {
-                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                        return ExitCodeConstants.FailedToBuildArtifacts;
+                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+
+                        if (buildExitCode != 0)
+                        {
+                            _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                            _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                            return ExitCodeConstants.FailedToBuildArtifacts;
+                        }
                     }
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            if (!isSingleFile)
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            }
+            else
+            {
+                // HACK: We can't do dotnet msbuild on single file to extract this information.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -161,6 +180,15 @@ internal sealed class RunCommand : BaseCommand
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
+            if (isSingleFile)
+            {
+                env["ASPNETCORE_ENVIRONMENT"] = "Development";
+                env["DOTNET_ENVIRONMENT"] = "Development";
+                env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
+                env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
+            }
 
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostProjectFile,
@@ -245,7 +273,7 @@ internal sealed class RunCommand : BaseCommand
                             // to remove the CTRL-C message that was appended
                             // previously. So we can write the endpoint.
                             // We will append the CTRL-C message again after
-                            // writing the endpoint.
+                            // writing the endpoint. 
                             ClearLines(2);
 
                             var endpointsGrid = new Grid();

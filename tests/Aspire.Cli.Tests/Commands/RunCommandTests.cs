@@ -1,16 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Tests.Commands;
 
