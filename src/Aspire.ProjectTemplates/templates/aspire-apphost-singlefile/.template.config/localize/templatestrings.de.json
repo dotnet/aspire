@@ -31,6 +31,6 @@
   "symbols/AspireVersionNet10/choices/9.4/displayName": "9.4",
   "symbols/AspireVersionNet10/choices/9.4/description": "Wählt .NET Aspire 9.4",
   "symbols/skipRestore/description": "Wenn angegeben, wird die automatische Wiederherstellung des Projekts beim Erstellen übersprungen.",
-  "postActions/restore/description": "„NuGet-Pakete" wiederherstellen, die für dieses Projekt erforderlich sind.",
-  "postActions/restore/manualInstructions/default/text": "\"dotnet restore\" ausführen"
+  "postActions/restore/description": "NuGet-Pakete wiederherstellen, die für dieses Projekt erforderlich sind.",
+  "postActions/restore/manualInstructions/default/text": "dotnet restore ausführen"
 }

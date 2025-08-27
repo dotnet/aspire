@@ -87,7 +87,7 @@
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses .NET Aspire 9.5"
-        },{
+        }, {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
