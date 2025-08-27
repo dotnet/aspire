@@ -41,7 +41,7 @@ static string RandomString(int length)
 
 app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken cancellationToken, int length = 20) =>
 {
-    var container = client.GetBlobContainerClient("blobs");
+    var container = client.GetBlobContainerClient("myblobcontainer");
     await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
     var entry = new { Id = Guid.NewGuid(), Text = RandomString(length) };

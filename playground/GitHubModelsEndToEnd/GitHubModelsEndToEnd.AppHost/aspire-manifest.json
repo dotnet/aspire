@@ -20,7 +20,7 @@
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "Endpoint=https://models.github.ai/inference;Key={chat-gh-apikey.value};Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini"
+      "connectionString": "Endpoint=https://models.github.ai/inference;Key={chat-gh-apikey.value};Model=openai/gpt-4o-mini"
     },
     "webstory": {
       "type": "project.v1",

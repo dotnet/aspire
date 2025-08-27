@@ -98,7 +98,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
 
             // Fake apphost information to return a compatable app host.
@@ -197,7 +198,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         };
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
 
             // Fake the certificate check to always succeed
@@ -253,7 +255,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     public async Task RunCommand_WithNoResources_CompletesSuccessfully()
     {
         var getResourceStatesAsyncCalled = new TaskCompletionSource();
-        var backchannelFactory = (IServiceProvider sp) => {
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
             var backchannel = new TestAppHostBackchannel();
 
             // Return empty resources using an empty enumerable
@@ -262,7 +265,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return backchannel;
         };
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
             runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
@@ -308,7 +312,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         var errorMessages = new List<string>();
 
-        var backchannelFactory = (IServiceProvider sp) => {
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
             var backchannel = new TestAppHostBackchannel();
             // Configure the backchannel to throw DashboardStartupException when GetDashboardUrlsAsync is called
             backchannel.GetDashboardUrlsAsyncCallback = (ct) =>
@@ -323,7 +328,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return backchannel;
         };
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
 
             // Fake the certificate check to always succeed
@@ -375,6 +381,31 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         // Assert that the command returns the expected failure exit code
         Assert.Equal(ExitCodeConstants.DashboardFailure, exitCode);
+    }
+
+    [Fact]
+    public async Task AppHostHelper_BuildAppHostAsync_IncludesRelativePathInStatusMessage()
+    {
+        var testInteractionService = new TestConsoleInteractionService();
+        testInteractionService.ShowStatusCallback = (statusText) =>
+        {
+            Assert.Contains(
+                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                statusText);
+        };
+
+        var testRunner = new TestDotNetCliRunner();
+        testRunner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostDirectoryPath = Path.Combine(workspace.WorkspaceRoot.FullName, "src", "MyApp.AppHost");
+        var appHostDirectory = Directory.CreateDirectory(appHostDirectoryPath);
+        var appHostProjectPath = Path.Combine(appHostDirectory.FullName, "MyApp.AppHost.csproj");
+        var appHostProjectFile = new FileInfo(appHostProjectPath);
+        File.WriteAllText(appHostProjectFile.FullName, "<Project></Project>");
+
+        var options = new DotNetCliRunnerInvocationOptions();
+        await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, options, workspace.WorkspaceRoot, CancellationToken.None);
     }
 
     [Fact]

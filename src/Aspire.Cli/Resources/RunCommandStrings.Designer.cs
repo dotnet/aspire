@@ -229,5 +229,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("WatchArgumentDescription", resourceCulture);
             }
         }
+
+        public static string AppHost {
+            get {
+                return ResourceManager.GetString("AppHost", resourceCulture);
+            }
+        }
     }
 }

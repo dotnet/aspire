@@ -167,4 +167,7 @@
   <data name="DashboardFailedToStart" xml:space="preserve">
     <value>Aspire Dashboard failed to start.</value>
   </data>
+  <data name="AppHost" xml:space="preserve">
+    <value>AppHost</value>
+  </data>
 </root>

@@ -18,7 +18,7 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class NewCommand : BaseCommand
+internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
@@ -28,6 +28,19 @@ internal sealed class NewCommand : BaseCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly IFeatures _features;
+    private readonly ICliUpdateNotifier _updateNotifier;
+    private readonly CliExecutionContext _executionContext;
+
+    /// <summary>
+    /// NewCommand prefetches both template and CLI package metadata.
+    /// </summary>
+    public bool PrefetchesTemplatePackageMetadata => true;
+    
+    /// <summary>
+    /// NewCommand prefetches CLI package metadata for update notifications.
+    /// </summary>
+    public bool PrefetchesCliPackageMetadata => true;
 
     public NewCommand(
         IDotNetCliRunner runner,
@@ -39,8 +52,9 @@ internal sealed class NewCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier)
-        : base("new", NewCommandStrings.Description, features, updateNotifier)
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
@@ -58,6 +72,9 @@ internal sealed class NewCommand : BaseCommand
         _interactionService = interactionService;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _features = features;
+        _updateNotifier = updateNotifier;
+        _executionContext = executionContext;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -83,7 +100,7 @@ internal sealed class NewCommand : BaseCommand
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync, features, updateNotifier);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext);
             Subcommands.Add(templateCommand);
         }
     }
