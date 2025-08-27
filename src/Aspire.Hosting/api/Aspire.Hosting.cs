@@ -889,8 +889,6 @@ namespace Aspire.Hosting.ApplicationModel
 
     public static partial class CommandResults
     {
-        public static ExecuteCommandResult Canceled() { throw null; }
-
         public static ExecuteCommandResult Failure(System.Exception exception) { throw null; }
 
         public static ExecuteCommandResult Failure(string? errorMessage = null) { throw null; }
@@ -1389,8 +1387,6 @@ namespace Aspire.Hosting.ApplicationModel
 
     public sealed partial class ExecuteCommandResult
     {
-        public bool Canceled { get { throw null; } init { } }
-
         public string? ErrorMessage { get { throw null; } init { } }
 
         public required bool Success { get { throw null; } init { } }
