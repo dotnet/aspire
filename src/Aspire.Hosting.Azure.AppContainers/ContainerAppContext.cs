@@ -208,17 +208,15 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         if (volume.DirectoryMode.HasValue)
         {
-            // Mask to permission bits only and format as octal
-            var permissionBits = (int)volume.DirectoryMode.Value & 0b111_111_111; // rwxrwxrwx
-            var octal = Convert.ToString(permissionBits, 8).PadLeft(4, '0');
+            // Format as 4-digit octal (ContainerMountAnnotation already validates permission bits only)
+            var octal = Convert.ToString((int)volume.DirectoryMode.Value, 8).PadLeft(4, '0');
             options.Add($"dir_mode={octal}");
         }
 
         if (volume.FileMode.HasValue)
         {
-            // Mask to permission bits only and format as octal
-            var permissionBits = (int)volume.FileMode.Value & 0b111_111_111; // rwxrwxrwx
-            var octal = Convert.ToString(permissionBits, 8).PadLeft(4, '0');
+            // Format as 4-digit octal (ContainerMountAnnotation already validates permission bits only)
+            var octal = Convert.ToString((int)volume.FileMode.Value, 8).PadLeft(4, '0');
             options.Add($"file_mode={octal}");
         }
 

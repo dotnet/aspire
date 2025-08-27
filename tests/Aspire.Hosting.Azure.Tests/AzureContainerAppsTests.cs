@@ -674,10 +674,12 @@ public class AzureContainerAppsTests
             .WithBindMount("bind1", "/path3");
 
         // Add mount annotation with ownership and permissions directly for /path2
-        // 0750 octal = 488 decimal = 111 101 000 binary (rwx r-x ---)
-        // 0640 octal = 416 decimal = 110 100 000 binary (rw- r-- ---)
-        var directoryMode = (UnixFileMode)488; // 0750 = rwx r-x ---
-        var fileMode = (UnixFileMode)416;      // 0640 = rw- r-- ---
+        // 0750 octal = rwx r-x --- (user: rwx, group: r-x, other: ---)
+        // 0640 octal = rw- r-- --- (user: rw-, group: r--, other: ---)
+        var directoryMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                           UnixFileMode.GroupRead | UnixFileMode.GroupExecute;
+        var fileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                      UnixFileMode.GroupRead;
 
         var mountAnnotation = new ContainerMountAnnotation(
             "vol2", "/path2", ContainerMountType.Volume, false,
