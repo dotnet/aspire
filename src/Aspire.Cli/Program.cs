@@ -106,7 +106,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddSingleton(sp => BuildCliExecutionContext(sp, debugMode));
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
@@ -154,7 +154,7 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider, bool debugMode)
+    private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
