@@ -393,5 +393,29 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             tempDir.Delete(true);
         }
     }
+
+    [Fact]
+    public void Path_GetRelativePath_HandlesVariousScenarios()
+    {
+        // Test various scenarios for relative path computation
+        
+        // Same directory
+        var result1 = Path.GetRelativePath("/home/user/project", "/home/user/project/app.csproj");
+        Assert.Equal("app.csproj", result1);
+        
+        // Subdirectory
+        var result2 = Path.GetRelativePath("/home/user", "/home/user/project/src/app.csproj");
+        Assert.Equal(Path.Combine("project", "src", "app.csproj"), result2);
+        
+        // Parent directory
+        var result3 = Path.GetRelativePath("/home/user/project/src", "/home/user/project/app.csproj");
+        Assert.Equal(Path.Combine("..", "app.csproj"), result3);
+        
+        // Different drives on Windows would show absolute path, but on Unix it shows relative
+        // This test verifies the basic behavior works
+        Assert.NotEmpty(result1);
+        Assert.NotEmpty(result2);
+        Assert.NotEmpty(result3);
+    }
     }
 }
