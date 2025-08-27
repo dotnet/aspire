@@ -116,15 +116,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
             ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
             ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -152,15 +151,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
             ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
             ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -203,15 +201,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -254,15 +251,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
             ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
             ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
             ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -305,20 +301,29 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
-            ["aca_env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "acaregistry" },
-            ["aca_env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "acaregistry.azurecr.io" },
-            ["aca_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aca-identity" },
-            ["aca_env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "aca.westus.azurecontainerapps.io" },
-            ["aca_env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/acaenv" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "aasregistry" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "aasregistry.azurecr.io" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aas-identity" },
-            ["aas_env_planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/aasplan" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "aas-client-id" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            return deploymentName switch
+            {
+                string name when name.StartsWith("aca-env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "acaregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "acaregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aca-identity" },
+                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "aca.westus.azurecontainerapps.io" },
+                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/acaenv" }
+                },
+                string name when name.StartsWith("aas-env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "aasregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "aasregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aas-identity" },
+                    ["planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/aasplan" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "aas-client-id" }
+                },
+                _ => []
+            };
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
