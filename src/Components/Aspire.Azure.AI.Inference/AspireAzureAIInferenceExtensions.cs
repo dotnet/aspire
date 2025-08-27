@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.AI.Inference;
 using Aspire.Azure.Common;
 using Azure;
 using Azure.AI.Inference;
@@ -58,7 +59,7 @@ public static class AspireAzureAIInferenceExtensions
             connectionName,
             serviceKey: null);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentName, settings.DisableTracing);
     }
 
     /// <summary>
@@ -95,7 +96,7 @@ public static class AspireAzureAIInferenceExtensions
             name,
             serviceKey: name);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing);
     }
 
     private sealed class ChatCompletionsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, ChatCompletionsClient, AzureAIInferenceClientOptions>
@@ -170,14 +171,14 @@ public static class AspireAzureAIInferenceExtensions
     /// Creates a <see cref="IChatClient"/> from the <see cref="ChatCompletionsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
-    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentId = null)
+    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(builder, services, deploymentId));
+            services => CreateInnerChatClient(builder, services, deploymentName));
     }
 
     /// <summary>
@@ -185,9 +186,9 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
-    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentId = null)
+    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -195,16 +196,16 @@ public static class AspireAzureAIInferenceExtensions
 
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            services => CreateInnerChatClient(builder, services, deploymentId));
+            services => CreateInnerChatClient(builder, services, deploymentName));
     }
 
-    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentId)
+    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentName)
     {
         var chatCompletionsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
                         services.GetRequiredService<ChatCompletionsClient>() :
                         services.GetRequiredKeyedService<ChatCompletionsClient>(builder.ServiceKey);
 
-        var result = chatCompletionsClient.AsIChatClient(deploymentId ?? builder.DeploymentId);
+        var result = chatCompletionsClient.AsIChatClient(deploymentName ?? builder.DeploymentName);
 
         if (builder.DisableTracing)
         {
