@@ -76,6 +76,7 @@ public class ProjectResourceExecTests : ExecTestsBase
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11143", TestPlatforms.Windows)]
     public async Task Exec_DotnetInfo_ProducesLogs_Success()
     {
         string[] args = [
