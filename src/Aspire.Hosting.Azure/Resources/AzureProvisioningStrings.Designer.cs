@@ -169,5 +169,50 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ValidationSubscriptionIdInvalid", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure subscription.
+        /// </summary>
+        internal static string SubscriptionDialogTitle {
+            get {
+                return ResourceManager.GetString("SubscriptionDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select your Azure subscription:.
+        /// </summary>
+        internal static string SubscriptionSelectionMessage {
+            get {
+                return ResourceManager.GetString("SubscriptionSelectionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter your Azure subscription ID:.
+        /// </summary>
+        internal static string SubscriptionManualEntryMessage {
+            get {
+                return ResourceManager.GetString("SubscriptionManualEntryMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Azure location and resource group.
+        /// </summary>
+        internal static string LocationDialogTitle {
+            get {
+                return ResourceManager.GetString("LocationDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select your Azure location and specify resource group:.
+        /// </summary>
+        internal static string LocationSelectionMessage {
+            get {
+                return ResourceManager.GetString("LocationSelectionMessage", resourceCulture);
+            }
+        }
     }
 }

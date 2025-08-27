@@ -107,11 +107,19 @@ internal static class ProvisioningTestHelpers
     }
 
     /// <summary>
-    /// Creates a test logger for DefaultProvisioningContextProvider.
+    /// Creates a test logger for RunModeProvisioningContextProvider.
     /// </summary>
-    public static ILogger<DefaultProvisioningContextProvider> CreateLogger()
+    public static ILogger<RunModeProvisioningContextProvider> CreateLogger()
     {
-        return NullLogger<DefaultProvisioningContextProvider>.Instance;
+        return NullLogger<RunModeProvisioningContextProvider>.Instance;
+    }
+
+    /// <summary>
+    /// Creates a test logger for the specified type.
+    /// </summary>
+    public static ILogger<T> CreateLogger<T>() where T : class
+    {
+        return NullLogger<T>.Instance;
     }
 }
 
@@ -181,6 +189,26 @@ internal sealed class TestArmClient(Dictionary<string, object> deploymentOutputs
         var subscription = new TestSubscriptionResource(_deploymentOutputs);
         var tenant = new TestTenantResource();
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
+    }
+
+    public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
+    {
+        var subscriptions = new List<ISubscriptionResource>
+        {
+            new TestSubscriptionResource()
+        };
+        return Task.FromResult<IEnumerable<ISubscriptionResource>>(subscriptions);
+    }
+
+    public Task<IEnumerable<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var locations = new List<(string Name, string DisplayName)>
+        {
+            ("eastus", "East US"),
+            ("westus", "West US"),
+            ("westus2", "West US 2")
+        };
+        return Task.FromResult<IEnumerable<(string, string)>>(locations);
     }
 }
 
@@ -352,6 +380,11 @@ internal sealed class TestArmClientProvider(Dictionary<string, object> deploymen
     public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
         return new TestArmClient(_deploymentOutputs);
+    }
+
+    public IArmClient GetArmClient(TokenCredential credential)
+    {
+        return new TestArmClient();
     }
 }
 
