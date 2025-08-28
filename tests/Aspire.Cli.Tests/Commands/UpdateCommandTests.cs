@@ -38,6 +38,11 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             _ = _projectFile;
             return Task.CompletedTask;
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<List<FileInfo>>([_projectFile]);
+        }
     }
 
     [Fact]

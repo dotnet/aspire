@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class DefaultProvisioningContextProviderTests
+public class ProvisioningContextProviderTests
 {
     private readonly TestInteractionService _defaultInteractionService = new() { IsAvailable = false };
 
@@ -27,7 +27,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -65,7 +65,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -93,7 +93,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             new TestInteractionService() { IsAvailable = false },
             options,
             environment,
@@ -121,7 +121,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -157,7 +157,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -187,7 +187,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -218,7 +218,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
             environment,
@@ -250,7 +250,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             testInteractionService,
             options,
             environment,
@@ -277,29 +277,29 @@ public class DefaultProvisioningContextProviderTests
         Assert.Collection(inputsInteraction.Inputs,
             input =>
             {
-                Assert.Equal(DefaultProvisioningContextProvider.LocationName, input.Name);
+                Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
             {
-                Assert.Equal(DefaultProvisioningContextProvider.SubscriptionIdName, input.Name);
+                Assert.Equal(BaseProvisioningContextProvider.SubscriptionIdName, input.Name);
                 Assert.Equal("Subscription ID", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
             {
-                Assert.Equal(DefaultProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
                 Assert.Equal("Resource group", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -327,7 +327,7 @@ public class DefaultProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
-        var provider = new DefaultProvisioningContextProvider(
+        var provider = new RunModeProvisioningContextProvider(
             testInteractionService,
             options,
             environment,
@@ -346,9 +346,9 @@ public class DefaultProvisioningContextProviderTests
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.SubscriptionIdName].Value = "not a guid";
-        inputsInteraction.Inputs[DefaultProvisioningContextProvider.ResourceGroupName].Value = "invalid group";
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "not a guid";
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "invalid group";
 
         var context = new InputsDialogValidationContext
         {
@@ -364,4 +364,43 @@ public class DefaultProvisioningContextProviderTests
         Assert.True((bool)context.GetType().GetProperty("HasErrors", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(context, null)!);
     }
 
+    [Fact]
+    public async Task PublishMode_CreateProvisioningContextAsync_ReturnsValidContext()
+    {
+        // Arrange
+        var options = ProvisioningTestHelpers.CreateOptions();
+        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var userSecrets = new JsonObject();
+
+        var provider = new PublishModeProvisioningContextProvider(
+            _defaultInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
+            publishingOptions);
+
+        // Act
+        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.NotNull(context.Credential);
+        Assert.NotNull(context.ArmClient);
+        Assert.NotNull(context.Subscription);
+        Assert.NotNull(context.ResourceGroup);
+        Assert.NotNull(context.Tenant);
+        Assert.NotNull(context.Location.DisplayName);
+        Assert.NotNull(context.Principal);
+        Assert.NotNull(context.UserSecrets);
+        Assert.Equal("westus2", context.Location.Name);
+    }
 }

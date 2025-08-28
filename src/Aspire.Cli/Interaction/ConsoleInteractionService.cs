@@ -158,24 +158,6 @@ internal class ConsoleInteractionService : IInteractionService
         DisplayMessage("check_mark", message);
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
-    {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
-        if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
-        {
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-        }
-        else
-        {
-            _ansiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-        }
-        _ansiConsole.WriteLine();
-    }
-
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
         foreach (var (stream, line) in lines)

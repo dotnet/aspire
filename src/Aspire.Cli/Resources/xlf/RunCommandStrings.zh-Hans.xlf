@@ -32,6 +32,11 @@
         <target state="translated">终结点</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="new">To view AppHost logs in real-time, switch to the AppHost Debug Console.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">资源的运行状况，例如“正常”</target>
@@ -62,15 +67,15 @@
         <target state="translated">无法运行该项目。有关详细信息，请使用 --debug 开关运行。</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptForDebugging">
-        <source>Do you want to start a debugging session?</source>
-        <target state="translated">是否要启动调试会话?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">资源</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="new">Whether to start a debug session during the run.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
