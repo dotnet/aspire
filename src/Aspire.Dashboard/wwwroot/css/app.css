@@ -859,3 +859,8 @@ fluent-tooltip[anchor="dialog_close"] > div {
     font-size: var(--type-ramp-plus-2-font-size);
     font-weight: 500;
 }
+
+.dialog-header {
+    font-size: var(--type-ramp-plus-3-font-size);
+    line-height: var(--type-ramp-plus-3-line-height);
+}
