@@ -1,0 +1,31 @@
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+
+<div class="log-overflow">
+    <div class="log-container" id="@_containerId">
+        <Virtualize Items="@ViewModel.FormattedLines" ItemSize="20" OverscanCount="200">
+            <div class="log-line-row-container">
+                <div class="log-line-row">
+                    <span class="log-line-area">
+                        <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
+                        @if (context.IsFormatted)
+                        {
+                            // data-content and data-language used in javascript when re-highlighting a node when its
+                            // content changes (through scrolling)
+                            <span class="@GetLogContentClass()" data-content="@context.Content" data-language="@ViewModel.FormatKind">
+                                @context.Content
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="log-content">
+                                @context.Content
+                            </span>
+                        }
+                    </span>
+                </div>
+            </div>
+        </Virtualize>
+    </div>
+</div>
