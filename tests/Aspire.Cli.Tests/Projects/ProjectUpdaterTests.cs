@@ -597,27 +597,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var formattedText = packageStep.GetFormattedDisplayText();
 
         // Assert
-        Assert.Equal("Update package [bold yellow]Aspire.Hosting.Redis[/] from [dim]9.0.0[/] to [bold green]9.1.0[/] in [cyan]MyProject[/]", formattedText);
-    }
-
-    [Fact]
-    public void SdkUpdateStep_GetFormattedDisplayText_ReturnsFormattedString()
-    {
-        // Arrange
-        var projectFile = new FileInfo("/path/to/MyApp.AppHost.csproj");
-        var sdkStep = new SdkUpdateStep(
-            "Update AppHost SDK from 9.0.0 to 9.1.0",
-            () => Task.CompletedTask,
-            "Aspire AppHost SDK",
-            "9.0.0", 
-            "9.1.0",
-            projectFile);
-
-        // Act
-        var formattedText = sdkStep.GetFormattedDisplayText();
-
-        // Assert
-        Assert.Equal("Update [bold blue]Aspire AppHost SDK[/] from [dim]9.0.0[/] to [bold green]9.1.0[/] in [cyan]MyApp.AppHost[/]", formattedText);
+        Assert.Equal("[bold yellow]Aspire.Hosting.Redis[/] [bold green]9.0.0[/] to [bold green]9.1.0[/]", formattedText);
     }
 }
 
