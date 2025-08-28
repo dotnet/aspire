@@ -15,14 +15,15 @@
            HighlightText="@FilterText"
            StopClickPropagation="true">
     <ContentInButtonArea>
+        @if (!string.IsNullOrEmpty(LogEntry.TraceId) &&
+            !string.IsNullOrEmpty(LogEntry.SpanId) &&
+            LogEntry.Attributes.GetValue("gen_ai.system") is { Length: > 0 })
+        {
+            <FluentButton Appearance="Appearance.Lightweight" OnClick="LaunchGenAiVisualizerAsync">
+                <FluentIcon Icon="Icons.Regular.Size20.BrainCircuit"
+                            Color="Color.Accent" />
+            </FluentButton>
+        }
         <ExceptionDetails ExceptionText="@_exceptionText" />
     </ContentInButtonArea>
 </GridValue>
-
-@code {
-    [Parameter, EditorRequired]
-    public required OtlpLogEntry LogEntry { get; set; }
-
-    [Parameter, EditorRequired]
-    public required string FilterText { get; set; }
-}

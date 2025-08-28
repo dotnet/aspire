@@ -1,10 +1,16 @@
 ::deep .span-events-container {
-    background: var(--neutral-fill-layer-rest);
+    background: var(--main-container-background-color);
     color: var(--neutral-foreground-rest);
     border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
     border-radius: calc(var(--layer-corner-radius) * 1px);
     padding: 16px;
-    max-height: 65vh;
+    padding-top: 8px;
+    height: 65vh;
+    overflow-y: auto;
+}
+
+::deep .span-events-sidebar {
+    height: 65vh;
     overflow-y: auto;
 }
 
@@ -32,10 +38,15 @@
 
 ::deep .genai-event-tree {
     --base-height-multiplier: 9;
+    min-width: auto;
 }
 
 ::deep fluent-tree-item::part(positioning-region) {
     margin-bottom: 1px;
+}
+
+::deep fluent-tree-item:not([selected])::part(positioning-region):not(:hover) {
+    background-color: unset;
 }
 
 ::deep .event-name {
@@ -43,40 +54,77 @@
     column-gap: 4px;
 }
 
-
-::deep .genai-badge {
-    border-radius: 4px;
+::deep .category-badge, ::deep .llm-badge {
     display: inline-flex;
+}
+
+::deep .category-badge {
+    border-radius: 4px;
     margin-left: 8px;
-    column-gap: 4px;
     font-size: 12px;
-    padding: 0px 2px;
     line-height: 18px;
+    padding: 0px 2px;
+    column-gap: 2px;
+}
+
+::deep .llm-badge {
+    border-radius: 8px;
+    padding: 0px 8px;
+    background-color: var(--llm-background-color);
+    color: var(--llm-color);
+    margin-right: 8px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 ::deep .category-message {
-    background-color: #063004;
-    color: #5ec75a;
-    --icon-color: #5ec75a;
+    background-color: var(--message-background-color);
+    color: var(--message-color);
+    --icon-color: var(--message-color);
 }
 
 ::deep .category-tool-calls {
-    background-color: #082338;
-    color: #62abf5;
-    --icon-color: #62abf5;
+    background-color: var(--tool-calls-background-color);
+    color: var(--tool-calls-color);
+    --icon-color: var(--tool-calls-color);
 }
 
-::deep .event-system {
-    background-color: rgb(205, 214, 216);
+::deep .category-completion {
+    background-color: var(--completion-background-color);
+    color: var(--completion-color);
+    --icon-color: var(--completion-color);
 }
 
-::deep .event-user {
-    background-color: #7a2101;
+::deep .event-header {
+    display: flex;
+    align-items: center;
+    height: 50px;
 }
 
-::deep .event-assistant {
-    background-color: rgb(244, 191, 171);
+::deep .event-header-details {
+    display: flex;
+    flex-flow: column;
+    font-size: 12px;
+    margin-left: auto;
+    margin-right: 8px;
 }
 
-::deep .event-tool {
+::deep .event-header-title {
+    display: flex;
+    flex-flow: column;
+}
+
+::deep .event-header-date {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+}
+
+::deep .tab-container {
+    margin-top: 10px;
+}
+
+::deep .span-details-layout, ::deep .property-grid-container {
+    padding: 0;
+    overflow: initial;
+    display: block;
 }

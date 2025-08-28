@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
@@ -383,47 +382,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
         else
         {
-            var entryProperties = viewModel.Span.AllProperties()
-                .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
-                .ToList();
-
-            var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
-
-            var links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
-            var backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
-
-            var spanDetailsViewModel = new SpanDetailsViewModel
-            {
-                Span = viewModel.Span,
-                Resources = _resources,
-                Properties = entryProperties,
-                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _resources),
-                Links = links,
-                Backlinks = backlinks,
-            };
+            var spanDetailsViewModel = SpanDetailsViewModel.Create(viewModel.Span, TelemetryRepository, _resources);
 
             SelectedData = new TraceDetailSelectedDataViewModel
             {
                 SpanViewModel = spanDetailsViewModel
             };
         }
-    }
-
-    private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
-    {
-        ref var trace = ref CollectionsMarshal.GetValueRefOrAddDefault(traceCache, traceId, out _);
-        // Adds to dictionary if not present.
-        trace ??= TelemetryRepository.GetTrace(traceId);
-
-        var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
-
-        return new SpanLinkViewModel
-        {
-            TraceId = traceId,
-            SpanId = spanId,
-            Attributes = attributes,
-            Span = linkSpan,
-        };
     }
 
     private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
@@ -519,9 +484,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             ViewportInformation,
             DialogService,
             DialogsLoc,
-            spanViewModel.Span.Name,
             spanViewModel.Span,
-            spanViewModel.SpanLogs.Select(l => l.LogEntry).ToList());
+            spanViewModel.SpanLogs.Select(l => l.LogEntry).ToList(),
+            selectedLogEntryId: null,
+            TelemetryRepository,
+            _resources);
     }
 
     public void Dispose()

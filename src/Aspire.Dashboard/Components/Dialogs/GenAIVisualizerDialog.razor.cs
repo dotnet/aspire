@@ -23,23 +23,11 @@ public partial class GenAIVisualizerDialog : ComponentBase
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; set; }
+
     protected override void OnInitialized()
     {
-        foreach (var item in Content.LogEntries)
-        {
-            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
-            {
-                Content.Events.Add(new GenAIEvent
-                {
-                    InternalId = item.InternalId,
-                    Type = type.Value,
-                    Parent = Content.Span,
-                    TimeStamp = item.TimeStamp,
-                    Body = DeserializeBody(type.Value, item.Message)
-                });
-            }
-        }
-
         var resources = TelemetryRepository.GetResources();
         Content.SourceName = OtlpResource.GetResourceName(Content.Span.Source, resources);
 
@@ -51,6 +39,28 @@ public partial class GenAIVisualizerDialog : ComponentBase
         {
             Content.PeerName = OtlpHelpers.GetPeerAddress(Content.Span.Attributes)!;
         }
+
+        Content.ModelName = Content.Span.Attributes.GetValue("gen_ai.response.model");
+        Content.InputTokens = Content.Span.Attributes.GetValueAsInteger("gen_ai.usage.input_tokens");
+        Content.OutputTokens = Content.Span.Attributes.GetValueAsInteger("gen_ai.usage.output_tokens");
+
+        foreach (var item in Content.LogEntries)
+        {
+            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
+            {
+                Content.Events.Add(new GenAIEventViewModel
+                {
+                    InternalId = item.InternalId,
+                    Type = type.Value,
+                    Parent = Content.Span,
+                    TimeStamp = item.TimeStamp,
+                    Body = DeserializeBody(type.Value, item.Message),
+                    ResourceName = type.Value is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? Content.PeerName! : Content.SourceName!
+                });
+            }
+        }
+
+        Content.SelectedEvent = Content.Events.SingleOrDefault(e => e.InternalId == Content.SelectedLogEntryId);
     }
 
     private static object? DeserializeBody(GenAIEventType type, string message)
@@ -82,11 +92,12 @@ public partial class GenAIVisualizerDialog : ComponentBase
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        _ = Content;
+        Content.SelectedEvent = Content.SelectedTreeItem?.Data as GenAIEventViewModel;
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
-    private static string GetEventTitle(GenAIEvent e)
+    private static string GetEventTitle(GenAIEventViewModel e)
     {
         return e.Type switch
         {
@@ -99,8 +110,10 @@ public partial class GenAIVisualizerDialog : ComponentBase
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
-        IStringLocalizer<Resources.Dialogs> dialogsLoc, string title, OtlpSpan span, List<OtlpLogEntry> logEntries)
+        IStringLocalizer<Resources.Dialogs> dialogsLoc, OtlpSpan span, List<OtlpLogEntry> logEntries, long? selectedLogEntryId,
+        TelemetryRepository telemetryRepository, List<OtlpResource> resources)
     {
+        var title = span.Name;
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
         var parameters = new DialogParameters
         {
@@ -112,11 +125,15 @@ public partial class GenAIVisualizerDialog : ComponentBase
             PreventScroll = true,
         };
 
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
+
         var vm = new GenAIVisualizerDialogViewModel
         {
             Title = title,
             Span = span,
-            LogEntries = logEntries
+            LogEntries = logEntries,
+            SelectedLogEntryId = selectedLogEntryId,
+            SpanDetailsViewModel = spanDetailsViewModel
         };
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(vm, parameters);

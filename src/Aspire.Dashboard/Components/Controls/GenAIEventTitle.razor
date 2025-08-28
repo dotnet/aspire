@@ -1,0 +1,18 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Metrics = Aspire.Dashboard.Resources.Metrics
+
+@if (_eventBadge is { } eventBadge)
+{
+    <span class="event-name">
+        <FluentIcon Value="@eventBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(ResourceName)" />
+        @eventBadge.Text
+    </span>
+}
+
+@if (_categoryBadge is { } categoryBadge)
+{
+    <span class="category-badge category-@categoryBadge.Class">
+        <FluentIcon Value="@categoryBadge.Icon" Width="16px" Color="Color.Custom" CustomColor="var(--icon-color)" />
+        @categoryBadge.Text
+    </span>
+}

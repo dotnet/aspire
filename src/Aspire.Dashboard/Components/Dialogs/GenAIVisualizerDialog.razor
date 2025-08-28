@@ -1,6 +1,8 @@
 ﻿@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Dialogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -25,16 +27,69 @@
                         Style="height:100%"
                         Panel1Size="3fr"
                         Panel2Size="7fr"
-                        BarSize="5">
+                        BarSize="10">
             <Panel1>
-                <TreeGenAISelector @ref="_treeGenAISelector"
-                                   PageViewModel="@Content"
-                                   HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                <div class="span-events-sidebar">
+                    <TreeGenAISelector @ref="_treeGenAISelector"
+                                       PageViewModel="@Content"
+                                       HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                </div>
             </Panel1>
             <Panel2>
                 <div class="span-events-container">
-                    @RenderEventSection("Input", Content.Events.Where(e => e.Type != GenAIEventType.Choice).ToList())
-                    @RenderEventSection("Output", Content.Events.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                    @if (Content.SelectedEvent == null)
+                    {
+                        <div class="event-header">
+                            <span class="llm-badge">LLM</span>
+                            <div class="event-header-title">
+                                <span>@Content.Span.Name</span>
+                                <span class="event-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
+                            </div>
+                            <div class="event-header-details">
+                                <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
+                            </div>
+                        </div>
+                        <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" Size="null">
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
+                                       Label="Input & output">
+                                <div class="tab-container">
+                                    @RenderEventSection("Input", Content.Events.Where(e => e.Type != GenAIEventType.Choice).ToList())
+                                    @RenderEventSection("Output", Content.Events.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                                </div>
+                            </FluentTab>
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-overview-{OverviewViewKind.Details}")"
+                                       Label="Details">
+                                <div class="tab-container">
+                                    <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" HideToolbar="true" />
+                                </div>
+                            </FluentTab>
+                        </FluentTabs>
+                    }
+                    else
+                    {
+                        <div class="event-header">
+                            <GenAIEventTitle Event="@Content.SelectedEvent" ResourceName="@Content.SelectedEvent.ResourceName" />
+                        </div>
+                        <FluentTabs ActiveTabId="@($"tab-content-{Content.ContentActiveView}")" Size="null">
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-content-{ContentViewKind.Preview}")"
+                                       Label="Preview">
+                                <div class="tab-container">
+                                    @InteractionMarkdownHelper.ToMarkupString((Content.SelectedEvent.Body as SystemOrUserEvent)?.Content ?? string.Empty)
+                                </div>
+                            </FluentTab>
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-content-{ContentViewKind.Raw}")"
+                                       Label="Raw">
+                                <div class="tab-container">
+                                    @Content.SelectedEvent.Body
+                                </div>
+                            </FluentTab>
+                        </FluentTabs>
+                    }
                 </div>
             </Panel2>
         </FluentSplitter>
@@ -44,7 +99,7 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderEventSection(string title, List<GenAIEvent> events)
+    RenderFragment RenderEventSection(string title, List<GenAIEventViewModel> events)
     {
         return@<div>
             <div class="section-title">@title</div>
