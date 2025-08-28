@@ -1,22 +1,58 @@
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOSMOSDB001
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureContainerAppEnvironment("env");
+var aca = builder.AddAzureContainerAppEnvironment("aca-env");
+var aas = builder.AddAzureAppServiceEnvironment("aas-env");
 
 var storage = builder.AddAzureStorage("storage");
 
-storage.AddBlobs("blobs");
-storage.AddBlobContainer("mycontainer1", blobContainerName: "test-container-1");
-storage.AddBlobContainer("mycontainer2", blobContainerName: "test-container-2");
-storage.AddQueue("myqueue", queueName: "my-queue");
+var queue = storage.AddQueues("queue");
+var blob = storage.AddBlobs("foobarbaz");
+var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
-builder.AddRedis("cache");
+var eventHub = builder.AddAzureEventHubs("eventhubs")
+    .RunAsEmulator()
+    .AddHub("myhub");
+var serviceBus = builder.AddAzureServiceBus("messaging")
+    .RunAsEmulator();
+serviceBus.AddServiceBusQueue("myqueue");
+var cosmosDb = builder.AddAzureCosmosDB("cosmosdb")
+    .RunAsPreviewEmulator();
+var database = cosmosDb.AddCosmosDatabase("mydatabase");
+database.AddContainer("mycontainer", "/id");
+
+builder.AddRedis("cache")
+    .WithComputeEnvironment(aca);
+
+builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("functions-api-service")
+    .WithExternalHttpEndpoints()
+    .WithComputeEnvironment(aas)
+    .WithReference(eventHub).WaitFor(eventHub)
+    .WithReference(serviceBus).WaitFor(serviceBus)
+    .WithReference(cosmosDb).WaitFor(cosmosDb)
+    .WithReference(queue)
+    .WithReference(blob);
 
 builder.AddProject<Projects.Deployers_ApiService>("api-service")
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithComputeEnvironment(aas);
 
 builder.AddDockerfile("python-app", "../Deployers.Dockerfile")
     .WithHttpEndpoint(targetPort: 80)
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithComputeEnvironment(aca);
+
+builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("func-app")
+    .WithExternalHttpEndpoints()
+    .WithComputeEnvironment(aca)
+    .WithReference(eventHub).WaitFor(eventHub)
+    .WithReference(serviceBus).WaitFor(serviceBus)
+    .WithReference(cosmosDb).WaitFor(cosmosDb)
+    .WithReference(myBlobContainer).WaitFor(myBlobContainer)
+    .WithReference(blob)
+    .WithReference(queue);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

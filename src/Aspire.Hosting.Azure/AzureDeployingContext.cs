@@ -22,7 +22,8 @@ internal sealed class AzureDeployingContext(
     IUserSecretsManager userSecretsManager,
     IBicepProvisioner bicepProvisioner,
     IPublishingActivityReporter activityReporter,
-    IResourceContainerImageBuilder containerImageBuilder)
+    IResourceContainerImageBuilder containerImageBuilder,
+    IProcessRunner processRunner)
 {
     public async Task DeployModelAsync(AzureEnvironmentResource resource, DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
@@ -115,7 +116,7 @@ internal sealed class AzureDeployingContext(
 
     private async Task<bool> TryDeployContainerImages(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        var computeResources = model.GetComputeResources();
+        var computeResources = model.GetComputeResources().Where(r => r.RequiresImageBuildAndPush());
 
         if (!computeResources.Any())
         {
@@ -187,7 +188,7 @@ internal sealed class AzureDeployingContext(
         {
             try
             {
-                if (computeResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+                if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget)
                 {
                     if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
                     {
@@ -222,7 +223,7 @@ internal sealed class AzureDeployingContext(
 
     private static bool TryGetContainerRegistry(IResource computeResource, [NotNullWhen(true)] out IContainerRegistry? containerRegistry)
     {
-        if (computeResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget) &&
+        if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget &&
             deploymentTarget.ContainerRegistry is { } registry)
         {
             containerRegistry = registry;
@@ -272,7 +273,7 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private static async Task AuthenticateToAcr(IPublishingStep parentStep, string registryName, CancellationToken cancellationToken)
+    private async Task AuthenticateToAcr(IPublishingStep parentStep, string registryName, CancellationToken cancellationToken)
     {
         var loginTask = await parentStep.CreateTaskAsync($"Logging in to container registry", cancellationToken).ConfigureAwait(false);
         var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
@@ -284,7 +285,7 @@ internal sealed class AzureDeployingContext(
                 ThrowOnNonZeroReturnCode = false
             };
 
-            var (pendingResult, processDisposable) = ProcessUtil.Run(loginSpec);
+            var (pendingResult, processDisposable) = processRunner.Run(loginSpec);
             await using (processDisposable.ConfigureAwait(false))
             {
                 var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -297,7 +298,7 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private static async Task PushImageToAcr(IPublishingStep parentStep, IEnumerable<IResource> resources, CancellationToken cancellationToken)
+    private async Task PushImageToAcr(IPublishingStep parentStep, IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
         foreach (var resource in resources)
         {
@@ -330,20 +331,20 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private static async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken)
+    private async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken)
     {
         await RunDockerCommand($"tag {localTag} {targetTag}", cancellationToken).ConfigureAwait(false);
         await RunDockerCommand($"push {targetTag}", cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task RunDockerCommand(string arguments, CancellationToken cancellationToken)
+    private async Task RunDockerCommand(string arguments, CancellationToken cancellationToken)
     {
         var dockerSpec = new ProcessSpec("docker")
         {
             Arguments = arguments
         };
 
-        var (pendingResult, processDisposable) = ProcessUtil.Run(dockerSpec);
+        var (pendingResult, processDisposable) = processRunner.Run(dockerSpec);
         await using (processDisposable.ConfigureAwait(false))
         {
             await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);

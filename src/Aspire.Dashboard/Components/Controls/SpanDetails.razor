@@ -18,7 +18,12 @@
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, DurationFormatter.FormatDuration(ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime)))
+            @{
+                // Start time for root span is zero. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from duration.
+                var startTime = ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime;
+                var formattedStartTime = startTime > TimeSpan.Zero ? DurationFormatter.FormatDuration(startTime) : $"0{DurationFormatter.GetUnit(ViewModel.Span.Duration)}";
+            }
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, formattedStartTime))
         </div>
         <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />

@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit.Sdk;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
@@ -48,9 +47,13 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
         var initialSnapshot = Assert.Single(dashboard.Annotations.OfType<ResourceSnapshotAnnotation>());
 
+        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
-        Assert.Equal(dashboardPath, dashboard.Command);
+        // dotnet exec --runtimeconfig <temp runtimeconfig.json> <dashboardPath>.dll
+        Assert.Equal("dotnet", dashboard.Command);
+        Assert.Equal(args[3], $"{dashboardPath}.dll");
         Assert.True(initialSnapshot.InitialSnapshot.IsHidden);
     }
 
@@ -183,7 +186,10 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(dashboard);
         Assert.Equal("aspire-dashboard", dashboard.Name);
         Assert.Equal("dotnet", dashboard.Command);
-        Assert.Equal([dashboardPath], args);
+        Assert.Equal("exec", args[0]);
+        Assert.Equal("--runtimeconfig", args[1]);
+        Assert.EndsWith(".json", args[2]); // Generated temp runtimeconfig.json path
+        Assert.Equal(dashboardPath, args[3]);
     }
 
     [Theory]

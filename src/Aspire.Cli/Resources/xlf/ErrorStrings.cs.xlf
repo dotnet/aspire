@@ -17,6 +17,11 @@
         <target state="translated">Soubor AppHost byl zadán v {0}, ale v {1} neexistuje.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion má hodnotu null.</target>
@@ -82,6 +87,11 @@
         <target state="translated">Nepodařilo se analyzovat verzi šablony ze stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Nepovedlo se načíst balíčky šablon prostřednictvím mezipaměti.</target>
@@ -130,6 +140,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="translated">Soubor projektu neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="new">Could not build: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

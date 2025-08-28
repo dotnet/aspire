@@ -178,6 +178,313 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("true", envVars.Single(e => e.Key == "ASPIRE_DASHBOARD_PURPLE_MONKEY_DISHWASHER").Value);
     }
 
+    [Fact]
+    public async Task AddDashboardResource_CreatesExecutableResourceWithCustomRuntimeConfig()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Create a temporary test dashboard directory with a dll and runtimeconfig.json
+        var tempDir = Path.GetTempFileName();
+        File.Delete(tempDir);
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
+            var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
+
+            // Create a mock DLL file
+            File.WriteAllText(dashboardDll, "mock dll content");
+
+            // Create a mock runtime config similar to the real one
+            var originalConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    rollForward = "Major",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = "8.0.0" },
+                        new { name = "Microsoft.AspNetCore.App", version = "8.0.0" }
+                    },
+                    configProperties = new
+                    {
+                        SystemGCServer = true,
+                        SystemGCDynamicAdaptationMode = 1,
+                        SystemRuntimeSerializationEnableUnsafeBinaryFormatterSerialization = false
+                    }
+                }
+            };
+
+            File.WriteAllText(runtimeConfig, JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            var dashboardOptions = Options.Create(new DashboardOptions { DashboardPath = dashboardDll });
+            var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+            var model = new DistributedApplicationModel(new ResourceCollection());
+
+            // Act
+            await hook.BeforeStartAsync(model, CancellationToken.None);
+
+            // Assert
+            var dashboardResource = Assert.Single(model.Resources);
+            Assert.Equal(KnownResourceNames.AspireDashboard, dashboardResource.Name);
+
+            var executableResource = Assert.IsType<ExecutableResource>(dashboardResource);
+            Assert.Equal("dotnet", executableResource.Command);
+
+            // Verify the command line arguments include exec --runtimeconfig
+            var argsAnnotation = executableResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+            var args = new List<object>();
+            await argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+            Assert.Equal(4, args.Count);
+            Assert.Equal("exec", args[0]);
+            Assert.Equal("--runtimeconfig", args[1]);
+            Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
+            Assert.Equal(dashboardDll, args[3]);
+
+            // Verify that the custom runtime config has been updated with current framework versions
+            var customConfigContent = File.ReadAllText((string)args[2]);
+            var customConfig = JsonSerializer.Deserialize<JsonElement>(customConfigContent);
+            
+            var frameworks = customConfig.GetProperty("runtimeOptions").GetProperty("frameworks").EnumerateArray().ToArray();
+            var netCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.NETCore.App");
+            var aspNetCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.AspNetCore.App");
+
+            // The versions should be updated to match the AppHost's target framework versions
+            // In the test environment, the AppHost targets .NET 8.0, so the versions should be "8.0.0"
+            Assert.Equal("8.0.0", netCoreFramework.GetProperty("version").GetString());
+            Assert.Equal("8.0.0", aspNetCoreFramework.GetProperty("version").GetString());
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddDashboardResource_WithExecutablePath_CreatesCorrectArguments()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Create a temporary test dashboard directory with exe, dll and runtimeconfig.json
+        var tempDir = Path.GetTempFileName();
+        File.Delete(tempDir);
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var dashboardExe = Path.Combine(tempDir, "Aspire.Dashboard.exe");
+            var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
+            var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
+
+            // Create mock files
+            File.WriteAllText(dashboardExe, "mock exe content");
+            File.WriteAllText(dashboardDll, "mock dll content");
+
+            var originalConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    rollForward = "Major",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = "8.0.0" },
+                        new { name = "Microsoft.AspNetCore.App", version = "8.0.0" }
+                    }
+                }
+            };
+
+            File.WriteAllText(runtimeConfig, JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            var dashboardOptions = Options.Create(new DashboardOptions { DashboardPath = dashboardExe });
+            var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+            var model = new DistributedApplicationModel(new ResourceCollection());
+
+            // Act
+            await hook.BeforeStartAsync(model, CancellationToken.None);
+
+            // Assert
+            var dashboardResource = Assert.Single(model.Resources);
+            var executableResource = Assert.IsType<ExecutableResource>(dashboardResource);
+            Assert.Equal("dotnet", executableResource.Command);
+
+            var argsAnnotation = executableResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+            var args = new List<object>();
+            await argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+            Assert.Equal(4, args.Count);
+            Assert.Equal("exec", args[0]);
+            Assert.Equal("--runtimeconfig", args[1]);
+            Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
+            Assert.Equal(dashboardDll, args[3]); // Should point to the DLL, not the EXE
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddDashboardResource_WithUnixExecutablePath_CreatesCorrectArguments()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Create a temporary test dashboard directory with Unix executable (no extension), dll and runtimeconfig.json
+        var tempDir = Path.GetTempFileName();
+        File.Delete(tempDir);
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var dashboardExe = Path.Combine(tempDir, "Aspire.Dashboard"); // No extension for Unix
+            var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
+            var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
+
+            // Create mock files
+            File.WriteAllText(dashboardExe, "mock exe content");
+            File.WriteAllText(dashboardDll, "mock dll content");
+
+            var originalConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    rollForward = "Major",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = "8.0.0" },
+                        new { name = "Microsoft.AspNetCore.App", version = "8.0.0" }
+                    }
+                }
+            };
+
+            File.WriteAllText(runtimeConfig, JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            var dashboardOptions = Options.Create(new DashboardOptions { DashboardPath = dashboardExe });
+            var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+            var model = new DistributedApplicationModel(new ResourceCollection());
+
+            // Act
+            await hook.BeforeStartAsync(model, CancellationToken.None);
+
+            // Assert
+            var dashboardResource = Assert.Single(model.Resources);
+            var executableResource = Assert.IsType<ExecutableResource>(dashboardResource);
+            Assert.Equal("dotnet", executableResource.Command);
+
+            var argsAnnotation = executableResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+            var args = new List<object>();
+            await argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+            Assert.Equal(4, args.Count);
+            Assert.Equal("exec", args[0]);
+            Assert.Equal("--runtimeconfig", args[1]);
+            Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
+            Assert.Equal(dashboardDll, args[3]); // Should point to the DLL, not the EXE
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AddDashboardResource_WithDirectDllPath_CreatesCorrectArguments()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Create a temporary test dashboard directory with direct dll and runtimeconfig.json
+        var tempDir = Path.GetTempFileName();
+        File.Delete(tempDir);
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var dashboardDll = Path.Combine(tempDir, "Aspire.Dashboard.dll");
+            var runtimeConfig = Path.Combine(tempDir, "Aspire.Dashboard.runtimeconfig.json");
+
+            // Create mock files
+            File.WriteAllText(dashboardDll, "mock dll content");
+
+            var originalConfig = new
+            {
+                runtimeOptions = new
+                {
+                    tfm = "net8.0",
+                    rollForward = "Major",
+                    frameworks = new[]
+                    {
+                        new { name = "Microsoft.NETCore.App", version = "8.0.0" },
+                        new { name = "Microsoft.AspNetCore.App", version = "8.0.0" }
+                    }
+                }
+            };
+
+            File.WriteAllText(runtimeConfig, JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions { WriteIndented = true }));
+
+            var dashboardOptions = Options.Create(new DashboardOptions { DashboardPath = dashboardDll });
+            var hook = CreateHook(resourceLoggerService, resourceNotificationService, configuration, dashboardOptions: dashboardOptions);
+
+            var model = new DistributedApplicationModel(new ResourceCollection());
+
+            // Act
+            await hook.BeforeStartAsync(model, CancellationToken.None);
+
+            // Assert
+            var dashboardResource = Assert.Single(model.Resources);
+            var executableResource = Assert.IsType<ExecutableResource>(dashboardResource);
+            Assert.Equal("dotnet", executableResource.Command);
+
+            var argsAnnotation = executableResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+            var args = new List<object>();
+            await argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+            Assert.Equal(4, args.Count);
+            Assert.Equal("exec", args[0]);
+            Assert.Equal("--runtimeconfig", args[1]);
+            Assert.True(File.Exists((string)args[2]), "Custom runtime config file should exist");
+            Assert.Equal(dashboardDll, args[3]); // Should point to the same DLL, not modify it
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
     private static DashboardLifecycleHook CreateHook(
         ResourceLoggerService resourceLoggerService,
         ResourceNotificationService resourceNotificationService,

@@ -34,6 +34,7 @@ internal interface IDotNetCliRunner
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -472,20 +473,26 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
-        if (backchannelCompletionSource is not null
-            && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+        if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
-            await extensionInteractionService.LaunchAppHostAsync(
-                projectFile.FullName,
-                startInfo.WorkingDirectory,
-                startInfo.ArgumentList.ToList(),
-                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
-                options.StartDebugSession);
+            // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
-            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+            if (backchannelCompletionSource is not null
+                && projectFile is not null
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+            {
+                await extensionInteractionService.LaunchAppHostAsync(
+                    projectFile.FullName,
+                    startInfo.ArgumentList.ToList(),
+                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                    options.StartDebugSession);
 
-            return ExitCodeConstants.Success;
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+                return ExitCodeConstants.Success;
+            }
         }
 
         var process = new Process { StartInfo = startInfo };
@@ -683,7 +690,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             packageVersion
         };
 
-        if (!string.IsNullOrEmpty(nugetSource))
+        if (string.IsNullOrEmpty(nugetSource))
+        {
+            cliArgsList.Add("--no-restore");
+        }
+        else
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -794,6 +805,46 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
+        }
+    }
+
+    public async Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["nuget", "config", "paths"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: workingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<string>());
+        }
+        else
+        {
+            return (exitCode, stdoutLines.ToArray());
         }
     }
 }

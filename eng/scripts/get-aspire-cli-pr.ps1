@@ -58,12 +58,16 @@
     .\get-aspire-cli-pr.ps1 1234 -WhatIf
 
 .EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -SkipExtensionInstall
+
+.EXAMPLE
     Piped execution
     iex "& { $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1) } <PR_NUMBER>
 
 .NOTES
     Requires GitHub CLI (gh) to be installed and authenticated
     Requires appropriate permissions to download artifacts from target repository
+    VS Code extension installation requires VS Code CLI (code) to be available in PATH
 
 .PARAMETER ASPIRE_REPO (environment variable)
     Override repository (owner/name). Default: dotnet/aspire
@@ -94,6 +98,9 @@ param(
     [Parameter(HelpMessage = "Only install NuGet packages to the hive, skip CLI download")]
     [switch]$HiveOnly,
 
+    [Parameter(HelpMessage = "Skip VS Code extension download and installation")]
+    [switch]$SkipExtensionInstall,
+
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
 )
@@ -103,6 +110,7 @@ $Script:BuiltNugetsArtifactName = "built-nugets"
 $Script:BuiltNugetsRidArtifactName = "built-nugets-for"
 $Script:CliArchiveArtifactNamePrefix = "cli-native-archives"
 $Script:AspireCliArtifactNamePrefix = "aspire-cli"
+$Script:ExtensionArtifactName = "aspire-extension"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
 $Script:HostOS = "unset"
 $Script:Repository = if ($env:ASPIRE_REPO -and $env:ASPIRE_REPO.Trim()) { $env:ASPIRE_REPO.Trim() } else { 'dotnet/aspire' }
@@ -370,6 +378,7 @@ function Expand-AspireCliArchive {
         New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
     }
 
+    Write-Message "Extracting archive: $ArchiveFile" -Level Verbose
     # Check archive format based on file extension and extract accordingly
     if ($ArchiveFile -match "\.zip$") {
         # Use Expand-Archive for ZIP files
@@ -591,6 +600,21 @@ function Test-GitHubCLIDependency {
     }
 }
 
+# Function to check VS Code CLI dependency
+function Test-VSCodeCLIDependency {
+    [CmdletBinding()]
+    param()
+
+    if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
+        Write-Message "VS Code CLI (code) is not available in PATH. Extension installation will be skipped." -Level Warning
+        Write-Message "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available." -Level Info
+        return $false
+    }
+
+    Write-Message "VS Code CLI (code) found" -Level Verbose
+    return $true
+}
+
 # Simplified installation path determination
 function Get-InstallPrefix {
     [CmdletBinding()]
@@ -712,6 +736,71 @@ function Invoke-ArtifactDownload {
             Write-Message "gh run download command failed with exit code $LASTEXITCODE . Command: $($downloadCommand -join ' ')" -Level Verbose
             throw "Failed to download artifact '$ArtifactName' from run: $RunId . If the workflow is still running then the artifact named '$ArtifactName' may not be available yet. Check at https://github.com/dotnet/aspire/actions/runs/$RunId#artifacts"
         }
+    }
+}
+
+# Function to download VS Code extension artifact
+function Get-AspireExtensionFromArtifact {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RunId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TempDir
+    )
+
+    $downloadDir = Join-Path $TempDir "extension"
+    Write-Message "Downloading VS Code extension from GitHub - $Script:ExtensionArtifactName ..." -Level Info
+
+    try {
+        Invoke-ArtifactDownload -RunId $RunId -ArtifactName $Script:ExtensionArtifactName -DownloadDirectory $downloadDir
+        return $downloadDir
+    }
+    catch {
+        Write-Message "Failed to download VS Code extension artifact: $($_.Exception.Message)" -Level Warning
+        Write-Message "This could mean the extension artifact is not available for this build." -Level Info
+        return $null
+    }
+}
+
+# Function to install VS Code extension
+function Install-AspireExtensionFromDownload {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadDir
+    )
+
+    if (!$PSCmdlet.ShouldProcess("VS Code", "Installing Aspire extension")) {
+        return
+    }
+
+    # Find the .vsix file directly (the artifact contains the .vsix file, not a zip)
+    $vsixFile = Get-ChildItem -Path $DownloadDir -Filter "*.vsix" -Recurse | Select-Object -First 1
+
+    if (-not $vsixFile) {
+        Write-Message "No .vsix file found in downloaded artifact" -Level Warning
+        Write-Message "Files found in download directory:" -Level Verbose
+        Get-ChildItem -Path $DownloadDir -Recurse | ForEach-Object { Write-Message "  $($_.Name)" -Level Verbose }
+        return
+    }
+
+    try {
+        # Install the extension using VS Code CLI
+        Write-Message "Installing VS Code extension: $($vsixFile.Name)" -Level Info
+        $installCommand = @("code", "--install-extension", $vsixFile.FullName)
+
+        & $installCommand[0] $installCommand[1..($installCommand.Length-1)]
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Message "VS Code extension successfully installed" -Level Success
+        } else {
+            Write-Message "Failed to install VS Code extension (exit code: $LASTEXITCODE)" -Level Warning
+        }
+    }
+    catch {
+        Write-Message "Failed to install VS Code extension: $($_.Exception.Message)" -Level Warning
     }
 }
 
@@ -906,6 +995,14 @@ function Start-DownloadAndInstall {
     }
     $nugetDownloadDir = Get-BuiltNugets -RunId $runId -RID $rid -TempDir $TempDir
 
+    # Download VS Code extension if not skipped
+    $extensionDownloadDir = $null
+    if (-not $SkipExtensionInstall) {
+        $extensionDownloadDir = Get-AspireExtensionFromArtifact -RunId $runId -TempDir $TempDir
+    } else {
+        Write-Message "Skipping VS Code extension download due to -SkipExtensionInstall flag" -Level Info
+    }
+
     # Then, install artifacts
     Write-Message "Installing artifacts..." -Level Info
     if ($HiveOnly) {
@@ -914,6 +1011,13 @@ function Start-DownloadAndInstall {
         Install-AspireCliFromDownload -DownloadDir $cliDownloadDir -CliBinDir $cliBinDir
     }
     Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
+
+    # Install VS Code extension if downloaded
+    if ($extensionDownloadDir -and -not $SkipExtensionInstall) {
+        if (Test-VSCodeCLIDependency) {
+            Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir
+        }
+    }
 
     # Update PATH environment variables
     if (-not $HiveOnly) {

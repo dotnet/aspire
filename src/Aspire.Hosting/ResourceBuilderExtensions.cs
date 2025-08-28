@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -2258,6 +2259,40 @@ public static class ResourceBuilderExtensions
 
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
+    }
+
+    /// Adds support for debugging the resource in VS Code when running in an extension host.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="debugAdapterId">The debug adapter ID to use. Ie, coreclr</param>
+    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
+    [Experimental("ASPIREEXTENSION001")]
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(debugAdapterId);
+
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
+        {
+            resourceWithArgs.WithArgs(ctx =>
+            {
+                if (!ctx.ExecutionContext.IsRunMode)
+                {
+                    return;
+                }
+
+                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+                if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
+                {
+                    argsCallback(ctx);
+                }
+            });
+        }
+
+        return builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId));
     }
 
     /// <summary>

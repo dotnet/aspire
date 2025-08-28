@@ -4,42 +4,42 @@
     <body>
       <trans-unit id="ContainerRuntimeDockerAdvice">
         <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
-        <target state="new">Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</target>
+        <target state="translated">Verifique se o Docker está em execução e se o daemon do Docker está acessível. Se o modo de Economia de Recursos estiver habilitado, os contêineres poderão não ser executados.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeGenericAdvice">
         <source>Ensure that the container runtime is running.</source>
-        <target state="new">Ensure that the container runtime is running.</target>
+        <target state="translated">Verifique se o runtime do contêiner está em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeLinkText">
         <source>Learn more</source>
-        <target state="new">Learn more</target>
+        <target state="translated">Saiba mais</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledMessage">
         <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="new">Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</target>
+        <target state="translated">Não foi possível encontrar o runtime do contêiner. Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre runtimes de contêiner com suporte.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
         <source>Container Runtime Not Installed</source>
-        <target state="new">Container Runtime Not Installed</target>
+        <target state="translated">Runtime do Contêiner Não Instalado</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
         <source>Ensure that Podman is running.</source>
-        <target state="new">Ensure that Podman is running.</target>
+        <target state="translated">Verifique se o Podman está em execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. </target>
+        <target state="translated">O runtime do contêiner "{0}" foi encontrado, mas parece não estar íntegro. </target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container Runtime Unhealthy</source>
-        <target state="new">Container Runtime Unhealthy</target>
+        <target state="translated">Runtime do Contêiner Não Íntegro</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

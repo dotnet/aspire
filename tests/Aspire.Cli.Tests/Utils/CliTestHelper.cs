@@ -15,6 +15,7 @@ using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
@@ -84,6 +85,9 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+        services.AddSingleton(options.ProjectUpdaterFactory);
+        services.AddSingleton<NuGetPackagePrefetcher>();
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -92,6 +96,8 @@ internal static class CliTestHelper
         services.AddTransient<DeployCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
+        services.AddTransient<UpdateCommand>();
+        services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -200,10 +206,21 @@ internal sealed class CliServiceCollectionTestOptions
         return new AspireCliTelemetry();
     };
 
+    public Func<IServiceProvider, IProjectUpdater> ProjectUpdaterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext);
+    };
+
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
-        return new ConsoleInteractionService(ansiConsole);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ConsoleInteractionService(ansiConsole, executionContext);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -236,7 +253,8 @@ internal sealed class CliServiceCollectionTestOptions
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
     };
 
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>

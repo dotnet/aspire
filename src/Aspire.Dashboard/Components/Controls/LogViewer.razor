@@ -48,21 +48,35 @@
                                     @{
                                         var hasPrefix = false;
                                     }
-                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
-                                    {
-                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
-                                    }
                                     @if (ShowTimestamp && context.Timestamp is { } timestamp)
                                     {
-                                        hasPrefix = true;
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
                                         <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
+                                    }
+                                    @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
+                                    {
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (context.Type == LogEntryType.Error)
                                     {
-                                        hasPrefix = true;
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
                                         <fluent-badge appearance="accent">stderr</fluent-badge>
                                     }
-                                    @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
+                                    @if (DisplayPrefix(ref hasPrefix))
+                                    {
+                                        @s_spaceMarkup
+                                    }
+                                    @((MarkupString)(context.Content ?? string.Empty))
                                 </span>
                             </span>
                         </div>
@@ -72,3 +86,16 @@
         }
     </div>
 </div>
+
+@code {
+    public bool DisplayPrefix(ref bool hasPrefix)
+    {
+        if (hasPrefix)
+        {
+            return true;
+        }
+
+        hasPrefix = true;
+        return false;
+    }
+}

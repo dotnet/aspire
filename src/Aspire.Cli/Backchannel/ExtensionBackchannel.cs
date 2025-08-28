@@ -29,15 +29,17 @@ internal interface IExtensionBackchannel
     Task DisplayIncompatibleVersionErrorAsync(string requiredCapability, string appHostHostingSdkVersion, CancellationToken cancellationToken);
     Task DisplayCancellationMessageAsync(CancellationToken cancellationToken);
     Task DisplayLinesAsync(IEnumerable<DisplayLineState> lines, CancellationToken cancellationToken);
-    Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken);
+    Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
+    Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
-    Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
+    Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
+    Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -360,7 +362,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             cancellationToken);
     }
 
-    public async Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
+    public async Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -370,15 +372,9 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         _logger.LogDebug("Sent dashboard URLs for display");
 
-        var dashboardUrlsState = new DashboardUrlsState()
-        {
-            BaseUrlWithLoginToken = dashboardUrls.BaseUrlWithLoginToken,
-            CodespacesUrlWithLoginToken = dashboardUrls.CodespacesUrlWithLoginToken
-        };
-
         await rpc.InvokeWithCancellationAsync(
             "displayDashboardUrls",
-            [_token, dashboardUrlsState],
+            [_token, dashboardUrls],
             cancellationToken);
     }
 
@@ -505,7 +501,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return capabilities.Contains(capability);
     }
 
-    private async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    public async Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -523,7 +519,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return capabilities;
     }
 
-    public async Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken)
+    public async Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -535,7 +531,23 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         await rpc.InvokeWithCancellationAsync(
             "launchAppHost",
-            [_token, projectFile, workingDirectory, arguments, environment, debug],
+            [_token, projectFile, arguments, environment, debug],
+            cancellationToken);
+    }
+
+    public async Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Notifying that app host startup is completed");
+
+        await rpc.InvokeWithCancellationAsync(
+            "notifyAppHostStartupCompleted",
+            [_token],
             cancellationToken);
     }
 

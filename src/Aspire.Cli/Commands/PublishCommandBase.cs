@@ -40,8 +40,8 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base(name, description, features, updateNotifier)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : base(name, description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -112,7 +112,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -125,7 +125,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, cancellationToken);
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
             if (buildExitCode != 0)
             {
@@ -200,25 +200,9 @@ internal abstract class PublishCommandBase : BaseCommand
             _interactionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput))
+        catch (ProjectLocatorException ex)
         {
-            _interactionService.DisplayError(InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionDoesntExist);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound);
-            return ExitCodeConstants.FailedToFindProject;
-        }
-        catch (ProjectLocatorException ex) when (string.Equals(ex.Message, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput))
-        {
-            _interactionService.DisplayError(InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound);
-            return ExitCodeConstants.FailedToFindProject;
+            return HandleProjectLocatorException(ex, _interactionService);
         }
         catch (AppHostIncompatibleException ex)
         {
