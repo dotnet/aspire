@@ -10,6 +10,9 @@
 
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
+
+    <!-- .net 10 needed specifically to use dotnet.config with dotnet test -->
+    <SdkDirNameForTests>dotnet-10</SdkDirNameForTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,11 +37,9 @@
       <_TestBlameArguments Include="--crashdump" />
       <_TestBlameArguments Include="--crashdump-type Full" />
 
+      <_TestRunCommandArguments Include="dotnet --info $(_ShellCommandSeparator)" />
+
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="pwd $(_ShellCommandSeparator)" />
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="find . -name dotnet.config $(_ShellCommandSeparator)" />
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="which dotnet $(_ShellCommandSeparator)" />
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="dotnet --info $(_ShellCommandSeparator)" />
       <_TestRunCommandArguments Include="dotnet test --results-directory $(_HelixLogsPath) --no-progress --report-trx --report-trx-filename TestResults.trx" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
