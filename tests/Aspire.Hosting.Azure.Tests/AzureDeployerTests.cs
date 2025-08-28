@@ -421,7 +421,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             {
                 Assert.Equal("test-param", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
-                Assert.Equal("Value for parameter test-param", input.Placeholder);
+                Assert.Equal("Enter value for test-param", input.Placeholder);
             });
 
         // Complete the parameter inputs interaction
@@ -455,6 +455,58 @@ public class AzureDeployerTests(ITestOutputHelper output)
         await app.WaitForShutdownAsync();
 
         Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithCustomInputGeneratorParameter_RespectsInputGenerator()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter with a custom input generator
+        var param = builder.AddParameter("custom-param")
+            .WithCustomInput(p => new InteractionInput
+            {
+                Name = p.Name,
+                InputType = InputType.Number,
+                Label = "Custom Port Number",
+                Description = "Enter a custom port number for the service",
+                EnableDescriptionMarkdown = false,
+                Placeholder = "8080"
+            });
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the custom input generator is respected
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("custom-param", input.Name);
+                Assert.Equal("Custom Port Number", input.Label);
+                Assert.Equal("Enter a custom port number for the service", input.Description);
+                Assert.Equal(InputType.Number, input.InputType);
+                Assert.Equal("8080", input.Placeholder);
+                Assert.False(input.EnableDescriptionMarkdown);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "9090";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.WaitForValueTcs!.Task;
+        Assert.Equal("9090", setValue);
     }
 
     [Fact]

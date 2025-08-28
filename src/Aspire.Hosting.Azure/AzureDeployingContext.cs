@@ -501,15 +501,7 @@ internal sealed class AzureDeployingContext(
         var inputs = new List<InteractionInput>();
         foreach (var parameter in unresolvedParameters)
         {
-            inputs.Add(new InteractionInput
-            {
-                Name = parameter.Name,
-                InputType = parameter.Secret ? InputType.SecretText : InputType.Text,
-                Label = parameter.Name,
-                Description = parameter.Description,
-                EnableDescriptionMarkdown = parameter.EnableDescriptionMarkdown,
-                Placeholder = $"Value for parameter {parameter.Name}"
-            });
+            inputs.Add(parameter.CreateInput());
         }
 
         var inputsResult = await interactionService.PromptInputsAsync(
