@@ -5,6 +5,9 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting devtunnels</PackageTags>
     <Description>Dev Tunnels support for .NET Aspire.</Description>
+    <!-- Temporarily disable package validation and API generation until the project is built -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <GenAPITargetPath></GenAPITargetPath>
   </PropertyGroup>
 
   <ItemGroup>

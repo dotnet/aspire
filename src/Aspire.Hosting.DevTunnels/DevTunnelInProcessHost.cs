@@ -11,7 +11,7 @@ namespace Aspire.Hosting.DevTunnels;
 /// A placeholder implementation for hosting Dev Tunnels in-process.
 /// In a real implementation, this would integrate with Microsoft.DevTunnels.Connections.
 /// </summary>
-internal class DevTunnelInProcessHost
+internal sealed class DevTunnelInProcessHost
 {
     private readonly DevTunnelResource _tunnel;
     private readonly ResourceLoggerService _resourceLoggerService;
@@ -32,6 +32,9 @@ internal class DevTunnelInProcessHost
         IServiceProvider services, 
         CancellationToken cancellationToken = default)
     {
+        _ = services; // Mark as used
+        _ = cancellationToken; // Mark as used
+        
         var logger = _resourceLoggerService.GetLogger(_tunnel);
         
         logger.LogInformation("Starting placeholder Dev Tunnel host for {Count} port(s).", ports.Count);
@@ -51,7 +54,7 @@ internal class DevTunnelInProcessHost
             // Update the port resource snapshot with the tunnel URL
             await _resourceNotificationService.PublishUpdateAsync(port, s => s with
             {
-                Urls = [new UrlSnapshot("public", tunnelUrl, IsInternal: false)].ToImmutableArray()
+                Urls = new UrlSnapshot[] { new("public", tunnelUrl, IsInternal: false) }.ToImmutableArray()
             }).ConfigureAwait(false);
         }
 

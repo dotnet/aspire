@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -49,7 +50,7 @@ public static class DevTunnelsBuilderExtensions
             var notifications = init.Notifications;
 
             // TODO: Need to publish BeforeStart event for this resource here
-            await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Starting });
+            await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Starting }).ConfigureAwait(false);
 
             // Find ports under this tunnel by looking at the application model
             // We need to find all DevTunnelPortResource instances that have this tunnel as their parent
@@ -62,7 +63,7 @@ public static class DevTunnelsBuilderExtensions
             if (children.Count == 0)
             {
                 logger.LogInformation("Dev tunnel '{Tunnel}' has no ports so will not start.", tunnel.Name);
-                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Finished });
+                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Finished }).ConfigureAwait(false);
                 return;
             }
 
@@ -75,23 +76,23 @@ public static class DevTunnelsBuilderExtensions
             try
             {
                 await host.StartAsync(children, init.Services, token).ConfigureAwait(false);
-                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Running });
+                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
 
                 // Remain active until cancellation to represent the host's lifetime.
-                try { await Task.Delay(Timeout.Infinite, token); }
+                try { await Task.Delay(Timeout.Infinite, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) { }
 
-                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Stopping });
+                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Stopping }).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to start dev tunnel '{Tunnel}'.", tunnel.Name);
-                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.FailedToStart });
+                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
                 throw;
             }
             finally
             {
-                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Exited });
+                await notifications.PublishUpdateAsync(tunnel, s => s with { State = KnownResourceStates.Exited }).ConfigureAwait(false);
             }
         });
 
@@ -160,7 +161,9 @@ public static class DevTunnelsBuilderExtensions
 
     private static IEnumerable<string> GetHttpEndpointNames(IResource resource)
     {
-        // Common convention endpoints: "http" and "https".
+        // In a more complete implementation, we could inspect the resource's endpoint annotations
+        // to discover which endpoints exist. For now, return common convention endpoints.
+        _ = resource; // Mark as used
         return new[] { "http", "https" };
     }
 
@@ -204,13 +207,12 @@ public static class DevTunnelsBuilderExtensions
             });
 
         // Port lifecycle via eventing subscription (no lifecycle hook)
-        childBuilder.OnInitializeResource(static async (resource, init, token) =>
+        childBuilder.OnInitializeResource(static async (port, init, token) =>
         {
-            var port = (DevTunnelPortResource)resource;
             var logger = init.Logger;
             var notifications = init.Notifications;
 
-            await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Starting });
+            await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Starting }).ConfigureAwait(false);
 
             // The tunnel's OnInitializeResource will actually "start" the host and set URLs on the port's snapshot.
             // Here we just wait a tick and then mark Running; a complete implementation might coordinate via shared state.
@@ -220,27 +222,27 @@ public static class DevTunnelsBuilderExtensions
                     port.Name, port.SourceResource.Name, port.SourceEndpointName, port.Options.Protocol);
 
                 // In case the tunnel host already populated the URLs, publish a state move to Running.
-                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Running });
+                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
 
                 // Keep alive until cancellation to represent an active forwarded port.
-                try { await Task.Delay(Timeout.Infinite, token); }
+                try { await Task.Delay(Timeout.Infinite, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) { }
 
-                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Stopping });
+                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Stopping }).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to start dev tunnel port '{Port}'.", port.Name);
-                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.FailedToStart });
+                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
                 throw;
             }
             finally
             {
-                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Exited });
+                await notifications.PublishUpdateAsync(port, s => s with { State = KnownResourceStates.Exited }).ConfigureAwait(false);
             }
         });
     }
 
     private static IResourceBuilder<IResource> AsResourceBuilder<T>(this IResourceBuilder<T> builder) where T : IResource =>
-        new DistributedApplicationResourceBuilder<IResource>(builder.ApplicationBuilder, builder.Resource);
+        (IResourceBuilder<IResource>)builder;
 }
