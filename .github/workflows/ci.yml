@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if only documentation changed
+      - name: Check for any changes that require CI
         id: check_docs
         if: ${{ github.event_name == 'pull_request' }}
         uses: ./.github/actions/check-changed-files
