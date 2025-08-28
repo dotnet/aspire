@@ -219,14 +219,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        // Mark this project as visited to prevent duplicate analysis in diamond dependencies
-        lock (context.VisitedProjects)
+        if (!context.VisitedProjects.Add(projectFile.FullName))
         {
-            if (!context.VisitedProjects.Add(projectFile.FullName))
-            {
-                // Project already analyzed, skip
-                return;
-            }
+            // Project already analyzed, skip
+            return;
         }
 
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
@@ -237,18 +233,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
             var referencedProjectFile = new FileInfo(referencedProjectPath);
-            
-            // Only queue analysis if the project hasn't been visited yet
-            bool shouldAnalyze;
-            lock (context.VisitedProjects)
-            {
-                shouldAnalyze = !context.VisitedProjects.Contains(referencedProjectFile.FullName);
-            }
-            
-            if (shouldAnalyze)
-            {
-                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
-            }
+            context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
         }
 
         var packageReferencesElement = itemsElement.GetProperty("PackageReference").EnumerateArray();
