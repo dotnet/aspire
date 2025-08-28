@@ -2261,6 +2261,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
     /// Adds support for debugging the resource in VS Code when running in an extension host.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
