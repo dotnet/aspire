@@ -219,6 +219,12 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
+        if (!context.VisitedProjects.Add(projectFile.FullName))
+        {
+            // Project already analyzed, skip
+            return;
+        }
+
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -291,6 +297,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public PackageChannel Channel { get; } = channel;
     public ConcurrentQueue<UpdateStep> UpdateSteps { get; } = new();
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
+    public HashSet<string> VisitedProjects { get; } = new();
 }
 
 internal record UpdateStep(string Description, Func<Task> Callback);

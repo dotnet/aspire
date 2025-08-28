@@ -431,6 +431,146 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         );
     }
 
+    [Fact]
+    public async Task UpdateProjectFileAsync_DiamondDependency_DoesNotDuplicateUpdates()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create diamond dependency scenario:
+        // AppHost -> ProjectA, ProjectB
+        // ProjectA -> SharedProject
+        // ProjectB -> SharedProject
+        // SharedProject has updatable package that should only appear once in update steps
+        
+        var sharedProjectFolder = workspace.CreateDirectory("SharedProject");
+        var sharedProjectFile = new FileInfo(Path.Combine(sharedProjectFolder.FullName, "SharedProject.csproj"));
+        
+        var projectAFolder = workspace.CreateDirectory("ProjectA");
+        var projectAFile = new FileInfo(Path.Combine(projectAFolder.FullName, "ProjectA.csproj"));
+        
+        var projectBFolder = workspace.CreateDirectory("ProjectB");
+        var projectBFile = new FileInfo(Path.Combine(projectBFolder.FullName, "ProjectB.csproj"));
+
+        var appHostFolder = workspace.CreateDirectory("DiamondTest.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "DiamondTest.AppHost.csproj"));
+
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.4.1" />
+            </Project>
+            """);
+
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
+                            "Microsoft.Extensions.ServiceDiscovery" => new NuGetPackageCli { Id = "Microsoft.Extensions.ServiceDiscovery", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
+
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, _, _, _, _) =>
+                    {
+                        var itemsAndProperties = new JsonObject();
+
+                        if (projectFile.FullName == appHostProjectFile.FullName)
+                        {
+                            // AppHost references both ProjectA and ProjectB
+                            itemsAndProperties.WithSdkVersion("9.4.1");
+                            itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.4.1");
+                            itemsAndProperties.WithProjectReference(projectAFile.FullName);
+                            itemsAndProperties.WithProjectReference(projectBFile.FullName);
+                        }
+                        else if (projectFile.FullName == projectAFile.FullName)
+                        {
+                            // ProjectA references SharedProject - needs empty package reference array
+                            itemsAndProperties.WithPackageReference("DummyPackage", "1.0.0"); // Add dummy first to create structure
+                            itemsAndProperties["Items"]!["PackageReference"]!.AsArray().Clear(); // Then clear it
+                            itemsAndProperties.WithProjectReference(sharedProjectFile.FullName);
+                        }
+                        else if (projectFile.FullName == projectBFile.FullName)
+                        {
+                            // ProjectB also references SharedProject (creating the diamond) - needs empty package reference array
+                            itemsAndProperties.WithPackageReference("DummyPackage", "1.0.0"); // Add dummy first to create structure
+                            itemsAndProperties["Items"]!["PackageReference"]!.AsArray().Clear(); // Then clear it
+                            itemsAndProperties.WithProjectReference(sharedProjectFile.FullName);
+                        }
+                        else if (projectFile.FullName == sharedProjectFile.FullName)
+                        {
+                            // SharedProject has an updatable package
+                            itemsAndProperties.WithPackageReference("Microsoft.Extensions.ServiceDiscovery", "9.4.1");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Unexpected project file: {projectFile.FullName}");
+                        }
+
+                        var json = itemsAndProperties.ToJsonString();
+                        var document = JsonDocument.Parse(json);
+                        return (0, document);
+                    },
+
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    {
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        return 0;
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (s) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = provider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext);
+        var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        Assert.True(updateResult.UpdatedApplied);
+        
+        // Verify that the SharedProject's package update only appears once, not twice
+        var sharedProjectUpdates = packagesAddsExecuted.Where(p => p.ProjectFile.FullName == sharedProjectFile.FullName).ToList();
+        Assert.Single(sharedProjectUpdates);
+        
+        var sharedProjectUpdate = sharedProjectUpdates.Single();
+        Assert.Equal("Microsoft.Extensions.ServiceDiscovery", sharedProjectUpdate.PackageId);
+        Assert.Equal("9.5.0", sharedProjectUpdate.PackageVersion);
+        
+        // Should also have the AppHost package update
+        var appHostUpdates = packagesAddsExecuted.Where(p => p.ProjectFile.FullName == appHostProjectFile.FullName).ToList();
+        Assert.Single(appHostUpdates);
+        
+        Assert.Equal("Aspire.Hosting.AppHost", appHostUpdates.Single().PackageId);
+    }
+
     private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
     {
         // NOTE: This would normally be in the users home directory, but for tests we create
