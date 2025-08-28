@@ -919,18 +919,24 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
-    /// <param name="url">The URL.</param>
+    /// <param name="url">An absolute URL to show for the resource.</param>
     /// <param name="displayText">The display text to show when the link is displayed.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// Use this method to add a URL to be displayed for the resource.<br/>
-    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them. This method does not replace those URLs, it adds an additional URL.<br/>
+    /// To modify the URL for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
     /// </remarks>
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
+
+        if (url.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("The URL must be absolute and include the scheme (e.g. https://example.com/path). Relative URLs are not supported.", nameof(url));
+        }
 
         return builder.WithAnnotation(new ResourceUrlAnnotation { Url = url, DisplayText = displayText });
     }
