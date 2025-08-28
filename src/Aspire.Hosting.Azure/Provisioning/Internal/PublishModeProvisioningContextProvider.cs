@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,8 +26,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IOptions<PublishingOptions> publishingOptions) : BaseProvisioningContextProvider(
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
@@ -36,8 +34,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
-        distributedApplicationExecutionContext,
-        publishingOptions)
+        distributedApplicationExecutionContext)
 {
     protected override string GetDefaultResourceGroupName()
     {

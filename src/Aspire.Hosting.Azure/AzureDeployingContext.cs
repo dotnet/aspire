@@ -25,18 +25,17 @@ internal sealed class AzureDeployingContext(
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner)
 {
-    public async Task DeployModelAsync(AzureEnvironmentResource resource, DistributedApplicationModel model, CancellationToken cancellationToken = default)
+    public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        if (resource.PublishingContext is null)
-        {
-            throw new InvalidOperationException($"Publishing context is not initialized. Please ensure that the {nameof(AzurePublishingContext)} has been initialized before deploying.");
-        }
+        // Step 1: Provision Azure Bicep resources from the distributed application model
+        var bicepResources = model.Resources.OfType<AzureBicepResource>()
+            .Where(r => !r.IsExcludedFromPublish())
+            .ToList();
 
-        // Step 1: Provision main Azure infrastructure (compute environment, resources, container registry)
-        if (!await TryProvisionAzureInfrastructure(resource, provisioningContext, cancellationToken).ConfigureAwait(false))
+        if (!await TryProvisionAzureBicepResources(bicepResources, provisioningContext, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
@@ -61,43 +60,27 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private async Task<bool> TryProvisionAzureInfrastructure(AzureEnvironmentResource resource, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
+    private async Task<bool> TryProvisionAzureBicepResources(List<AzureBicepResource> bicepResources, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var deployingStep = await activityReporter.CreateStepAsync("Deploying to Azure", cancellationToken).ConfigureAwait(false);
+        var deployingStep = await activityReporter.CreateStepAsync("Deploying Azure resources", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
         {
             try
             {
-                foreach (var (parameterResource, provisioningParameter) in resource.PublishingContext!.ParameterLookup)
-                {
-                    if (parameterResource == resource.Location)
-                    {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.Location.Name;
-                    }
-                    else if (parameterResource == resource.ResourceGroupName)
-                    {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.ResourceGroup.Name;
-                    }
-                    else if (parameterResource == resource.PrincipalId)
-                    {
-                        resource.Parameters[provisioningParameter.BicepIdentifier] = provisioningContext.Principal.Id.ToString();
-                    }
-                    else
-                    {
-                        // TODO: Prompt here.
-                        await deployingStep.FailAsync("Deployment contains unresolvable parameters.", cancellationToken).ConfigureAwait(false);
-                    }
-                }
+                var deploymentGraph = ResourceDeploymentGraph.Build(bicepResources);
 
-                // Set the scope for this resource to indicate that it is a subscription-level resource.
-                resource.Scope = new AzureBicepResourceScope(provisioningContext.ResourceGroup.Name, provisioningContext.Subscription.Id.ToString());
-
-                var azureTask = await deployingStep.CreateTaskAsync("Provisioning Azure environment", cancellationToken).ConfigureAwait(false);
-                await using (azureTask.ConfigureAwait(false))
+                await deploymentGraph.ExecuteAsync(async (resource, context) =>
                 {
-                    await bicepProvisioner.GetOrCreateResourceAsync(resource, provisioningContext, cancellationToken).ConfigureAwait(false);
-                    PropagateOutputsToResources(resource);
-                }
+                    if (resource is AzureBicepResource bicepResource)
+                    {
+                        var resourceTask = await deployingStep.CreateTaskAsync($"Provisioning {resource.Name}", cancellationToken).ConfigureAwait(false);
+                        await using (resourceTask.ConfigureAwait(false))
+                        {
+                            await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, context, cancellationToken).ConfigureAwait(false);
+                            await resourceTask.CompleteAsync($"Successfully provisioned {resource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }, provisioningContext, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -152,9 +135,9 @@ internal sealed class AzureDeployingContext(
     private async Task<bool> TryDeployComputeResources(DistributedApplicationModel model,
         ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var computeResources = model.GetComputeResources();
+        var computeResources = model.GetComputeResources().ToList();
 
-        if (!computeResources.Any())
+        if (computeResources.Count == 0)
         {
             return false;
         }
@@ -169,7 +152,7 @@ internal sealed class AzureDeployingContext(
                     await DeployComputeResource(computeStep, computeResource, provisioningContext, cancellationToken).ConfigureAwait(false);
                 }
 
-                await computeStep.CompleteAsync($"Successfully deployed {computeResources.Count()} compute resources", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                await computeStep.CompleteAsync($"Successfully deployed {computeResources.Count} compute resources", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -258,17 +241,6 @@ internal sealed class AzureDeployingContext(
             {
                 await acrStep.CompleteAsync($"Failed to push images to {registryName}: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
                 throw;
-            }
-        }
-    }
-
-    private static void PropagateOutputsToResources(AzureEnvironmentResource resource)
-    {
-        foreach (var (populatedMainOutputName, populatedMainOutputValue) in resource.Outputs)
-        {
-            if (resource.PublishingContext!.ReverseOutputLookup.TryGetValue(populatedMainOutputName, out var outputRef))
-            {
-                outputRef.Resource.Outputs[outputRef.Name] = populatedMainOutputValue;
             }
         }
     }
@@ -476,4 +448,5 @@ internal sealed class AzureDeployingContext(
 
         return string.Empty;
     }
+
 }

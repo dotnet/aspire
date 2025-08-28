@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,8 +26,7 @@ internal sealed class RunModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IOptions<PublishingOptions> publishingOptions) : BaseProvisioningContextProvider(
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
@@ -36,8 +34,7 @@ internal sealed class RunModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
-        distributedApplicationExecutionContext,
-        publishingOptions)
+        distributedApplicationExecutionContext)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
