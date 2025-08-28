@@ -303,11 +303,25 @@ internal sealed class AzureResourcePreparer(
                 ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
             };
 
-            // existing resource role assignments need to be scoped to the resource's resource group
+            // existing resource role assignments need to be scoped to the resource's resource group or subscription
             if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
-                existingAnnotation.ResourceGroup is not null)
+                (existingAnnotation.ResourceGroup is not null || existingAnnotation.Subscription is not null))
             {
-                roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup);
+                if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
+                {
+                    // Both resource group and subscription
+                    roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup, existingAnnotation.Subscription);
+                }
+                else if (existingAnnotation.ResourceGroup is not null)
+                {
+                    // Resource group only
+                    roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup);
+                }
+                else if (existingAnnotation.Subscription is not null)
+                {
+                    // Subscription only
+                    roleAssignmentResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+                }
             }
 
             roleAssignmentResources.Add(roleAssignmentResource);
@@ -511,11 +525,25 @@ internal sealed class AzureResourcePreparer(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions,
         };
 
-        // existing resource role assignments need to be scoped to the resource's resource group
+        // existing resource role assignments need to be scoped to the resource's resource group or subscription
         if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
-            existingAnnotation.ResourceGroup is not null)
+            (existingAnnotation.ResourceGroup is not null || existingAnnotation.Subscription is not null))
         {
-            roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup);
+            if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
+            {
+                // Both resource group and subscription
+                roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup, existingAnnotation.Subscription);
+            }
+            else if (existingAnnotation.ResourceGroup is not null)
+            {
+                // Resource group only
+                roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup);
+            }
+            else if (existingAnnotation.Subscription is not null)
+            {
+                // Subscription only
+                roleAssignmentResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+            }
         }
 
         return roleAssignmentResource;

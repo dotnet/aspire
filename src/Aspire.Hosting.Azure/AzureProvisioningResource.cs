@@ -132,9 +132,25 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 ? nameParameter.AsProvisioningParameter(infrastructure)
                 : new BicepValue<string>((string)existingAnnotation.Name);
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
-            if (existingAnnotation.ResourceGroup is not null)
+            
+            // Set scope if either resource group or subscription is specified
+            if (existingAnnotation.ResourceGroup is not null || existingAnnotation.Subscription is not null)
             {
-                infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroup);
+                if (existingAnnotation.ResourceGroup is not null && existingAnnotation.Subscription is not null)
+                {
+                    // Both resource group and subscription
+                    infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroup, existingAnnotation.Subscription);
+                }
+                else if (existingAnnotation.ResourceGroup is not null)
+                {
+                    // Resource group only
+                    infrastructure.AspireResource.Scope = new(existingAnnotation.ResourceGroup);
+                }
+                else if (existingAnnotation.Subscription is not null)
+                {
+                    // Subscription only
+                    infrastructure.AspireResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+                }
             }
         }
         else

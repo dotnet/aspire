@@ -77,13 +77,16 @@ internal static class BicepUtilities
             _ => throw new NotSupportedException($"The scope value type {targetResourceGroup.GetType()} is not supported.")
         };
 
-        scope["subscription"] = targetSubscription switch
+        // Only set subscription if it has a value to maintain backward compatibility
+        if (targetSubscription is not null)
         {
-            string s => s,
-            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
-            null => null,
-            _ => throw new NotSupportedException($"The scope subscription type {targetSubscription.GetType()} is not supported.")
-        };
+            scope["subscription"] = targetSubscription switch
+            {
+                string s => s,
+                IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                _ => throw new NotSupportedException($"The scope subscription type {targetSubscription.GetType()} is not supported.")
+            };
+        }
     }
 
     /// <summary>
