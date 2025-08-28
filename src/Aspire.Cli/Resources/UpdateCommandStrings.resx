@@ -21,9 +21,6 @@
   <data name="AnalyzingProjectStatus" xml:space="preserve">
     <value>Analyzing project...</value>
   </data>
-  <data name="ProjectHasUpdatesMessage" xml:space="preserve">
-    <value>Project has updates!</value>
-  </data>
   <data name="ProjectUpToDateMessage" xml:space="preserve">
     <value>Project is up to date! (no updates necessary)</value>
   </data>
@@ -47,9 +44,6 @@
   </data>
   <data name="AnalyzeProjectFormat" xml:space="preserve">
     <value>Analyze project: {0}</value>
-  </data>
-  <data name="UpdateAppHostSdkFormat" xml:space="preserve">
-    <value>Update AppHost SDK from {0} to {1}</value>
   </data>
   <data name="UpdatePackageFormat" xml:space="preserve">
     <value>Update package {0} from {1} to {2}</value>

@@ -35,7 +35,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
-        interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectHasUpdatesMessage);
+        interactionService.DisplayEmptyLine();
 
         // Group update steps by project for better visual organization
         var updateStepsByProject = updateSteps
@@ -43,40 +43,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             .GroupBy(step => step.ProjectFile.FullName)
             .ToList();
 
-        var sdkUpdateSteps = updateSteps.OfType<SdkUpdateStep>().ToList();
-        var otherUpdateSteps = updateSteps.Except(updateStepsByProject.SelectMany(g => g))
-                                        .Except(sdkUpdateSteps)
-                                        .ToList();
-
-        // Display SDK updates first
-        if (sdkUpdateSteps.Any())
-        {
-            foreach (var sdkStep in sdkUpdateSteps)
-            {
-                interactionService.DisplayMessage("gear", sdkStep.GetFormattedDisplayText());
-            }
-        }
-
         // Display package updates grouped by project
         foreach (var projectGroup in updateStepsByProject)
         {
-            var projectName = Path.GetFileNameWithoutExtension(new FileInfo(projectGroup.Key).Name);
+            var projectName = new FileInfo(projectGroup.Key).Name;
             if (updateStepsByProject.Count > 1)
             {
-                interactionService.DisplayMessage("folder", $"[bold cyan]{projectName}[/]:");
+                interactionService.DisplayMessage("file_folder", $"[bold cyan]{projectName}[/]:");
             }
-            
+
             foreach (var packageStep in projectGroup)
             {
-                var emoji = updateStepsByProject.Count > 1 ? "package" : "package";
-                interactionService.DisplayMessage(emoji, $"{(updateStepsByProject.Count > 1 ? "  " : "")}{packageStep.GetFormattedDisplayText()}");
+                interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
             }
-        }
 
-        // Display any other update steps that don't fit the above categories
-        foreach (var otherStep in otherUpdateSteps)
-        {
-            interactionService.DisplayMessage("wrench", otherStep.GetFormattedDisplayText());
+            interactionService.DisplayEmptyLine();
         }
 
         if (!await interactionService.ConfirmAsync(UpdateCommandStrings.PerformUpdatesPrompt, true, cancellationToken))
@@ -113,6 +94,8 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 _ => throw new InvalidOperationException(UpdateCommandStrings.UnexpectedCodePath)
             };
 
+            interactionService.DisplayEmptyLine();
+
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory,
@@ -125,11 +108,15 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel);
         }
 
+        interactionService.DisplayEmptyLine();
+
         foreach (var updateStep in updateSteps)
         {
             interactionService.DisplaySubtleMessage(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
             await updateStep.Callback();
         }
+
+        interactionService.DisplayEmptyLine();
 
         interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
         return new ProjectUpdateResult { UpdatedApplied = true };
@@ -221,10 +208,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
-        var sdkUpdateStep = new SdkUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdateAppHostSdkFormat, sdkVersionElement.GetString(), latestSdkPackage?.Version),
+        var sdkUpdateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
-            "Aspire AppHost SDK",
+            "Aspire.AppHost.Sdk",
             sdkVersionElement.GetString() ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
@@ -365,26 +352,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        var projectName = Path.GetFileNameWithoutExtension(ProjectFile.Name);
-        return $"Update package [bold yellow]{PackageId}[/] from [dim]{CurrentVersion}[/] to [bold green]{NewVersion}[/] in [cyan]{projectName}[/]";
-    }
-}
-
-/// <summary>
-/// Represents an update step for an SDK version, containing SDK and project information.
-/// </summary>
-internal record SdkUpdateStep(
-    string Description, 
-    Func<Task> Callback,
-    string SdkName,
-    string CurrentVersion,
-    string NewVersion,
-    FileInfo ProjectFile) : UpdateStep(Description, Callback)
-{
-    public override string GetFormattedDisplayText()
-    {
-        var projectName = Path.GetFileNameWithoutExtension(ProjectFile.Name);
-        return $"Update [bold blue]{SdkName}[/] from [dim]{CurrentVersion}[/] to [bold green]{NewVersion}[/] in [cyan]{projectName}[/]";
+        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
     }
 }
 
