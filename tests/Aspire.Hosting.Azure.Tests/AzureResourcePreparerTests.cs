@@ -182,6 +182,59 @@ public class AzureResourcePreparerTests
         Assert.Equal(defaultAssignments.Roles, apiRoleAssignments.Roles);
     }
 
+    [Fact]
+    public async Task NullEnvironmentVariableIsIgnored()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var storage = builder.AddAzureStorage("storage");
+
+        // Create a project with an environment variable callback that sets a null value
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithEnvironment(context =>
+            {
+                // This simulates the issue where a callback adds a null value
+                context.EnvironmentVariables["NULL_ENV"] = null!;
+                context.EnvironmentVariables["VALID_ENV"] = "valid_value";
+            });
+
+        using var app = builder.Build();
+        
+        // This should not throw a NullReferenceException
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Test passes if we reach this point without exceptions
+        Assert.True(true);
+    }
+
+    [Fact]
+    public async Task NullCommandLineArgIsIgnored()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var storage = builder.AddAzureStorage("storage");
+
+        // Create a project with a command line args callback that adds a null value
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithArgs(context =>
+            {
+                // This simulates the issue where a callback adds a null value
+                context.Args.Add("--valid-arg");
+                context.Args.Add(null!);
+                context.Args.Add("another-valid-arg");
+            });
+
+        using var app = builder.Build();
+        
+        // This should not throw a NullReferenceException
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Test passes if we reach this point without exceptions
+        Assert.True(true);
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";

@@ -11,4 +11,5 @@ internal static class KnownFeatures
     public static string MinimumSdkCheckEnabled => "minimumSdkCheckEnabled";
     public static string ExecCommandEnabled => "execCommandEnabled";
     public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
+    public static string ShowDeprecatedPackages => "showDeprecatedPackages";
 }

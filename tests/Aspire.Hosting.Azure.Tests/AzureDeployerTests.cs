@@ -17,6 +17,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Aspire.TestUtilities;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -34,10 +35,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
         ConfigureTestServices(builder, bicepProvisioner: new NoOpBicepProvisioner());
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
-
-        // Add a container that will use the container app environment
-        builder.AddContainer("api", "my-api-image:latest")
-            .WithHttpEndpoint();
 
         // Act
         using var app = builder.Build();
@@ -68,31 +65,35 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var runTask = Task.Run(app.Run);
 
-        // Assert - Wait for the first interaction (message bar)
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
-        Assert.Contains("Azure resources that require an Azure Subscription", messageBarInteraction.Message ?? "");
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+        Assert.False(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
-        // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
+        // Verify the expected input for subscription selection (fallback to manual entry)
+        Assert.Collection(subscriptionInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Subscription ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", inputsInteraction.Title);
-        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
 
-        // Verify the expected inputs for Azure provisioning
-        Assert.Collection(inputsInteraction.Inputs,
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+        Assert.False(locationInteraction.Options!.EnableMessageMarkdown);
+
+        // Verify the expected inputs for location and resource group (fallback to manual entry)
+        Assert.Collection(locationInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
-                Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
@@ -102,12 +103,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 Assert.False(input.Required);
             });
 
-        // Complete the inputs interaction with valid values
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "test-rg";
-
-        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
@@ -396,6 +395,85 @@ public class AzureDeployerTests(ITestOutputHelper output)
                    cmd.Arguments.StartsWith("push acaregistry.azurecr.io/"));
     }
 
+    [Fact]
+    public async Task DeployAsync_WithAzureFunctionsProject_Works()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var deploymentOutputs = new Dictionary<string, object>
+        {
+            // ACA Environment outputs (needed for containerAppEnv)
+            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" },
+
+            // Storage outputs for funcstorage
+            ["funcstorage_blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+            ["funcstorage_queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
+            ["funcstorage_tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" },
+
+            // Storage outputs for hoststorage
+            ["hoststorage_blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+            ["hoststorage_queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
+            ["hoststorage_tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
+
+            ["funcapp_identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["funcapp_identity_clientId"] = new { type = "String", value = "test-client-id" }
+        };
+        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add Azure Storage for the Functions project
+        var storage = builder.AddAzureStorage("funcstorage");
+        var hostStorage = builder.AddAzureStorage("hoststorage");
+        var blobs = storage.AddBlobs("blobs");
+        var funcApp = builder.AddAzureFunctionsProject<TestFunctionsProject>("funcapp")
+            .WithReference(blobs)
+            .WithHostStorage(hostStorage);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert that container environment outputs are propagated
+        Assert.Equal("testregistry", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
+        Assert.Equal("testregistry.azurecr.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_ENDPOINT"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"]);
+        Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+
+        // Assert that funcapp outputs are propagated
+        var funcAppDeployment = Assert.IsType<AzureProvisioningResource>(funcApp.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
+        Assert.NotNull(funcAppDeployment);
+        Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_default_domain"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_id"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+        Assert.Equal("https://testfuncstorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["funcstorage_outputs_blobendpoint"]!).GetValueAsync());
+        Assert.Equal("https://testhoststorage.blob.core.windows.net/", await ((BicepOutputReference)funcAppDeployment.Parameters["hoststorage_outputs_blobendpoint"]!).GetValueAsync());
+
+        // Assert - Verify ACR login command was called since Functions image needs to be built and pushed
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath.Contains("az") &&
+                   cmd.Arguments == "acr login --name testregistry");
+
+        // Assert - Verify Docker tag and push called for Azure Functions project
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath == "docker" &&
+                   cmd.Arguments != null &&
+                   cmd.Arguments.StartsWith("tag funcapp testregistry.azurecr.io/"));
+
+        Assert.Contains(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath == "docker" &&
+                   cmd.Arguments != null &&
+                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
@@ -419,7 +497,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         {
             builder.Services.AddSingleton(interactionService);
         }
-        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         if (bicepProvisioner is not null)
         {
@@ -452,5 +530,22 @@ public class AzureDeployerTests(ITestOutputHelper output)
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
+    }
+
+    private sealed class TestFunctionsProject : IProjectMetadata
+    {
+        public string ProjectPath => "functions-project";
+
+        public LaunchSettings LaunchSettings => new()
+        {
+            Profiles = new Dictionary<string, LaunchProfile>
+            {
+                ["funcapp"] = new()
+                {
+                    CommandLineArgs = "--port 7071",
+                    LaunchBrowser = false,
+                }
+            }
+        };
     }
 }
