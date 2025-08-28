@@ -579,6 +579,26 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
         return new CliExecutionContext(workingDirectory, hivesDirectory);
     }
+
+    [Fact]
+    public void PackageUpdateStep_GetFormattedDisplayText_ReturnsFormattedString()
+    {
+        // Arrange
+        var projectFile = new FileInfo("/path/to/MyProject.csproj");
+        var packageStep = new PackageUpdateStep(
+            "Update package Aspire.Hosting.Redis from 9.0.0 to 9.1.0",
+            () => Task.CompletedTask,
+            "Aspire.Hosting.Redis",
+            "9.0.0",
+            "9.1.0",
+            projectFile);
+
+        // Act
+        var formattedText = packageStep.GetFormattedDisplayText();
+
+        // Assert
+        Assert.Equal("[bold yellow]Aspire.Hosting.Redis[/] [bold green]9.0.0[/] to [bold green]9.1.0[/]", formattedText);
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions

@@ -35,12 +35,29 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
-        interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectHasUpdatesMessage);
+        interactionService.DisplayEmptyLine();
 
-        foreach (var updateStep in updateSteps)
+        // Group update steps by project for better visual organization
+        var updateStepsByProject = updateSteps
+            .OfType<PackageUpdateStep>()
+            .GroupBy(step => step.ProjectFile.FullName)
+            .ToList();
+
+        // Display package updates grouped by project
+        foreach (var projectGroup in updateStepsByProject)
         {
-            // TODO: Replace this with a progress indicator or something.
-            interactionService.DisplayMessage("package", updateStep.Description);
+            var projectName = new FileInfo(projectGroup.Key).Name;
+            if (updateStepsByProject.Count > 1)
+            {
+                interactionService.DisplayMessage("file_folder", $"[bold cyan]{projectName}[/]:");
+            }
+
+            foreach (var packageStep in projectGroup)
+            {
+                interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
+            }
+
+            interactionService.DisplayEmptyLine();
         }
 
         if (!await interactionService.ConfirmAsync(UpdateCommandStrings.PerformUpdatesPrompt, true, cancellationToken))
@@ -77,6 +94,8 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 _ => throw new InvalidOperationException(UpdateCommandStrings.UnexpectedCodePath)
             };
 
+            interactionService.DisplayEmptyLine();
+
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory,
@@ -89,11 +108,15 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel);
         }
 
+        interactionService.DisplayEmptyLine();
+
         foreach (var updateStep in updateSteps)
         {
             interactionService.DisplaySubtleMessage(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
             await updateStep.Callback();
         }
+
+        interactionService.DisplayEmptyLine();
 
         interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
         return new ProjectUpdateResult { UpdatedApplied = true };
@@ -185,9 +208,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
-        var sdkUpdateStep = new UpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdateAppHostSdkFormat, sdkVersionElement.GetString(), latestSdkPackage?.Version),
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!));
+        var sdkUpdateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
+            "Aspire.AppHost.Sdk",
+            sdkVersionElement.GetString() ?? "unknown",
+            latestSdkPackage?.Version ?? "unknown",
+            context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
@@ -255,9 +282,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 continue;
             }
 
-            var updateStep = new UpdateStep(
+            var updateStep = new PackageUpdateStep(
                 string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
-                () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken));
+                () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
+                packageId,
+                packageVersion,
+                latestPackage!.Version,
+                projectFile);
             context.UpdateSteps.Enqueue(updateStep);
         }
     }
@@ -300,7 +331,30 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public HashSet<string> VisitedProjects { get; } = new();
 }
 
-internal record UpdateStep(string Description, Func<Task> Callback);
+internal abstract record UpdateStep(string Description, Func<Task> Callback)
+{
+    /// <summary>
+    /// Gets the formatted display text using Spectre Console markup for enhanced visual presentation.
+    /// </summary>
+    public virtual string GetFormattedDisplayText() => Description;
+}
+
+/// <summary>
+/// Represents an update step for a package reference, containing package and project information.
+/// </summary>
+internal record PackageUpdateStep(
+    string Description, 
+    Func<Task> Callback,
+    string PackageId,
+    string CurrentVersion,
+    string NewVersion,
+    FileInfo ProjectFile) : UpdateStep(Description, Callback)
+{
+    public override string GetFormattedDisplayText()
+    {
+        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+    }
+}
 
 internal record AnalyzeStep(string Description, Func<Task> Callback);
 
