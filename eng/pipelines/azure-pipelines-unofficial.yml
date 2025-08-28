@@ -39,6 +39,11 @@ resources:
 extends:
   template: v1/1ES.Unofficial.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
+    sdl:
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Internal
+        image: windows.vs2022preview.amd64
+        os: windows
     containers:
       linux_x64:
         image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-amd64
