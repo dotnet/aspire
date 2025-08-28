@@ -1,0 +1,51 @@
+name: Add Dogfooding Comment
+
+on:
+  # Use pull_request_target to run in the context of the base branch
+  # This allows commenting on PRs from forks
+  pull_request_target:
+    types: opened
+    branches:
+      - 'main'
+      - 'release/**'
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to add dogfooding comment to'
+        required: true
+        type: number
+
+jobs:
+  add-dogfood-comment:
+    # Only run on the dotnet org to avoid running on forks
+    if: ${{ github.repository_owner == 'dotnet' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add dogfooding comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            // Get PR number from either the PR event or manual input
+            const prNumber = context.payload.number || context.payload.inputs.pr_number;
+            const bashScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh';
+            const psScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1';
+            const comment = `🚀 **Dogfood this PR with:**
+
+            \`\`\`bash
+            curl -fsSL ${bashScript} | bash -s -- ${prNumber}
+            \`\`\`
+            Or
+            - Run remotely in PowerShell:
+            \`\`\`powershell
+            iex "& { $(irm ${psScript}) } ${prNumber}"
+            \`\`\``;
+
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
