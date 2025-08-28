@@ -82,11 +82,6 @@
         <target state="translated">Provést aktualizace?</target>
         <note />
       </trans-unit>
-      <trans-unit id="ProjectHasUpdatesMessage">
-        <source>Project has updates!</source>
-        <target state="translated">Projekt má aktualizace!</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">Odkaz na projekt nemá FullPath.</target>
@@ -105,11 +100,6 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Neočekávaná cesta kódu.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateAppHostSdkFormat">
-        <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="translated">Aktualizovat sadu AppHost SDK z {0} na {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

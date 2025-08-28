@@ -82,11 +82,6 @@
         <target state="translated">Executar atualizações?</target>
         <note />
       </trans-unit>
-      <trans-unit id="ProjectHasUpdatesMessage">
-        <source>Project has updates!</source>
-        <target state="translated">O Project tem atualizações!</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">A referência do Project não tem FullPath.</target>
@@ -105,11 +100,6 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Caminho de código inesperado.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateAppHostSdkFormat">
-        <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="translated">Atualizar o SDK do AppHost {0} para {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">

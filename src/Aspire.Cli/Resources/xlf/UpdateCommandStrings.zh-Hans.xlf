@@ -82,11 +82,6 @@
         <target state="translated">是否执行更新?</target>
         <note />
       </trans-unit>
-      <trans-unit id="ProjectHasUpdatesMessage">
-        <source>Project has updates!</source>
-        <target state="translated">项目有更新!</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">项目引用没有 FullPath。</target>
@@ -105,11 +100,6 @@
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">意外的代码路径。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateAppHostSdkFormat">
-        <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="translated">将 AppHost SDK 从 {0} 更新为 {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
