@@ -33,6 +33,7 @@ public class ProjectResourceExecTests : ExecTestsBase
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11158")]
     public async Task Exec_DotnetBuildFail_ProducesLogs_Fail()
     {
         string[] args = [

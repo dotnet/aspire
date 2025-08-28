@@ -5,7 +5,6 @@
 
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -26,8 +25,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IOptions<PublishingOptions> publishingOptions) : IProvisioningContextProvider
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
     internal const string SubscriptionIdName = "SubscriptionId";
@@ -41,7 +39,6 @@ internal abstract partial class BaseProvisioningContextProvider(
     protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
     protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
     protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
-    private readonly PublishingOptions _publishingOptions = publishingOptions.Value;
 
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
@@ -151,7 +148,6 @@ internal abstract partial class BaseProvisioningContextProvider(
         }
 
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
-        var outputPath = _publishingOptions.OutputPath is { } outputPathValue ? Path.GetFullPath(outputPathValue) : null;
 
         return new ProvisioningContext(
                     credential,
@@ -162,8 +158,7 @@ internal abstract partial class BaseProvisioningContextProvider(
                     location,
                     principal,
                     userSecrets,
-                    _distributedApplicationExecutionContext,
-                    outputPath);
+                    _distributedApplicationExecutionContext);
     }
 
     protected abstract string GetDefaultResourceGroupName();
