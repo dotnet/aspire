@@ -726,6 +726,189 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(tempDockerfilePath, annotation.DockerfilePath);
     }
 
+    [Fact]
+    public async Task WithBuildStageChangesStageSuccessfully()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        var container = builder.AddDockerfile("mycontainer", tempContextPath, tempDockerfilePath)
+                               .WithBuildStage("production");
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal("production", annotation.Stage);
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.Equal(tempDockerfilePath, annotation.DockerfilePath);
+    }
+
+    [Fact]
+    public async Task WithBuildStageAfterWithDockerfileChangesStageSuccessfully()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath, tempDockerfilePath, "base")
+                               .WithBuildStage("production");
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal("production", annotation.Stage);
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.Equal(tempDockerfilePath, annotation.DockerfilePath);
+    }
+
+    [Fact]
+    public async Task WithBuildStagePreservesExistingBuildArgsAndSecrets()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        builder.Configuration["Parameters:secret"] = "mysecret";
+        var parameter = builder.AddParameter("secret", secret: true);
+
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath, tempDockerfilePath, "base")
+                               .WithBuildArg("MESSAGE", "hello")
+                               .WithBuildArg("VERSION", "1.0")
+                               .WithBuildSecret("SECRET", parameter)
+                               .WithBuildStage("production");
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal("production", annotation.Stage);
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.Equal(tempDockerfilePath, annotation.DockerfilePath);
+
+        // Verify build args were preserved
+        Assert.Equal("hello", annotation.BuildArguments["MESSAGE"]);
+        Assert.Equal("1.0", annotation.BuildArguments["VERSION"]);
+
+        // Verify build secrets were preserved
+        Assert.Equal(parameter.Resource, annotation.BuildSecrets["SECRET"]);
+    }
+
+    [Fact]
+    public void WithBuildStageWithNullStageThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var ex = Assert.Throws<ArgumentNullException>(() =>
+        {
+            container.WithBuildStage(null!);
+        });
+
+        Assert.Equal("stage", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithBuildStageWithEmptyStageThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+        {
+            container.WithBuildStage(string.Empty);
+        });
+
+        Assert.Equal("stage", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithBuildStageBeforeWithDockerfileThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            container.WithBuildStage("production");
+        });
+
+        Assert.Equal(
+            "The resource does not have a Dockerfile build annotation. Call WithDockerfile or AddDockerfile before calling WithBuildStage.",
+            ex.Message
+            );
+    }
+
+    [Fact]
+    public async Task WithBuildStageResultsInCorrectManifest()
+    {
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
+        });
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath, "base")
+                               .WithHttpEndpoint(targetPort: 80)
+                               .WithBuildStage("production");
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
+        var expectedManifest = $$"""
+            {
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "stage": "production"
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 80
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithBuildStageIntegrationTest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
+               .WithHttpEndpoint(targetPort: 80)
+               .WithBuildStage("runner"); // Use the "runner" stage from the test Dockerfile
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var containers = await kubernetes.ListAsync<Container>();
+
+        var container = Assert.Single(containers);
+        Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
+        Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
+        Assert.Equal("runner", container!.Spec!.Build!.Stage);
+
+        await app.StopAsync();
+    }
+
     private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
     {
         await app.ResourceNotifications.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
