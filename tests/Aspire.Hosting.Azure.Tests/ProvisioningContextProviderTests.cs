@@ -369,7 +369,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -385,8 +384,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
