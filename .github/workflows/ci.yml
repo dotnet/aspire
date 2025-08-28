@@ -39,6 +39,7 @@ jobs:
         with:
           patterns: |
             \.md$
+            eng/pipelines/*
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs
