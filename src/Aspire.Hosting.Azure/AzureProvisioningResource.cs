@@ -200,11 +200,49 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         if (existingAnnotation.ResourceGroup is not null &&
            !ResourceGroupEquals(existingAnnotation.ResourceGroup, infra.AspireResource.Scope?.ResourceGroup))
         {
-            BicepValue<string> scope = existingAnnotation.ResourceGroup switch
+            BicepValue<string> scope;
+            
+            // Handle subscription-scoped existing resource
+            if (existingAnnotation.Subscription is not null)
             {
-                string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
-                ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), p.AsProvisioningParameter(infra).Value.Compile()),
-                _ => throw new NotSupportedException($"Resource group type '{existingAnnotation.ResourceGroup.GetType()}' is not supported.")
+                scope = existingAnnotation.Subscription switch
+                {
+                    string subId when existingAnnotation.ResourceGroup is string rgName => 
+                        new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(subId), new StringLiteralExpression(rgName)),
+                    string subId when existingAnnotation.ResourceGroup is ParameterResource rgParam => 
+                        new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(subId), rgParam.AsProvisioningParameter(infra).Value.Compile()),
+                    ParameterResource subParam when existingAnnotation.ResourceGroup is string rgName => 
+                        new FunctionCallExpression(new IdentifierExpression("resourceGroup"), subParam.AsProvisioningParameter(infra).Value.Compile(), new StringLiteralExpression(rgName)),
+                    ParameterResource subParam when existingAnnotation.ResourceGroup is ParameterResource rgParam => 
+                        new FunctionCallExpression(new IdentifierExpression("resourceGroup"), subParam.AsProvisioningParameter(infra).Value.Compile(), rgParam.AsProvisioningParameter(infra).Value.Compile()),
+                    _ => throw new NotSupportedException($"Subscription type '{existingAnnotation.Subscription.GetType()}' is not supported.")
+                };
+            }
+            else
+            {
+                scope = existingAnnotation.ResourceGroup switch
+                {
+                    string rgName => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), new StringLiteralExpression(rgName)),
+                    ParameterResource p => new FunctionCallExpression(new IdentifierExpression("resourceGroup"), p.AsProvisioningParameter(infra).Value.Compile()),
+                    _ => throw new NotSupportedException($"Resource group type '{existingAnnotation.ResourceGroup.GetType()}' is not supported.")
+                };
+            }
+
+            // HACK: This is a dance we do to set extra properties using Azure.Provisioning
+            // will be resolved if we ever get https://github.com/Azure/azure-sdk-for-net/issues/47980
+            var expression = scope.Compile();
+            var value = new BicepValue<string>(expression);
+            ((IBicepValue)value).Self = new BicepValueReference(provisionableResource, "Scope", ["scope"]);
+            provisionableResource.ProvisionableProperties["scope"] = value;
+        }
+        // Handle subscription-only scope (no resource group override)
+        else if (existingAnnotation.Subscription is not null)
+        {
+            BicepValue<string> scope = existingAnnotation.Subscription switch
+            {
+                string subId => new FunctionCallExpression(new IdentifierExpression("subscription"), new StringLiteralExpression(subId)),
+                ParameterResource subParam => new FunctionCallExpression(new IdentifierExpression("subscription"), subParam.AsProvisioningParameter(infra).Value.Compile()),
+                _ => throw new NotSupportedException($"Subscription type '{existingAnnotation.Subscription.GetType()}' is not supported.")
             };
 
             // HACK: This is a dance we do to set extra properties using Azure.Provisioning

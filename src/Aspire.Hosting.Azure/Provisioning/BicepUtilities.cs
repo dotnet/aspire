@@ -66,14 +66,23 @@ internal static class BicepUtilities
     {
         // Resolve the scope from the AzureBicepResource if it has already been set
         // via the ConfigureInfrastructure callback. If not, fallback to the ExistingAzureResourceAnnotation.
-        var targetScope = GetExistingResourceGroup(resource);
+        var targetResourceGroup = GetExistingResourceGroup(resource);
+        var targetSubscription = GetExistingSubscription(resource);
 
-        scope["resourceGroup"] = targetScope switch
+        scope["resourceGroup"] = targetResourceGroup switch
         {
             string s => s,
             IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
             null => null,
-            _ => throw new NotSupportedException($"The scope value type {targetScope.GetType()} is not supported.")
+            _ => throw new NotSupportedException($"The scope value type {targetResourceGroup.GetType()} is not supported.")
+        };
+
+        scope["subscription"] = targetSubscription switch
+        {
+            string s => s,
+            IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            null => null,
+            _ => throw new NotSupportedException($"The scope subscription type {targetSubscription.GetType()} is not supported.")
         };
     }
 
@@ -144,6 +153,12 @@ internal static class BicepUtilities
         resource.Scope?.ResourceGroup ??
             (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
                 existingResource.ResourceGroup :
+                null);
+
+    internal static object? GetExistingSubscription(AzureBicepResource resource) =>
+        resource.Scope?.Subscription ??
+            (resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource) ?
+                existingResource.Subscription :
                 null);
 
     private static bool IsParameterWithGeneratedValue(object? value)

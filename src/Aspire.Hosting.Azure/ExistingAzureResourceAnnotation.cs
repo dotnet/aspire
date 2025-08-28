@@ -12,6 +12,17 @@ namespace Aspire.Hosting.Azure;
 public sealed class ExistingAzureResourceAnnotation(object name, object? resourceGroup = null) : IResourceAnnotation
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="ExistingAzureResourceAnnotation"/> class.
+    /// </summary>
+    /// <param name="name">The name of the existing resource.</param>
+    /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
+    /// <param name="subscription">The subscription identifier associated with the resource group.</param>
+    public ExistingAzureResourceAnnotation(object name, object? resourceGroup, object subscription) : this(name, resourceGroup)
+    {
+        Subscription = subscription;
+    }
+
+    /// <summary>
     /// Gets the name of the existing resource.
     /// </summary>
     /// <remarks>
@@ -26,4 +37,12 @@ public sealed class ExistingAzureResourceAnnotation(object name, object? resourc
     /// Supports a <see cref="string"/> or a <see cref="ParameterResource"/> via runtime validation.
     /// </remarks>
     public object? ResourceGroup { get; } = resourceGroup;
+
+    /// <summary>
+    /// Gets the subscription identifier associated with the resource group.
+    /// </summary>
+    /// <remarks>
+    /// Supports a <see cref="string"/> or a <see cref="ParameterResource"/> via runtime validation.
+    /// </remarks>
+    public object? Subscription { get; }
 }
