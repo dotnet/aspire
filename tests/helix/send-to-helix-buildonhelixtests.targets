@@ -10,9 +10,6 @@
 
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
-
-    <!-- .net 10 needed specifically to use dotnet.config with dotnet test -->
-    <SdkDirNameForTests>dotnet-10</SdkDirNameForTests>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +27,10 @@
 
   <!-- `dotnet build` + `dotnet test` on helix -->
   <Target Name="BuildHelixWorkItemsForBuildOnHelixTests">
+    <PropertyGroup>
+      <_DotnetExecutable Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%\dotnet-10\dotnet.exe</_DotnetExecutable>
+      <_DotnetExecutable Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD/dotnet-10/dotnet</_DotnetExecutable>
+    </PropertyGroup>
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
@@ -37,10 +38,10 @@
       <_TestBlameArguments Include="--crashdump" />
       <_TestBlameArguments Include="--crashdump-type Full" />
 
-      <_TestRunCommandArguments Include="dotnet --info $(_ShellCommandSeparator)" />
+      <_TestRunCommandArguments Include="$(_DotnetExecutable) --info $(_ShellCommandSeparator)" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test --results-directory $(_HelixLogsPath) --no-progress --report-trx --report-trx-filename TestResults.trx" />
+      <_TestRunCommandArguments Include="$(_DotnetExecutable) test --results-directory $(_HelixLogsPath) --no-progress --report-trx --report-trx-filename TestResults.trx" />
       <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
 
       <_TestRunCommandArguments Include="--filter-not-trait &quot;quarantined=true&quot;" />
@@ -50,7 +51,7 @@
     <PropertyGroup>
       <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
-      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand>$(_DotnetExecutable) build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
       <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_TEMPLATES_TESTING_PATH}:$PATH</_SetPathEnvVar>
