@@ -40,7 +40,7 @@
     <FileSignInfo Condition="$([System.OperatingSystem]::IsMacOS())" Include="aspire" CertificateName="MacDeveloperHardenWithNotarization" />
 
     <!-- Sign the manifest catalog on Windows -->
-    <FileSignInfo Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
+    <FileSignInfo Condition="$([System.OperatingSystem]::IsWindows())" Include="manifest.cat" CertificateName="MicrosoftDotNet500" />
   </ItemGroup>
 
   <PropertyGroup>
