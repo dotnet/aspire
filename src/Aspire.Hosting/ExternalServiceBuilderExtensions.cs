@@ -145,9 +145,7 @@ public static class ExternalServiceBuilderExtensions
 
                 await e.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
                 {
-                    Properties = [
-                        new(CustomResourceKnownProperties.Source, uri.Host)
-                    ],
+                    Properties = snapshot.Properties.SetResourceProperty(CustomResourceKnownProperties.Source, uri.Host),
                     // Add the URL if it came from a parameter as non-static URLs must be published by the owning custom resource
                     Urls = AddUrlIfNotPresent(snapshot.Urls, uri),
                     // Required in order for health checks to work
