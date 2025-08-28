@@ -52,6 +52,7 @@
       <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
       <_TestRunCommand>$(_DotnetExecutable) build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand Condition="'$(OS)' != 'Windows_NT'">ls %HELIX_CORRELATION_PAYLOAD% $(_ShellCommandSeparator) %HELIX_CORRELATION_PAYLOAD%\dotnet-10 $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
       <_TestRunCommand Condition="'$(HelixPerWorkItemPreCommand)' != ''">$(HelixPerWorkItemPreCommand) $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
       <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_TEMPLATES_TESTING_PATH}:$PATH</_SetPathEnvVar>
