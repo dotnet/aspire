@@ -37,7 +37,12 @@ internal sealed class DcpNameGenerator
             var (name, suffix) = GetContainerName(resource);
             AddInstancesAnnotation(resource, [new DcpInstance(name, suffix, 0)]);
         }
-        else if (resource is ExecutableResource or ContainerExecutableResource)
+        else if (resource.IsExecutable() && resource is not ProjectResource)
+        {
+            var (name, suffix) = GetExecutableName(resource);
+            AddInstancesAnnotation(resource, [new DcpInstance(name, suffix, 0)]);
+        }
+        else if (resource is ContainerExecutableResource)
         {
             var (name, suffix) = GetExecutableName(resource);
             AddInstancesAnnotation(resource, [new DcpInstance(name, suffix, 0)]);

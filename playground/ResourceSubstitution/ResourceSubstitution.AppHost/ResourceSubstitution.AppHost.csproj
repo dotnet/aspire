@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+
+    <ProjectReference Include="..\ResourceSubstitution.Project\ResourceSubstitution.Project.csproj" />
+  </ItemGroup>
+
+  <Target Name="PublishContainersForTesting" BeforeTargets="Build">
+    <ItemGroup>
+      <SdkContainerProject Include="..\ResourceSubstitution.Project\ResourceSubstitution.Project.csproj" />
+    </ItemGroup>
+    <MSBuild
+      Projects="@(SdkContainerProject)"
+      BuildInParallel="true"
+      Targets="Publish;PublishContainer"
+      Properties="Configuration=$(Configuration)" />
+  </Target>  
+
+</Project>
