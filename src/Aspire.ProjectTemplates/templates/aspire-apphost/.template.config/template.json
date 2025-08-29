@@ -6,9 +6,9 @@
     "Aspire",
     "Cloud"
   ],
-  "name": "Aspire App Host",
+  "name": "Aspire AppHost",
   "defaultName": "AppHost",
-  "description": "A project template for creating an Aspire app host (orchestrator) project.",
+  "description": "A project template for creating an Aspire AppHost (orchestrator) project.",
   "shortName": "aspire-apphost",
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,
