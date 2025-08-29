@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
         <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
-        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <target state="translated">Nie znaleziono hostów aplikacji z możliwością kompilacji, ale mogły istnieć hosty aplikacji, których nie można było skompilować.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
         <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <target state="translated">Nie można pobrać wszystkich pakietów Aspire za pośrednictwem pamięci podręcznej.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
@@ -144,7 +144,7 @@
       </trans-unit>
       <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
         <source>Could not build: {0}</source>
-        <target state="new">Could not build: {0}</target>
+        <target state="translated">Nie można skompilować: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

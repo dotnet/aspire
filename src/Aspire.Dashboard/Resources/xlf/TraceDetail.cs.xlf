@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailResourceHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Prostředek</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
