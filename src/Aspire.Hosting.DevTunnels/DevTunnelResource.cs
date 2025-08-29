@@ -1,17 +1,89 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.DevTunnels;
 
 /// <summary>
-/// A resource that represents a DevTunnel resource.
+/// Parent resource representing a Dev Tunnel instance. Inert unless child ports exist.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public sealed class DevTunnelResource(string name)
-    : Resource(name), IResourceWithServiceDiscovery
+public sealed class DevTunnelResource : Resource
 {
     /// <summary>
     /// 
     /// </summary>
-    public required string TunnelId { get; set; }
+    /// <param name="name"></param>
+    /// <param name="options"></param>
+    public DevTunnelResource(string name, DevTunnelOptions? options = null) : base(name)
+    {
+        Options = options ?? new DevTunnelOptions();
+        TunnelId = $"{name}";
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public DevTunnelOptions Options { get; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public string TunnelId { get; init; }
+
+    internal List<DevTunnelPortResource> Ports { get; } = [];
+}
+
+/// <summary>
+/// Child resource representing a single forwarded endpoint/port on a Dev Tunnel.
+/// Contains an endpoint that resolves to the public URL of this port.
+/// </summary>
+public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery, IResourceWithParent
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public const string PublicEndpointName = "public";
+
+    private EndpointReference? _publicEndpoint;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="tunnel"></param>
+    /// <param name="targetEndpoint"></param>
+    /// <param name="options"></param>
+    public DevTunnelPortResource(
+        string name,
+        DevTunnelResource tunnel,
+        EndpointReference targetEndpoint,
+        DevTunnelPortOptions? options = null) : base(name)
+    {
+        Parent = tunnel;
+        Options = options ?? new DevTunnelPortOptions();
+        TargetEndpoint = targetEndpoint;
+    }
+
+    /// <summary>
+    /// The dev tunnel this port belongs to. Establishes lifecycle containment.
+    /// </summary>
+    public IResource Parent { get; }
+
+    /// <summary>
+    /// Options controlling how this port is exposed.
+    /// </summary>
+    public DevTunnelPortOptions Options { get; }
+
+    /// <summary>
+    /// The public URL of the tunnel for this port as an Aspire endpoint.
+    /// </summary>
+    public EndpointReference PublicEndpoint => _publicEndpoint ??= new EndpointReference(this, PublicEndpointName);
+
+    /// <summary>
+    /// A non-endpoint inspect URL (if supported), attached as a dashboard link.
+    /// </summary>
+    public string? InspectUrl { get; internal set; }
+
+    internal EndpointReference TargetEndpoint { get; init; }
 }
