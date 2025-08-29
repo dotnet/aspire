@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
-        <target state="new">Collapse all</target>
+        <target state="translated">모두 축소</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
-        <target state="new">Expand all</target>
+        <target state="translated">모두 확장</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -589,7 +589,7 @@
       </trans-unit>
       <trans-unit id="ViewStructuredLogsText">
         <source>View structured logs</source>
-        <target state="new">View structured logs</target>
+        <target state="translated">구조화된 로그 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
