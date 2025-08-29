@@ -9,6 +9,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -409,6 +410,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11169")]
     public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
     {
         var buildCalled = false;
