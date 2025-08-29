@@ -299,6 +299,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11172")]
     public async Task NewCommandDoesNotPromptForTemplateVersionIfSpecifiedOnCommandLine()
     {
         bool promptedForTemplateVersion = false;
