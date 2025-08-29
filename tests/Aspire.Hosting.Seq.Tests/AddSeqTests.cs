@@ -97,7 +97,8 @@ public class AddSeqTests
               "connectionString": "{seq.bindings.http.url}",
               "image": "{{SeqContainerImageTags.Registry}}/{{SeqContainerImageTags.Image}}:{{SeqContainerImageTags.Tag}}",
               "env": {
-                "ACCEPT_EULA": "Y"
+                "ACCEPT_EULA": "Y",
+                "SEQ_FIRSTRUN_NOAUTHENTICATION" = "True"
               },
               "bindings": {
                 "http": {
