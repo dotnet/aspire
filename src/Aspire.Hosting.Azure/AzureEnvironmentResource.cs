@@ -76,6 +76,7 @@ public sealed class AzureEnvironmentResource : Resource
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
+        var interactionService = context.Services.GetRequiredService<IInteractionService>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
@@ -83,7 +84,8 @@ public sealed class AzureEnvironmentResource : Resource
             bicepProvisioner,
             activityPublisher,
             containerImageBuilder,
-            processRunner);
+            processRunner,
+            interactionService);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }
