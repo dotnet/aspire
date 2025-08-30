@@ -14,6 +14,36 @@ namespace Aspire.Cli.Utils;
 internal static class SdkInstallHelper
 {
     /// <summary>
+    /// Ensures that the .NET SDK is installed and available, attempting automatic installation if needed.
+    /// </summary>
+    /// <param name="sdkInstaller">The SDK installer service.</param>
+    /// <param name="interactionService">The interaction service for user communication.</param>
+    /// <param name="runtimeSelector">The runtime selector for managing SDK installation and selection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the SDK is available or was successfully installed, false otherwise.</returns>
+    public static async Task<bool> EnsureSdkInstalledAsync(
+        IDotNetSdkInstaller sdkInstaller,
+        IInteractionService interactionService,
+        IDotNetRuntimeSelector runtimeSelector,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(runtimeSelector);
+
+        // Try to initialize the runtime selector (which may install a private SDK)
+        var isInitialized = await runtimeSelector.InitializeAsync(cancellationToken);
+        
+        if (!isInitialized)
+        {
+            interactionService.DisplayError(ErrorStrings.MininumSdkVersionMissing);
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Ensures that the .NET SDK is installed and available, displaying an error message if it's not.
     /// </summary>
     /// <param name="sdkInstaller">The SDK installer service.</param>
