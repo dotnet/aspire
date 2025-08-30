@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
-        <target state="new">Update integrations in the Aspire project. (Preview)</target>
+        <target state="translated">Zaktualizuj integracje w projekcie Aspire. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
