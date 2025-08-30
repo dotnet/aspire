@@ -1664,9 +1664,6 @@ public class DcpExecutorTests
         Assert.False(nonDebuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
     }
 
-    private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
-    private sealed class TestOtherExecutableResource(string directory) : ExecutableResource("TestOtherExecutable", "test-other", directory);
-
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
