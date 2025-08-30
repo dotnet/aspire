@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Certificates;
@@ -354,6 +354,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11189")]
     public async Task NewCommand_EmptyPackageList_DisplaysErrorMessage()
     {
         string? displayedErrorMessage = null;
