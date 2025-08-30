@@ -214,6 +214,146 @@ public class ContainerResourceBuilderTests
         Assert.Equal(ImagePullPolicy.Always, annotation.ImagePullPolicy);
     }
 
+    [Fact]
+    public void WithVolumeWithOwnershipAndPermissionsCreatesCorrectAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var directoryMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+        var fileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        
+        var container = builder.AddContainer("container", "image")
+            .WithVolume("data", "/usr/data", isReadOnly: false,
+                userId: 999, groupId: 999,
+                directoryMode: directoryMode,
+                fileMode: fileMode);
+
+        var annotation = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("data", annotation.Source);
+        Assert.Equal("/usr/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        Assert.Equal(999, annotation.UserId);
+        Assert.Equal(999, annotation.GroupId);
+        Assert.Equal(directoryMode, annotation.DirectoryMode);
+        Assert.Equal(fileMode, annotation.FileMode);
+    }
+
+    [Fact]
+    public void WithAnonymousVolumeWithOwnershipAndPermissionsCreatesCorrectAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var directoryMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+        var fileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        
+        var container = builder.AddContainer("container", "image")
+            .WithVolume("/usr/data",
+                userId: 999, groupId: 999,
+                directoryMode: directoryMode,
+                fileMode: fileMode);
+
+        var annotation = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Null(annotation.Source); // Anonymous volume
+        Assert.Equal("/usr/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.False(annotation.IsReadOnly); // Anonymous volume overload defaults to false
+        Assert.Equal(999, annotation.UserId);
+        Assert.Equal(999, annotation.GroupId);
+        Assert.Equal(directoryMode, annotation.DirectoryMode);
+        Assert.Equal(fileMode, annotation.FileMode);
+    }
+
+    [Fact]
+    public void WithVolumeOwnershipAndPermissionsValidatesFileMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+        
+        var container = builder.AddContainer("container", "image");
+
+        Assert.Throws<ArgumentException>(() => container.WithVolume("data", "/usr/data", 
+            fileMode: invalidMode));
+    }
+
+    [Fact]
+    public void WithVolumeOwnershipAndPermissionsValidatesDirectoryMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+        
+        var container = builder.AddContainer("container", "image");
+
+        Assert.Throws<ArgumentException>(() => container.WithVolume("data", "/usr/data", 
+            directoryMode: invalidMode));
+    }
+
+    [Fact]
+    public void WithAnonymousVolumeOwnershipAndPermissionsValidatesFileMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+        
+        var container = builder.AddContainer("container", "image");
+
+        Assert.Throws<ArgumentException>(() => container.WithVolume("/usr/data", 
+            userId: 999, groupId: 999, fileMode: invalidMode));
+    }
+
+    [Fact]
+    public void WithAnonymousVolumeOwnershipAndPermissionsValidatesDirectoryMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var invalidMode = UnixFileMode.UserRead | UnixFileMode.StickyBit;
+        
+        var container = builder.AddContainer("container", "image");
+
+        Assert.Throws<ArgumentException>(() => container.WithVolume("/usr/data", 
+            userId: 999, groupId: 999, directoryMode: invalidMode));
+    }
+
+    [Fact]
+    public void WithVolumeLegacyOverloadStillWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        var container = builder.AddContainer("container", "image")
+            .WithVolume("data", "/usr/data", isReadOnly: true);
+
+        var annotation = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("data", annotation.Source);
+        Assert.Equal("/usr/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.True(annotation.IsReadOnly);
+        // Ownership and permissions should be null for legacy constructor
+        Assert.Null(annotation.UserId);
+        Assert.Null(annotation.GroupId);
+        Assert.Null(annotation.DirectoryMode);
+        Assert.Null(annotation.FileMode);
+    }
+
+    [Fact]
+    public void WithAnonymousVolumeLegacyOverloadStillWorks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        var container = builder.AddContainer("container", "image")
+            .WithVolume("/usr/data");
+
+        var annotation = container.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Null(annotation.Source); // Anonymous volume
+        Assert.Equal("/usr/data", annotation.Target);
+        Assert.Equal(ContainerMountType.Volume, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        // Ownership and permissions should be null for legacy constructor
+        Assert.Null(annotation.UserId);
+        Assert.Null(annotation.GroupId);
+        Assert.Null(annotation.DirectoryMode);
+        Assert.Null(annotation.FileMode);
+    }
+
     private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
         where T: IResource
     {
