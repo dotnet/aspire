@@ -1037,9 +1037,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
 
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+
+                    // Use the effective launch profile which has fallback logic
+                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
                     {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
+                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
                     }
                 }
                 else
