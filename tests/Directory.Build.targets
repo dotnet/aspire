@@ -12,6 +12,10 @@
     <TestingPlatformCommandLineArguments Condition="'$(TestMethod)' != ''">$(TestingPlatformCommandLineArguments) --filter-method $(TestMethod)</TestingPlatformCommandLineArguments>
     <TestingPlatformCommandLineArguments Condition="'$(TestClass)' != ''">$(TestingPlatformCommandLineArguments) --filter-class $(TestClass)</TestingPlatformCommandLineArguments>
     <TestingPlatformCommandLineArguments Condition="'$(TestNamespace)' != ''">$(TestingPlatformCommandLineArguments) --filter-namespace $(TestNamespace)</TestingPlatformCommandLineArguments>
+
+    <TestCaptureOutput Condition="'$(TestCaptureOutput)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestCaptureOutput>
+    <!-- don't capture on local runs -->
+    <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
   </PropertyGroup>
 
   <ItemGroup>

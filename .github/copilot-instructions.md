@@ -82,6 +82,8 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 Example: `[QuarantinedTest("..issue url..")]`
 
+- To quarantine or unquarantine tests, use the tool in `tools/QuarantineTools/QuarantineTools.csproj`.
+
 ## Snapshot Testing with Verify
 
 * We use the Verify library (Verify.XunitV3) for snapshot testing in several test projects.
