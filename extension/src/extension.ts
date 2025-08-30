@@ -17,7 +17,6 @@ import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServ
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
 import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
-import { AvailableProjectsService } from './services/AvailableProjectsService';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -34,8 +33,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const dcpServer = await AspireDcpServer.create(debuggerExtensions, () => aspireExtensionContext.aspireDebugSession);
 
-    const availableProjectsService = new AvailableProjectsService();
-
 	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', rpcServer.connectionInfo, addCommand));
 	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', rpcServer.connectionInfo, newCommand));
 	const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', rpcServer.connectionInfo, configCommand));
@@ -45,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, configureLaunchJsonCommandRegistration);
 
-	const debugConfigProvider = new AspireDebugConfigurationProvider(availableProjectsService);
+	const debugConfigProvider = new AspireDebugConfigurationProvider();
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider('aspire', debugConfigProvider, vscode.DebugConfigurationProviderTriggerKind.Dynamic)
 	);
@@ -56,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
         aspireExtensionContext.aspireDebugSession = session;
     })));
 
-    aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer, availableProjectsService);
+    aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer);
 
     context.subscriptions.push(aspireExtensionContext);
 

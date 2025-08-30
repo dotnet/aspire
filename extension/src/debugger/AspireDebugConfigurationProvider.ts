@@ -1,16 +1,7 @@
 import * as vscode from 'vscode';
-import path from 'path';
-import { extensionLogOutputChannel } from '../utils/logging';
-import { errorRetrievingAppHosts } from '../loc/strings';
-import { AvailableProjectsService } from '../services/AvailableProjectsService';
+import { defaultConfigurationName } from '../loc/strings';
 
 export class AspireDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-    private _availableProjectsService: AvailableProjectsService;
-
-    constructor(availableProjectsService: AvailableProjectsService) {
-        this._availableProjectsService = availableProjectsService;
-    }
-
     async provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration[]> {
         if (folder === undefined) {
             return [];
@@ -20,23 +11,9 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
         configurations.push({
             type: 'aspire',
             request: 'launch',
-            name: `Aspire: Launch Default AppHost`,
+            name: defaultConfigurationName,
             program: '${workspaceFolder}'
         });
-
-        try {
-            for (const candidate of await this._availableProjectsService.getAppHostCandidates(folder)) {
-                configurations.push({
-                    type: 'aspire',
-                    request: 'launch',
-                    name: `Aspire: ${path.basename(candidate)}`,
-                    program: candidate,
-                });
-            }
-        } catch (error) {
-            extensionLogOutputChannel.error(`Error retrieving app hosts: ${error}`);
-            vscode.window.showWarningMessage(errorRetrievingAppHosts);
-        }
 
         return configurations;
     }

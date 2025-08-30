@@ -4,7 +4,6 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { aspireDebugSessionNotInitialized, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { AvailableProjectsService } from './services/AvailableProjectsService';
 
 export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer: AspireRpcServer | undefined;
@@ -12,7 +11,6 @@ export class AspireExtensionContext implements vscode.Disposable {
     private _extensionContext: vscode.ExtensionContext | undefined;
     private _aspireDebugSession: AspireDebugSession | undefined;
     private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
-    private _availableProjectsService: AvailableProjectsService | undefined;
 
     constructor() {
         this._rpcServer = undefined;
@@ -20,15 +18,13 @@ export class AspireExtensionContext implements vscode.Disposable {
         this._aspireDebugSession = undefined;
         this._debugConfigProvider = undefined;
         this._dcpServer = undefined;
-        this._availableProjectsService = undefined;
     }
 
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, availableProjectsService: AvailableProjectsService): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
-        this._availableProjectsService = availableProjectsService;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -50,13 +46,6 @@ export class AspireExtensionContext implements vscode.Disposable {
             throw new Error(extensionContextNotInitialized);
         }
         return this._extensionContext;
-    }
-
-    get availableProjectsService(): AvailableProjectsService {
-        if (!this._availableProjectsService) {
-            throw new Error(extensionContextNotInitialized);
-        }
-        return this._availableProjectsService;
     }
 
     hasAspireDebugSession(): boolean {
@@ -86,6 +75,5 @@ export class AspireExtensionContext implements vscode.Disposable {
         this._rpcServer?.dispose();
         this._dcpServer?.dispose();
         this._aspireDebugSession?.dispose();
-        this._availableProjectsService?.dispose();
     }
 }
