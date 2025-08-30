@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
+
 namespace Aspire.Hosting.Tests;
 
 public class ComputeResourceVolumeTests
@@ -8,8 +10,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeAddsContainerMountAnnotationToProjectResource()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var project = builder.AddProject("myproject", "/path/to/project")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<TestProject>("myproject")
             .WithVolume("shared-data", "/app/shared");
 
         var annotations = project.Resource.Annotations.OfType<ContainerMountAnnotation>();
@@ -24,8 +26,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeAddsContainerMountAnnotationToExecutableResource()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
             .WithVolume("logs", "/app/logs", isReadOnly: false);
 
         var annotations = executable.Resource.Annotations.OfType<ContainerMountAnnotation>();
@@ -40,8 +42,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeAnonymousAddsContainerMountAnnotationToProjectResource()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var project = builder.AddProject("myproject", "/path/to/project")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<TestProject>("myproject")
             .WithVolume("/tmp/cache");
 
         var annotations = project.Resource.Annotations.OfType<ContainerMountAnnotation>();
@@ -56,8 +58,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeAnonymousAddsContainerMountAnnotationToExecutableResource()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
             .WithVolume("/tmp/temp");
 
         var annotations = executable.Resource.Annotations.OfType<ContainerMountAnnotation>();
@@ -81,8 +83,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeThrowsArgumentNullExceptionForNullTarget()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
         
         var ex = Assert.Throws<ArgumentNullException>(() => executable.WithVolume("vol", null!));
         Assert.Equal("target", ex.ParamName);
@@ -100,8 +102,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeAnonymousThrowsArgumentNullExceptionForNullTarget()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
         
         var ex = Assert.Throws<ArgumentNullException>(() => executable.WithVolume(null!));
         Assert.Equal("target", ex.ParamName);
@@ -110,8 +112,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeThrowsForAnonymousReadOnlyVolume()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
         
         var ex = Assert.Throws<ArgumentException>(() => executable.WithVolume(null, "/data", isReadOnly: true));
         Assert.Equal("isReadOnly", ex.ParamName);
@@ -120,8 +122,8 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void MultipleWithVolumeCallsAddMultipleAnnotations()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", "/app", "myapp.dll")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
             .WithVolume("volume1", "/data1")
             .WithVolume("volume2", "/data2", isReadOnly: true)
             .WithVolume("/anonymous");
@@ -145,10 +147,10 @@ public class ComputeResourceVolumeTests
     [Fact]
     public void WithVolumeWorksWithSharedVolumeNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
-        var project1 = builder.AddProject("project1", "/path/to/project1")
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project1 = builder.AddProject<TestProject>("project1")
             .WithVolume("shared", "/data");
-        var project2 = builder.AddProject("project2", "/path/to/project2") 
+        var project2 = builder.AddProject<TestProject2>("project2") 
             .WithVolume("shared", "/backup");
 
         var annotations1 = project1.Resource.Annotations.OfType<ContainerMountAnnotation>();
@@ -169,7 +171,7 @@ public class ComputeResourceVolumeTests
     [Fact] 
     public void ContainerResourcesStillUseExistingExtensions()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
         
         // Container resources should use ContainerResourceBuilderExtensions.WithVolume as before
         var container = builder.AddContainer("mycontainer", "nginx")
@@ -182,5 +184,17 @@ public class ComputeResourceVolumeTests
         Assert.Equal("/app/data", annotation.Target);
         Assert.Equal(ContainerMountType.Volume, annotation.Type);
         Assert.True(annotation.IsReadOnly);
+    }
+
+    private sealed class TestProject : IProjectMetadata
+    {
+        public string ProjectPath => "TestProject";
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class TestProject2 : IProjectMetadata
+    {
+        public string ProjectPath => "TestProject2";
+        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
