@@ -251,8 +251,10 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IDotNetRuntimeSelector> DotNetRuntimeSelectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var logger = serviceProvider.GetRequiredService<ILogger<DotNetRuntimeSelector>>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
-        return new DotNetRuntimeSelector(logger, sdkInstaller);
+        var console = serviceProvider.GetRequiredService<IAnsiConsole>();
+        return new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
     };
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -51,10 +51,18 @@ public class SdkInstallHelperTests
         public bool InitializeResult { get; set; } = true;
         public bool InitializeCalled { get; private set; }
 
+        public string DotNetExecutablePath => "dotnet";
+        public DotNetRuntimeMode Mode => DotNetRuntimeMode.System;
+
         public async Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
         {
             InitializeCalled = true;
             return await Task.FromResult(InitializeResult);
+        }
+
+        public IDictionary<string, string> GetEnvironmentVariables()
+        {
+            return new Dictionary<string, string>();
         }
     }
 
