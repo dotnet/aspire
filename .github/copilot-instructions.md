@@ -152,9 +152,9 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 ### Common Validation Steps
 1. **Build Verification**: `./build.sh` should complete without errors
-3. **Package Generation**: `./build.sh --pack` verifies all packages can be created
-4. **Specific Tests**: Target individual test projects related to your changes
-5. **Container Verification**: Ensure Docker/Podman is running before integration tests
+2. **Package Generation**: `./build.sh --pack` verifies all packages can be created
+3. **Specific Tests**: Target individual test projects related to your changes
+4. **Container Verification**: Ensure Docker/Podman is running before integration tests
 
 ## Quarantined tests
 
