@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../LogCommandStrings.resx">
+    <body>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to running AppHost...</source>
+        <target state="new">Connecting to running AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Display logs from a resource in a running Aspire application.
+
+Examples:
+  aspire log web-api
+  aspire log web-api --lines 50 --tail
+  aspire log worker --project MyApp.AppHost/MyApp.AppHost.csproj --lines 10</source>
+        <target state="new">Display logs from a resource in a running Aspire application.
+
+Examples:
+  aspire log web-api
+  aspire log web-api --lines 50 --tail
+  aspire log worker --project MyApp.AppHost/MyApp.AppHost.csproj --lines 10</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidLineCount">
+        <source>Line count must be a positive integer.</source>
+        <target state="new">Line count must be a positive integer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinesArgumentDescription">
+        <source>Number of previous log lines to display. Default is 100.</source>
+        <target state="new">Number of previous log lines to display. Default is 100.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoRunningAppHost">
+        <source>No running Aspire AppHost found. Use 'aspire run' to start the application first.</source>
+        <target state="new">No running Aspire AppHost found. Use 'aspire run' to start the application first.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
+        <target state="new">The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNameArgumentDescription">
+        <source>The name of the resource to display logs for.</source>
+        <target state="new">The name of the resource to display logs for.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNameRequired">
+        <source>Resource name is required.</source>
+        <target state="new">Resource name is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' not found in the running application.</source>
+        <target state="new">Resource '{0}' not found in the running application.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StreamingLogs">
+        <source>Streaming logs for '{0}' (Press Ctrl+C to exit)...</source>
+        <target state="new">Streaming logs for '{0}' (Press Ctrl+C to exit)...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TailArgumentDescription">
+        <source>Follow log output and continue streaming new log entries until interrupted (Ctrl+C).</source>
+        <target state="new">Follow log output and continue streaming new log entries until interrupted (Ctrl+C).</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

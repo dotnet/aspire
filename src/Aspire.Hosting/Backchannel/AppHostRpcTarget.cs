@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Exec;
@@ -22,7 +23,8 @@ internal class AppHostRpcTarget(
     IServiceProvider serviceProvider,
     PublishingActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
-    DistributedApplicationOptions options)
+    DistributedApplicationOptions options,
+    ResourceLoggerService resourceLoggerService)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
@@ -219,5 +221,59 @@ internal class AppHostRpcTarget(
     public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int lineCount, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+        
+        if (lineCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lineCount), "Line count must be positive");
+        }
+
+        // Get all logged resources first to check if the resource exists
+        var loggerStates = resourceLoggerService.Loggers;
+        if (!loggerStates.ContainsKey(resourceName))
+        {
+            logger.LogWarning("Resource '{ResourceName}' not found", resourceName);
+            yield break;
+        }
+
+        // Get the backlog snapshot first (last N entries)
+        var loggerState = resourceLoggerService.GetResourceLoggerState(resourceName);
+        var backlogEntries = loggerState.GetBacklogSnapshot();
+        var entriesToReturn = backlogEntries.TakeLast(lineCount);
+
+        foreach (var entry in entriesToReturn)
+        {
+            yield return new BackchannelLogEntry
+            {
+                EventId = new EventId(0, resourceName), // Reconstruct EventId since it's not stored in LogEntry
+                LogLevel = entry.Type == LogEntryType.Error ? LogLevel.Error : LogLevel.Information, // Map LogEntryType to LogLevel 
+                Message = entry.Content ?? string.Empty,
+                Timestamp = entry.Timestamp.HasValue ? new DateTimeOffset(entry.Timestamp.Value, TimeSpan.Zero) : DateTimeOffset.UtcNow,
+                CategoryName = resourceName
+            };
+        }
+
+        // If follow is true, continue streaming new entries
+        if (follow)
+        {
+            await foreach (var logBatch in loggerState.WatchAsync(cancellationToken).ConfigureAwait(false))
+            {
+                foreach (var logLine in logBatch)
+                {
+                    yield return new BackchannelLogEntry
+                    {
+                        EventId = new EventId(logLine.LineNumber, resourceName),
+                        LogLevel = logLine.IsErrorMessage ? LogLevel.Error : LogLevel.Information,
+                        Message = logLine.Content,
+                        Timestamp = DateTimeOffset.UtcNow, // LogLine doesn't have timestamp, use current time
+                        CategoryName = resourceName
+                    };
+                }
+            }
+        }
     }
 }

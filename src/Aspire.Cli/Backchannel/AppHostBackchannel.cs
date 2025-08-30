@@ -23,6 +23,7 @@ internal interface IAppHostBackchannel
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int lineCount, bool follow, CancellationToken cancellationToken);
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
 
@@ -211,6 +212,26 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         await foreach (var commandOutput in commandOutputs.WithCancellation(cancellationToken))
         {
             yield return commandOutput;
+        }
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int lineCount, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        logger.LogDebug("Requesting resource log entries for {ResourceName}", resourceName);
+
+        var logEntries = await rpc.InvokeWithCancellationAsync<IAsyncEnumerable<BackchannelLogEntry>>(
+            "GetResourceLogEntriesAsync",
+            new object[] { resourceName, lineCount, follow },
+            cancellationToken);
+
+        logger.LogDebug("Received resource log entries async enumerable for {ResourceName}", resourceName);
+
+        await foreach (var entry in logEntries.WithCancellation(cancellationToken))
+        {
+            yield return entry;
         }
     }
 

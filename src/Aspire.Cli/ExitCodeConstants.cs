@@ -20,4 +20,7 @@ internal static class ExitCodeConstants
     public const int DashboardFailure = 12;
     public const int FailedToUpgradeProject = 13;
     public const int CentralPackageManagementNotSupported = 14;
+    public const int InvalidArguments = 15;
+    public const int FailedToConnect = 16;
+    public const int UnknownError = 99;
 }
