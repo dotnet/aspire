@@ -10,6 +10,7 @@
 	"command.config": "Manage configuration settings",
 	"command.deploy": "Deploy app host",
 	"command.configureLaunchJson": "Configure launch.json file",
+	"command.runAppHost": "Run Aspire app host",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",

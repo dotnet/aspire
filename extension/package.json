@@ -103,8 +103,51 @@
         "command": "aspire-vscode.configureLaunchJson",
         "title": "%command.configureLaunchJson%",
         "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.runAppHost",
+        "title": "%command.runAppHost%",
+        "category": "Aspire",
+        "icon": "$(play)"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceFilename =~ /AppHost\\.cs$/",
+          "group": "aspire_actions@1"
+        },
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceExtname == '.csproj'",
+          "group": "aspire_actions@1"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceFilename =~ /AppHost\\.cs$/",
+          "group": "navigation@-1"
+        },
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceExtname == '.csproj' && aspire.appHostProjectPath",
+          "group": "navigation@-1"
+        },
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceExtname == '.cs' && aspire.appHostProjectPath",
+          "group": "navigation@-1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "false"
+        }
+      ]
+    }
   },
   "repository": {
     "type": "git",
