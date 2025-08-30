@@ -18,7 +18,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="LocationDialogTitle">
         <source>Azure location and resource group</source>
-        <target state="new">Azure location and resource group</target>
+        <target state="translated">Azure 位置和資源群組</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
@@ -33,7 +33,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="LocationSelectionMessage">
         <source>Select your Azure location and specify resource group:</source>
-        <target state="new">Select your Azure location and specify resource group:</target>
+        <target state="translated">選取您的 Azure 位置並指定資源群組:</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
@@ -58,7 +58,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
-        <target state="new">Azure subscription</target>
+        <target state="translated">Azure 訂用帳戶</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
@@ -73,12 +73,12 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="SubscriptionManualEntryMessage">
         <source>Enter your Azure subscription ID:</source>
-        <target state="new">Enter your Azure subscription ID:</target>
+        <target state="translated">輸入您的 Azure 訂用帳戶識別碼:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionSelectionMessage">
         <source>Select your Azure subscription:</source>
-        <target state="new">Select your Azure subscription:</target>
+        <target state="translated">選取您的 Azure 訂用帳戶:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
