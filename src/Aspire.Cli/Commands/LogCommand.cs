@@ -11,7 +11,6 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
