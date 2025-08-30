@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -84,7 +83,7 @@ public class LogCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task LogCommand_WhenValidArguments_ParsesCorrectly()
+    public void LogCommand_WhenValidArguments_ParsesCorrectly()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);

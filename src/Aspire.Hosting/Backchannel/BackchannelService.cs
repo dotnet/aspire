@@ -19,7 +19,8 @@ internal sealed class BackchannelService(
     IServiceProvider serviceProvider)
     : BackgroundService
 {
-    private JsonRpc? _rpc;
+    private readonly List<JsonRpc> _activeConnections = [];
+    private readonly object _connectionsLock = new();
     
     public bool IsBackchannelExpected => configuration.GetValue<string>(KnownConfigNames.UnixSocketPath) is {};
 
@@ -29,6 +30,7 @@ internal sealed class BackchannelService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        Socket? serverSocket = null;
         try
         {
             var unixSocketPath = configuration.GetValue<string>(KnownConfigNames.UnixSocketPath);
@@ -40,7 +42,7 @@ internal sealed class BackchannelService(
             }
 
             logger.LogDebug("Listening for backchannel connection on socket path: {SocketPath}", unixSocketPath);
-            var serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(unixSocketPath);
             serverSocket.Bind(endpoint);
             serverSocket.Listen();
@@ -51,22 +53,46 @@ internal sealed class BackchannelService(
                 EventDispatchBehavior.NonBlockingConcurrent,
                 stoppingToken).ConfigureAwait(false);
 
-            var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
-            var stream = new NetworkStream(clientSocket, true);
-            var rpc = JsonRpc.Attach(stream, appHostRpcTarget);
-            _rpc = rpc;
+            var firstConnection = true;
 
-            // NOTE: The DistributedApplicationRunner will await this TCS
-            //       when a backchannel is expected, and will not stop
-            //       the application itself - it will instead wait for
-            //       the CLI to stop the application explicitly.
-            _backchannelConnectedTcs.SetResult();
+            // Accept multiple connections in a loop
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var clientSocket = await serverSocket.AcceptAsync(stoppingToken).ConfigureAwait(false);
+                    logger.LogDebug("Accepted new backchannel connection");
 
-            var backchannelConnectedEvent = new BackchannelConnectedEvent(serviceProvider, unixSocketPath);
-            await eventing.PublishAsync(
-                backchannelConnectedEvent,
-                EventDispatchBehavior.NonBlockingConcurrent,
-                stoppingToken).ConfigureAwait(false);
+                    // Handle each connection in the background
+                    _ = Task.Run(async () => await HandleConnectionAsync(clientSocket).ConfigureAwait(false), stoppingToken);
+
+                    if (firstConnection)
+                    {
+                        firstConnection = false;
+                        // NOTE: The DistributedApplicationRunner will await this TCS
+                        //       when a backchannel is expected, and will not stop
+                        //       the application itself - it will instead wait for
+                        //       the CLI to stop the application explicitly.
+                        _backchannelConnectedTcs.SetResult();
+
+                        var backchannelConnectedEvent = new BackchannelConnectedEvent(serviceProvider, unixSocketPath);
+                        await eventing.PublishAsync(
+                            backchannelConnectedEvent,
+                            EventDispatchBehavior.NonBlockingConcurrent,
+                            stoppingToken).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Socket was disposed, likely due to cancellation
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Operation was cancelled
+                    break;
+                }
+            }
         }
         catch (TaskCanceledException ex)
         {
@@ -75,5 +101,61 @@ internal sealed class BackchannelService(
             logger.LogDebug("Backchannel service was cancelled: {Message}", ex.Message);
             return;
         }
+        finally
+        {
+            serverSocket?.Dispose();
+        }
+    }
+
+    private async Task HandleConnectionAsync(Socket clientSocket)
+    {
+        JsonRpc? rpc = null;
+        try
+        {
+            var stream = new NetworkStream(clientSocket, true);
+            rpc = JsonRpc.Attach(stream, appHostRpcTarget);
+
+            lock (_connectionsLock)
+            {
+                _activeConnections.Add(rpc);
+            }
+
+            logger.LogDebug("Backchannel connection established");
+
+            // Wait for the connection to close
+            await rpc.Completion.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error handling backchannel connection");
+        }
+        finally
+        {
+            if (rpc is not null)
+            {
+                lock (_connectionsLock)
+                {
+                    _activeConnections.Remove(rpc);
+                }
+
+                rpc.Dispose();
+            }
+
+            logger.LogDebug("Backchannel connection closed");
+        }
+    }
+
+    public override void Dispose()
+    {
+        lock (_connectionsLock)
+        {
+            foreach (var connection in _activeConnections)
+            {
+                connection.Dispose();
+            }
+            _activeConnections.Clear();
+        }
+
+        base.Dispose();
     }
 }
