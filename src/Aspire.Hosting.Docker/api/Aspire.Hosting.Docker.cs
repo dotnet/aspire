@@ -10,6 +10,8 @@ namespace Aspire.Hosting
 {
     public static partial class DockerComposeAspireDashboardResourceBuilderExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithForwardedHeaders(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, bool enabled = true) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithHostPort(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, int? port = null) { throw null; }
     }
 

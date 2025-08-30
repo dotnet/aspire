@@ -28,7 +28,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureRedisCacheResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureRedisCacheResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureRedisCacheResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -36,7 +36,11 @@ namespace Aspire.Hosting.Azure
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
         public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
