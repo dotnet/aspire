@@ -72,7 +72,9 @@ public static class MySqlBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddMySql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+        builder.Services.AddHealthChecks().AddMySql(
+            sp => (connectionString ?? throw new InvalidOperationException("Connection string is unavailable")) + ";Connect Timeout=30;AllowPublicKeyRetrieval=true",
+            name: healthCheckKey);
 
         return builder.AddResource(resource)
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
