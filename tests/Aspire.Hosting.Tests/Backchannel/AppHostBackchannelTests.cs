@@ -99,6 +99,59 @@ public class AppHostBackchannelTests(ITestOutputHelper outputHelper)
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
+
+    [Fact]
+    public async Task CanAcceptMultipleConnections()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+        builder.Configuration[KnownConfigNames.UnixSocketPath] = UnixSocketHelper.GetBackchannelSocketPath();
+
+        var backchannelReadyTaskCompletionSource = new TaskCompletionSource<BackchannelReadyEvent>();
+        builder.Eventing.Subscribe<BackchannelReadyEvent>((e, ct) => {
+            backchannelReadyTaskCompletionSource.SetResult(e);
+            return Task.CompletedTask;
+        });
+
+        var backchannelConnectedTaskCompletionSource = new TaskCompletionSource<BackchannelConnectedEvent>();
+        builder.Eventing.Subscribe<BackchannelConnectedEvent>((e, ct) => {
+            backchannelConnectedTaskCompletionSource.SetResult(e);
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        var backchannelReadyEvent = await backchannelReadyTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Create first connection
+        var socket1 = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(backchannelReadyEvent.SocketPath);
+        await socket1.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        _ = await backchannelConnectedTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        
+        using var stream1 = new NetworkStream(socket1, true);
+        using var rpc1 = JsonRpc.Attach(stream1);
+
+        // Create second connection (this should work now with multiple connection support)
+        var socket2 = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        await socket2.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        
+        using var stream2 = new NetworkStream(socket2, true);
+        using var rpc2 = JsonRpc.Attach(stream2);
+
+        // Both connections should be able to get capabilities
+        var capabilities1 = await rpc1.InvokeAsync<string[]>("GetCapabilitiesAsync").WaitAsync(TimeSpan.FromSeconds(30));
+        var capabilities2 = await rpc2.InvokeAsync<string[]>("GetCapabilitiesAsync").WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotNull(capabilities1);
+        Assert.NotNull(capabilities2);
+        Assert.Contains("baseline.v2", capabilities1);
+        Assert.Contains("baseline.v2", capabilities2);
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
 }
 
 file sealed class TestResource(string name) : Resource(name)
