@@ -700,6 +700,28 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     {
         // No-op for test implementation
     }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int lineCount, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Simple test implementation - return some dummy log entries
+        for (int i = 0; i < Math.Min(lineCount, 3); i++)
+        {
+            yield return new BackchannelLogEntry
+            {
+                EventId = new Microsoft.Extensions.Logging.EventId(i, resourceName),
+                LogLevel = Microsoft.Extensions.Logging.LogLevel.Information,
+                Message = $"Test log entry {i} for resource {resourceName}",
+                Timestamp = DateTimeOffset.UtcNow.AddSeconds(-i),
+                CategoryName = resourceName
+            };
+        }
+
+        if (follow)
+        {
+            // Don't simulate streaming in tests to avoid infinite loops
+            await Task.CompletedTask;
+        }
+    }
 }
 
 // Data structures for tracking prompts
