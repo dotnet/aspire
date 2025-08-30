@@ -8,7 +8,6 @@ import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
-import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 
 export type RpcServerConnectionInfo = {
     address: string;

@@ -56,8 +56,11 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
 
+        const args = message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'];
+        args.push("--project", appHostPath);
+
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
+        this.spawnRunCommand(args, workspaceFolder);
       }
 
       this.sendEvent({

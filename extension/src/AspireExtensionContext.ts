@@ -4,15 +4,15 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { aspireDebugSessionNotInitialized, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
+import { AvailableProjectsService } from './services/AvailableProjectsService';
 
-export class AspireExtensionContext {
+export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer: AspireRpcServer | undefined;
     private _dcpServer: AspireDcpServer | undefined;
     private _extensionContext: vscode.ExtensionContext | undefined;
     private _aspireDebugSession: AspireDebugSession | undefined;
     private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
-    private  _debuggerExtensions: ResourceDebuggerExtension[] | undefined;
+    private _availableProjectsService: AvailableProjectsService | undefined;
 
     constructor() {
         this._rpcServer = undefined;
@@ -20,14 +20,15 @@ export class AspireExtensionContext {
         this._aspireDebugSession = undefined;
         this._debugConfigProvider = undefined;
         this._dcpServer = undefined;
+        this._availableProjectsService = undefined;
     }
 
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, availableProjectsService: AvailableProjectsService): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
-        this._debuggerExtensions = debuggerExtensions;
+        this._availableProjectsService = availableProjectsService;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -51,8 +52,11 @@ export class AspireExtensionContext {
         return this._extensionContext;
     }
 
-    get debuggerExtensions(): ResourceDebuggerExtension[] | undefined {
-        return this._debuggerExtensions;
+    get availableProjectsService(): AvailableProjectsService {
+        if (!this._availableProjectsService) {
+            throw new Error(extensionContextNotInitialized);
+        }
+        return this._availableProjectsService;
     }
 
     hasAspireDebugSession(): boolean {
@@ -76,5 +80,12 @@ export class AspireExtensionContext {
         }
 
         return this._debugConfigProvider;
+    }
+
+    dispose(): void {
+        this._rpcServer?.dispose();
+        this._dcpServer?.dispose();
+        this._aspireDebugSession?.dispose();
+        this._availableProjectsService?.dispose();
     }
 }
