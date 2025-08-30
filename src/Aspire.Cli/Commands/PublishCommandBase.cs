@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
@@ -61,10 +60,9 @@ internal abstract class PublishCommandBase : BaseCommand
         };
         Options.Add(projectOption);
 
-        var outputPath = new Option<string>("--output-path", "-o")
+        var outputPath = new Option<string?>("--output-path", "-o")
         {
-            Description = GetOutputPathDescription(),
-            DefaultValueFactory = GetDefaultOutputPath
+            Description = GetOutputPathDescription()
         };
         Options.Add(outputPath);
 
@@ -74,8 +72,7 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string GetDefaultOutputPath(ArgumentResult result);
-    protected abstract string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens);
+    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
@@ -134,8 +131,8 @@ internal abstract class PublishCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            var outputPath = parseResult.GetValue<string>("--output-path");
-            var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+            var outputPath = parseResult.GetValue<string?>("--output-path");
+            var fullyQualifiedOutputPath = outputPath != null ? Path.GetFullPath(outputPath) : null;
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
 

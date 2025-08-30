@@ -25,7 +25,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 {
     [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/11105")]
-    public void DeployAsync_EmitsPublishedResources()
+    public void DeployAsync_DoesNotEmitPublishedResources()
     {
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory(".azure-deployer-test");
@@ -42,9 +42,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Assert files exist but don't verify contents
         var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.True(File.Exists(mainBicepPath));
+        Assert.False(File.Exists(mainBicepPath));
         var envBicepPath = Path.Combine(tempDir.FullName, "env", "env.bicep");
-        Assert.True(File.Exists(envBicepPath));
+        Assert.False(File.Exists(envBicepPath));
 
         tempDir.Delete(recursive: true);
     }
