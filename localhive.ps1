@@ -143,7 +143,6 @@ function Get-PackagesPath {
 
 if ($Configuration) {
   Write-Log "Building and packing NuGet packages [-c $Configuration] with versionsuffix '$VersionSuffix'"
-  # Use '-pack' (single dash). '--pack' would bypass PowerShell switch binding and reach MSBuild as an unknown switch.
   & $buildScript -r -b -pack -c $Configuration "/p:VersionSuffix=$VersionSuffix"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration $Configuration."
@@ -157,7 +156,6 @@ if ($Configuration) {
 }
 else {
   Write-Log "Building and packing NuGet packages [-c Release] with versionsuffix '$VersionSuffix'"
-  # Use '-pack' (single dash). '--pack' would surface as an invalid MSBuild switch.
   & $buildScript -r -b -pack -c Release "/p:VersionSuffix=$VersionSuffix"
   if ($LASTEXITCODE -ne 0) {
     Write-Err "Build failed for configuration Release."
