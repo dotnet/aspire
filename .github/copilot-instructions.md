@@ -8,7 +8,7 @@
 ### Key Components
 - **Aspire.Hosting**: Application host orchestration and resource management
 - **Aspire.Dashboard**: Web-based dashboard for monitoring and debugging
-- **Service Discovery**: Infrastructure for service-to-service communication  
+- **Service Discovery**: Infrastructure for service-to-service communication
 - **Integrations**: 40+ packages for databases (SQL Server, PostgreSQL, Redis, MongoDB), message queues (RabbitMQ, Kafka), cloud services (Azure), and more
 - **CLI Tools**: Command-line interface for project creation and management
 - **Project Templates**: Starter templates for new Aspire applications
@@ -58,7 +58,7 @@
 - **Full Build**: `./build.sh` (Linux/macOS) or `./build.cmd` (Windows) - defaults to restore + build (~3-5 minutes)
 - **Build Only**: `./build.sh --build` (assumes restore already done)
 - **Skip Native Build**: Add `/p:SkipNativeBuild=true` to avoid slow native AOT compilation (~1-2 minutes saved)
-- **Clean Build**: `./build.sh --rebuild` 
+- **Clean Build**: `./build.sh --rebuild`
 - **Package Generation**: `./build.sh --pack` to create NuGet packages
 
 #### Build Troubleshooting
@@ -103,7 +103,7 @@ When running tests in automated environments (including Copilot agent), **always
 # Correct - excludes quarantined tests (use this in automation)
 ./dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
 
-# For specific test filters, combine with quarantine exclusion  
+# For specific test filters, combine with quarantine exclusion
 ./dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true"
 ```
 
@@ -112,8 +112,7 @@ Never run all tests without the quarantine filter in automated environments, as 
 Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
 
 ### Test Verification Commands
-- **Sample App**: `./dotnet.sh run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj` to verify setup
-- **Single Test Project**: Typical runtime ~10-60 seconds per test project  
+- **Single Test Project**: Typical runtime ~10-60 seconds per test project
 - **Full Test Suite**: Can take 30+ minutes, use targeted testing instead
 
 ## Project Layout and Architecture
@@ -153,7 +152,6 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 ### Common Validation Steps
 1. **Build Verification**: `./build.sh` should complete without errors
-2. **Sample App Test**: Run TestShop to verify hosting infrastructure works
 3. **Package Generation**: `./build.sh --pack` verifies all packages can be created
 4. **Specific Tests**: Target individual test projects related to your changes
 5. **Container Verification**: Ensure Docker/Podman is running before integration tests
