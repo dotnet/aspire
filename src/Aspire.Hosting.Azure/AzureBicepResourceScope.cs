@@ -33,13 +33,13 @@ public sealed class AzureBicepResourceScope
     /// Initializes a new instance of the <see cref="AzureBicepResourceScope"/> class for subscription-level resources.
     /// </summary>
     /// <param name="subscription">The subscription identifier for subscription-level resources.</param>
-    /// <param name="subscriptionOnly">Must be true to indicate this is a subscription-only scope.</param>
-    public AzureBicepResourceScope(object subscription, bool subscriptionOnly)
+    /// <param name="isSubscriptionScope">Must be true to indicate this is a subscription-only scope.</param>
+    public AzureBicepResourceScope(object subscription, bool isSubscriptionScope)
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        if (!subscriptionOnly)
+        if (!isSubscriptionScope)
         {
-            throw new ArgumentException("subscriptionOnly parameter must be true when creating subscription-only scope.", nameof(subscriptionOnly));
+            throw new ArgumentException("isSubscriptionScope parameter must be true when creating subscription-only scope.", nameof(isSubscriptionScope));
         }
         Subscription = subscription;
     }

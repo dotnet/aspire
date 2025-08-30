@@ -149,7 +149,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 else if (existingAnnotation.Subscription is not null)
                 {
                     // Subscription only
-                    infrastructure.AspireResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+                    infrastructure.AspireResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
                 }
             }
         }

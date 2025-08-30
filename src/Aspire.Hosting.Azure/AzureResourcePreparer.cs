@@ -320,7 +320,7 @@ internal sealed class AzureResourcePreparer(
                 else if (existingAnnotation.Subscription is not null)
                 {
                     // Subscription only
-                    roleAssignmentResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+                    roleAssignmentResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
                 }
             }
 
@@ -542,7 +542,7 @@ internal sealed class AzureResourcePreparer(
             else if (existingAnnotation.Subscription is not null)
             {
                 // Subscription only
-                roleAssignmentResource.Scope = new(existingAnnotation.Subscription, subscriptionOnly: true);
+                roleAssignmentResource.Scope = new(existingAnnotation.Subscription, isSubscriptionScope: true);
             }
         }
 

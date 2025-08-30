@@ -188,13 +188,7 @@ namespace Aspire.Hosting.Azure
     {
         public AzureBicepResourceScope(object resourceGroup) { }
 
-        public AzureBicepResourceScope(object resourceGroup, object subscription) { }
-
-        public AzureBicepResourceScope(object subscription, bool subscriptionOnly) { }
-
-        public object? ResourceGroup { get { throw null; } }
-
-        public object? Subscription { get { throw null; } }
+        public object ResourceGroup { get { throw null; } }
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
@@ -359,13 +353,9 @@ namespace Aspire.Hosting.Azure
     {
         public ExistingAzureResourceAnnotation(object name, object? resourceGroup = null) { }
 
-        public ExistingAzureResourceAnnotation(object name, object? resourceGroup, object subscription) { }
-
         public object Name { get { throw null; } }
 
         public object? ResourceGroup { get { throw null; } }
-
-        public object? Subscription { get { throw null; } }
     }
 
     public partial interface IAddRoleAssignmentsContext
