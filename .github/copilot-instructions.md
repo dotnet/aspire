@@ -3,7 +3,7 @@
 
 ## Repository Overview
 
-**Aspire** is a .NET framework that provides tools, templates, and packages for building observable, production-ready distributed applications. At its core is an app model that defines services, resources, and connections in a code-first approach.
+**Aspire** provides tools, templates, and packages for building observable, production-ready distributed applications. At its core is an app model that defines services, resources, and connections in a code-first approach.
 
 ### Key Components
 - **Aspire.Hosting**: Application host orchestration and resource management
