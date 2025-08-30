@@ -28,6 +28,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly IDotNetRuntimeSelector _runtimeSelector;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -51,6 +52,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ITemplateProvider templateProvider,
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
+        IDotNetRuntimeSelector runtimeSelector,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext)
@@ -64,6 +66,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(runtimeSelector);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -72,6 +75,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _interactionService = interactionService;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _runtimeSelector = runtimeSelector;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -124,7 +128,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _runtimeSelector, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

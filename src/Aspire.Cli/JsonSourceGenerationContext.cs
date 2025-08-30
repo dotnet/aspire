@@ -3,12 +3,14 @@
 
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Configuration;
 
 namespace Aspire.Cli;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(CliSettings))]
 [JsonSerializable(typeof(JsonObject))]
+[JsonSerializable(typeof(AspireSettings))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
 }
