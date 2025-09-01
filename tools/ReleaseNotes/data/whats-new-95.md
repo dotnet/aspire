@@ -611,6 +611,4 @@ builder.AddProject<Projects.Api>("api")
 - Custom resource icons section already noted now also apply to project & container resources via unified annotation.
 - Launch profile localization and model surfaced in dashboard resource details ([#10906](https://github.com/dotnet/aspire/pull/10906)).
 
-<!-- API details merged into relevant sections above to avoid duplication. Refer to api-changes-diff.txt for exhaustive list. -->
-
 
