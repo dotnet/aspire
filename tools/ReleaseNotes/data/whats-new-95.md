@@ -261,7 +261,7 @@ Mobile and desktop toolbars redesigned for better usability across all dashboard
 
 ### Container runtime notifications
 
-Smart notifications appear when Docker/Podman is installed but unhealthy, with automatic dismissal when runtime recovers (#11008).
+Smart notifications appear when Docker/Podman is installed but unhealthy, with automatic dismissal when runtime recovers (#11008). This provides immediate feedback when your container runtime needs attention, helping diagnose startup issues faster.
 
 ### UI improvements
 
@@ -506,6 +506,10 @@ var appConfig = builder.AddAzureAppConfiguration("config")
     .WithHostPort(8080));
 ```
 
+### Azure Storage emulator improvements
+
+Updated Azurite to version 3.35.0, resolving health check issues that previously returned HTTP 400 responses (#10972). This improves the reliability of Azure Storage emulator health checks during development.
+
 ### Broader Azure resource capability surfacing
 
 Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
@@ -576,6 +580,7 @@ builder.AddDockerComposeEnvironment("env")
 - `ParameterResource.Value` is now obsolete: switch to `await parameter.GetValueAsync()` or inject parameter resources directly ([#10363](https://github.com/dotnet/aspire/pull/10363)). This change improves async value acquisition and avoids accidental blocking.
 - Interaction inputs enforce server-side validation and required `Name` property (breaking, [#10835](https://github.com/dotnet/aspire/pull/10835)).
 - New notification terminology (renamed from MessageBar, [#10449](https://github.com/dotnet/aspire/pull/10449)).
+- `ExecuteCommandResult` now includes a `Canceled` property to track whether command execution was canceled by the user or system.
 
 Migration example:
 
@@ -593,7 +598,18 @@ Extensive localization landed across the AppHost, Azure provisioning, interactio
 
 ## Reliability & diagnostics
 
-- New `ResourceStoppedEvent` provides lifecycle insight when resources shut down or fail ([#11103](https://github.com/dotnet/aspire/pull/11103)).
+- New `ResourceStoppedEvent` provides lifecycle insight when resources shut down or fail ([#11103](https://github.com/dotnet/aspire/pull/11103)):
+
+```csharp
+builder.AddProject<Projects.Api>("api")
+  .OnResourceStopped(async (resource, evt, ct) =>
+  {
+      // Handle resource stopped event - log cleanup, notify other services, etc.
+      Console.WriteLine($"Resource {resource.Name} stopped with event: {evt.ResourceEvent}");
+      await NotifyDependentServices(resource.Name, ct);
+  });
+```
+
 - Hardened container runtime health checks now block image build when the runtime is unhealthy rather than failing later ([#10399](https://github.com/dotnet/aspire/pull/10399), [#10402](https://github.com/dotnet/aspire/pull/10402)).
 - Dashboard startup failure now surfaces an immediate, clear exception instead of hanging (`ResourceFailedException`, [#10567](https://github.com/dotnet/aspire/pull/10567)).
 - Version checking messages localized and de-duplicated ([#11017](https://github.com/dotnet/aspire/pull/11017)).
