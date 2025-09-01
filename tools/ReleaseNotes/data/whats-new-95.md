@@ -8,62 +8,62 @@ ms.date: 08/21/2025
 
 ## Table of contents
 
-- [Upgrade to .NET Aspire 9.5](#️-upgrade-to-net-aspire-95)
-- [CLI improvements](#-cli-improvements)
-  - [`aspire exec` (9.5 delta)](#-aspire-exec-95-delta)
-  - [Robust orphan detection](#-robust-orphan-detection)
-  - [Package channel & templating enhancements](#-package-channel--templating-enhancements)
-  - [Improved cancellation & ctrl-c ux](#-improved-cancellation--ctrl-c-ux)
-  - [New aspire update command (preview)](#-new-aspire-update-command-preview)
-  - [Channel-aware aspire add & templating](#-channel-aware-aspire-add--templating)
-  - [Improved aspire exec (feature flag)](#-improved-aspire-exec-feature-flag)
-  - [Smarter package prefetching](#-smarter-package-prefetching)
-  - [Rich markdown & styling](#-rich-markdown--styling)
-  - [Orphan & runtime diagnostics](#-orphan--runtime-diagnostics)
-  - [Localization & resource strings](#-localization--resource-strings)
-  - [Stability & error handling](#-stability--error-handling)
+- [Upgrade to .NET Aspire 9.5](#upgrade-to-net-aspire-95)
+- [CLI improvements](#cli-improvements)
+  - [`aspire exec` (9.5 delta)](#aspire-exec-95-delta)
+  - [Robust orphan detection](#robust-orphan-detection)
+  - [Package channel & templating enhancements](#package-channel--templating-enhancements)
+  - [Improved cancellation & CTRL-C UX](#improved-cancellation--ctrl-c-ux)
+  - [New aspire update command (preview)](#new-aspire-update-command-preview)
+  - [Channel-aware aspire add & templating](#channel-aware-aspire-add--templating)
+  - [Improved aspire exec (feature flag)](#improved-aspire-exec-feature-flag)
+  - [Smarter package prefetching](#smarter-package-prefetching)
+  - [Rich markdown & styling](#rich-markdown--styling)
+  - [Orphan & runtime diagnostics](#orphan--runtime-diagnostics)
+  - [Localization & resource strings](#localization--resource-strings)
   - [Developer ergonomics](#developer-ergonomics)
   - [Command infrastructure & interactions](#command-infrastructure--interactions)
-- [Dashboard enhancements](#-dashboard-enhancements)
-  - [Deep-linked telemetry navigation](#-deep-linked-telemetry-navigation)
-  - [Multi-resource console logs](#-multi-resource-console-logs)
-  - [Custom resource icons](#-custom-resource-icons)
-  - [Reverse proxy support](#-reverse-proxy-support)
-  - [Improved mobile experience](#-improved-mobile-experience)
-  - [Enhanced resource management](#-enhanced-resource-management)
-  - [Container runtime notifications](#-container-runtime-notifications)
-  - [UI improvements](#-ui-improvements)
-  - [Trace performance & integration](#-trace-performance--integration)
-  - [Localization & deployment](#-localization--deployment)
+  - [Stability & error handling](#stability--error-handling)
+- [Dashboard enhancements](#dashboard-enhancements)
+  - [Deep-linked telemetry navigation](#deep-linked-telemetry-navigation)
+  - [Multi-resource console logs](#multi-resource-console-logs)
+  - [Custom resource icons](#custom-resource-icons)
+  - [Reverse proxy support](#reverse-proxy-support)
+  - [Improved mobile experience](#improved-mobile-experience)
+  - [Enhanced resource management](#enhanced-resource-management)
+  - [Container runtime notifications](#container-runtime-notifications)
+  - [UI improvements](#ui-improvements)
+  - [Trace performance & integration](#trace-performance--integration)
+  - [Localization & deployment](#localization--deployment)
 - [Integration changes and additions](#integration-changes-and-additions)
   - [OpenAI hosting integration](#openai-hosting-integration)
   - [GitHub Models typed catalog](#github-models-typed-catalog)
-- [App model enhancements](#️-app-model-enhancements)
-  - [Telemetry configuration apis](#telemetry-configuration-apis)
+- [App model enhancements](#app-model-enhancements)
+  - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
-  - [Externalservice waitfor behavior change](#externalservice-waitfor-behavior-change)
+  - [ExternalService WaitFor behavior change](#externalservice-waitfor-behavior-change)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
   - [Resource lifetime behavior](#resource-lifetime-behavior)
-  - [Interactioninput api changes](#interactioninput-api-changes)
-  - [Custom resource icons (app model)](#custom-resource-icons)
-  - [Mysql password improvements](#mysql-password-improvements)
+  - [InteractionInput API changes](#interactioninput-api-changes)
+  - [Custom resource icons (app model)](#custom-resource-icons-app-model)
+  - [MySQL password improvements](#mysql-password-improvements)
   - [Remote & debugging experience](#remote--debugging-experience)
 - [Azure](#azure)
-  - [Azure ai foundry enhancements](#azure-ai-foundry-enhancements)
-  - [Azure app configuration emulator apis](#azure-app-configuration-emulator-apis)
-  - [Broader azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
+  - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
+  - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
   - [Azure provisioning & deployer](#azure-provisioning--deployer)
   - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
   - [Azure resource idempotency & existing resources](#azure-resource-idempotency--existing-resources)
   - [Compute image deployment](#compute-image-deployment)
-  - [Module-scoped bicep deployment](#module-scoped-bicep-deployment)
+  - [Module-scoped Bicep deployment](#module-scoped-bicep-deployment)
 - [Docker & container tooling](#docker--container-tooling)
-  - [Docker compose aspire dashboard forwarding headers](#docker-compose-aspire-dashboard-forwarding-headers)
+  - [Docker Compose Aspire Dashboard forwarding headers](#docker-compose-aspire-dashboard-forwarding-headers)
   - [Container build customization](#container-build-customization)
 - [Publishing & interactions](#publishing--interactions)
   - [Publishing progress & activity reporting](#publishing-progress--activity-reporting)
-  - [Parameter & interaction api updates](#parameter--interaction-api-updates)
-- [Localization & ux consistency](#localization--ux-consistency)
+  - [Parameter & interaction API updates](#parameter--interaction-api-updates)
+- [Localization & UX consistency](#localization--ux-consistency)
 - [Reliability & diagnostics](#reliability--diagnostics)
 - [Minor enhancements](#minor-enhancements)
 
@@ -80,7 +80,7 @@ It's important to note that .NET Aspire releases out-of-band from .NET releases.
 - [.NET support policy](https://dotnet.microsoft.com/platform/support/policy): Definitions for LTS and STS.
 - [.NET Aspire support policy](https://dotnet.microsoft.com/platform/support/policy/aspire): Important unique product lifecycle details.
 
-## ⬆️ Upgrade to .NET Aspire 9.5
+## Upgrade to .NET Aspire 9.5
 
 Moving between minor releases of Aspire is simple:
 
@@ -105,9 +105,9 @@ Moving between minor releases of Aspire is simple:
 
 If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using .NET Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
 
-## 🚀 CLI improvements
+## CLI improvements
 
-### 🧪 `aspire exec` (9.5 delta)
+### `aspire exec` (9.5 delta)
 
 Building on the 9.4 preview, 9.5 adds:
 
@@ -123,7 +123,7 @@ aspire exec --resource worker --workdir /app/tools -- dotnet run -- --seed
 
 The feature flag requirement from 9.4 still applies.
 
-### 🧷 Robust orphan detection
+### Robust orphan detection
 
 Resilient to PID reuse via `ASPIRE_CLI_STARTED` timestamp + PID verification:
 
@@ -131,16 +131,16 @@ Resilient to PID reuse via `ASPIRE_CLI_STARTED` timestamp + PID verification:
 Detected orphaned prior AppHost process (PID reused). Cleaning up...
 ```
 
-### 📦 Package channel & templating enhancements
+### Package channel & templating enhancements
 
 New packaging channel infrastructure lets `aspire add` and templating flows surface stable vs pre-release channels with localized UI.
 
-### 🧵 Improved cancellation & CTRL-C UX
+### Improved cancellation & CTRL-C UX
 
 - CTRL-C guidance message
 - Fix for stall on interrupt
 
-### 🔄 New `aspire update` command (preview)
+### New `aspire update` command (preview)
 
 Introduces automated project/package upgrade workflows (#11019) with subsequent formatting and correctness improvements (#11148, #11145):
 
@@ -164,7 +164,7 @@ Extended markdown rendering support (#10815) with:
 - Purple styling for default values in prompts (#10474)
 *** End Patch
 
-### 📦 Channel-aware `aspire add` & templating
+### Channel-aware `aspire add` & templating
 
 New packaging channel infrastructure (#10801, #10899) adds stable vs pre-release channel selection inside interactive flows:
 
@@ -172,31 +172,31 @@ New packaging channel infrastructure (#10801, #10899) adds stable vs pre-release
 - Pre-release surfacing with localized labels
 - Unified PackagingService powering add + template selection
 
-### 🧪 Improved `aspire exec` (feature flag)
+### Improved `aspire exec` (feature flag)
 
 - `--workdir` flag for container working directory selection (#10912)
 - Fail-fast validation & clearer error messaging (#10606)
 - Help text and usage clarity improvements (#10598, #10522)
 - Feature flag gating (`ExecCommand` flag) (#10664)
 
-### 🧠 Smarter package prefetching
+### Smarter package prefetching
 
 Refactored NuGet prefetch architecture (#11120) reducing UI lag during `aspire new` on macOS (#11069) and enabling command-aware caching. Temporary NuGet config improvements ensure wildcard mappings (#10894).
 
-### 📰 Rich markdown & styling
+### Rich markdown & styling
 
 Extended markdown rendering support (#10815) with:
 - Code fences, emphasis, bullet lists
 - Safe markup escaping (#10462)
 - Purple styling for default values in prompts (#10474)
 
-### 🧭 Orphan & runtime diagnostics
+### Orphan & runtime diagnostics
 
 - Robust orphan AppHost detection via start timestamp (#10673)
 - .NET SDK availability check with actionable errors (#10525)
 - Container runtime health surfaced earlier (shared infra)
 
-### 🌐 Localization & resource strings
+### Localization & resource strings
 
 Moved hardcoded CLI strings to `.resx` (#10504) and enabled multi-language builds (numerous OneLocBuild commits). Command help, prompts, and errors are now localizable.
 
@@ -214,7 +214,7 @@ Moved hardcoded CLI strings to `.resx` (#10504) and enabled multi-language build
 - Markdown-to-Spectre converter foundation reuse (#10815)
 - Interaction answer typing change (`object`) for future extensibility (#10480)
 
-### 🧪 Stability & error handling
+### Stability & error handling
 
 - Dashboard startup hang eliminated via `ResourceFailedException` (#10567)
 - CTRL-C stall fix (#10962) + guidance message (#10203)
@@ -222,13 +222,13 @@ Moved hardcoded CLI strings to `.resx` (#10504) and enabled multi-language build
 
 > The `aspire exec` and `aspire update` commands remain in preview behind feature flags; behavior may change in a subsequent release.
 
-## 🎨 Dashboard enhancements
+## Dashboard enhancements
 
-### 🔗 Deep-linked telemetry navigation
+### Deep-linked telemetry navigation
 
 Trace IDs, span IDs, resource names, and log levels become interactive buttons in property grids for one-click navigation between telemetry views (#10648).
 
-### 📊 Multi-resource console logs
+### Multi-resource console logs
  
 New "All" option streams logs from every running resource simultaneously with deterministic colored name prefixes and a separate timestamp preference to reduce noise in aggregate view (#10981):
 
@@ -238,32 +238,32 @@ New "All" option streams logs from every running resource simultaneously with de
 [redis    INF] Ready to accept connections
 ```
 
-### 🎭 Custom resource icons
+### Custom resource icons
 
 Resources can specify custom icons via `WithIconName()` for better visual identification in dashboard views (#10760).
 
-### 🌐 Reverse proxy support
+### Reverse proxy support
  
 Dashboard now explicitly maps forwarded Host & Proto headers when `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`, fixing OpenID auth redirects and URL generation behind reverse proxies like YARP (#10388). Only these two headers are allowed to limit spoofing surface:
 
 - Enable with `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`
 - Fixes OpenID authentication redirect issues with proxy scenarios
 
-### 📱 Improved mobile experience
+### Improved mobile experience
 
 Mobile and desktop toolbars redesigned for better usability across all dashboard pages with improved responsive layouts (#10407).
 
-### 🔧 Enhanced resource management
+### Enhanced resource management
 
 - Resource action menus reorganized into sub-menus to prevent overflow (#10869)
 - LaunchProfile property added to project details for easier debugging (#10906)
 - Better resource navigation and selection handling (#10848)
 
-### 🚨 Container runtime notifications
+### Container runtime notifications
 
 Smart notifications appear when Docker/Podman is installed but unhealthy, with automatic dismissal when runtime recovers (#11008).
 
-### ✨ UI improvements
+### UI improvements
 
 - Error spans use consistent error styling (#10742)
 - Better default icons for parameters and services (#10762)
@@ -273,13 +273,13 @@ Smart notifications appear when Docker/Podman is installed but unhealthy, with a
 - Optional log line wrapping (#10271)
 - Improved text visualizer dialog (#10964)
 
-### 📊 Trace performance & integration
+### Trace performance & integration
 
 - Optimized trace detail page rendering (#10308)
 - Embedded log entries within trace spans (#10281)
 - Better span timing calculations (#10310)
 
-### 🌍 Localization & deployment
+### Localization & deployment
 
 - Comprehensive dashboard localization with consolidated resource files
 - Launch profile support with localized display names (#10906)
@@ -327,7 +327,7 @@ builder.AddGitHubModel("phi4", GitHubModel.Microsoft.Phi4);
 
 This reduces magic strings, enables code navigation to model definitions, and aligns GitHub model usage with the existing Azure AI Foundry `AIFoundryModel` experience introduced in 9.5.
 
-## 🖥️ App model enhancements
+## App model enhancements
 
 ### Telemetry configuration APIs
 
@@ -433,7 +433,7 @@ var input = new InteractionInput
 
 All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
 
-### Custom resource icons
+### Custom resource icons (app model)
 
 Resources can specify custom icon names for better visual identification:
 
@@ -459,7 +459,7 @@ mysql.Resource.PasswordParameter = builder.AddParameter("new-password", secret: 
 
 ### Remote & debugging experience
 
-### 🔄 SSH remote auto port forwarding
+### SSH remote auto port forwarding
 
 VS Code SSH sessions now get automatic port forwarding configuration just like Dev Containers and Codespaces:
 
@@ -467,11 +467,11 @@ VS Code SSH sessions now get automatic port forwarding configuration just like D
 Remote SSH environment detected – configuring forwarded ports (dashboard, api, postgres).
 ```
 
-### 🐞 AppHost debugging in VS Code
+### AppHost debugging in VS Code
 
 The extension offers Run vs Debug for the AppHost. If the C# extension is present it launches under the debugger; otherwise a terminal with `dotnet watch` is used.
 
-### 🧩 Extension modernization
+### Extension modernization
 
 Package upgrades and localization support plus groundwork for richer debugging scenarios.
 
