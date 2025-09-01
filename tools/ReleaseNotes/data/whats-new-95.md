@@ -130,28 +130,6 @@ export ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true
 aspire config set features.execCommandEnabled true
 ```
 
-### Troubleshooting
-
-Common issues when upgrading to 9.5 and their solutions:
-
-#### CLI issues
-
-- **"Command not found"**: Ensure you've updated to the latest Aspire CLI version
-- **Feature flag errors**: Some commands require explicit enablement with `aspire config set`
-- **Package channel conflicts**: Use `aspire update` to resolve outdated package versions
-
-#### Dashboard issues
-
-- **Reverse proxy authentication**: Enable forwarded headers with `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`
-- **Mobile display problems**: Clear browser cache if responsive layout isn't working
-- **Missing custom icons**: Verify `WithIconName()` calls use valid icon identifiers
-
-#### Integration issues
-
-- **OpenAI connection failures**: Check endpoint URLs and API key configuration
-- **GitHub Models type errors**: Update to use `GitHubModel.*` constants instead of strings
-- **Container runtime notifications**: Ensure Docker/Podman is running and healthy
-
 ## CLI improvements
 
 ### `aspire exec` command enhancements
