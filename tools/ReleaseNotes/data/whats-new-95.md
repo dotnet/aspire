@@ -50,6 +50,7 @@ ms.date: 08/21/2025
   - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
   - [Azure Storage emulator improvements](#azure-storage-emulator-improvements)
   - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure resource reference properties](#azure-resource-reference-properties)
   - [Azure provisioning & deployer](#azure-provisioning--deployer)
   - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
   - [Azure resource idempotency & existing resources](#azure-resource-idempotency--existing-resources)
@@ -927,6 +928,52 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
+
+### Azure resource reference properties
+
+New reference properties have been added to Azure PostgreSQL and Redis resources for custom connection string composition and individual component access (#11051, #11070).
+
+#### AzurePostgresFlexibleServerResource enhancements
+
+Three new reference properties enable custom connection string composition:
+
+- **`HostName`** (`ReferenceExpression`): Returns PostgreSQL server hostname with port
+- **`UserName`** (`ReferenceExpression?`): Returns username for password authentication (null for Entra ID)  
+- **`Password`** (`ReferenceExpression?`): Returns password for password authentication (null for Entra ID)
+
+```csharp
+var postgres = builder.AddAzurePostgresFlexibleServer("database")
+    .WithPasswordAuthentication()
+    .RunAsContainer();
+
+var db = postgres.AddDatabase("appdb");
+
+// Custom JDBC connection string
+var jdbc = ReferenceExpression.Create($"jdbc:postgresql://{postgres.Resource.HostName}/{db.Resource.DatabaseName}");
+
+// Custom PostgreSQL connection string  
+var connectionString = ReferenceExpression.Create(
+    $"Host={postgres.Resource.HostName};Username={postgres.Resource.UserName};Password={postgres.Resource.Password};Database={db.Resource.DatabaseName}");
+```
+
+#### AzureRedisCacheResource enhancements
+
+Two new reference properties enable custom Redis connection scenarios:
+
+- **`HostName`** (`ReferenceExpression`): Returns Redis server hostname with port
+- **`Password`** (`ReferenceExpression?`): Returns password when running as container (null in Azure mode)
+
+```csharp
+var redis = builder.AddAzureRedis("cache")
+    .RunAsContainer();
+
+// Custom Redis connection string
+var customConnectionString = ReferenceExpression.Create($"{redis.Resource.HostName},password={redis.Resource.Password}");
+
+// Access individual components
+var hostName = redis.Resource.HostName; // e.g., "localhost:6379"
+var password = redis.Resource.Password; // Available in container mode
+```
 
 ### Azure provisioning & deployer
 
