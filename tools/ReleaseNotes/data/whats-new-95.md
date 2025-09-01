@@ -103,33 +103,6 @@ Moving between minor releases of Aspire is simple:
 
 If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using .NET Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
 
-### Migration from 9.4 to 9.5
-
-When upgrading from 9.4, be aware of these key changes:
-
-#### Breaking changes
-
-- Some CLI command outputs have changed format for better readability
-- Dashboard forwarded headers now require explicit enablement (`ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`)
-- Resource lifecycle event handlers may need updates due to API refinements
-
-#### New capabilities to adopt
-
-- **Enhanced `aspire exec`**: Consider using the new `--workdir` flag for container scenarios
-- **Multi-resource logs**: Try the new "All" option in dashboard console logs  
-- **Custom resource icons**: Add `WithIconName()` calls to improve resource identification
-- **Typed model catalogs**: Update GitHub Models usage to use strongly-typed constants
-
-#### Configuration updates
-
-```bash
-# Enable new dashboard forwarded headers support (if using reverse proxies)
-export ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true
-
-# Enable preview commands (optional)
-aspire config set features.execCommandEnabled true
-```
-
 ## CLI improvements
 
 ### `aspire exec` command enhancements
