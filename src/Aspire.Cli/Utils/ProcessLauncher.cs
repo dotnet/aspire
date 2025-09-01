@@ -22,7 +22,7 @@ internal class ProcessLauncher(
         CancellationToken cancellationToken = default)
     {
         return await LaunchAsync(
-            runtimeSelector.GetDotNetExecutablePath(),
+            await runtimeSelector.GetDotNetExecutablePathAsync(cancellationToken),
             arguments,
             workingDirectory,
             environmentVariables,
@@ -51,7 +51,7 @@ internal class ProcessLauncher(
         }
 
         // Apply environment variables from runtime selector
-        var runtimeEnvVars = runtimeSelector.GetEnvironmentVariables();
+        var runtimeEnvVars = await runtimeSelector.GetEnvironmentVariablesAsync(cancellationToken);
         foreach (var kvp in runtimeEnvVars)
         {
             startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;

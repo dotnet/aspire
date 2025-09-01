@@ -9,9 +9,11 @@ namespace Aspire.Cli.DotNet;
 internal interface IDotNetRuntimeSelector
 {
     /// <summary>
-    /// Gets the path to the dotnet executable to use.
+    /// Gets the path to the dotnet executable to use, installing the private SDK if needed.
     /// </summary>
-    string GetDotNetExecutablePath();
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The path to the dotnet executable.</returns>
+    Task<string> GetDotNetExecutablePathAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the mode being used (private, system, or custom).
@@ -26,10 +28,11 @@ internal interface IDotNetRuntimeSelector
     Task<bool> InitializeAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets environment variables that should be set when launching processes.
+    /// Gets environment variables that should be set when launching processes, installing the private SDK if needed.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Dictionary of environment variables.</returns>
-    IDictionary<string, string> GetEnvironmentVariables();
+    Task<IDictionary<string, string>> GetEnvironmentVariablesAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

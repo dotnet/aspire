@@ -56,16 +56,16 @@ public class ProcessLauncherTests
         public DotNetRuntimeMode Mode { get; set; } = DotNetRuntimeMode.System;
         public IDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
 
-        public string GetDotNetExecutablePath() => DotNetExecutablePathValue;
+        public Task<string> GetDotNetExecutablePathAsync(CancellationToken cancellationToken = default) => Task.FromResult(DotNetExecutablePathValue);
 
         public Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
         }
 
-        public IDictionary<string, string> GetEnvironmentVariables()
+        public Task<IDictionary<string, string>> GetEnvironmentVariablesAsync(CancellationToken cancellationToken = default)
         {
-            return EnvironmentVariables;
+            return Task.FromResult(EnvironmentVariables);
         }
     }
 
@@ -96,7 +96,7 @@ public class ProcessLauncherTests
             LastWorkingDirectory = workingDirectory;
             
             // Combine runtime env vars and additional ones just like the base class
-            var runtimeEnvVars = _runtimeSelector.GetEnvironmentVariables();
+            var runtimeEnvVars = await _runtimeSelector.GetEnvironmentVariablesAsync(cancellationToken);
             var combined = new Dictionary<string, string>(runtimeEnvVars);
             
             if (environmentVariables != null)

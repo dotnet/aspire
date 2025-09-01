@@ -30,14 +30,12 @@ internal sealed class DotNetRuntimeSelector(
     private string? _pendingPrivateDotNetPath;
 
     /// <inheritdoc />
-    public string GetDotNetExecutablePath()
+    public async Task<string> GetDotNetExecutablePathAsync(CancellationToken cancellationToken = default)
     {
         // If we need to install the private SDK, do it now on first access
         if (_pendingRequiredVersion is not null)
         {
-            // This is a blocking operation, but it only happens once
-            var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
-            installTask.Wait();
+            await EnsurePrivateSdkInstalledAsync(cancellationToken);
         }
         
         return _dotNetExecutablePath ?? "dotnet";
@@ -138,14 +136,12 @@ internal sealed class DotNetRuntimeSelector(
     }
 
     /// <inheritdoc />
-    public IDictionary<string, string> GetEnvironmentVariables()
+    public async Task<IDictionary<string, string>> GetEnvironmentVariablesAsync(CancellationToken cancellationToken = default)
     {
         // If we need to install the private SDK, do it now on first access
         if (_pendingRequiredVersion is not null)
         {
-            // This is a blocking operation, but it only happens once
-            var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
-            installTask.Wait();
+            await EnsurePrivateSdkInstalledAsync(cancellationToken);
         }
         
         return new Dictionary<string, string>(_environmentVariables);

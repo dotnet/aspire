@@ -13,7 +13,7 @@ namespace Aspire.Cli.Tests.DotNet;
 public class DotNetRuntimeSelectorTests
 {
     [Fact]
-    public void Constructor_SetsDefaultValues()
+    public async Task Constructor_SetsDefaultValues()
     {
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
         var configuration = new ConfigurationBuilder().Build();
@@ -23,7 +23,7 @@ public class DotNetRuntimeSelectorTests
         var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
 
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
-        Assert.Equal("dotnet", selector.GetDotNetExecutablePath());
+        Assert.Equal("dotnet", await selector.GetDotNetExecutablePathAsync());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class DotNetRuntimeSelectorTests
 
         Assert.True(result);
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
-        Assert.Equal("dotnet", selector.GetDotNetExecutablePath());
+        Assert.Equal("dotnet", await selector.GetDotNetExecutablePathAsync());
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class DotNetRuntimeSelectorTests
     }
 
     [Fact]
-    public void GetEnvironmentVariables_ReturnsEmptyDictionary_WhenNotInitialized()
+    public async Task GetEnvironmentVariables_ReturnsEmptyDictionary_WhenNotInitialized()
     {
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
         var configuration = new ConfigurationBuilder().Build();
@@ -130,7 +130,7 @@ public class DotNetRuntimeSelectorTests
 
         var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
 
-        var envVars = selector.GetEnvironmentVariables();
+        var envVars = await selector.GetEnvironmentVariablesAsync();
 
         Assert.Empty(envVars);
     }

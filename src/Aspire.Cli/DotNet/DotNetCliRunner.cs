@@ -431,7 +431,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Get the correct dotnet executable path from the process launcher
         var runtimeSelector = serviceProvider.GetRequiredService<IDotNetRuntimeSelector>();
         
-        var startInfo = new ProcessStartInfo(runtimeSelector.GetDotNetExecutablePath())
+        var startInfo = new ProcessStartInfo(await runtimeSelector.GetDotNetExecutablePathAsync(cancellationToken))
         {
             WorkingDirectory = workingDirectory.FullName,
             UseShellExecute = false,
@@ -442,7 +442,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         };
 
         // Apply runtime environment variables
-        var runtimeEnvVars = runtimeSelector.GetEnvironmentVariables();
+        var runtimeEnvVars = await runtimeSelector.GetEnvironmentVariablesAsync(cancellationToken);
         foreach (var kvp in runtimeEnvVars)
         {
             startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;

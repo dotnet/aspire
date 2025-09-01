@@ -51,7 +51,7 @@ public class SdkInstallHelperTests
         public bool InitializeResult { get; set; } = true;
         public bool InitializeCalled { get; private set; }
 
-        public string GetDotNetExecutablePath() => "dotnet";
+        public Task<string> GetDotNetExecutablePathAsync(CancellationToken cancellationToken = default) => Task.FromResult("dotnet");
         public DotNetRuntimeMode Mode => DotNetRuntimeMode.System;
 
         public async Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
@@ -60,9 +60,9 @@ public class SdkInstallHelperTests
             return await Task.FromResult(InitializeResult);
         }
 
-        public IDictionary<string, string> GetEnvironmentVariables()
+        public Task<IDictionary<string, string>> GetEnvironmentVariablesAsync(CancellationToken cancellationToken = default)
         {
-            return new Dictionary<string, string>();
+            return Task.FromResult<IDictionary<string, string>>(new Dictionary<string, string>());
         }
     }
 
