@@ -525,8 +525,10 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class LabelSpecs : System.Collections.Generic.Dictionary<string, string>
+    public sealed partial class LabelSpecs
     {
+        [YamlDotNet.Serialization.YamlMember(Alias = "additional_labels")]
+        public System.Collections.Generic.Dictionary<string, string> AdditionalLabels { get { throw null; } set { } }
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
