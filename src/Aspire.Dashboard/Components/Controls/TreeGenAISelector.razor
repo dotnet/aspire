@@ -3,13 +3,13 @@
 
 <FluentTreeView Class="genai-event-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(PageViewModel.SelectedEvent is null)">
+        <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(PageViewModel.SelectedMessage is null)">
             <span class="llm-badge">LLM</span> @PageViewModel.Span.Name
         </FluentTreeItem>
 
-        @foreach (var spanEvent in PageViewModel.Events.OrderBy(i => i.TimeStamp))
+        @foreach (var spanEvent in PageViewModel.Messages)
         {
-            <FluentTreeItem @key="spanEvent" Data="@spanEvent" title="@spanEvent.Type.ToString()" InitiallySelected="@(spanEvent.InternalId == PageViewModel.SelectedEvent?.InternalId)">
+            <FluentTreeItem @key="spanEvent" Data="@spanEvent" title="@spanEvent.Type.ToString()" InitiallySelected="@(spanEvent.InternalId == PageViewModel.SelectedMessage?.InternalId)">
                 <div style="margin-left: 16px; pointer-events: none;">
                     <GenAIEventTitle Event="spanEvent" ResourceName="@spanEvent.ResourceName" />
                 </div>

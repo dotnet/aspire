@@ -12,27 +12,32 @@ namespace Aspire.Dashboard.Model;
 
 public class TextVisualizerViewModel
 {
-    private readonly string _text;
-
+    public string Text { get; }
     public string FormatKind { get; private set; } = default!;
     public string FormattedText { get; private set; } = default!;
+    public List<StringLogLine> Lines { get; set; } = [];
     public List<StringLogLine> FormattedLines { get; set; } = [];
 
-    public TextVisualizerViewModel(string text)
+    public TextVisualizerViewModel(string text, bool indentText, string? format = null)
     {
-        _text = text;
+        Text = text;
+        Lines = GetLines(Text, DashboardUIHelpers.PlaintextFormat);
 
-        if (TryFormatJson(_text, out var formattedJson))
+        if (format != null)
         {
-            ChangeFormattedText(DashboardUIHelpers.JsonFormat, formattedJson);
+            ChangeFormattedText(format, Text);
         }
-        else if (TryFormatXml(_text, out var formattedXml))
+        else if (TryFormatJson(Text, out var formattedJson))
         {
-            ChangeFormattedText(DashboardUIHelpers.XmlFormat, formattedXml);
+            ChangeFormattedText(DashboardUIHelpers.JsonFormat, indentText ? formattedJson : Text);
+        }
+        else if (TryFormatXml(Text, out var formattedXml))
+        {
+            ChangeFormattedText(DashboardUIHelpers.XmlFormat, indentText ? formattedXml : Text);
         }
         else
         {
-            ChangeFormattedText(DashboardUIHelpers.PlaintextFormat, _text);
+            ChangeFormattedText(DashboardUIHelpers.PlaintextFormat, Text);
         }
     }
 
@@ -60,11 +65,11 @@ public class TextVisualizerViewModel
         FormattedLines = GetLines(FormattedText, FormatKind);
     }
 
-    private static List<StringLogLine> GetLines(string formattedText, string formatKind)
+    private static List<StringLogLine> GetLines(string text, string formatKind)
     {
-        var lines = formattedText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
+        var lines = text.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
 
-        return lines.Select((line, index) => new StringLogLine(index + 1, line, formatKind != DashboardUIHelpers.PlaintextFormat)).ToList();
+        return lines.Select((line, index) => new StringLogLine(index + 1, line, formatKind)).ToList();
     }
 
     private static bool TryFormatJson(string text, [NotNullWhen(true)] out string? formattedText)
@@ -157,21 +162,21 @@ public class TextVisualizerViewModel
     {
         if (newFormat == DashboardUIHelpers.XmlFormat)
         {
-            if (TryFormatXml(_text, out var formattedXml))
+            if (TryFormatXml(Text, out var formattedXml))
             {
                 ChangeFormattedText(newFormat, formattedXml);
             }
         }
         else if (newFormat == DashboardUIHelpers.JsonFormat)
         {
-            if (TryFormatJson(_text, out var formattedJson))
+            if (TryFormatJson(Text, out var formattedJson))
             {
                 ChangeFormattedText(newFormat, formattedJson);
             }
         }
         else
         {
-            ChangeFormattedText(DashboardUIHelpers.PlaintextFormat, _text);
+            ChangeFormattedText(DashboardUIHelpers.MarkdownFormat, Text);
         }
     }
 }

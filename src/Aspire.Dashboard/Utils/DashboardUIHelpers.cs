@@ -17,7 +17,9 @@ internal static class DashboardUIHelpers
     // xml and json are language names supported by highlight.js
     public const string XmlFormat = "xml";
     public const string JsonFormat = "json";
+    public const string JavascriptFormat = "javascript";
     public const string PlaintextFormat = "plaintext";
+    public const string MarkdownFormat = "markdown";
 
     // The initial data fetch for a FluentDataGrid doesn't include a count of items to return.
     // The data grid doesn't specify a count because it doesn't know how many items fit in the UI.

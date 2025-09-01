@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
@@ -21,83 +20,44 @@ public partial class GenAIVisualizerDialog : ComponentBase
     public required GenAIVisualizerDialogViewModel Content { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
-
-    [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
-
-    protected override void OnInitialized()
-    {
-        var resources = TelemetryRepository.GetResources();
-        Content.SourceName = OtlpResource.GetResourceName(Content.Span.Source, resources);
-
-        if (TelemetryRepository.GetPeerResource(Content.Span) is { } peerResource)
-        {
-            Content.PeerName = OtlpResource.GetResourceName(peerResource, resources);
-        }
-        else
-        {
-            Content.PeerName = OtlpHelpers.GetPeerAddress(Content.Span.Attributes)!;
-        }
-
-        Content.ModelName = Content.Span.Attributes.GetValue("gen_ai.response.model");
-        Content.InputTokens = Content.Span.Attributes.GetValueAsInteger("gen_ai.usage.input_tokens");
-        Content.OutputTokens = Content.Span.Attributes.GetValueAsInteger("gen_ai.usage.output_tokens");
-
-        foreach (var item in Content.LogEntries)
-        {
-            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
-            {
-                Content.Events.Add(new GenAIEventViewModel
-                {
-                    InternalId = item.InternalId,
-                    Type = type.Value,
-                    Parent = Content.Span,
-                    TimeStamp = item.TimeStamp,
-                    Body = DeserializeBody(type.Value, item.Message),
-                    ResourceName = type.Value is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? Content.PeerName! : Content.SourceName!
-                });
-            }
-        }
-
-        Content.SelectedEvent = Content.Events.SingleOrDefault(e => e.InternalId == Content.SelectedLogEntryId);
-    }
-
-    private static object? DeserializeBody(GenAIEventType type, string message)
-    {
-        return type switch
-        {
-            GenAIEventType.SystemMessage or GenAIEventType.UserMessage => JsonSerializer.Deserialize(message, OtelContext.Default.SystemOrUserEvent),
-            GenAIEventType.AssistantMessage => JsonSerializer.Deserialize(message, OtelContext.Default.AssistantEvent),
-            GenAIEventType.ToolMessage => JsonSerializer.Deserialize(message, OtelContext.Default.ToolEvent),
-            GenAIEventType.Choice => JsonSerializer.Deserialize(message, OtelContext.Default.ChoiceEvent),
-            _ => null
-        };
-    }
-
-    private static bool TryMapEventName(string name, [NotNullWhen(true)]out GenAIEventType? type)
-    {
-        type = name switch
-        {
-            "gen_ai.system.message" => GenAIEventType.SystemMessage,
-            "gen_ai.user.message" => GenAIEventType.UserMessage,
-            "gen_ai.assistant.message" => GenAIEventType.AssistantMessage,
-            "gen_ai.tool.message" => GenAIEventType.ToolMessage,
-            "gen_ai.choice" => GenAIEventType.Choice,
-            _ => null
-        };
-
-        return type != null;
-    }
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        Content.SelectedEvent = Content.SelectedTreeItem?.Data as GenAIEventViewModel;
+        Content.SelectedMessage = Content.SelectedTreeItem?.Data as GenAIMessageViewModel;
         StateHasChanged();
         return Task.CompletedTask;
     }
 
-    private static string GetEventTitle(GenAIEventViewModel e)
+    private void OnOverviewTabChange(FluentTab newTab)
+    {
+        var id = newTab.Id?.Substring("tab-overview-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(OverviewViewKind), id, out var o)
+            || o is not OverviewViewKind viewKind)
+        {
+            return;
+        }
+
+        Content.OverviewActiveView = viewKind;
+    }
+
+    private void OnEventTabChange(FluentTab newTab)
+    {
+        var id = newTab.Id?.Substring("tab-event-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(EventViewKind), id, out var o)
+            || o is not EventViewKind viewKind)
+        {
+            return;
+        }
+
+        Content.EventActiveView = viewKind;
+    }
+
+    private static string GetEventTitle(GenAIMessageViewModel e)
     {
         return e.Type switch
         {
@@ -127,16 +87,9 @@ public partial class GenAIVisualizerDialog : ComponentBase
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var vm = new GenAIVisualizerDialogViewModel
-        {
-            Title = title,
-            Span = span,
-            LogEntries = logEntries,
-            SelectedLogEntryId = selectedLogEntryId,
-            SpanDetailsViewModel = spanDetailsViewModel
-        };
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(logEntries, spanDetailsViewModel, selectedLogEntryId, telemetryRepository);
 
-        await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(vm, parameters);
+        await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }
 }
 

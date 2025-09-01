@@ -19,6 +19,10 @@ public sealed class SpanDetailsViewModel
 
     public static SpanDetailsViewModel Create(OtlpSpan span, TelemetryRepository telemetryRepository, List<OtlpResource> resources)
     {
+        ArgumentNullException.ThrowIfNull(span);
+        ArgumentNullException.ThrowIfNull(telemetryRepository);
+        ArgumentNullException.ThrowIfNull(resources);
+
         var entryProperties = span.AllProperties()
                         .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
                         .ToList();

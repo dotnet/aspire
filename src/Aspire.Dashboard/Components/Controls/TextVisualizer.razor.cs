@@ -22,6 +22,12 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     [Parameter]
     public required TextVisualizerViewModel ViewModel { get; set; }
 
+    [Parameter]
+    public bool HideLineNumbers { get; set; }
+
+    [Parameter]
+    public bool DisplayUnformatted { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await ThemeManager.EnsureInitializedAsync();
@@ -53,7 +59,7 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
         {
             try
             {
-                await _jsModule.InvokeVoidAsync("disconnectObserver");
+                await _jsModule.InvokeVoidAsync("disconnectObserver", _containerId);
                 await _jsModule.DisposeAsync();
             }
             catch (JSDisconnectedException)

@@ -688,11 +688,11 @@ fluent-switch.table-switch::part(label) {
     user-select: none;
     cursor: default;
     height: 100%;
+    margin-right: 20px;
 }
 
 .log-content {
     word-break: break-all;
-    margin-left: 20px;
     position: relative;
     margin-right: 6px;
     user-select: text;

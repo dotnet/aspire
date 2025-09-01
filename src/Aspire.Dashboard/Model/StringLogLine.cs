@@ -3,4 +3,4 @@
 
 namespace Aspire.Dashboard.Model;
 
-public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
+public record StringLogLine(int LineNumber, string Content, string FormatKind);

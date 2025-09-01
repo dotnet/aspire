@@ -17,7 +17,7 @@
             <FluentMenuButton id="@_openSelectFormatButtonId"
                               ButtonAppearance="Appearance.Stealth"
                               IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
-                              Text="@(_textVisualizerViewModel.FormatKind ?? Loc[nameof(Dialogs.TextVisualizerSelectFormatType)])"
+                              Text="@(_selectedFormat ?? Loc[nameof(Dialogs.TextVisualizerSelectFormatType)])"
                               aria-label="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
                               OnMenuChanged="@OnFormatOptionChanged">
                 @foreach (var option in _options)
@@ -33,11 +33,11 @@
     <div class="text-visualizer-container">
         @if (IsTextContentDisplayed)
         {
-            <TextVisualizer ViewModel="_textVisualizerViewModel" />
+            <TextVisualizer ViewModel="TextVisualizerViewModel" />
 
             <FluentButton Id="@_copyButtonId"
                           Class="text-visualizer-copy"
-                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(_textVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
                 <span slot="start">
                     <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                     <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />

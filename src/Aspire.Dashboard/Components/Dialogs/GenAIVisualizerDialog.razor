@@ -1,12 +1,13 @@
 ﻿@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.GenAI
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Dialogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-@implements IDialogContentComponent<Aspire.Dashboard.Model.GenAIVisualizerDialogViewModel>
+@implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="true">
     <div class="dialog-title-grid">
@@ -37,7 +38,46 @@
             </Panel1>
             <Panel2>
                 <div class="span-events-container">
-                    @if (Content.SelectedEvent == null)
+                    @if (Content.SelectedMessage is { } selectedEvent)
+                    {
+                        <div class="event-header">
+                            <GenAIEventTitle Event="@selectedEvent" ResourceName="@selectedEvent.ResourceName" />
+                        </div>
+                        <FluentTabs ActiveTabId="@($"tab-event-{Content.EventActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-event-{EventViewKind.Preview}")"
+                                       Label="Preview">
+                                <div class="tab-container">
+                                    @foreach (var messagePart in selectedEvent.MessageParts)
+                                    {
+                                        if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
+                                        {
+                                            @messagePart.TextVisualizerViewModel.FormattedText
+                                        }
+                                        else if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
+                                        {
+                                            @InteractionMarkdownHelper.ToMarkupString(messagePart.TextVisualizerViewModel.FormattedText)
+                                        }
+                                        else
+                                        {
+                                            <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
+                                        }
+                                    }
+                                </div>
+                            </FluentTab>
+                            <FluentTab LabelClass="tab-label"
+                                       Id="@($"tab-event-{EventViewKind.Raw}")"
+                                       Label="Raw">
+                                <div class="tab-container">
+                                    @foreach (var messagePart in selectedEvent.MessageParts)
+                                    {
+                                        <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                    }
+                                </div>
+                            </FluentTab>
+                        </FluentTabs>
+                    }
+                    else
                     {
                         <div class="event-header">
                             <span class="llm-badge">LLM</span>
@@ -50,13 +90,13 @@
                                 <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
                             </div>
                         </div>
-                        <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" Size="null">
+                        <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
                             <FluentTab LabelClass="tab-label"
                                        Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
                                        Label="Input & output">
                                 <div class="tab-container">
-                                    @RenderEventSection("Input", Content.Events.Where(e => e.Type != GenAIEventType.Choice).ToList())
-                                    @RenderEventSection("Output", Content.Events.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                                    @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.Choice).ToList())
+                                    @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.Choice).ToList())
                                 </div>
                             </FluentTab>
                             <FluentTab LabelClass="tab-label"
@@ -64,28 +104,6 @@
                                        Label="Details">
                                 <div class="tab-container">
                                     <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" HideToolbar="true" />
-                                </div>
-                            </FluentTab>
-                        </FluentTabs>
-                    }
-                    else
-                    {
-                        <div class="event-header">
-                            <GenAIEventTitle Event="@Content.SelectedEvent" ResourceName="@Content.SelectedEvent.ResourceName" />
-                        </div>
-                        <FluentTabs ActiveTabId="@($"tab-content-{Content.ContentActiveView}")" Size="null">
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-content-{ContentViewKind.Preview}")"
-                                       Label="Preview">
-                                <div class="tab-container">
-                                    @InteractionMarkdownHelper.ToMarkupString((Content.SelectedEvent.Body as SystemOrUserEvent)?.Content ?? string.Empty)
-                                </div>
-                            </FluentTab>
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-content-{ContentViewKind.Raw}")"
-                                       Label="Raw">
-                                <div class="tab-container">
-                                    @Content.SelectedEvent.Body
                                 </div>
                             </FluentTab>
                         </FluentTabs>
@@ -99,7 +117,7 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderEventSection(string title, List<GenAIEventViewModel> events)
+    RenderFragment RenderEventSection(string title, List<GenAIMessageViewModel> events)
     {
         return@<div>
             <div class="section-title">@title</div>
@@ -107,6 +125,11 @@
             {
                 <div class="event-container">
                     <div class="event-title">@GetEventTitle(spanEvent)</div>
+                    @foreach (var messagePart in spanEvent.MessageParts)
+                    {
+                        <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
+                    }
+                    @*
                     @if (spanEvent.Body is SystemOrUserEvent systemOrUserEvent)
                     {
                         <div>@systemOrUserEvent.Content</div>
@@ -126,11 +149,13 @@
                             @RenderAssistantEvent(choiceEvent.Message)
                         }
                     }
+                    *@
                 </div>
             }
         </div>;
     }
 
+    @*
     RenderFragment RenderAssistantEvent(AssistantEvent assistantEvent)
     {
         if (assistantEvent.Content != null)
@@ -152,4 +177,5 @@
 
         return@<div></div>;
     }
+    *@
 }

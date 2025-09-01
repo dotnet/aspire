@@ -128,3 +128,16 @@
     overflow: initial;
     display: block;
 }
+
+::deep .event-container .log-overflow {
+    max-height: 300px;
+}
+
+::deep .event-container .log-content {
+    /* don't break on every word */
+    word-break: normal;
+}
+
+::deep .text-visualizer-line-number {
+    min-width: 33px;
+}

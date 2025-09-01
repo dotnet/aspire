@@ -16,8 +16,9 @@ public partial class TextVisualizerDialog : ComponentBase
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
 
     private List<SelectViewModel<string>> _options = null!;
+    private string? _selectedFormat;
     private bool _isLoading = true;
-    private TextVisualizerViewModel _textVisualizerViewModel = null!;
+    internal TextVisualizerViewModel TextVisualizerViewModel { get; set; } = default!;
 
     public HashSet<string?> EnabledOptions { get; } = [];
     internal bool? ShowSecretsWarning { get; private set; }
@@ -54,13 +55,13 @@ public partial class TextVisualizerDialog : ComponentBase
             new SelectViewModel<string> { Id = DashboardUIHelpers.XmlFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogXmlFormat)] }
         ];
 
-        _textVisualizerViewModel = new TextVisualizerViewModel(Content.Text);
+        TextVisualizerViewModel = new TextVisualizerViewModel(Content.Text, indentText: true);
 
-        if (_textVisualizerViewModel.FormatKind == DashboardUIHelpers.JsonFormat)
+        if (TextVisualizerViewModel.FormatKind == DashboardUIHelpers.JsonFormat)
         {
             EnabledOptions.Add(DashboardUIHelpers.JsonFormat);
         }
-        else if (_textVisualizerViewModel.FormatKind == DashboardUIHelpers.XmlFormat)
+        else if (TextVisualizerViewModel.FormatKind == DashboardUIHelpers.XmlFormat)
         {
             EnabledOptions.Add(DashboardUIHelpers.XmlFormat);
         }
@@ -81,9 +82,10 @@ public partial class TextVisualizerDialog : ComponentBase
 
     private void OnFormatOptionChanged(MenuChangeEventArgs args) => ChangeFormat(args.Id, args.Value);
 
-    public void ChangeFormat(string? newFormat, string? value)
+    public void ChangeFormat(string? newFormat, string? text)
     {
-        _textVisualizerViewModel.UpdateFormat(newFormat ?? DashboardUIHelpers.PlaintextFormat);
+        _selectedFormat = text;
+        TextVisualizerViewModel.UpdateFormat(newFormat ?? DashboardUIHelpers.PlaintextFormat);
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
