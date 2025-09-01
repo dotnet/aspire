@@ -16,7 +16,6 @@ ms.date: 08/21/2025
   - [Improved cancellation & CTRL-C UX](#improved-cancellation--ctrl-c-ux)
   - [New aspire update command (preview)](#new-aspire-update-command-preview)
   - [Channel-aware aspire add & templating](#channel-aware-aspire-add--templating)
-  - [Improved aspire exec (feature flag)](#improved-aspire-exec-feature-flag)
   - [Smarter package prefetching](#smarter-package-prefetching)
   - [Rich markdown & styling](#rich-markdown--styling)
   - [Orphan & runtime diagnostics](#orphan--runtime-diagnostics)
@@ -51,6 +50,7 @@ ms.date: 08/21/2025
 - [Azure](#azure)
   - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
   - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
+  - [Azure Storage emulator improvements](#azure-storage-emulator-improvements)
   - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
   - [Azure provisioning & deployer](#azure-provisioning--deployer)
   - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
@@ -162,7 +162,6 @@ Extended markdown rendering support (#10815) with:
 - Code fences, emphasis, bullet lists
 - Safe markup escaping (#10462)
 - Purple styling for default values in prompts (#10474)
-*** End Patch
 
 ### Channel-aware `aspire add` & templating
 
@@ -172,13 +171,6 @@ New packaging channel infrastructure (#10801, #10899) adds stable vs pre-release
 - Pre-release surfacing with localized labels
 - Unified PackagingService powering add + template selection
 
-### Improved `aspire exec` (feature flag)
-
-- `--workdir` flag for container working directory selection (#10912)
-- Fail-fast validation & clearer error messaging (#10606)
-- Help text and usage clarity improvements (#10598, #10522)
-- Feature flag gating (`ExecCommand` flag) (#10664)
-
 ### Smarter package prefetching
 
 Refactored NuGet prefetch architecture (#11120) reducing UI lag during `aspire new` on macOS (#11069) and enabling command-aware caching. Temporary NuGet config improvements ensure wildcard mappings (#10894).
@@ -186,6 +178,7 @@ Refactored NuGet prefetch architecture (#11120) reducing UI lag during `aspire n
 ### Rich markdown & styling
 
 Extended markdown rendering support (#10815) with:
+
 - Code fences, emphasis, bullet lists
 - Safe markup escaping (#10462)
 - Purple styling for default values in prompts (#10474)
@@ -243,7 +236,7 @@ New "All" option streams logs from every running resource simultaneously with de
 Resources can specify custom icons via `WithIconName()` for better visual identification in dashboard views (#10760).
 
 ### Reverse proxy support
- 
+
 Dashboard now explicitly maps forwarded Host & Proto headers when `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`, fixing OpenID auth redirects and URL generation behind reverse proxies like YARP (#10388). Only these two headers are allowed to limit spoofing surface:
 
 - Enable with `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true`
@@ -251,9 +244,7 @@ Dashboard now explicitly maps forwarded Host & Proto headers when `ASPIRE_DASHBO
 
 ### Improved mobile experience
 
-Mobile and desktop toolbars redesigned for better usability across all dashboard pages with improved responsive layouts (#10407).
-
-### Enhanced resource management
+Mobile and desktop toolbars redesigned for better usability across all dashboard pages with improved responsive layouts (#10407).### Enhanced resource management
 
 - Resource action menus reorganized into sub-menus to prevent overflow (#10869)
 - LaunchProfile property added to project details for easier debugging (#10906)
@@ -346,7 +337,7 @@ var api = builder.AddProject<Projects.Api>("api")
   .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
 
 // Or use default protocol
-var worker = builder.AddProject<Projects.Worker>("worker")  \
+var worker = builder.AddProject<Projects.Worker>("worker")
   .WithOtlpExporter();
 ```
 
@@ -423,11 +414,11 @@ Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Model
 Breaking change: The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
 
 ```csharp
-var input = new InteractionInput 
-{ 
+var input = new InteractionInput
+{
   Name = "username",
   Label = "Username",
-  InputType = InputType.Text 
+  InputType = InputType.Text
 };
 ```
 
@@ -515,7 +506,7 @@ Updated Azurite to version 3.35.0, resolving health check issues that previously
 Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
 
 - `AzureAIFoundryResource`
-- `AzureAppConfigurationResource`  
+- `AzureAppConfigurationResource`
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
