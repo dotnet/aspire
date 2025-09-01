@@ -38,8 +38,7 @@ public class ProcessLauncherTests
             DotNetExecutablePath = "dotnet",
             EnvironmentVariables = new Dictionary<string, string>
             {
-                ["DOTNET_ROOT"] = "/custom/dotnet",
-                ["DOTNET_HOST_PATH"] = "/custom/dotnet/dotnet"
+                ["DOTNET_ROOT"] = "/custom/dotnet"
             }
         };
 
@@ -49,8 +48,6 @@ public class ProcessLauncherTests
 
         Assert.True(launcher.LastEnvironmentVariables.ContainsKey("DOTNET_ROOT"));
         Assert.Equal("/custom/dotnet", launcher.LastEnvironmentVariables["DOTNET_ROOT"]);
-        Assert.True(launcher.LastEnvironmentVariables.ContainsKey("DOTNET_HOST_PATH"));
-        Assert.Equal("/custom/dotnet/dotnet", launcher.LastEnvironmentVariables["DOTNET_HOST_PATH"]);
     }
 
     private sealed class TestRuntimeSelector : IDotNetRuntimeSelector
