@@ -10,23 +10,62 @@ ms.date: 08/21/2025
 
 - [Upgrade to .NET Aspire 9.5](#️-upgrade-to-net-aspire-95)
 - [CLI improvements](#-cli-improvements)
+  - [`aspire exec` (9.5 delta)](#-aspire-exec-95-delta)
+  - [Robust orphan detection](#-robust-orphan-detection)
+  - [Package channel & templating enhancements](#-package-channel--templating-enhancements)
+  - [Improved cancellation & ctrl-c ux](#-improved-cancellation--ctrl-c-ux)
+  - [New aspire update command (preview)](#-new-aspire-update-command-preview)
+  - [Channel-aware aspire add & templating](#-channel-aware-aspire-add--templating)
+  - [Improved aspire exec (feature flag)](#-improved-aspire-exec-feature-flag)
+  - [Smarter package prefetching](#-smarter-package-prefetching)
+  - [Rich markdown & styling](#-rich-markdown--styling)
+  - [Orphan & runtime diagnostics](#-orphan--runtime-diagnostics)
+  - [Localization & resource strings](#-localization--resource-strings)
+  - [Stability & error handling](#-stability--error-handling)
+  - [Developer ergonomics](#developer-ergonomics)
+  - [Command infrastructure & interactions](#command-infrastructure--interactions)
 - [Dashboard enhancements](#-dashboard-enhancements)
+  - [Deep-linked telemetry navigation](#-deep-linked-telemetry-navigation)
+  - [Multi-resource console logs](#-multi-resource-console-logs)
+  - [Custom resource icons](#-custom-resource-icons)
+  - [Reverse proxy support](#-reverse-proxy-support)
+  - [Improved mobile experience](#-improved-mobile-experience)
+  - [Enhanced resource management](#-enhanced-resource-management)
+  - [Container runtime notifications](#-container-runtime-notifications)
+  - [UI improvements](#-ui-improvements)
+  - [Trace performance & integration](#-trace-performance--integration)
+  - [Localization & deployment](#-localization--deployment)
 - [Integration changes and additions](#integration-changes-and-additions)
   - [OpenAI hosting integration](#openai-hosting-integration)
 - [App model enhancements](#️-app-model-enhancements)
-  - [Telemetry configuration APIs](#telemetry-configuration-apis)
+  - [Telemetry configuration apis](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
-  - [ExternalService WaitFor behavior change](#externalservice-waitfor-behavior-change)
+  - [Externalservice waitfor behavior change](#externalservice-waitfor-behavior-change)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
   - [Resource lifetime behavior](#resource-lifetime-behavior)
-  - [InteractionInput API changes](#interactioninput-api-changes)
-  - [Custom resource icons](#custom-resource-icons)
-  - [MySQL password improvements](#mysql-password-improvements)
+  - [Interactioninput api changes](#interactioninput-api-changes)
+  - [Custom resource icons (app model)](#custom-resource-icons)
+  - [Mysql password improvements](#mysql-password-improvements)
   - [Remote & debugging experience](#remote--debugging-experience)
 - [Azure](#azure)
-  - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
-  - [Azure App Configuration emulator](#azure-app-configuration-emulator)
-  - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure ai foundry enhancements](#azure-ai-foundry-enhancements)
+  - [Azure app configuration emulator apis](#azure-app-configuration-emulator-apis)
+  - [Broader azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure provisioning & deployer](#azure-provisioning--deployer)
+  - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
+  - [Azure resource idempotency & existing resources](#azure-resource-idempotency--existing-resources)
+  - [Compute image deployment](#compute-image-deployment)
+  - [Module-scoped bicep deployment](#module-scoped-bicep-deployment)
+- [Docker & container tooling](#docker--container-tooling)
+  - [Docker compose aspire dashboard forwarding headers](#docker-compose-aspire-dashboard-forwarding-headers)
+  - [Container build customization](#container-build-customization)
+- [Publishing & interactions](#publishing--interactions)
+  - [Publishing progress & activity reporting](#publishing-progress--activity-reporting)
+  - [Parameter & interaction api updates](#parameter--interaction-api-updates)
+- [Localization & ux consistency](#localization--ux-consistency)
+- [Reliability & diagnostics](#reliability--diagnostics)
+- [Minor enhancements](#minor-enhancements)
+- [New & updated public apis](#-new--updated-public-apis)
 
 📢 .NET Aspire 9.5 is the next minor version release of .NET Aspire. It supports:
 
@@ -68,17 +107,21 @@ If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, yo
 
 ## 🚀 CLI improvements
 
-### 🧪 `aspire exec` enhancements
+### 🧪 `aspire exec` (9.5 delta)
 
-Introduced in 9.4 (behind a feature flag), `aspire exec` in 9.5 adds `--workdir` support plus improved help text and argument validation:
+Building on the 9.4 preview, 9.5 adds:
+
+- `--workdir` flag to run inside a specific container directory (#10912)
+- Fail-fast argument validation & clearer errors (#10606)
+- Improved help/usage text (#10598)
+
+Example (new flag):
 
 ```bash
-# Show environment info for an app container
-aspire exec --resource api-container -- dotnet --info
-
-# Run a command from a specific working directory (new in 9.5)
 aspire exec --resource worker --workdir /app/tools -- dotnet run -- --seed
 ```
+
+The feature flag requirement from 9.4 still applies.
 
 ### 🧷 Robust orphan detection
 
@@ -92,14 +135,92 @@ Detected orphaned prior AppHost process (PID reused). Cleaning up...
 
 New packaging channel infrastructure lets `aspire add` and templating flows surface stable vs pre-release channels with localized UI.
 
-### 📝 Rich markdown rendering
-
-Extended markdown coverage in CLI prompts/output including code fences, emphasis, and safe escaping.
-
 ### 🧵 Improved cancellation & CTRL-C UX
 
 - CTRL-C guidance message
 - Fix for stall on interrupt
+
+### 🔄 New `aspire update` command (preview)
+
+Introduces automated project/package upgrade workflows (#11019) with subsequent formatting and correctness improvements (#11148, #11145):
+
+```bash
+# Preview: analyze and update out-of-date Aspire packages & templates
+aspire update
+
+# Non-interactive (planned scenarios) can be scripted once stabilized
+```
+
+Features:
+
+- Detects outdated Aspire NuGet packages (respecting channels)
+- Resolves diamond dependencies without duplicate updates (#11145)
+- Enhanced, colorized output and summary (#11148)
+
+Extended markdown rendering support (#10815) with:
+
+- Code fences, emphasis, bullet lists
+- Safe markup escaping (#10462)
+- Purple styling for default values in prompts (#10474)
+*** End Patch
+
+### 📦 Channel-aware `aspire add` & templating
+
+New packaging channel infrastructure (#10801, #10899) adds stable vs pre-release channel selection inside interactive flows:
+
+- Channel menu for `aspire add` when multiple package qualities exist
+- Pre-release surfacing with localized labels
+- Unified PackagingService powering add + template selection
+
+### 🧪 Improved `aspire exec` (feature flag)
+
+- `--workdir` flag for container working directory selection (#10912)
+- Fail-fast validation & clearer error messaging (#10606)
+- Help text and usage clarity improvements (#10598, #10522)
+- Feature flag gating (`ExecCommand` flag) (#10664)
+
+### 🧠 Smarter package prefetching
+
+Refactored NuGet prefetch architecture (#11120) reducing UI lag during `aspire new` on macOS (#11069) and enabling command-aware caching. Temporary NuGet config improvements ensure wildcard mappings (#10894).
+
+### 📰 Rich markdown & styling
+
+Extended markdown rendering support (#10815) with:
+- Code fences, emphasis, bullet lists
+- Safe markup escaping (#10462)
+- Purple styling for default values in prompts (#10474)
+
+### 🧭 Orphan & runtime diagnostics
+
+- Robust orphan AppHost detection via start timestamp (#10673)
+- .NET SDK availability check with actionable errors (#10525)
+- Container runtime health surfaced earlier (shared infra)
+
+### 🌐 Localization & resource strings
+
+Moved hardcoded CLI strings to `.resx` (#10504) and enabled multi-language builds (numerous OneLocBuild commits). Command help, prompts, and errors are now localizable.
+
+### Developer ergonomics
+
+- AppHost debug/run selection surfaced in extension & CLI integration (#10877, #10369)
+- Relative path included in AppHost status messages + TUI dashboard (#11132)
+- Clean Spectre Console debug logging with reduced noise (#11125)
+- Improved friendly name generation & pre-release submenu in `aspire add` (#10485)
+- Directory safety check for `aspire new` (#10496) and consistent template inputs (#10444, #10508)
+
+### Command infrastructure & interactions
+
+- Context-sensitive completion messages for publish/deploy (#10501)
+- Markdown-to-Spectre converter foundation reuse (#10815)
+- Interaction answer typing change (`object`) for future extensibility (#10480)
+
+### 🧪 Stability & error handling
+
+- Dashboard startup hang eliminated via `ResourceFailedException` (#10567)
+- CTRL-C stall fix (#10962) + guidance message (#10203)
+- Improved package channel error surfaces & prefetch retry logic (#11120)
+
+> The `aspire exec` and `aspire update` commands remain in preview behind feature flags; behavior may change in a subsequent release.
 
 ## 🎨 Dashboard enhancements
 
@@ -349,7 +470,7 @@ var localFoundry = builder.AddAzureAIFoundry("local-ai")
   .RunAsFoundryLocal();
 ```
 
-### Azure App Configuration emulator
+### Azure App Configuration emulator APIs
 
 Run emulators locally with full configuration support:
 
@@ -369,4 +490,252 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
+
+### Azure provisioning & deployer
+
+9.5 delivers the first iteration of the Azure provisioning & deployment pipeline that unifies interactive prompting, Bicep compilation, and mode-specific behavior (run vs publish) across Azure resources:
+
+- New provisioning contexts separate run-mode and publish-mode flows ([#11094](https://github.com/dotnet/aspire/pull/11094)).
+- Graph-based dependency planning (`ResourceDeploymentGraph`) ensures correct ordering of resource provisioning.
+- Improved error handling and idempotency for `AddAsExistingResource` across all Azure resources ([#10562](https://github.com/dotnet/aspire/issues/10562)).
+- Support for deploying compute images and resources (custom images referenced in your environment) ([#11030](https://github.com/dotnet/aspire/pull/11030)).
+- Deploy individual Bicep modules instead of a monolithic `main.bicep` for clearer failure isolation and faster iteration ([#11098](https://github.com/dotnet/aspire/pull/11098)).
+- Localized interaction + notification strings across all provisioning prompts (multiple OneLocBuild PRs).
+
+Provisioning automatically prompts for required values only once per run, caches results, and reuses them in publish-mode without re-prompting. This reduces friction when iterating locally while maintaining reproducibility for production publish.
+
+### Azure deployer interactive command handling
+
+The AppHost now wires Azure provisioning prompts into the standard interaction system (initial work in [#10038](https://github.com/dotnet/aspire/pull/10038), extended in [#10792](https://github.com/dotnet/aspire/pull/10792) and [#10845](https://github.com/dotnet/aspire/pull/10845)). This enables:
+
+- Consistent UX for parameter entry (names, descriptions, validation)
+- Localized prompt text
+- Support for non-interactive scenarios via pre-supplied parameters
+
+### Azure resource idempotency & existing resources
+
+Calling `AddAsExistingResource` is now idempotent across Azure hosting resource builders; repeated calls no longer cause duplicate annotations or inconsistent behavior ([#10562](https://github.com/dotnet/aspire/issues/10562)). This improves reliability when composing reusable extension methods.
+
+### Compute image deployment
+
+You can now reference and deploy custom compute images as part of Azure environment provisioning ([#11030](https://github.com/dotnet/aspire/pull/11030)). This lays groundwork for richer VM/container hybrid topologies.
+
+### Module-scoped Bicep deployment
+
+Instead of generating a single aggregated template, 9.5 deploys individual Bicep modules ([#11098](https://github.com/dotnet/aspire/pull/11098)). Failures surface with more precise context and partial successes require less rework.
+
+## Docker & container tooling
+
+### Docker Compose Aspire Dashboard forwarding headers
+
+`AddDockerComposeEnvironment(...).WithDashboard()` gained `WithForwardedHeaders()` to enable forwarded `Host` and `Proto` handling for dashboard scenarios behind reverse proxies or compose networks ([#11080](https://github.com/dotnet/aspire/pull/11080)). This mirrors the standalone dashboard forwarded header support and fixes auth redirect edge cases.
+
+```csharp
+builder.AddDockerComposeEnvironment("env")
+  .WithComposeFile("docker-compose.yml")
+  .WithDashboard(d => d.WithForwardedHeaders());
+```
+
+### Container build customization
+
+`ContainerBuildOptions` support (commit [#10074](https://github.com/dotnet/aspire/pull/10074)) enables customizing the underlying `dotnet publish` invocation when Aspire builds project-sourced container images (for example to change configuration, trimming, or pass additional MSBuild properties). Use the new options hook on the project container image configuration to set MSBuild properties instead of maintaining a custom Dockerfile. (Exact API surface is intentionally summarized here to avoid drift; see API docs for `ContainerBuildOptions` in the hosting namespace for usage.)
+
+## Publishing & interactions
+
+### Publishing progress & activity reporting
+
+`IPublishingActivityProgressReporter` was renamed to `IPublishingActivityReporter` and output formatting was reworked to provide clearer, structured progress (multiple commits culminating in improved messages). Expect more concise status lines and actionable error sections when using `aspire publish`.
+
+### Parameter & interaction API updates
+
+- `ParameterResource.Value` is now obsolete: switch to `await parameter.GetValueAsync()` or inject parameter resources directly ([#10363](https://github.com/dotnet/aspire/pull/10363)). This change improves async value acquisition and avoids accidental blocking.
+- Interaction inputs enforce server-side validation and required `Name` property (breaking, [#10835](https://github.com/dotnet/aspire/pull/10835)).
+- New notification terminology (renamed from MessageBar, [#10449](https://github.com/dotnet/aspire/pull/10449)).
+
+Migration example:
+
+```csharp
+// Before (deprecated)
+var value = myParam.Value;
+
+// After
+var value = await myParam.GetValueAsync();
+```
+
+## Localization & UX consistency
+
+Extensive localization landed across the AppHost, Azure provisioning, interactions, launch profiles, and dashboard-facing messages (multiple OneLocBuild commits). Resource strings replace hardcoded literals, enabling translated tooling experiences out-of-the-box.
+
+## Reliability & diagnostics
+
+- New `ResourceStoppedEvent` provides lifecycle insight when resources shut down or fail ([#11103](https://github.com/dotnet/aspire/pull/11103)).
+- Hardened container runtime health checks now block image build when the runtime is unhealthy rather than failing later ([#10399](https://github.com/dotnet/aspire/pull/10399), [#10402](https://github.com/dotnet/aspire/pull/10402)).
+- Dashboard startup failure now surfaces an immediate, clear exception instead of hanging (`ResourceFailedException`, [#10567](https://github.com/dotnet/aspire/pull/10567)).
+- Version checking messages localized and de-duplicated ([#11017](https://github.com/dotnet/aspire/pull/11017)).
+
+## Minor enhancements
+
+- Server-side validation of interaction inputs ([#10527](https://github.com/dotnet/aspire/pull/10527)).
+- Custom resource icons section already noted now also apply to project & container resources via unified annotation.
+- Launch profile localization and model surfaced in dashboard resource details ([#10906](https://github.com/dotnet/aspire/pull/10906)).
+
+## 🆕 New & updated public APIs
+
+This section lists selected new or expanded APIs introduced in 9.5. Signatures are taken directly from the API diff (`api-changes-diff.txt`). Use the uber file (`all-api-changes.txt`) for full context.
+
+### Azure AI Foundry model catalog
+
+New strongly-typed model catalog plus deployment overload:
+
+```csharp
+// New overload using AIFoundryModel
+public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(
+  this IResourceBuilder<AzureAIFoundryResource> builder,
+  string name,
+  AIFoundryModel model);
+
+// Sample
+var foundry = builder.AddAzureAIFoundry("ai-foundry");
+var gpt4 = foundry.AddDeployment("gpt4", AIFoundryModel.OpenAI.Gpt4);
+```
+
+### Azure App Configuration emulator
+
+```csharp
+public static IResourceBuilder<AzureAppConfigurationResource> RunAsEmulator(
+  this IResourceBuilder<AzureAppConfigurationResource> builder,
+  Action<IResourceBuilder<AzureAppConfigurationEmulatorResource>>? configureEmulator = null);
+
+public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataVolume(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string? name = null);
+public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, string? path = null);
+public static IResourceBuilder<AzureAppConfigurationEmulatorResource> WithHostPort(this IResourceBuilder<AzureAppConfigurationEmulatorResource> builder, int? port);
+
+// Sample
+var appConfig = builder.AddAzureAppConfiguration("config")
+  .RunAsEmulator(em => em
+    .WithDataVolume("config-data")
+    .WithHostPort(8080));
+```
+
+### OpenAI hosting integration APIs
+
+```csharp
+public static IResourceBuilder<OpenAIResource> AddOpenAI(this IDistributedApplicationBuilder builder, string name);
+public static IResourceBuilder<OpenAIResource> WithApiKey(this IResourceBuilder<OpenAIResource> builder, IResourceBuilder<ParameterResource> apiKey);
+public static IResourceBuilder<OpenAIResource> WithEndpoint(this IResourceBuilder<OpenAIResource> builder, string endpoint);
+public static IResourceBuilder<OpenAIModelResource> AddModel(this IResourceBuilder<OpenAIResource> builder, string name, string model);
+
+// Sample
+var openai = builder.AddOpenAI("openai")
+  .WithApiKey(builder.AddParameter("OPENAI__API_KEY", secret: true))
+  .WithEndpoint("http://localhost:9000");
+
+var chat = openai.AddModel("chat", "gpt-4o-mini");
+```
+
+### GitHub Models typed catalog
+
+```csharp
+public static IResourceBuilder<GitHubModelResource> AddGitHubModel(
+  this IDistributedApplicationBuilder builder,
+  string name,
+  GitHubModel model,
+  IResourceBuilder<ParameterResource>? organization = null);
+
+// Sample
+var gh = builder.AddGitHubModel("phi4", GitHub.GitHubModel.Microsoft.Phi4);
+```
+
+### Telemetry exporter protocol selection
+
+```csharp
+public enum OtlpProtocol { Grpc = 0, HttpProtobuf = 1 }
+
+public static IResourceBuilder<T> WithOtlpExporter<T>(
+  this IResourceBuilder<T> builder,
+  OtlpProtocol protocol) where T : IResourceWithEnvironment;
+
+// Sample
+builder.AddProject<Projects.Api>("api").WithOtlpExporter(OtlpProtocol.HttpProtobuf);
+```
+
+### Start-only dependency waiting
+
+```csharp
+public static IResourceBuilder<T> WaitForStart<T>(
+  this IResourceBuilder<T> builder,
+  IResourceBuilder<IResource> dependency,
+  WaitBehavior waitBehavior) where T : IResourceWithWaitSupport;
+public static IResourceBuilder<T> WaitForStart<T>(
+  this IResourceBuilder<T> builder,
+  IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport;
+
+// Sample
+api.WaitForStart(postgres).WaitFor(redis);
+```
+
+### Custom resource icon APIs
+
+```csharp
+public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource;
+
+// Sample
+builder.AddProject<Projects.Api>("api").WithIconName("web-app", IconVariant.Regular);
+```
+
+### Interaction input collection
+
+`InteractionInput` now requires `Name` (with optional `Label`) and a new `InteractionInputCollection` adds name-based lookup:
+
+```csharp
+public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
+{
+  public InteractionInput this[string name] { get; }
+  public bool TryGetByName(string name, out InteractionInput? input);
+}
+
+// Sample (server side)
+var inputs = new InteractionInputCollection(new []
+{
+  new InteractionInput { Name = "username", Label = "User", InputType = InputType.Text }
+});
+```
+
+### Resource lifecycle callback
+
+```csharp
+public static IResourceBuilder<T> OnResourceStopped<T>(
+  this IResourceBuilder<T> builder,
+  Func<T, ResourceStoppedEvent, CancellationToken, Task> callback) where T : IResource;
+```
+
+### VS Code debug support (experimental)
+
+```csharp
+public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(
+  this IResourceBuilder<T> builder,
+  string projectPath,
+  string debugAdapterId,
+  string? requiredExtensionId,
+  Action<CommandLineArgsCallbackContext>? argsCallback = null) where T : IResource;
+```
+
+### Dashboard & compose enhancements
+
+```csharp
+public static IResourceBuilder<DockerComposeAspireDashboardResource> WithForwardedHeaders(
+  this IResourceBuilder<DockerComposeAspireDashboardResource> builder, bool enabled = true);
+```
+
+### Miscellaneous additions
+
+- `WaitForStart` overloads (see above)
+- `RequiresImageBuildAndPush()` helper for resources
+- `CommandResults.Canceled()` and `ExecuteCommandResult.Canceled` property
+- New hostname/password properties on Azure Postgres & Redis provisioning resources
+- Password mutability for MySQL (`MySqlServerResource.PasswordParameter` setter + `.WithPassword` builder extension)
+- Endpoint support via `IResourceWithEndpoints` for several Azure resources (Key Vault, App Configuration, AIFoundry, Redis, Postgres)
+
+> For a full list of additions (including new model constants), consult `api-changes-diff.txt`.
+
 
