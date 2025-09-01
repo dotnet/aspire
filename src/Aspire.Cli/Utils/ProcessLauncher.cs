@@ -22,7 +22,7 @@ internal class ProcessLauncher(
         CancellationToken cancellationToken = default)
     {
         return await LaunchAsync(
-            runtimeSelector.DotNetExecutablePath,
+            runtimeSelector.GetDotNetExecutablePath(),
             arguments,
             workingDirectory,
             environmentVariables,

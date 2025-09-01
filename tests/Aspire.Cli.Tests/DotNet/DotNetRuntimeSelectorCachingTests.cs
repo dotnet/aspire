@@ -62,7 +62,7 @@ public class DotNetRuntimeSelectorCachingTests
         // Assert
         Assert.True(firstResult);
         Assert.True(secondResult);
-        Assert.Equal("dotnet", selector.DotNetExecutablePath);
+        Assert.Equal("dotnet", selector.GetDotNetExecutablePath());
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
     }
 

@@ -51,7 +51,7 @@ public class SdkInstallHelperTests
         public bool InitializeResult { get; set; } = true;
         public bool InitializeCalled { get; private set; }
 
-        public string DotNetExecutablePath => "dotnet";
+        public string GetDotNetExecutablePath() => "dotnet";
         public DotNetRuntimeMode Mode => DotNetRuntimeMode.System;
 
         public async Task<bool> InitializeAsync(CancellationToken cancellationToken = default)

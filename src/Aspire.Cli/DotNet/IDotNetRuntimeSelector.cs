@@ -11,7 +11,7 @@ internal interface IDotNetRuntimeSelector
     /// <summary>
     /// Gets the path to the dotnet executable to use.
     /// </summary>
-    string DotNetExecutablePath { get; }
+    string GetDotNetExecutablePath();
 
     /// <summary>
     /// Gets the mode being used (private, system, or custom).

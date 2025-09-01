@@ -30,20 +30,17 @@ internal sealed class DotNetRuntimeSelector(
     private string? _pendingPrivateDotNetPath;
 
     /// <inheritdoc />
-    public string DotNetExecutablePath 
-    { 
-        get 
+    public string GetDotNetExecutablePath()
+    {
+        // If we need to install the private SDK, do it now on first access
+        if (_pendingRequiredVersion is not null)
         {
-            // If we need to install the private SDK, do it now on first access
-            if (_pendingRequiredVersion is not null)
-            {
-                // This is a blocking operation, but it only happens once
-                var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
-                installTask.Wait();
-            }
-            
-            return _dotNetExecutablePath ?? "dotnet";
+            // This is a blocking operation, but it only happens once
+            var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
+            installTask.Wait();
         }
+        
+        return _dotNetExecutablePath ?? "dotnet";
     }
 
     /// <inheritdoc />

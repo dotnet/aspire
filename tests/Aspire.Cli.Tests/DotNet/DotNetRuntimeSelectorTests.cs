@@ -23,7 +23,7 @@ public class DotNetRuntimeSelectorTests
         var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
 
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
-        Assert.Equal("dotnet", selector.DotNetExecutablePath);
+        Assert.Equal("dotnet", selector.GetDotNetExecutablePath());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class DotNetRuntimeSelectorTests
 
         Assert.True(result);
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
-        Assert.Equal("dotnet", selector.DotNetExecutablePath);
+        Assert.Equal("dotnet", selector.GetDotNetExecutablePath());
     }
 
     [Fact]

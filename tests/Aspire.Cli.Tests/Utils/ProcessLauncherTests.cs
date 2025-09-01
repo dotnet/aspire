@@ -16,7 +16,7 @@ public class ProcessLauncherTests
         var logger = NullLogger<ProcessLauncher>.Instance;
         var runtimeSelector = new TestRuntimeSelector
         {
-            DotNetExecutablePath = "/custom/path/dotnet",
+            DotNetExecutablePathValue = "/custom/path/dotnet",
             EnvironmentVariables = new Dictionary<string, string>()
         };
 
@@ -35,7 +35,7 @@ public class ProcessLauncherTests
         var logger = NullLogger<ProcessLauncher>.Instance;
         var runtimeSelector = new TestRuntimeSelector
         {
-            DotNetExecutablePath = "dotnet",
+            DotNetExecutablePathValue = "dotnet",
             EnvironmentVariables = new Dictionary<string, string>
             {
                 ["DOTNET_ROOT"] = "/custom/dotnet"
@@ -52,9 +52,11 @@ public class ProcessLauncherTests
 
     private sealed class TestRuntimeSelector : IDotNetRuntimeSelector
     {
-        public string DotNetExecutablePath { get; set; } = "dotnet";
+        public string DotNetExecutablePathValue { get; set; } = "dotnet";
         public DotNetRuntimeMode Mode { get; set; } = DotNetRuntimeMode.System;
         public IDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
+
+        public string GetDotNetExecutablePath() => DotNetExecutablePathValue;
 
         public Task<bool> InitializeAsync(CancellationToken cancellationToken = default)
         {

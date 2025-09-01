@@ -431,7 +431,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Get the correct dotnet executable path from the process launcher
         var runtimeSelector = serviceProvider.GetRequiredService<IDotNetRuntimeSelector>();
         
-        var startInfo = new ProcessStartInfo(runtimeSelector.DotNetExecutablePath)
+        var startInfo = new ProcessStartInfo(runtimeSelector.GetDotNetExecutablePath())
         {
             WorkingDirectory = workingDirectory.FullName,
             UseShellExecute = false,

@@ -20,6 +20,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => false // SDK not installed
             };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
+            };
         });
         var provider = services.BuildServiceProvider();
 
@@ -39,6 +43,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => false // SDK not installed
+            };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
             };
         });
         var provider = services.BuildServiceProvider();
@@ -60,6 +68,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => false // SDK not installed
             };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
+            };
         });
         var provider = services.BuildServiceProvider();
 
@@ -79,6 +91,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => false // SDK not installed
+            };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
             };
         });
         var provider = services.BuildServiceProvider();
@@ -100,6 +116,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => false // SDK not installed
             };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
+            };
         });
         var provider = services.BuildServiceProvider();
 
@@ -120,6 +140,10 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => false // SDK not installed
+            };
+            options.ConfigurationCallback += config =>
+            {
+                config["ASPIRE_DISABLE_PRIVATE_SDK"] = "1"; // Disable private SDK to force SDK not installed error
             };
         });
         var provider = services.BuildServiceProvider();
