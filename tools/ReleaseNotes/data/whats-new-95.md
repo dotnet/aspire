@@ -37,6 +37,7 @@ ms.date: 08/21/2025
   - [Localization & deployment](#-localization--deployment)
 - [Integration changes and additions](#integration-changes-and-additions)
   - [OpenAI hosting integration](#openai-hosting-integration)
+  - [GitHub Models typed catalog](#github-models-typed-catalog)
 - [App model enhancements](#️-app-model-enhancements)
   - [Telemetry configuration apis](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
@@ -288,7 +289,16 @@ Smart notifications appear when Docker/Podman is installed but unhealthy, with a
 
 ### OpenAI hosting integration
 
-New `AddOpenAI` integration for self-hosted or compatible OpenAI endpoints with child model resources:
+New `AddOpenAI` integration lets you model self-hosted or compatible OpenAI endpoints and attach one or more model resources as children. You configure the API key and endpoint once, then add typed model resources you can reference from other projects. This enables local development against an OpenAI-compatible server (self-hosted, gateway, or proxy) using the same resource graph patterns as other services.
+
+Key capabilities:
+
+- Single OpenAI endpoint resource with child model resources (`AddModel`).
+- Parameter-based API key provisioning (`ParameterResource`).
+- Endpoint override for local gateways / proxies.
+- Resource referencing so other projects pick up connection info automatically.
+
+Example:
 
 ```csharp
 var openai = builder.AddOpenAI("openai")
@@ -300,6 +310,22 @@ var chat = openai.AddModel("chat", "gpt-4o-mini");
 builder.AddProject<Projects.Api>("api")
   .WithReference(chat);
 ```
+
+### GitHub Models typed catalog
+
+9.5 introduces a strongly-typed catalog for GitHub-hosted models (issue #9568 follow-on, PR #10986) mirroring the Azure AI Foundry pattern. Instead of passing raw string identifiers, you can now reference `GitHubModel` constants for refactoring safety and discoverability (IntelliSense surfaces available providers/variants). A daily automation refreshes the generated catalog (PR #11040) so newly published models become available without waiting for a full release.
+
+Example:
+
+```csharp
+// Before (string literal prone to typos)
+builder.AddGitHubModel("phi4", model: "microsoft/phi-4" );
+
+// After (typed constant)
+builder.AddGitHubModel("phi4", GitHubModel.Microsoft.Phi4);
+```
+
+This reduces magic strings, enables code navigation to model definitions, and aligns GitHub model usage with the existing Azure AI Foundry `AIFoundryModel` experience introduced in 9.5.
 
 ## 🖥️ App model enhancements
 
