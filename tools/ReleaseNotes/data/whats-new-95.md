@@ -610,5 +610,3 @@ builder.AddProject<Projects.Api>("api")
 - Server-side validation of interaction inputs ([#10527](https://github.com/dotnet/aspire/pull/10527)).
 - Custom resource icons section already noted now also apply to project & container resources via unified annotation.
 - Launch profile localization and model surfaced in dashboard resource details ([#10906](https://github.com/dotnet/aspire/pull/10906)).
-
-
