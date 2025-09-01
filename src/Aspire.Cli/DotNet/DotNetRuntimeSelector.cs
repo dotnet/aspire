@@ -247,8 +247,6 @@ internal sealed class DotNetRuntimeSelector(
 
     private async Task<bool> AutoInstallPrivateSdkAsync(string requiredVersion, string privateSdkPath, string privateDotNetPath, CancellationToken cancellationToken)
     {
-        console.MarkupLine($"[yellow]Installing required dependencies...[/]");
-
         // Acquire lock for this SDK version to prevent concurrent installations
         using var sdkLock = await SdkLockHelper.AcquireSdkLockAsync(requiredVersion, cancellationToken);
 
@@ -268,6 +266,9 @@ internal sealed class DotNetRuntimeSelector(
             
             return true;
         }
+
+        // Show installation message only after acquiring the lock to avoid duplicate messages
+        console.MarkupLine($"[yellow]Installing required dependencies...[/]");
 
         try
         {
@@ -320,6 +321,26 @@ internal sealed class DotNetRuntimeSelector(
             return; // Nothing to install
         }
 
+        // First check without acquiring the semaphore - if another thread already installed it, we're done
+        if (File.Exists(_pendingPrivateDotNetPath))
+        {
+            _dotNetExecutablePath = _pendingPrivateDotNetPath;
+            
+            // Set environment variables to isolate the private SDK
+            _environmentVariables["DOTNET_ROOT"] = _pendingPrivateSdkPath;
+            
+            // Update PATH to include the private SDK directory so child processes can find dotnet
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+            _environmentVariables["PATH"] = _pendingPrivateSdkPath + pathSeparator + currentPath;
+            
+            // Clear pending installation
+            _pendingRequiredVersion = null;
+            _pendingPrivateSdkPath = null;
+            _pendingPrivateDotNetPath = null;
+            return;
+        }
+
         await _installSemaphore.WaitAsync(cancellationToken);
         
         try
@@ -344,7 +365,7 @@ internal sealed class DotNetRuntimeSelector(
                 return;
             }
 
-            // Install the private SDK now
+            // Install the private SDK now - only the first thread to reach this point will show the UI
             var success = await AutoInstallPrivateSdkAsync(_pendingRequiredVersion, _pendingPrivateSdkPath, _pendingPrivateDotNetPath, cancellationToken);
             
             if (success)
