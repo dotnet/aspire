@@ -81,4 +81,34 @@
   <data name="CentralPackageManagementNotSupported" xml:space="preserve">
     <value>Central package management is currently not supported by 'aspire update'.</value>
   </data>
+  <data name="CheckingWorkloadStatus" xml:space="preserve">
+    <value>Checking for Aspire workload...</value>
+  </data>
+  <data name="UpdatingTemplatesStatus" xml:space="preserve">
+    <value>Updating Aspire templates...</value>
+  </data>
+  <data name="WorkloadFound" xml:space="preserve">
+    <value>Aspire workload found. Removing workload...</value>
+  </data>
+  <data name="WorkloadNotFound" xml:space="preserve">
+    <value>No Aspire workload found.</value>
+  </data>
+  <data name="WorkloadRemovalSuccessful" xml:space="preserve">
+    <value>Aspire workload removed successfully.</value>
+  </data>
+  <data name="WorkloadRemovalFailed" xml:space="preserve">
+    <value>Failed to remove Aspire workload. Exit code: {0}</value>
+  </data>
+  <data name="TemplateUpdateSuccessful" xml:space="preserve">
+    <value>Aspire templates updated successfully to version {0}.</value>
+  </data>
+  <data name="TemplateUpdateFailed" xml:space="preserve">
+    <value>Failed to update Aspire templates. Exit code: {0}</value>
+  </data>
+  <data name="EnvironmentUpdateComplete" xml:space="preserve">
+    <value>Environment update complete!</value>
+  </data>
+  <data name="SkippingTemplateUpdate" xml:space="preserve">
+    <value>Skipping template update (no template package found for channel).</value>
+  </data>
 </root>

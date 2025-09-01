@@ -27,6 +27,11 @@
         <target state="translated">Merkezi paket yönetimi şu anda 'aspire update' tarafından desteklenmiyor.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingWorkloadStatus">
+        <source>Checking for Aspire workload...</source>
+        <target state="new">Checking for Aspire workload...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">{0} içinde &lt;Project&gt; bileşeni bulunamadı</target>
@@ -40,6 +45,11 @@
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="new">Update integrations in the Aspire project. (Preview)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentUpdateComplete">
+        <source>Environment update complete!</source>
+        <target state="new">Environment update complete!</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -97,6 +107,21 @@
         <target state="translated">Kanal seçin:</target>
         <note />
       </trans-unit>
+      <trans-unit id="SkippingTemplateUpdate">
+        <source>Skipping template update (no template package found for channel).</source>
+        <target state="new">Skipping template update (no template package found for channel).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateUpdateFailed">
+        <source>Failed to update Aspire templates. Exit code: {0}</source>
+        <target state="new">Failed to update Aspire templates. Exit code: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateUpdateSuccessful">
+        <source>Aspire templates updated successfully to version {0}.</source>
+        <target state="new">Aspire templates updated successfully to version {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">Beklenmeyen kod yolu.</target>
@@ -112,9 +137,34 @@
         <target state="translated">Güncelleme başarılı!</target>
         <note />
       </trans-unit>
+      <trans-unit id="UpdatingTemplatesStatus">
+        <source>Updating Aspire templates...</source>
+        <target state="new">Updating Aspire templates...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
         <target state="translated">NuGet.config dosyası için hangi dizin kullanılsın?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadFound">
+        <source>Aspire workload found. Removing workload...</source>
+        <target state="new">Aspire workload found. Removing workload...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotFound">
+        <source>No Aspire workload found.</source>
+        <target state="new">No Aspire workload found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRemovalFailed">
+        <source>Failed to remove Aspire workload. Exit code: {0}</source>
+        <target state="new">Failed to remove Aspire workload. Exit code: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRemovalSuccessful">
+        <source>Aspire workload removed successfully.</source>
+        <target state="new">Aspire workload removed successfully.</target>
         <note />
       </trans-unit>
     </body>

@@ -35,6 +35,9 @@ internal interface IDotNetCliRunner
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -846,5 +849,123 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             return (exitCode, stdoutLines.ToArray());
         }
+    }
+
+    public async Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["workload", "list"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: executionContext.WorkingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to list workloads. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, false);
+        }
+        else
+        {
+            // Check if aspire workload is in the output
+            var hasAspireWorkload = stdoutLines.Any(line => 
+                line.Contains("aspire", StringComparison.OrdinalIgnoreCase));
+            return (exitCode, hasAspireWorkload);
+        }
+    }
+
+    public async Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["workload", "uninstall", workloadName];
+
+        logger.LogInformation("Uninstalling workload {WorkloadName}", workloadName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: executionContext.WorkingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to uninstall workload {WorkloadName}. See debug logs for more details.", workloadName);
+        }
+        else
+        {
+            logger.LogInformation("Workload {WorkloadName} uninstalled successfully", workloadName);
+        }
+
+        return result;
+    }
+
+    public async Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(UpdateTemplateAsync), ActivityKind.Client);
+
+        // First uninstall existing template if it exists, then install new version
+        // This ensures we get the latest version and avoid conflicts
+        List<string> uninstallArgs = ["new", "uninstall", packageName];
+
+        var stdoutBuilder = new StringBuilder();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutBuilder.AppendLine(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrBuilder = new StringBuilder();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrBuilder.AppendLine(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var workingDirectory = nugetConfigFile?.Directory ?? executionContext.WorkingDirectory;
+
+        // Try to uninstall existing template (ignore failures as template might not be installed)
+        await ExecuteAsync(
+            args: [.. uninstallArgs],
+            env: new Dictionary<string, string>
+            {
+                // Force English output for consistent parsing.
+                [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
+            },
+            projectFile: null,
+            workingDirectory: workingDirectory,
+            backchannelCompletionSource: null,
+            options: new DotNetCliRunnerInvocationOptions(), // Don't capture output for uninstall
+            cancellationToken: cancellationToken);
+
+        // Clear builders for install operation
+        stdoutBuilder.Clear();
+        stderrBuilder.Clear();
+
+        // Now install the new version
+        return await InstallTemplateAsync(packageName, version, nugetConfigFile, nugetSource, force: true, options, cancellationToken);
     }
 }

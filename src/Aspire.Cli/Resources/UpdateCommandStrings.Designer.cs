@@ -80,5 +80,15 @@ namespace Aspire.Cli.Resources {
     internal static string FailedUpdatePackageReferenceFormat => ResourceManager.GetString("FailedUpdatePackageReferenceFormat", resourceCulture);
     internal static string UnexpectedCodePath => ResourceManager.GetString("UnexpectedCodePath", resourceCulture);
     internal static string CentralPackageManagementNotSupported => ResourceManager.GetString("CentralPackageManagementNotSupported", resourceCulture);
+    internal static string CheckingWorkloadStatus => ResourceManager.GetString("CheckingWorkloadStatus", resourceCulture);
+    internal static string UpdatingTemplatesStatus => ResourceManager.GetString("UpdatingTemplatesStatus", resourceCulture);
+    internal static string WorkloadFound => ResourceManager.GetString("WorkloadFound", resourceCulture);
+    internal static string WorkloadNotFound => ResourceManager.GetString("WorkloadNotFound", resourceCulture);
+    internal static string WorkloadRemovalSuccessful => ResourceManager.GetString("WorkloadRemovalSuccessful", resourceCulture);
+    internal static string WorkloadRemovalFailed => ResourceManager.GetString("WorkloadRemovalFailed", resourceCulture);
+    internal static string TemplateUpdateSuccessful => ResourceManager.GetString("TemplateUpdateSuccessful", resourceCulture);
+    internal static string TemplateUpdateFailed => ResourceManager.GetString("TemplateUpdateFailed", resourceCulture);
+    internal static string EnvironmentUpdateComplete => ResourceManager.GetString("EnvironmentUpdateComplete", resourceCulture);
+    internal static string SkippingTemplateUpdate => ResourceManager.GetString("SkippingTemplateUpdate", resourceCulture);
     }
 }

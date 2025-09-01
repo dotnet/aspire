@@ -22,6 +22,9 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, FileInfo?, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
+    public Func<DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool HasAspireWorkload)>? CheckWorkloadAsyncCallback { get; set; }
+    public Func<string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? UninstallWorkloadAsyncCallback { get; set; }
+    public Func<string, string, FileInfo?, string?, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? UpdateTemplateAsyncCallback { get; set; }
 
     public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -109,5 +112,26 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
         return TrustHttpCertificateAsyncCallback != null
             ? Task.FromResult(TrustHttpCertificateAsyncCallback(options, cancellationToken))
             : throw new NotImplementedException();
+    }
+
+    public Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return CheckWorkloadAsyncCallback != null
+            ? Task.FromResult(CheckWorkloadAsyncCallback(options, cancellationToken))
+            : Task.FromResult((0, false)); // Return success with no workload by default
+    }
+
+    public Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return UninstallWorkloadAsyncCallback != null
+            ? Task.FromResult(UninstallWorkloadAsyncCallback(workloadName, options, cancellationToken))
+            : Task.FromResult(0); // Return success by default
+    }
+
+    public Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return UpdateTemplateAsyncCallback != null
+            ? Task.FromResult(UpdateTemplateAsyncCallback(packageName, version, nugetConfigFile, nugetSource, options, cancellationToken))
+            : Task.FromResult((0, version)); // Return success with version by default
     }
 }
