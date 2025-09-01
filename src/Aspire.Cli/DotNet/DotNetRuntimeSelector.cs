@@ -8,7 +8,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Spectre.Console;
 
 namespace Aspire.Cli.DotNet;
 
@@ -18,8 +17,7 @@ namespace Aspire.Cli.DotNet;
 internal sealed class DotNetRuntimeSelector(
     ILogger<DotNetRuntimeSelector> logger,
     IConfiguration configuration,
-    IDotNetSdkInstaller sdkInstaller,
-    IAnsiConsole console) : IDotNetRuntimeSelector
+    IDotNetSdkInstaller sdkInstaller) : IDotNetRuntimeSelector
 {
     private string? _dotNetExecutablePath;
     private DotNetRuntimeMode _mode = DotNetRuntimeMode.System;
@@ -267,26 +265,15 @@ internal sealed class DotNetRuntimeSelector(
             return true;
         }
 
-        // Show installation message only after acquiring the lock to avoid duplicate messages
-        console.MarkupLine($"[yellow]Installing required dependencies...[/]");
-
         try
         {
-            await console.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync($"Installing dependencies...", async ctx =>
-                {
-                    ctx.Status($"Creating directory {privateSdkPath}...");
-                    Directory.CreateDirectory(privateSdkPath);
-
-                    ctx.Status($"Downloading and installing dependencies...");
-                    await InstallPrivateSdkAsync(configuration, requiredVersion, privateSdkPath, cancellationToken);
-                });
+            // Install without showing UI to avoid conflicts with other interactive operations
+            // The SDK installation is already covered by higher-level status displays
+            Directory.CreateDirectory(privateSdkPath);
+            await InstallPrivateSdkAsync(configuration, requiredVersion, privateSdkPath, cancellationToken);
 
             if (File.Exists(privateDotNetPath))
             {
-                console.MarkupLine($"[green]Successfully installed required dependencies[/]");
-                
                 _mode = DotNetRuntimeMode.Private;
                 _dotNetExecutablePath = privateDotNetPath;
                 
@@ -302,14 +289,13 @@ internal sealed class DotNetRuntimeSelector(
             }
             else
             {
-                console.MarkupLine("[red]Failed to install required dependencies[/]");
+                logger.LogError("Failed to install required dependencies - dotnet executable not found after installation");
                 return false;
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to install required dependencies");
-            console.MarkupLine($"[red]Installation failed: {ex.Message}[/]");
             return false;
         }
     }

@@ -26,9 +26,8 @@ public class DotNetRuntimeSelectorCachingTests
             .Build();
 
         var sdkInstaller = new TestSdkInstaller { CheckResult = false }; // System SDK not available
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         // Act - First call should fail without attempting install
         var firstResult = await selector.InitializeAsync();
@@ -51,9 +50,8 @@ public class DotNetRuntimeSelectorCachingTests
             .Build();
 
         var sdkInstaller = new TestSdkInstaller { CheckResult = true }; // System SDK is available
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         // Act
         var firstResult = await selector.InitializeAsync();

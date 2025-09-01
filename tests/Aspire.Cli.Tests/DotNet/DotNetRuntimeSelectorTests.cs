@@ -18,9 +18,8 @@ public class DotNetRuntimeSelectorTests
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
         var configuration = new ConfigurationBuilder().Build();
         var sdkInstaller = new TestSdkInstaller();
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         Assert.Equal(DotNetRuntimeMode.System, selector.Mode);
         Assert.Equal("dotnet", await selector.GetDotNetExecutablePathAsync());
@@ -32,9 +31,8 @@ public class DotNetRuntimeSelectorTests
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
         var configuration = new ConfigurationBuilder().Build();
         var sdkInstaller = new TestSdkInstaller { CheckResult = true };
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         var result = await selector.InitializeAsync();
 
@@ -54,9 +52,8 @@ public class DotNetRuntimeSelectorTests
             })
             .Build();
         var sdkInstaller = new TestSdkInstaller { CheckResult = false };
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         var result = await selector.InitializeAsync();
 
@@ -75,9 +72,8 @@ public class DotNetRuntimeSelectorTests
             .Build();
         
         var sdkInstaller = new TestSdkInstaller { CheckResult = true };
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         var result = await selector.InitializeAsync();
 
@@ -97,7 +93,6 @@ public class DotNetRuntimeSelectorTests
             })
             .Build();
         var sdkInstaller = new TestSdkInstaller { CheckResult = true };
-        var console = new TestAnsiConsole();
 
         // Set different values in environment variables
         Environment.SetEnvironmentVariable("ASPIRE_DOTNET_SDK_VERSION", "8.0.100");
@@ -105,7 +100,7 @@ public class DotNetRuntimeSelectorTests
 
         try
         {
-            var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+            var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
             var result = await selector.InitializeAsync();
 
@@ -126,9 +121,8 @@ public class DotNetRuntimeSelectorTests
         var logger = NullLogger<DotNetRuntimeSelector>.Instance;
         var configuration = new ConfigurationBuilder().Build();
         var sdkInstaller = new TestSdkInstaller();
-        var console = new TestAnsiConsole();
 
-        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller, console);
+        var selector = new DotNetRuntimeSelector(logger, configuration, sdkInstaller);
 
         var envVars = await selector.GetEnvironmentVariablesAsync();
 
