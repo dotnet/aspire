@@ -199,12 +199,6 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         // Verify the deployment labels are serialized as direct key-value pairs
         // instead of nested under "additional_labels"
-        Assert.Contains("deploy:", composeContent);
-        Assert.Contains("labels:", composeContent);
-        Assert.Contains("com.example.foo: \"bar\"", composeContent);
-        Assert.Contains("com.example.env: \"production\"", composeContent);
-        Assert.DoesNotContain("additional_labels:", composeContent);
-
         await Verify(composeContent, "yaml");
     }
 
