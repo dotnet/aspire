@@ -589,6 +589,36 @@ builder.AddProject<Projects.Frontend>("frontend")
 
 ### Context-based endpoint resolution
 
+**Breaking change**: Endpoint resolution in `WithEnvironment` callbacks now correctly resolves container hostnames instead of always using "localhost" (#8574).
+
+#### Endpoint resolution behavior change
+
+```csharp
+var redis = builder.AddRedis("redis");
+
+// Another container getting endpoint info from Redis container
+var rabbitmq = builder.AddContainer("myapp", "mycontainerapp")
+    .WithEnvironment(context =>
+    {
+        var endpoint = redis.GetEndpoint("tcp");
+        var redisHost = endpoint.Property(EndpointProperty.Host);
+        var redisPort = endpoint.Property(EndpointProperty.Port);
+
+        // Previously: redisHost would always resolve to "localhost" 
+        // Now: redisHost correctly resolves to "redis" (container name)
+        context.EnvironmentVariables["REDIS_HOST"] = redisHost;
+        context.EnvironmentVariables["REDIS_PORT"] = redisPort;
+    })
+    .WithReference(redis);
+```
+
+#### What you need to review
+
+- **Container deployments**: Your apps will now receive correct container hostnames
+- **Local development**: Localhost behavior preserved for non-containerized scenarios  
+- **Connection strings**: Automatic connection strings continue to work as expected
+- **Manual environment**: Review custom `WithEnvironment` calls that assume localhost
+
 ## API changes and enhancements
 
 ### OTLP telemetry protocol selection
@@ -700,37 +730,6 @@ var frontend = builder.AddProject<Projects.Frontend>("frontend")
     .WaitForStart(externalApi) // Wait for external service to start trying
     .WithReference(externalApi);
 ```
-
-### Context-aware endpoint resolution
-
-**Breaking change**: Endpoint resolution in `WithEnvironment` callbacks now correctly resolves container hostnames instead of always using "localhost" (#8574).
-
-#### Impact and examples
-
-```csharp
-var redis = builder.AddRedis("redis");
-
-// This now correctly resolves to container hostname when appropriate
-var app = builder.AddProject<Projects.App>("app")
-    .WithEnvironment(context =>
-    {
-        var endpoint = redis.GetEndpoint("tcp");
-        var redisHost = endpoint.Property(EndpointProperty.Host);
-        var redisPort = endpoint.Property(EndpointProperty.Port);
-
-        // redisHost will be "redis" in container scenarios, not "localhost"
-        context.EnvironmentVariables["REDIS_HOST"] = redisHost;
-        context.EnvironmentVariables["REDIS_PORT"] = redisPort;
-    })
-    .WithReference(redis);
-```
-
-#### Migration considerations
-
-- **Container deployments**: Your apps will now receive correct container hostnames
-- **Local development**: Localhost behavior preserved for non-containerized scenarios  
-- **Connection strings**: Automatic connection strings continue to work as expected
-- **Manual environment**: Review custom `WithEnvironment` calls that assume localhost
 
 ### Enhanced resource lifetime support
 
