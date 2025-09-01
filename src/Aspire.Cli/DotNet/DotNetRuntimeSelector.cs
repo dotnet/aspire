@@ -25,9 +25,26 @@ internal sealed class DotNetRuntimeSelector(
     private DotNetRuntimeMode _mode = DotNetRuntimeMode.System;
     private readonly Dictionary<string, string> _environmentVariables = new();
     private bool _initializationAttempted;
+    private string? _pendingRequiredVersion;
+    private string? _pendingPrivateSdkPath;
+    private string? _pendingPrivateDotNetPath;
 
     /// <inheritdoc />
-    public string DotNetExecutablePath => _dotNetExecutablePath ?? "dotnet";
+    public string DotNetExecutablePath 
+    { 
+        get 
+        {
+            // If we need to install the private SDK, do it now on first access
+            if (_pendingRequiredVersion is not null)
+            {
+                // This is a blocking operation, but it only happens once
+                var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
+                installTask.Wait();
+            }
+            
+            return _dotNetExecutablePath ?? "dotnet";
+        }
+    }
 
     /// <inheritdoc />
     public DotNetRuntimeMode Mode => _mode;
@@ -81,7 +98,7 @@ internal sealed class DotNetRuntimeSelector(
                 }
                 else if (!disablePrivateSdk)
                 {
-                    // Fall back to private if system doesn't work
+                    // Fall back to private if system doesn't work - but defer installation until needed
                     return await TryInitializePrivateAsync(requiredVersion, cancellationToken);
                 }
                 else
@@ -126,6 +143,14 @@ internal sealed class DotNetRuntimeSelector(
     /// <inheritdoc />
     public IDictionary<string, string> GetEnvironmentVariables()
     {
+        // If we need to install the private SDK, do it now on first access
+        if (_pendingRequiredVersion is not null)
+        {
+            // This is a blocking operation, but it only happens once
+            var installTask = Task.Run(async () => await EnsurePrivateSdkInstalledAsync(CancellationToken.None));
+            installTask.Wait();
+        }
+        
         return new Dictionary<string, string>(_environmentVariables);
     }
 
@@ -176,8 +201,12 @@ internal sealed class DotNetRuntimeSelector(
         };
     }
 
-    private async Task<bool> TryInitializePrivateAsync(string requiredVersion, CancellationToken cancellationToken)
+    private Task<bool> TryInitializePrivateAsync(string requiredVersion, CancellationToken _)
     {
+        // Check if auto-install is explicitly disabled
+        var disableAutoInstall = configuration["ASPIRE_DISABLE_AUTO_INSTALL"] == "1"
+            || Environment.GetEnvironmentVariable("ASPIRE_DISABLE_AUTO_INSTALL") == "1";
+
         var aspireHome = configuration["ASPIRE_HOME"]
             ?? Environment.GetEnvironmentVariable("ASPIRE_HOME") 
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire");
@@ -204,25 +233,27 @@ internal sealed class DotNetRuntimeSelector(
             var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
             _environmentVariables["PATH"] = privateSdkPath + pathSeparator + currentPath;
             
-            return true;
+            return Task.FromResult(true);
         }
 
-        // Private SDK doesn't exist, auto-install it
-        return await AutoInstallPrivateSdkAsync(requiredVersion, privateSdkPath, privateDotNetPath, cancellationToken);
+        // Private SDK doesn't exist - check if we can install it
+        if (disableAutoInstall)
+        {
+            logger.LogError("Required dependencies not available and auto-install is disabled");
+            return Task.FromResult(false);
+        }
+
+        // Private SDK doesn't exist - prepare for lazy installation
+        _mode = DotNetRuntimeMode.Private;
+        _pendingRequiredVersion = requiredVersion;
+        _pendingPrivateSdkPath = privateSdkPath;
+        _pendingPrivateDotNetPath = privateDotNetPath;
+        
+        return Task.FromResult(true); // Return true - we can provide a working SDK (through lazy installation)
     }
 
     private async Task<bool> AutoInstallPrivateSdkAsync(string requiredVersion, string privateSdkPath, string privateDotNetPath, CancellationToken cancellationToken)
     {
-        // Check if auto-install is explicitly disabled
-        var disableAutoInstall = configuration["ASPIRE_DISABLE_AUTO_INSTALL"] == "1"
-            || Environment.GetEnvironmentVariable("ASPIRE_DISABLE_AUTO_INSTALL") == "1";
-        
-        if (disableAutoInstall)
-        {
-            logger.LogError("Required dependencies not available and auto-install is disabled");
-            return false;
-        }
-
         console.MarkupLine($"[yellow]Installing required dependencies...[/]");
 
         // Acquire lock for this SDK version to prevent concurrent installations
@@ -288,6 +319,60 @@ internal sealed class DotNetRuntimeSelector(
             return false;
         }
     }
+
+    private async Task EnsurePrivateSdkInstalledAsync(CancellationToken cancellationToken)
+    {
+        if (_pendingRequiredVersion is null || _pendingPrivateSdkPath is null || _pendingPrivateDotNetPath is null)
+        {
+            return; // Nothing to install
+        }
+
+        await _installSemaphore.WaitAsync(cancellationToken);
+        
+        try
+        {
+            // Check again if SDK was installed by another thread while we were waiting
+            if (File.Exists(_pendingPrivateDotNetPath))
+            {
+                _dotNetExecutablePath = _pendingPrivateDotNetPath;
+                
+                // Set environment variables to isolate the private SDK
+                _environmentVariables["DOTNET_ROOT"] = _pendingPrivateSdkPath;
+                
+                // Update PATH to include the private SDK directory so child processes can find dotnet
+                var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+                var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+                _environmentVariables["PATH"] = _pendingPrivateSdkPath + pathSeparator + currentPath;
+                
+                // Clear pending installation
+                _pendingRequiredVersion = null;
+                _pendingPrivateSdkPath = null;
+                _pendingPrivateDotNetPath = null;
+                return;
+            }
+
+            // Install the private SDK now
+            var success = await AutoInstallPrivateSdkAsync(_pendingRequiredVersion, _pendingPrivateSdkPath, _pendingPrivateDotNetPath, cancellationToken);
+            
+            if (success)
+            {
+                // Clear pending installation on success
+                _pendingRequiredVersion = null;
+                _pendingPrivateSdkPath = null;
+                _pendingPrivateDotNetPath = null;
+            }
+            else
+            {
+                throw new InvalidOperationException("Failed to install required .NET SDK");
+            }
+        }
+        finally
+        {
+            _installSemaphore.Release();
+        }
+    }
+
+    private readonly SemaphoreSlim _installSemaphore = new(1, 1);
 
     private static async Task InstallPrivateSdkAsync(IConfiguration configuration, string requiredVersion, string installPath, CancellationToken cancellationToken)
     {
