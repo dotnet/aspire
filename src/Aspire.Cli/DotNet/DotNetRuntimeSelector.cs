@@ -200,6 +200,11 @@ internal sealed class DotNetRuntimeSelector(
             _environmentVariables["DOTNET_ROOT"] = privateSdkPath;
             _environmentVariables["DOTNET_HOST_PATH"] = privateDotNetPath;
             
+            // Update PATH to include the private SDK directory so child processes can find dotnet
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+            _environmentVariables["PATH"] = privateSdkPath + pathSeparator + currentPath;
+            
             return true;
         }
 
@@ -234,6 +239,11 @@ internal sealed class DotNetRuntimeSelector(
             _environmentVariables["DOTNET_ROOT"] = privateSdkPath;
             _environmentVariables["DOTNET_HOST_PATH"] = privateDotNetPath;
             
+            // Update PATH to include the private SDK directory so child processes can find dotnet
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+            _environmentVariables["PATH"] = privateSdkPath + pathSeparator + currentPath;
+            
             return true;
         }
 
@@ -260,6 +270,11 @@ internal sealed class DotNetRuntimeSelector(
                 // Set environment variables to isolate the private SDK
                 _environmentVariables["DOTNET_ROOT"] = privateSdkPath;
                 _environmentVariables["DOTNET_HOST_PATH"] = privateDotNetPath;
+                
+                // Update PATH to include the private SDK directory so child processes can find dotnet
+                var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+                var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+                _environmentVariables["PATH"] = privateSdkPath + pathSeparator + currentPath;
                 
                 return true;
             }
