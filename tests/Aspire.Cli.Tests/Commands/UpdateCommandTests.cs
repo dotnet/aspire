@@ -1,16 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -26,70 +22,6 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             GetChannelsCalled = true;
             // Return empty enumerable (should not be reached in CPM scenario)
             return Task.FromResult<IEnumerable<PackageChannel>>([]);
-        }
-    }
-
-    private sealed class TestDotNetCliRunner : IDotNetCliRunner
-    {
-        public bool CheckWorkloadAsyncCalled { get; private set; }
-        public bool UninstallWorkloadAsyncCalled { get; private set; }
-        public bool UpdateTemplateAsyncCalled { get; private set; }
-        public bool HasAspireWorkloadResult { get; set; }
-        public int CheckWorkloadExitCode { get; set; }
-        public int UninstallWorkloadExitCode { get; set; }
-        public int UpdateTemplateExitCode { get; set; }
-        public string? UpdateTemplateVersionResult { get; set; }
-
-        // Implement required interface methods
-        public Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult((0, true, "9.5.0-dev"));
-
-        public Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult((0, (JsonDocument?)null));
-
-        public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult((0, version));
-
-        public Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(0);
-
-        public Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult((0, (NuGetPackage[]?)null));
-
-        public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult((0, Array.Empty<string>()));
-
-        public Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            CheckWorkloadAsyncCalled = true;
-            return Task.FromResult((CheckWorkloadExitCode, HasAspireWorkloadResult));
-        }
-
-        public Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            UninstallWorkloadAsyncCalled = true;
-            return Task.FromResult(UninstallWorkloadExitCode);
-        }
-
-        public Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            UpdateTemplateAsyncCalled = true;
-            return Task.FromResult((UpdateTemplateExitCode, UpdateTemplateVersionResult));
         }
     }
 

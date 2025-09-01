@@ -132,6 +132,6 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     {
         return UpdateTemplateAsyncCallback != null
             ? Task.FromResult(UpdateTemplateAsyncCallback(packageName, version, nugetConfigFile, nugetSource, options, cancellationToken))
-            : Task.FromResult((0, version)); // Return success with version by default
+            : Task.FromResult((0, (string?)version)); // Return success with version by default
     }
 }
