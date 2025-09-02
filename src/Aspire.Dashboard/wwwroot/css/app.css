@@ -102,8 +102,8 @@ fluent-toolbar::part(end) {
     --message-color: #115ea3;
     --tool-calls-background-color: #f2fbf2;
     --tool-calls-color: #11910d;
-    --completion-background-color: #f4bfab;
-    --completion-color: #7a2101;
+    --output-background-color: #f4bfab;
+    --output-color: #7a2101;
 }
 
 [data-theme="dark"] {
@@ -151,8 +151,8 @@ fluent-toolbar::part(end) {
     --message-color: #5ec75a;
     --tool-calls-background-color: #082338;
     --tool-calls-color: #62abf5;
-    --completion-background-color: #7a2101;
-    --completion-color: #f4bfab;
+    --output-background-color: #7a2101;
+    --output-color: #f4bfab;
 }
 
 .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {

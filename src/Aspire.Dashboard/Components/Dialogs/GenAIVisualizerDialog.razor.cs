@@ -95,13 +95,13 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var id = newTab.Id?.Substring("tab-event-".Length);
 
         if (id is null
-            || !Enum.TryParse(typeof(EventViewKind), id, out var o)
-            || o is not EventViewKind viewKind)
+            || !Enum.TryParse(typeof(MessageViewKind), id, out var o)
+            || o is not MessageViewKind viewKind)
         {
             return;
         }
 
-        Content.EventActiveView = viewKind;
+        Content.MessageActiveView = viewKind;
     }
 
     private void OnPreviousGenAISpan()
@@ -131,7 +131,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
         var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, TelemetryRepository, Content.GetContextGenAISpans);
         dialogViewModel.OverviewActiveView = Content.OverviewActiveView;
-        dialogViewModel.EventActiveView = Content.EventActiveView;
+        dialogViewModel.MessageActiveView = Content.MessageActiveView;
 
         Content = dialogViewModel;
         _currentSpanContextIndex = _contextSpans.IndexOf(newSpan);
@@ -143,10 +143,10 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     {
         return e.Type switch
         {
-            GenAIEventType.SystemMessage => "System message",
-            GenAIEventType.UserMessage => "User",
-            GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage => "Assistant",
-            GenAIEventType.ToolMessage => "Tool",
+            GenAIMessageType.SystemMessage => "System message",
+            GenAIMessageType.UserMessage => "User",
+            GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage => "Assistant",
+            GenAIMessageType.ToolMessage => "Tool",
             _ => string.Empty
         };
     }

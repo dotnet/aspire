@@ -133,21 +133,21 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Collection(vm.Messages,
             m =>
             {
-                Assert.Equal(GenAIEventType.SystemMessage, m.Type);
+                Assert.Equal(GenAIMessageType.SystemMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("System!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.UserMessage, m.Type);
+                Assert.Equal(GenAIMessageType.UserMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("User!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.AssistantMessage, m.Type);
+                Assert.Equal(GenAIMessageType.AssistantMessage, m.Type);
                 Assert.Equal("ai-server.address", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("Assistant!", Assert.IsType<TextPart>(p.MessagePart).Content));
@@ -220,21 +220,21 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Collection(vm.Messages,
             m =>
             {
-                Assert.Equal(GenAIEventType.SystemMessage, m.Type);
+                Assert.Equal(GenAIMessageType.SystemMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("System!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.UserMessage, m.Type);
+                Assert.Equal(GenAIMessageType.UserMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("User!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.AssistantMessage, m.Type);
+                Assert.Equal(GenAIMessageType.AssistantMessage, m.Type);
                 Assert.Equal("ai-server.address", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("Assistant!", Assert.IsType<TextPart>(p.MessagePart).Content));
@@ -336,21 +336,21 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Collection(vm.Messages,
             m =>
             {
-                Assert.Equal(GenAIEventType.SystemMessage, m.Type);
+                Assert.Equal(GenAIMessageType.SystemMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("System!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.UserMessage, m.Type);
+                Assert.Equal(GenAIMessageType.UserMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("User!", Assert.IsType<TextPart>(p.MessagePart).Content));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.AssistantMessage, m.Type);
+                Assert.Equal(GenAIMessageType.AssistantMessage, m.Type);
                 Assert.Equal("ai-server.address", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p =>
@@ -362,14 +362,14 @@ public sealed class GenAIVisualizerDialogViewModelTests
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.ToolMessage, m.Type);
+                Assert.Equal(GenAIMessageType.ToolMessage, m.Type);
                 Assert.Equal("TestService", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal(@"[""Jack"",""Jane""]", Assert.IsType<ToolCallResponsePart>(p.MessagePart).Response!.ToJsonString()));
             },
             m =>
             {
-                Assert.Equal(GenAIEventType.OutputMessage, m.Type);
+                Assert.Equal(GenAIMessageType.OutputMessage, m.Type);
                 Assert.Equal("ai-server.address", m.ResourceName);
                 Assert.Collection(m.MessageParts,
                     p => Assert.Equal("Output!", Assert.IsType<TextPart>(p.MessagePart).Content));

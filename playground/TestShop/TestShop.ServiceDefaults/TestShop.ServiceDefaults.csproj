@@ -14,7 +14,6 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
-    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />    
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="AspNetCore.HealthChecks.ApplicationStatus" />

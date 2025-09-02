@@ -6,20 +6,20 @@ using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class GenAIEventTitle
+public partial class GenAIMessageTitle
 {
     [Parameter, EditorRequired]
-    public required GenAIMessageViewModel Event { get; set; }
+    public required GenAIMessageViewModel Message { get; set; }
 
     [Parameter, EditorRequired]
     public required string ResourceName { get; set; }
 
     private BadgeDetail? _categoryBadge;
-    private BadgeDetail? _eventBadge;
+    private BadgeDetail? _messageBadge;
 
     protected override void OnParametersSet()
     {
-        _categoryBadge = Event.GetEventCategory();
-        _eventBadge = Event.GetEventTitle();
+        _categoryBadge = Message.GetEventCategory();
+        _messageBadge = Message.GetMessageTitle();
     }
 }

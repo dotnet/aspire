@@ -8,13 +8,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-public class GenAIMessagePartViewModel
-{
-    public required MessagePart MessagePart { get; init; }
-    public required TextVisualizerViewModel TextVisualizerViewModel { get; init; }
-}
-
-[DebuggerDisplay("Index = {Index}, ResourceName = {ResourceName}, Type = {Type}, InternalId = {InternalId}")]
+[DebuggerDisplay("Type = {Type}, Index = {Index}, ResourceName = {ResourceName}")]
 public class GenAIMessageViewModel
 {
     private static readonly Icon s_toolCallsIcon = new Icons.Regular.Size16.Code();
@@ -27,21 +21,21 @@ public class GenAIMessageViewModel
     public required int Index { get; set; }
     public required long? InternalId { get; init; }
     public required OtlpSpan Parent { get; init; }
-    public required GenAIEventType Type { get; init; }
+    public required GenAIMessageType Type { get; init; }
     public required List<GenAIMessagePartViewModel> MessageParts { get; init; } = [];
     public required string ResourceName { get; init; }
-    
+
     public BadgeDetail GetEventCategory()
     {
-        if (Type == GenAIEventType.OutputMessage)
+        if (Type == GenAIMessageType.OutputMessage)
         {
             if (MessageParts.Any(p => p.MessagePart.Type == MessagePart.ToolCallType))
             {
-                return new BadgeDetail("Completion", "completion", s_toolCallsIcon);
+                return new BadgeDetail("Tool calls", "output", s_toolCallsIcon);
             }
             else
             {
-                return new BadgeDetail("Completion", "completion", s_messageIcon);
+                return new BadgeDetail("Output", "output", s_messageIcon);
             }
         }
         if (MessageParts.Any(p => p.MessagePart.Type == MessagePart.ToolCallType))
@@ -52,14 +46,14 @@ public class GenAIMessageViewModel
         return new BadgeDetail("Message", "message", s_messageIcon);
     }
 
-    public BadgeDetail GetEventTitle()
+    public BadgeDetail GetMessageTitle()
     {
         return Type switch
         {
-            GenAIEventType.SystemMessage => new BadgeDetail("System", "system", s_systemIcon),
-            GenAIEventType.UserMessage => new BadgeDetail("User", "user", s_personIcon),
-            GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage => new BadgeDetail("Assistant", "assistant", s_personIcon),
-            GenAIEventType.ToolMessage => new BadgeDetail("Tool", "tool", s_toolIcon),
+            GenAIMessageType.SystemMessage => new BadgeDetail("System", "system", s_systemIcon),
+            GenAIMessageType.UserMessage => new BadgeDetail("User", "user", s_personIcon),
+            GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage => new BadgeDetail("Assistant", "assistant", s_personIcon),
+            GenAIMessageType.ToolMessage => new BadgeDetail("Tool", "tool", s_toolIcon),
             _ => throw new InvalidOperationException("Unexpected type: " + Type)
         };
     }

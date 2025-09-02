@@ -47,31 +47,31 @@
             </Panel1>
             <Panel2>
                 <div class="span-events-container">
-                    @if (Content.SelectedMessage is { } selectedEvent)
+                    @if (Content.SelectedMessage is { } selectedMessage)
                     {
                         <div>
                             <div class="event-header">
-                                <GenAIEventTitle Event="@selectedEvent" ResourceName="@selectedEvent.ResourceName" />
+                                <GenAIMessageTitle Message="@selectedMessage" ResourceName="@selectedMessage.ResourceName" />
                             </div>
                             @*
                                 Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
                                 Content is located in manually created divs so they can be placed in their own CSS grid row.
                             *@
-                            <FluentTabs ActiveTabId="@($"tab-event-{Content.EventActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
+                            <FluentTabs ActiveTabId="@($"tab-event-{Content.MessageActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-event-{EventViewKind.Preview}")"
+                                           Id="@($"tab-event-{MessageViewKind.Preview}")"
                                            Label="Preview">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-event-{EventViewKind.Raw}")"
+                                           Id="@($"tab-event-{MessageViewKind.Raw}")"
                                            Label="Raw">
                                 </FluentTab>
                             </FluentTabs>
                         </div>
-                        @if (Content.EventActiveView == EventViewKind.Preview)
+                        @if (Content.MessageActiveView == MessageViewKind.Preview)
                         {
                             <div class="tab-container">
-                                @foreach (var messagePart in selectedEvent.MessageParts)
+                                @foreach (var messagePart in selectedMessage.MessageParts)
                                 {
                                     if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
                                     {
@@ -88,10 +88,10 @@
                                 }
                             </div>
                         }
-                        @if (Content.EventActiveView == EventViewKind.Raw)
+                        @if (Content.MessageActiveView == MessageViewKind.Raw)
                         {
                             <div class="tab-container">
-                                @foreach (var messagePart in selectedEvent.MessageParts)
+                                @foreach (var messagePart in selectedMessage.MessageParts)
                                 {
                                     <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" DisplayUnformatted="true" />
                                 }
@@ -100,7 +100,7 @@
                         <FluentButton Id="@_copyButtonId"
                                       Class="message-copy-button"
                                       Appearance="Appearance.Stealth"
-                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedEvent.MessageParts.Select(p => p.TextVisualizerViewModel.FormattedText)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedMessage.MessageParts.Select(p => p.TextVisualizerViewModel.FormattedText)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
                             <span slot="start">
                                 <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                                 <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
@@ -140,8 +140,8 @@
                         @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.OutputMessage).ToList())
-                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.OutputMessage).ToList())
+                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIMessageType.OutputMessage).ToList())
+                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIMessageType.OutputMessage).ToList())
                             </div>
                         }
                         @if (Content.OverviewActiveView == OverviewViewKind.Details)

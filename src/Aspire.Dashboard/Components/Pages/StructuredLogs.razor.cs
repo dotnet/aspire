@@ -496,6 +496,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 _resources,
                 () =>
                 {
+                    // Update the context with all visible log entries with a GenAI system property.
                     var filters = ViewModel.GetFilters();
                     filters.Add(new TelemetryFilter
                     {

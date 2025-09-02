@@ -94,10 +94,10 @@
     --icon-color: var(--tool-calls-color);
 }
 
-::deep .category-completion {
-    background-color: var(--completion-background-color);
-    color: var(--completion-color);
-    --icon-color: var(--completion-color);
+::deep .category-output {
+    background-color: var(--output-background-color);
+    color: var(--output-color);
+    --icon-color: var(--output-color);
 }
 
 ::deep .event-header {

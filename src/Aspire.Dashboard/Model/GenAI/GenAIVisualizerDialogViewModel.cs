@@ -11,15 +11,6 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-public enum GenAIEventType
-{
-    SystemMessage,
-    UserMessage,
-    AssistantMessage,
-    ToolMessage,
-    OutputMessage
-}
-
 public class GenAIVisualizerDialogViewModel
 {
     public required OtlpSpan Span { get; init; }
@@ -36,10 +27,9 @@ public class GenAIVisualizerDialogViewModel
     public List<GenAIMessageViewModel> Messages { get; } = new List<GenAIMessageViewModel>();
 
     public GenAIMessageViewModel? SelectedMessage { get; set; }
-    public bool HasSelectedMessage { get; set; }
 
     public OverviewViewKind OverviewActiveView { get; set; }
-    public EventViewKind EventActiveView { get; set; }
+    public MessageViewKind MessageActiveView { get; set; }
 
     public string? ModelName { get; set; }
     public int? InputTokens { get; set; }
@@ -120,7 +110,7 @@ public class GenAIVisualizerDialogViewModel
             if (systemInstructions != null)
             {
                 var instructionParts = JsonSerializer.Deserialize(systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
-                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, GenAIEventType.SystemMessage, instructionParts.Select(p => new GenAIMessagePartViewModel
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, GenAIMessageType.SystemMessage, instructionParts.Select(p => new GenAIMessagePartViewModel
                 {
                     MessagePart = p,
                     TextVisualizerViewModel = CreateMessagePartVisualizer(p)
@@ -181,10 +171,10 @@ public class GenAIVisualizerDialogViewModel
             }).ToList();
             var type = msg.Role switch
             {
-                "system" => GenAIEventType.SystemMessage,
-                "user" => msg.Parts.All(p => p is ToolCallResponsePart) ? GenAIEventType.ToolMessage : GenAIEventType.UserMessage,
-                "assistant" => isOutput ? GenAIEventType.OutputMessage : GenAIEventType.AssistantMessage,
-                _ => GenAIEventType.UserMessage
+                "system" => GenAIMessageType.SystemMessage,
+                "user" => msg.Parts.All(p => p is ToolCallResponsePart) ? GenAIMessageType.ToolMessage : GenAIMessageType.UserMessage,
+                "assistant" => isOutput ? GenAIMessageType.OutputMessage : GenAIMessageType.AssistantMessage,
+                _ => GenAIMessageType.UserMessage
             };
             viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type, parts));
             currentIndex++;
@@ -206,7 +196,7 @@ public class GenAIVisualizerDialogViewModel
         return new TextVisualizerViewModel(content, indentText: true);
     }
 
-    private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIEventType type, List<GenAIMessagePartViewModel> parts)
+    private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIMessageType type, List<GenAIMessagePartViewModel> parts)
     {
         return new GenAIMessageViewModel
         {
@@ -214,19 +204,19 @@ public class GenAIVisualizerDialogViewModel
             InternalId = null,
             Type = type,
             Parent = viewModel.Span,
-            ResourceName = type is GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage ? viewModel.PeerName! : viewModel.SourceName!,
+            ResourceName = type is GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage ? viewModel.PeerName! : viewModel.SourceName!,
             MessageParts = parts
         };
     }
 
-    private static List<GenAIMessagePartViewModel> DeserializeBody(GenAIEventType type, string message)
+    private static List<GenAIMessagePartViewModel> DeserializeBody(GenAIMessageType type, string message)
     {
         var messagePartViewModels = new List<GenAIMessagePartViewModel>();
 
         switch (type)
         {
-            case GenAIEventType.SystemMessage:
-            case GenAIEventType.UserMessage:
+            case GenAIMessageType.SystemMessage:
+            case GenAIMessageType.UserMessage:
                 var systemOrUserEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.SystemOrUserEvent)!;
                 messagePartViewModels.Add(new()
                 {
@@ -234,11 +224,11 @@ public class GenAIVisualizerDialogViewModel
                     TextVisualizerViewModel = new TextVisualizerViewModel(systemOrUserEvent.Content ?? string.Empty, indentText: true)
                 });
                 break;
-            case GenAIEventType.AssistantMessage:
+            case GenAIMessageType.AssistantMessage:
                 var assistantEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.AssistantEvent)!;
                 ProcessAssistantEvent(messagePartViewModels, assistantEvent);
                 break;
-            case GenAIEventType.ToolMessage:
+            case GenAIMessageType.ToolMessage:
                 var toolEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ToolEvent)!;
                 var toolResponse = ProcessJsonPayload(toolEvent.Content);
                 messagePartViewModels.Add(new()
@@ -247,7 +237,7 @@ public class GenAIVisualizerDialogViewModel
                     TextVisualizerViewModel = new TextVisualizerViewModel(toolResponse?.ToJsonString() ?? string.Empty, indentText: true)
                 });
                 break;
-            case GenAIEventType.OutputMessage:
+            case GenAIMessageType.OutputMessage:
                 var choiceEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ChoiceEvent)!;
                 if (choiceEvent.Message is { } m)
                 {
@@ -314,15 +304,15 @@ public class GenAIVisualizerDialogViewModel
         return args;
     }
 
-    private static bool TryMapEventName(string name, [NotNullWhen(true)] out GenAIEventType? type)
+    private static bool TryMapEventName(string name, [NotNullWhen(true)] out GenAIMessageType? type)
     {
         type = name switch
         {
-            "gen_ai.system.message" => GenAIEventType.SystemMessage,
-            "gen_ai.user.message" => GenAIEventType.UserMessage,
-            "gen_ai.assistant.message" => GenAIEventType.AssistantMessage,
-            "gen_ai.tool.message" => GenAIEventType.ToolMessage,
-            "gen_ai.choice" => GenAIEventType.OutputMessage,
+            "gen_ai.system.message" => GenAIMessageType.SystemMessage,
+            "gen_ai.user.message" => GenAIMessageType.UserMessage,
+            "gen_ai.assistant.message" => GenAIMessageType.AssistantMessage,
+            "gen_ai.tool.message" => GenAIMessageType.ToolMessage,
+            "gen_ai.choice" => GenAIMessageType.OutputMessage,
             _ => null
         };
 
@@ -336,7 +326,7 @@ public enum OverviewViewKind
     Details
 }
 
-public enum EventViewKind
+public enum MessageViewKind
 {
     Preview,
     Raw,

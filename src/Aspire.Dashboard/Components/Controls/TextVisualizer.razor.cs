@@ -68,7 +68,6 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
         {
             try
             {
-
                 if (_isObserving)
                 {
                     _isObserving = false;

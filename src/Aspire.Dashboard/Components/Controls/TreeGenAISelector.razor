@@ -11,10 +11,10 @@
         {
             <FluentTreeItem @key="messageVM"
                             Data="@messageVM.Index"
-                            title="@messageVM.GetEventTitle().Text"
+                            title="@messageVM.GetMessageTitle().Text"
                             InitiallySelected="@(messageVM.Index == PageViewModel.SelectedMessage?.Index)">
                 <div class="message-tree-item-container">
-                    <GenAIEventTitle Event="messageVM" ResourceName="@messageVM.ResourceName" />
+                    <GenAIMessageTitle Message="messageVM" ResourceName="@messageVM.ResourceName" />
                 </div>
             </FluentTreeItem>
         }
