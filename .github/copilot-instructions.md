@@ -51,8 +51,7 @@
 **Always run restore first to set up the local SDK.** Run `./restore.sh` (Linux/macOS) or `./restore.cmd` (Windows) first to install the local SDK. After restore, you can use standard `dotnet` commands, which will automatically use the local SDK when available due to the paths configuration in global.json.
 
 #### Prerequisites
-1. **Container Runtime Required**: Install Docker Desktop or Podman before building/testing
-2. **Restore First**: Always run `./restore.sh` (Linux/macOS) or `./restore.cmd` (Windows) to set up the local .NET SDK (~30 seconds)
+1. **Restore First**: Always run `./restore.sh` (Linux/macOS) or `./restore.cmd` (Windows) to set up the local .NET SDK (~30 seconds)
 
 #### Build Commands
 - **Full Build**: `./build.sh` (Linux/macOS) or `./build.cmd` (Windows) - defaults to restore + build (~3-5 minutes)
@@ -146,7 +145,6 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 - **Build validation**: Includes package generation, API compatibility checks, template validation
 
 ### Dependencies and Hidden Requirements
-- **Container Runtime**: Docker or Podman must be running for integration tests
 - **Local .NET SDK**: Automatically uses local SDK when available after running restore due to paths configuration in global.json
 - **Package References**: Centrally managed via Directory.Packages.props
 - **API Surface**: Public APIs tracked in `src/*/api/*.cs` files (auto-generated, don't edit)
@@ -155,7 +153,6 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 1. **Build Verification**: `./build.sh` should complete without errors
 2. **Package Generation**: `./build.sh --pack` verifies all packages can be created
 3. **Specific Tests**: Target individual test projects related to your changes
-4. **Container Verification**: Ensure Docker/Podman is running before integration tests
 
 ## Quarantined tests
 
