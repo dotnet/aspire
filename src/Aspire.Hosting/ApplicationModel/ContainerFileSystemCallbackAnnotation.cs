@@ -74,7 +74,7 @@ public sealed class ContainerFile : ContainerFileBase
 /// <summary>
 /// Represents an OpenSSL public certificate in the container file system. Must be PEM encoded.
 /// An OpenSSL compatible symlink pointing to the destination file will be created in the same
-/// container folder as the certificate file named &lt;subject hash&gt;.&lt;n&gt;, where &lt;n&gt; is a
+/// container folder as the certificate file named [subject hash].[n], where [n] is a
 /// sequence number that increases for each certificate in a target folder with the same
 /// subject hash.
 /// </summary>
