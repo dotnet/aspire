@@ -933,7 +933,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
 
-        if (url.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
         {
             throw new ArgumentException("The URL must be absolute and include the scheme (e.g. https://example.com/path). Relative URLs are not supported.", nameof(url));
         }
