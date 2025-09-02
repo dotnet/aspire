@@ -661,7 +661,6 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
