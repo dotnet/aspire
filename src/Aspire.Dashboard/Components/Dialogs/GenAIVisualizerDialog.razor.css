@@ -3,10 +3,8 @@
     color: var(--neutral-foreground-rest);
     border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-layer-rest);
     border-radius: calc(var(--layer-corner-radius) * 1px);
-    padding: 16px;
-    padding-top: 8px;
+    padding: 8px 8px 16px 16px;
     height: 65vh;
-    overflow-y: auto;
 }
 
 ::deep .span-events-sidebar {
@@ -47,6 +45,13 @@
 
 ::deep fluent-tree-item:not([selected])::part(positioning-region):not(:hover) {
     background-color: unset;
+}
+
+::deep .message-tree-item-container {
+    margin-left: 16px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
 }
 
 ::deep .event-name {
@@ -121,6 +126,8 @@
 
 ::deep .tab-container {
     margin-top: 10px;
+    padding-right: 8px;
+    overflow-y: auto;
 }
 
 ::deep .span-details-layout, ::deep .property-grid-container {
@@ -147,10 +154,21 @@
     display: none;
 }
 
-::deep .event-container fluent-button::part(control):not(:hover) {
+::deep .span-events-container fluent-button::part(control):not(:hover) {
     background: var(--main-container-background-color);
 }
 
 ::deep .event-container:hover .defaultHidden {
     display: block;
+}
+
+::deep .span-events-container {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+::deep .message-copy-button {
+    margin-left: auto;
+    margin-top: 4px;
+    margin-right: 4px;
 }

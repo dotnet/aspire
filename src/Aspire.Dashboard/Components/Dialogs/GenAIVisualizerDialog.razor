@@ -41,8 +41,7 @@
                         BarSize="10">
             <Panel1>
                 <div class="span-events-sidebar">
-                    <TreeGenAISelector @ref="_treeGenAISelector"
-                                       PageViewModel="@Content"
+                    <TreeGenAISelector PageViewModel="@Content"
                                        HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
                 </div>
             </Panel1>
@@ -50,73 +49,107 @@
                 <div class="span-events-container">
                     @if (Content.SelectedMessage is { } selectedEvent)
                     {
-                        <div class="event-header">
-                            <GenAIEventTitle Event="@selectedEvent" ResourceName="@selectedEvent.ResourceName" />
+                        <div>
+                            <div class="event-header">
+                                <GenAIEventTitle Event="@selectedEvent" ResourceName="@selectedEvent.ResourceName" />
+                            </div>
+                            @*
+                                Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
+                                Content is located in manually created divs so they can be placed in their own CSS grid row.
+                            *@
+                            <FluentTabs ActiveTabId="@($"tab-event-{Content.EventActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-event-{EventViewKind.Preview}")"
+                                           Label="Preview">
+                                </FluentTab>
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-event-{EventViewKind.Raw}")"
+                                           Label="Raw">
+                                </FluentTab>
+                            </FluentTabs>
                         </div>
-                        <FluentTabs ActiveTabId="@($"tab-event-{Content.EventActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-event-{EventViewKind.Preview}")"
-                                       Label="Preview">
-                                <div class="tab-container">
-                                    @foreach (var messagePart in selectedEvent.MessageParts)
+                        @if (Content.EventActiveView == EventViewKind.Preview)
+                        {
+                            <div class="tab-container">
+                                @foreach (var messagePart in selectedEvent.MessageParts)
+                                {
+                                    if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
                                     {
-                                        if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
-                                        {
-                                            @messagePart.TextVisualizerViewModel.FormattedText
-                                        }
-                                        else if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
-                                        {
-                                            @InteractionMarkdownHelper.ToMarkupString(messagePart.TextVisualizerViewModel.FormattedText)
-                                        }
-                                        else
-                                        {
-                                            <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
-                                        }
+                                        @messagePart.TextVisualizerViewModel.FormattedText
                                     }
-                                </div>
-                            </FluentTab>
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-event-{EventViewKind.Raw}")"
-                                       Label="Raw">
-                                <div class="tab-container">
-                                    @foreach (var messagePart in selectedEvent.MessageParts)
+                                    else if (messagePart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
                                     {
-                                        <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                        @InteractionMarkdownHelper.ToMarkupString(messagePart.TextVisualizerViewModel.FormattedText)
                                     }
-                                </div>
-                            </FluentTab>
-                        </FluentTabs>
+                                    else
+                                    {
+                                        <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
+                                    }
+                                }
+                            </div>
+                        }
+                        @if (Content.EventActiveView == EventViewKind.Raw)
+                        {
+                            <div class="tab-container">
+                                @foreach (var messagePart in selectedEvent.MessageParts)
+                                {
+                                    <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                }
+                            </div>
+                        }
+                        <FluentButton Id="@_copyButtonId"
+                                      Class="message-copy-button"
+                                      Appearance="Appearance.Stealth"
+                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedEvent.MessageParts.Select(p => p.TextVisualizerViewModel.FormattedText)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                            <span slot="start">
+                                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                            </span>
+                            @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+                        </FluentButton>
                     }
                     else
                     {
-                        <div class="event-header">
-                            <span class="llm-badge">LLM</span>
-                            <div class="event-header-title">
-                                <span>@Content.Span.Name</span>
-                                <span class="event-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
+                        <div>
+                            <div class="event-header">
+                                <span class="llm-badge">LLM</span>
+                                <div class="event-header-title">
+                                    <span>@Content.Span.Name</span>
+                                    <span class="event-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
+                                </div>
+                                <div class="event-header-details">
+                                    <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                    <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
+                                </div>
                             </div>
-                            <div class="event-header-details">
-                                <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
-                                <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
-                            </div>
+                            @*
+                                Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
+                                Content is located in manually created divs so they can be placed in their own CSS grid row.
+                            *@
+                            <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
+                                           Label="Input & output">
+                                </FluentTab>
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.Details}")"
+                                           Label="Details">
+                                </FluentTab>
+                            </FluentTabs>
                         </div>
-                        <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
-                                       Label="Input & output">
-                                <div class="tab-container">
-                                    @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.Choice).ToList())
-                                    @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.Choice).ToList())
-                                </div>
-                            </FluentTab>
-                            <FluentTab LabelClass="tab-label"
-                                       Id="@($"tab-overview-{OverviewViewKind.Details}")"
-                                       Label="Details">
-                                <div class="tab-container">
-                                    <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" HideToolbar="true" />
-                                </div>
-                            </FluentTab>
-                        </FluentTabs>
+                        @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
+                        {
+                            <div class="tab-container">
+                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.Choice).ToList())
+                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                            </div>
+                        }
+                        @if (Content.OverviewActiveView == OverviewViewKind.Details)
+                        {
+                            <div class="tab-container">
+                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" HideToolbar="true" />
+                            </div>
+                        }
                     }
                 </div>
             </Panel2>

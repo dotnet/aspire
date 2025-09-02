@@ -13,7 +13,7 @@
                             Data="@messageVM.Index"
                             title="@messageVM.GetEventTitle().Text"
                             InitiallySelected="@(messageVM.Index == PageViewModel.SelectedMessage?.Index)">
-                <div style="margin-left: 16px; pointer-events: none;">
+                <div class="message-tree-item-container">
                     <GenAIEventTitle Event="messageVM" ResourceName="@messageVM.ResourceName" />
                 </div>
             </FluentTreeItem>

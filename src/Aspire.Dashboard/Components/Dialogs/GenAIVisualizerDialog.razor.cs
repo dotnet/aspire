@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
@@ -15,7 +14,7 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 {
-    private TreeGenAISelector? _treeGenAISelector;
+    private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
 
     private Subscription? _resourcesSubscription;
     private Subscription? _tracesSubscription;
