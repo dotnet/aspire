@@ -1,7 +1,7 @@
 ﻿@using Aspire.Dashboard.Otlp.Model
 @using Metrics = Aspire.Dashboard.Resources.Metrics
 
-<FluentTreeView Class="genai-event-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
+<FluentTreeView Class="genai-message-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
         <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(PageViewModel.SelectedMessage is null)">
             <span class="llm-badge">LLM</span> @PageViewModel.Span.Name

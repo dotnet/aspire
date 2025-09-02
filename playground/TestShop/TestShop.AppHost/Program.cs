@@ -1,12 +1,8 @@
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Yarp.Transforms;
-using MetricsApp.AppHost.OpenTelemetryCollector;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
-
-builder.Services.TryAddLifecycleHook<OpenTelemetryCollectorLifecycleHook>();
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()

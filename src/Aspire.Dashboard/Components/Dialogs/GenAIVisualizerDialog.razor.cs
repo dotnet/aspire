@@ -90,9 +90,9 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         Content.OverviewActiveView = viewKind;
     }
 
-    private void OnEventTabChange(FluentTab newTab)
+    private void OnMessageTabChange(FluentTab newTab)
     {
-        var id = newTab.Id?.Substring("tab-event-".Length);
+        var id = newTab.Id?.Substring("tab-message-".Length);
 
         if (id is null
             || !Enum.TryParse(typeof(MessageViewKind), id, out var o)
@@ -139,7 +139,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return true;
     }
 
-    private static string GetEventTitle(GenAIMessageViewModel e)
+    private static string GetMessageTitle(GenAIMessageViewModel e)
     {
         return e.Type switch
         {

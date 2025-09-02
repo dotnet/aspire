@@ -40,30 +40,30 @@
                         Panel2Size="7fr"
                         BarSize="10">
             <Panel1>
-                <div class="span-events-sidebar">
+                <div class="span-messages-sidebar">
                     <TreeGenAISelector PageViewModel="@Content"
                                        HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
                 </div>
             </Panel1>
             <Panel2>
-                <div class="span-events-container">
+                <div class="span-messages-container">
                     @if (Content.SelectedMessage is { } selectedMessage)
                     {
                         <div>
-                            <div class="event-header">
+                            <div class="message-header">
                                 <GenAIMessageTitle Message="@selectedMessage" ResourceName="@selectedMessage.ResourceName" />
                             </div>
                             @*
                                 Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
                                 Content is located in manually created divs so they can be placed in their own CSS grid row.
                             *@
-                            <FluentTabs ActiveTabId="@($"tab-event-{Content.MessageActiveView}")" OnTabChange="@OnEventTabChange" Size="null">
+                            <FluentTabs ActiveTabId="@($"tab-message-{Content.MessageActiveView}")" OnTabChange="@OnMessageTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-event-{MessageViewKind.Preview}")"
+                                           Id="@($"tab-message-{MessageViewKind.Preview}")"
                                            Label="Preview">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-event-{MessageViewKind.Raw}")"
+                                           Id="@($"tab-message-{MessageViewKind.Raw}")"
                                            Label="Raw">
                                 </FluentTab>
                             </FluentTabs>
@@ -111,13 +111,13 @@
                     else
                     {
                         <div>
-                            <div class="event-header">
+                            <div class="message-header">
                                 <span class="llm-badge">LLM</span>
-                                <div class="event-header-title">
+                                <div class="message-header-title">
                                     <span>@Content.Span.Name</span>
-                                    <span class="event-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
+                                    <span class="message-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
                                 </div>
-                                <div class="event-header-details">
+                                <div class="message-header-details">
                                     <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
                                     <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
                                 </div>
@@ -140,8 +140,8 @@
                         @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIMessageType.OutputMessage).ToList())
-                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIMessageType.OutputMessage).ToList())
+                                @RenderMessageSection("Input", Content.Messages.Where(e => e.Type != GenAIMessageType.OutputMessage).ToList())
+                                @RenderMessageSection("Output", Content.Messages.Where(e => e.Type == GenAIMessageType.OutputMessage).ToList())
                             </div>
                         }
                         @if (Content.OverviewActiveView == OverviewViewKind.Details)
@@ -160,22 +160,22 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderEventSection(string title, List<GenAIMessageViewModel> events)
+    RenderFragment RenderMessageSection(string title, List<GenAIMessageViewModel> messages)
     {
         return@<div>
             <div class="section-title">@title</div>
-            @foreach (var spanEvent in events)
+            @foreach (var message in messages)
             {
-                <div class="event-container">
-                    <div class="event-title">
-                        @GetEventTitle(spanEvent)
+                <div class="message-container">
+                    <div class="message-title">
+                        @GetMessageTitle(message)
                         <span class="defaultHidden">
-                            <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewMessage(spanEvent))">
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewMessage(message))">
                                 <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
                             </FluentButton>
                         </span>
                     </div>
-                    @foreach (var messagePart in spanEvent.MessageParts)
+                    @foreach (var messagePart in message.MessageParts)
                     {
                         <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
                     }
