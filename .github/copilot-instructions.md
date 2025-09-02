@@ -82,7 +82,7 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 Example: `[QuarantinedTest("..issue url..")]`
 
-- To quarantine or unquarantine tests, use the tool in `tools/QuarantineTests/QuarantineTests.csproj`.
+- To quarantine or unquarantine tests, use the tool in `tools/QuarantineTools/QuarantineTools.csproj`.
 
 ## Snapshot Testing with Verify
 
