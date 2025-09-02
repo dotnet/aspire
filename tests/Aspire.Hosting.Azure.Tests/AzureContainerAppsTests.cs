@@ -700,8 +700,8 @@ public class AzureContainerAppsTests
         
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep")
-              .AppendContentAsFile(envManifest.ToString(), "env.json", "json")
-              .AppendContentAsFile(envBicep, "env.bicep", "bicep");
+              .AppendContentAsFile(envManifest.ToString(), "json")
+              .AppendContentAsFile(envBicep, "bicep");
     }
 
     [Fact]
