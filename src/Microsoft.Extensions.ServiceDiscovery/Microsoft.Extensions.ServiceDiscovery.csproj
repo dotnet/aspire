@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net462;$(DefaultTargetFramework)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible Condition=" '$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'netstandard2.0' ">false</IsAotCompatible>
+    <IsAotCompatible Condition=" '$(TargetFramework)' == '$(DefaultTargetFramework)' ">true</IsAotCompatible>
     <Description>Provides extensions to HttpClient that enable service discovery based on configuration.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
