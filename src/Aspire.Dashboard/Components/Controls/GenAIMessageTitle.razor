@@ -3,7 +3,7 @@
 
 @if (_messageBadge is { } messageBadge)
 {
-    <span class="event-name">
+    <span class="message-name">
         <FluentIcon Value="@messageBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(ResourceName)" />
         @messageBadge.Text
     </span>
