@@ -92,6 +92,18 @@ internal class NuGetConfigMerger
         var existingKeys = new HashSet<string>(existingAdds
             .Select(e => (string?)e.Attribute("key") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
 
+        // Create a mapping from source URLs to their existing keys for reuse in package source mappings
+        var urlToExistingKey = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var addElement in existingAdds)
+        {
+            var key = (string?)addElement.Attribute("key");
+            var value = (string?)addElement.Attribute("value");
+            if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+            {
+                urlToExistingKey[value] = key;
+            }
+        }
+
         var missingSources = requiredSources
             .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
             .ToArray();
@@ -169,15 +181,18 @@ internal class NuGetConfigMerger
             {
                 var newSource = sourceGroup.Key;
                 
-                // Find or create the packageSource element for this source
+                // Use existing key if available, otherwise use the source URL as key
+                var keyToUse = urlToExistingKey.TryGetValue(newSource, out var existingKey) ? existingKey : newSource;
+                
+                // Find or create the packageSource element for this source using the appropriate key
                 var targetSourceElement = packageSourceMapping.Elements("packageSource")
-                    .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), newSource, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), keyToUse, StringComparison.OrdinalIgnoreCase));
                 
                 if (targetSourceElement is null)
                 {
-                    // Create new packageSource element for this source
+                    // Create new packageSource element for this source using the appropriate key
                     targetSourceElement = new XElement("packageSource");
-                    targetSourceElement.SetAttributeValue("key", newSource);
+                    targetSourceElement.SetAttributeValue("key", keyToUse);
                     packageSourceMapping.Add(targetSourceElement);
                 }
 
@@ -197,7 +212,7 @@ internal class NuGetConfigMerger
                     }
                 }
                 
-                sourcesInUse.Add(newSource);
+                sourcesInUse.Add(keyToUse);
             }
 
             // Third pass: Remove empty packageSource elements and their corresponding sources from packageSources
@@ -231,8 +246,12 @@ internal class NuGetConfigMerger
             
             foreach (var sourceGroup in patternsBySource)
             {
+                var sourceUrl = sourceGroup.Key;
+                // Use existing key if available, otherwise use the source URL as key
+                var keyToUse = urlToExistingKey.TryGetValue(sourceUrl, out var existingKey) ? existingKey : sourceUrl;
+                
                 var packageSource = new XElement("packageSource");
-                packageSource.SetAttributeValue("key", sourceGroup.Key);
+                packageSource.SetAttributeValue("key", keyToUse);
                 
                 foreach (var mapping in sourceGroup)
                 {
@@ -297,6 +316,18 @@ internal class NuGetConfigMerger
             var existingKeys = new HashSet<string>(existingAdds
                 .Select(e => (string?)e.Attribute("key") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
 
+            // Create a mapping from source URLs to their existing keys for reuse in package source mappings
+            var urlToExistingKey = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var addElement in existingAdds)
+            {
+                var key = (string?)addElement.Attribute("key");
+                var value = (string?)addElement.Attribute("value");
+                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                {
+                    urlToExistingKey[value] = key;
+                }
+            }
+
             var missingSources = requiredSources
                 .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
                 .ToArray();
@@ -334,10 +365,15 @@ internal class NuGetConfigMerger
                         }
 
                         // Check if this pattern should be mapped to a different source
-                        if (patternToRequiredSource.TryGetValue(pattern, out var requiredSource) &&
-                            !string.Equals(sourceKey, requiredSource, StringComparison.OrdinalIgnoreCase))
+                        if (patternToRequiredSource.TryGetValue(pattern, out var requiredSourceUrl))
                         {
-                            return true; // This pattern needs to be remapped
+                            // Use existing key if available, otherwise use the source URL as key
+                            var expectedKey = urlToExistingKey.TryGetValue(requiredSourceUrl, out var existingKey) ? existingKey : requiredSourceUrl;
+                            
+                            if (!string.Equals(sourceKey, expectedKey, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true; // This pattern needs to be remapped
+                            }
                         }
                     }
                 }

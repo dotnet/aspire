@@ -290,5 +290,54 @@ public class NuGetConfigMergerTests
     Assert.False(NuGetConfigMerger.HasMissingSources(root, channel));
     }
 
+    [Fact]
+    public async Task CreateOrUpdateAsync_ReusesExistingSourceKeys_WhenMappingToExistingSourcesByUrl()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Existing config with custom key names (like "nuget" instead of URL)
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget" value="https://api.nuget.org/v3/index.json" />
+                    <add key="dotnet9" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """);
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://example.com/aspire-feed"),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json") // Should map to existing "nuget" key
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // Existing sources should still be present with their original keys
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget" && (string?)e.Attribute("value") == "https://api.nuget.org/v3/index.json");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "dotnet9" && (string?)e.Attribute("value") == "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json");
+
+        // New source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-feed");
+
+        // Package source mapping should use existing key "nuget" instead of URL
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        // Should NOT create a mapping with the URL as key when existing key exists
+        var urlMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://api.nuget.org/v3/index.json");
+        Assert.Null(urlMapping);
+    }
+
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
 }
