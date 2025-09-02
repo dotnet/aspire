@@ -220,4 +220,10 @@
   <data name="ProjectAlreadyExists" xml:space="preserve">
     <value>The new project cannot be created because it would overwrite existing files in the output folder. Please remove or move the conflicting files, or choose a different location.</value>
   </data>
+  <data name="CreateNugetConfigConfirmation" xml:space="preserve">
+    <value>Create NuGet.config for selected channels?</value>
+  </data>
+  <data name="NuGetConfigCreatedConfirmationMessage" xml:space="preserve">
+    <value>Created NuGet.config for the selected package channel.</value>
+  </data>
 </root>

@@ -11,9 +11,11 @@ using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
@@ -165,7 +167,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             WebApplicationBuilder? localBuilder = null;
 
             // Act
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -198,7 +200,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -754,6 +756,68 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task Configuration_ForwardedHeaders_OverrideDefaults(bool enableForwardedHeaders)
+    {
+        // Forwarded values we try to inject.
+        const string forwardedHost = "example.com";
+        const string forwardedProto = "https";
+
+        var (capturedHost, capturedProto, endpointString) =
+            await ExecuteForwardedHeadersScenarioAsync(enableForwardedHeaders, forwardedHost, forwardedProto);
+
+        if (enableForwardedHeaders)
+        {
+            Assert.Equal(forwardedHost, capturedHost);
+            Assert.Equal(forwardedProto, capturedProto);
+        }
+        else
+        {
+            // Expect original endpoint host:port and original scheme (http) when disabled.
+            Assert.Equal(endpointString, capturedHost);
+            Assert.Equal("http", capturedProto);
+        }
+    }
+
+    private async Task<(string? Host, string? Proto, string EndpointString)> ExecuteForwardedHeadersScenarioAsync(
+        bool enable,
+        string forwardedHost,
+        string forwardedProto)
+    {
+        var filter = new HostAndProtocolLoggerFilter();
+        var value = enable ? bool.TrueString : bool.FalseString;
+        var key = DashboardConfigNames.ForwardedHeaders.ConfigKey;
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                // Explicitly set in config too (mirrors production precedence expectations).
+                data[key] = value;
+            },
+            preConfigureBuilder: builder =>
+            {
+                builder.Services.TryAddEnumerable(
+                    ServiceDescriptor.Transient<IStartupFilter, HostAndProtocolLoggerFilter>(_ => filter));
+            },
+            clearLogFilterRules: false);
+
+        await app.StartAsync().DefaultTimeout();
+
+        var endpoint = app.FrontendSingleEndPointAccessor().EndPoint; // IPEndPoint
+        var endpointString = endpoint.ToString(); // "host:port"
+
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpointString}") };
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Add("X-Forwarded-Host", forwardedHost);
+        request.Headers.Add("X-Forwarded-Proto", forwardedProto);
+
+        var response = await client.SendAsync(request).DefaultTimeout();
+        response.EnsureSuccessStatusCode();
+
+        return (filter.Host, filter.Proto, endpointString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [InlineData(null)]
     public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
     {
@@ -802,5 +866,26 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await File.WriteAllTextAsync(browserTokenConfigFile, browserToken);
 
         return browserTokenConfigFile;
+    }
+
+    public sealed class HostAndProtocolLoggerFilter : IStartupFilter
+    {
+        public string? Host { get; private set; }
+        public string? Proto { get; private set; }
+
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                app.Use(async (ctx, nxt) =>
+                {
+                    await nxt();
+                    Host = ctx.Request.Host.Value;
+                    Proto = ctx.Request.Scheme;
+                });
+
+                next(app);
+            };
+        }
     }
 }

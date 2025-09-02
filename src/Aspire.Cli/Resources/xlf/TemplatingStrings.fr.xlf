@@ -47,6 +47,11 @@
         <target state="translated">Une erreur s’est produite lors de l’approbation des certificats : {0}</target>
         <note>{0} is an exception message</note>
       </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">Voulez-vous créer un fichier NuGet.config pour les canaux sélectionnés ?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
         <target state="translated">Création d’un nouveau projet Aspire...</target>
@@ -85,6 +90,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Aucun</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">Le fichier NuGet.config a été créé pour le canal de packages sélectionné.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

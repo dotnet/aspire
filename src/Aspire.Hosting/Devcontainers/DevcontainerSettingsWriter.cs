@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Devcontainers;
 
-internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions)
+internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions, IOptions<SshRemoteOptions> sshRemoteOptions)
 {
     // Define path segments that will be combined with the user's home directory
     // These path segments are relative to the user's home directory
@@ -38,7 +38,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
         _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
     }
 
-    public async Task FlushAsync(CancellationToken cancellationToken = default)
+    public virtual async Task FlushAsync(CancellationToken cancellationToken = default)
     {
         await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
 
@@ -149,7 +149,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             {
                 yield return Path.Combine(userHomeDir, VscodeRemotePathSegment);
             }
-            else if (devcontainerOptions.Value.IsDevcontainer)
+            else if (devcontainerOptions.Value.IsDevcontainer || sshRemoteOptions.Value.IsSshRemote)
             {
                 var vscodeServerPath = Path.Combine(userHomeDir, VscodeServerPathSegment);
                 var vscodeInsidersServerPath = Path.Combine(userHomeDir, VscodeInsidersServerPathSegment);
@@ -166,7 +166,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             }
             else
             {
-                throw new DistributedApplicationException("Codespaces or Devcontainer not detected.");
+                throw new DistributedApplicationException("Codespaces, Devcontainer, or SSH Remote not detected.");
             }
         }
 

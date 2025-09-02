@@ -104,7 +104,9 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var rabbitMQ1 = builder1.AddRabbitMQ("rabbitMQ");
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = rabbitMQ1.Resource.PasswordParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (useVolume)
             {

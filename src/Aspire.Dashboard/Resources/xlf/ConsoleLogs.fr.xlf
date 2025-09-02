@@ -52,19 +52,14 @@
         <target state="translated">&lt;Capture de journal suspendue entre le ou les journaux {0} et {1}, {2} filtrés&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Actions sur les ressources</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Sélectionner une ressource</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Paramètres des journaux de la console</target>
+        <source>Settings</source>
+        <target state="translated">Paramètres</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">

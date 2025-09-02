@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
+[DebuggerDisplay("Span = {Span.SpanId}, Depth = {Depth}, Children = {Children.Count}, HasUninstrumentedPeer = {HasUninstrumentedPeer}, IsHidden = {IsHidden}")]
 public sealed class SpanWaterfallViewModel
 {
     public required List<SpanWaterfallViewModel> Children { get; init; }
@@ -31,9 +33,9 @@ public sealed class SpanWaterfallViewModel
         }
     }
 
-    public string GetTooltip(List<OtlpApplication> allApplications)
+    public string GetTooltip(List<OtlpResource> allResources)
     {
-        var tooltip = GetTitle(Span, allApplications);
+        var tooltip = GetTitle(Span, allResources);
         if (IsError)
         {
             tooltip += Environment.NewLine + "Status = Error";
@@ -46,7 +48,7 @@ public sealed class SpanWaterfallViewModel
         return tooltip;
     }
 
-    public bool MatchesFilter(string filter, Func<OtlpApplicationView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
+    public bool MatchesFilter(string filter, Func<OtlpResourceView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
     {
         if (Filter(this))
         {
@@ -110,9 +112,9 @@ public sealed class SpanWaterfallViewModel
 
     public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds);
 
-    public static string GetTitle(OtlpSpan span, List<OtlpApplication> allApplications)
+    public static string GetTitle(OtlpSpan span, List<OtlpResource> allResources)
     {
-        return $"{OtlpApplication.GetResourceName(span.Source, allApplications)}: {span.GetDisplaySummary()}";
+        return $"{OtlpResource.GetResourceName(span.Source, allResources)}: {span.GetDisplaySummary()}";
     }
 
     public static List<SpanWaterfallViewModel> Create(OtlpTrace trace, List<OtlpLogEntry> logs, TraceDetailState state)
@@ -205,7 +207,7 @@ public sealed class SpanWaterfallViewModel
 
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
     {
-        if (span.UninstrumentedPeer?.ApplicationName is { } peerName)
+        if (span.UninstrumentedPeer?.ResourceName is { } peerName)
         {
             // If the span has a peer name, use it.
             return peerName;

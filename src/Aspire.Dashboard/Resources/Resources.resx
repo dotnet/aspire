@@ -196,6 +196,9 @@
   <data name="ResourcesDetailsProjectPathProperty" xml:space="preserve">
     <value>Project path</value>
   </data>
+  <data name="ResourcesDetailsProjectLaunchProfileProperty" xml:space="preserve">
+    <value>Launch profile</value>
+  </data>
   <data name="ResourcesDetailsStartTimeProperty" xml:space="preserve">
     <value>Start time</value>
   </data>
@@ -279,5 +282,19 @@
   </data>
   <data name="ResourcesDetailsParameterValueProperty" xml:space="preserve">
     <value>Value</value>
+  </data>
+  <data name="TotalItemsFooterSingularText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="TotalItemsFooterPluralText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="ResourceActionCommandsText" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="ResourceActionUrlsText" xml:space="preserve">
+    <value>URLs</value>
   </data>
 </root>

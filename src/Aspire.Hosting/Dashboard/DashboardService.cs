@@ -122,9 +122,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required
                                 };
-                                if (input.Label != null)
+                                if (input.EffectiveLabel != null)
                                 {
-                                    dto.Label = input.Label;
+                                    dto.Label = input.EffectiveLabel;
                                 }
                                 if (input.Description != null)
                                 {

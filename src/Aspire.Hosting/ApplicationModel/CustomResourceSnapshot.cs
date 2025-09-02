@@ -133,6 +133,17 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     internal bool SupportsDetailedTelemetry { get; init; }
 
+    /// <summary>
+    /// The custom icon name for the resource. This should be a valid FluentUI icon name.
+    /// If not specified, the dashboard will use default icons based on the resource type.
+    /// </summary>
+    public string? IconName { get; init; }
+
+    /// <summary>
+    /// The custom icon variant for the resource.
+    /// </summary>
+    public IconVariant? IconVariant { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)

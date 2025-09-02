@@ -53,7 +53,7 @@ internal static partial class ConnectionStringParser
     /// Matches host:port or host,port patterns with optional IPv6 bracket notation.
     /// Examples: "localhost:5432", "127.0.0.1,1433", "[::1]:6379"
     /// </summary>
-    [GeneratedRegex(@"(\[[^\]]+\]|[^,:;\s]+)[:|,](\d{1,5})", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(\[[^\]]+\]|[^,:;\s]+)[:,](\d{1,5})", RegexOptions.Compiled)]
     private static partial Regex HostPortRegex();
 
     /// <summary>

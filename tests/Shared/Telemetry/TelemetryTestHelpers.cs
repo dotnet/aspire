@@ -302,11 +302,11 @@ internal static class TelemetryTestHelpers
         };
     }
 
-    public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
+    public static OtlpSpan CreateOtlpSpan(OtlpResource resource, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
         KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified,
-        OtlpApplication? uninstrumentedPeer = null, DateTime? endDate = null)
+        OtlpResource? uninstrumentedPeer = null, DateTime? endDate = null)
     {
-        return new OtlpSpan(app.GetView([]), trace, scope)
+        return new OtlpSpan(resource.GetView([]), trace, scope)
         {
             Attributes = attributes ?? [],
             BackLinks = [],

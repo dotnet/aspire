@@ -243,6 +243,13 @@ message Resource {
 
     // Whether the resource is built into Aspire and supports more detailed telemetry.
     bool supports_detailed_telemetry = 22;
+
+    // Optional custom icon name to use for the resource. This should be a valid FluentUI icon name.
+    // If not specified, the dashboard will use default icons based on the resource type.
+    optional string icon_name = 23;
+
+    // Optional icon variant for the custom icon.
+    optional IconVariant icon_variant = 24;
 }
 
 ////////////////////////////////////////////

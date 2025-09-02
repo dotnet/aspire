@@ -6,6 +6,8 @@
 * Make only high confidence suggestions when reviewing code changes.
 * Always use the latest version C#, currently C# 13 features.
 * Never change global.json unless explicitly asked to.
+* Never change package.json or package-lock.json files unless explicitly asked to.
+* Never change NuGet.config files unless explicitly asked to.
 * Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
 
 ## Formatting
@@ -29,7 +31,7 @@
 * Follow the instructions in the repo to build.
 * If temporarily introducing warnings during a refactoring, you can add the flag `/p:TreatWarningsAsErrors=false` to your build command to prevent the build from failing. However before you finish your work, you must strive to fix any warnings as well.
 
-In building and testing, never use `dotnet` without extension. Use `dotnet.sh` on Unix, `dotnet.cmd` on Windows.
+In building and testing, never use `dotnet` without extension. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
 
 ### Testing
 
@@ -37,17 +39,23 @@ In building and testing, never use `dotnet` without extension. Use `dotnet.sh` o
 * Do not emit "Act", "Arrange" or "Assert" comments.
 * We do not use any mocking framework at the moment.
 * Copy existing style in nearby files for test method names and capitalization.
+* Do not leave newly-added tests commented out. All added tests should be building and passing.
 * Do not use Directory.SetCurrentDirectory in tests as it can cause side effects when tests execute concurrently.
 
 ## Running tests
 
 (1) Build from the root with `build.sh`.
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj` (using the path to whatever projects are applicable to the change).
+(3) To then run tests, use a command similar to this `dotnet.sh test tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj --no-build` (using the path to whatever projects are applicable to the change).
 
 Note that tests for a project can be executed without first building from the root.
 
-(4) To run just certain tests, it's important to include the filter after `--`, for example `dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --no-build --logger "console;verbosity=detailed" -- --filter "TestingBuilderHasAllPropertiesFromRealBuilder"`
+(4) To run just certain tests, it's important to include the filter after `--`, for example:
+
+dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj --logger "console;verbosity=detailed" -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder"
+```
+
+Important: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
 ### Important: Excluding Quarantined Tests
 
@@ -58,10 +66,12 @@ When running tests in automated environments (including Copilot agent), **always
 dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
 
 # For specific test filters, combine with quarantine exclusion
-dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter "TestName" --filter-not-trait "quarantined=true"
+dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true"
 ```
 
 Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
+
+Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
 
 ## Quarantined tests
 
@@ -83,3 +93,9 @@ Example: `[QuarantinedTest("..issue url..")]`
 ## Editing resources
 
 The `*.Designer.cs` files are in the repo, but are intended to match same named `*.resx` files. If you add/remove/change resources in a resx, make the matching changes in the `*.Designer.cs` file that matches that resx.
+
+## Markdown files
+
+* Markdown files should not have multiple consecutive blank lines.
+* Code blocks should be formatted with triple backticks (```) and include the language identifier for syntax highlighting.
+* JSON code blocks should be indented properly.

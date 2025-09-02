@@ -151,7 +151,7 @@
     <value>Checking project type...</value>
   </data>
   <data name="BuildingAppHost" xml:space="preserve">
-    <value>Building app host...</value>
+    <value>Building app host</value>
   </data>
   <data name="CheckingCertificates" xml:space="preserve">
     <value>Checking certificates...</value>
@@ -165,8 +165,8 @@
   <data name="FindingAppHosts" xml:space="preserve">
     <value>Finding app hosts...</value>
   </data>
-  <data name="SelectAppHostToRun" xml:space="preserve">
-    <value>Select app host to run</value>
+  <data name="SelectAppHostToUse" xml:space="preserve">
+    <value>Select app host to use:</value>
   </data>
   <data name="CreatedSettingsFile" xml:space="preserve">
     <value>Created settings file at {0}.</value>
@@ -207,5 +207,9 @@
   <data name="MoreInfoNewCliVersion" xml:space="preserve">
     <value>[dim]For more information, see: [link]{0}[/][/]</value>
     <comment>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</comment>
+  </data>
+  <data name="UnbuildableAppHostsDetected" xml:space="preserve">
+    <value>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</value>
+    <comment></comment>
   </data>
 </root>

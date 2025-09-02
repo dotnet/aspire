@@ -81,8 +81,15 @@ public class AzureAppServiceTests
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
 
+        var kvName = builder.AddParameter("kvName");
+        var sharedRg = builder.AddParameter("sharedRg");
+
+        var existingKv = builder.AddAzureKeyVault("existingKv")
+                                .PublishAsExisting(kvName, sharedRg);
+
         builder.AddProject<Project>("api", launchProfileName: null)
-            .WithReference(db);
+            .WithReference(db)
+            .WithEnvironment("SECRET_VALUE", existingKv.GetSecret("secret"));
 
         using var app = builder.Build();
 
