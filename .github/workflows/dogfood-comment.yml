@@ -4,7 +4,7 @@ on:
   # Use pull_request_target to run in the context of the base branch
   # This allows commenting on PRs from forks
   pull_request_target:
-    types: opened
+    types: [opened, reopened]
     branches:
       - 'main'
       - 'release/**'
@@ -32,7 +32,12 @@ jobs:
             const prNumber = context.payload.number || context.payload.inputs.pr_number;
             const bashScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh';
             const psScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1';
-            const comment = `🚀 **Dogfood this PR with:**
+            
+            // Unique marker to identify dogfooding comments
+            const dogfoodMarker = '<!-- dogfood-pr -->';
+            
+            const comment = `${dogfoodMarker}
+            🚀 **Dogfood this PR with:**
 
             \`\`\`bash
             curl -fsSL ${bashScript} | bash -s -- ${prNumber}
@@ -43,9 +48,29 @@ jobs:
             iex "& { $(irm ${psScript}) } ${prNumber}"
             \`\`\``;
 
-            github.rest.issues.createComment({
+            // Check for existing dogfooding comment
+            const comments = await github.rest.issues.listComments({
               issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
             });
+
+            const existingComment = comments.data.find(comment => comment.body.includes(dogfoodMarker));
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                comment_id: existingComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }

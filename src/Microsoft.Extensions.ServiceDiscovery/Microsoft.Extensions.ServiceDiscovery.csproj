@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;$(DefaultTargetFramework)</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net462;$(DefaultTargetFramework)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible Condition=" '$(TargetFramework)' != 'netstandard2.0' ">true</IsAotCompatible>
+    <IsAotCompatible Condition=" '$(TargetFramework)' == '$(DefaultTargetFramework)' ">true</IsAotCompatible>
     <Description>Provides extensions to HttpClient that enable service discovery based on configuration.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
@@ -18,10 +18,10 @@
     <ProjectReference Include="..\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
   </ItemGroup>
 
-  <Import Condition=" '$(TargetFramework)' == 'netstandard2.0' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'netstandard2.0' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>

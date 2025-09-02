@@ -610,7 +610,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             builder.WithLifetime(lifetime);
         });
 
-        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-sqledge");
+        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-mssql");
 
         Assert.NotNull(sql);
 
