@@ -10,7 +10,7 @@
     <PackageType>Template</PackageType>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
-    <Description>.NET Aspire Template Pack for Microsoft Template Engine</Description>
+    <Description>Aspire Template Pack for Microsoft Template Engine</Description>
     <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
   </PropertyGroup>
 
