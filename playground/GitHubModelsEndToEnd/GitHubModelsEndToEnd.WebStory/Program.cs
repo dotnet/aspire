@@ -25,10 +25,7 @@ builder.Services.AddOpenTelemetry().WithTracing(t => t.AddProcessor(new Activity
         return false;
     }
     return true;
-}))).UseAzureMonitor(o =>
-{
-    o.ConnectionString = "InstrumentationKey=12ca7138-0269-4c23-87eb-01065c672200;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=515d870a-3d1b-47ac-87c1-6ede2571a839";
-});
+}))).UseAzureMonitor();
 
 builder.AddAzureChatCompletionsClient("chat", s => s.DisableTracing = true)
        .AddChatClient(deploymentId: null, configureChatClient: c => c.EnableSensitiveData = true)
