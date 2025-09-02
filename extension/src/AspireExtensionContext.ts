@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from './debugger/AspireDebugSession';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
-import { extensionContextNotInitialized } from './loc/strings';
+import { debugSessionAlreadyExists, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 
@@ -58,7 +58,7 @@ export class AspireExtensionContext implements vscode.Disposable {
 
     addAspireDebugSession(debugSession: AspireDebugSession) {
         if (this._aspireDebugSessions.find(session => session.debugSessionId === debugSession.debugSessionId)) {
-            throw new Error(`Debug session with id ${debugSession.debugSessionId} already exists.`);
+            throw new Error(debugSessionAlreadyExists(debugSession.debugSessionId));
         }
 
         this._aspireDebugSessions.push(debugSession);

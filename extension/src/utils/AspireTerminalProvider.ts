@@ -72,13 +72,17 @@ export class AspireTerminalProvider {
             env: this.createEnvironment(debugSessionId),
         });
 
-        return {
+        const aspireTerminal: AspireTerminal = {
             terminal,
             dispose: () => {
                 terminal.dispose();
                 this._terminalByDebugSessionId.delete(debugSessionId);
             }
         };
+
+        this._terminalByDebugSessionId.set(debugSessionId ?? null, aspireTerminal);
+
+        return aspireTerminal;
     }
 
     createEnvironment(debugSessionId: string | null): any {

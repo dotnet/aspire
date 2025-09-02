@@ -37,7 +37,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._dcpServer = dcpServer;
     this._terminalProvider = terminalProvider;
 
-    this.debugSessionId = generateDcpIdPrefix();;
+    this.debugSessionId = generateDcpIdPrefix();
 
     this._disposables.push({
       dispose: () => removeAspireDebugSession(this)

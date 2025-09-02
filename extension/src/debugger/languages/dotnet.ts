@@ -77,11 +77,10 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
     extensionLogOutputChannel.info(`Executing build task: ${modifiedTask.name} for project: ${projectFile}`);
     await vscode.tasks.executeTask(modifiedTask);
 
+    let disposable: vscode.Disposable;
     return new Promise<void>((resolve, reject) => {
-        const disposable = vscode.tasks.onDidEndTaskProcess(async e => {
+        disposable = vscode.tasks.onDidEndTaskProcess(async e => {
             if (e.execution.task === modifiedTask) {
-                disposable.dispose();
-                
                 if (e.exitCode !== 0) {
                     reject(new Error(buildFailedWithExitCode(e.exitCode ?? 0)));
                 }
@@ -90,7 +89,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
                 }
             }
         });
-    });
+    }).finally(() => disposable.dispose());
 }
 
 async function getDotNetTargetPath(projectFile: string): Promise<string> {
