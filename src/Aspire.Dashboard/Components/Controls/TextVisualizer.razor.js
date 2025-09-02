@@ -16,7 +16,7 @@ function createObserver() {
             // to know when this happens, so we need to observe the DOM for changes and highlight any new elements that are added.
             if (mutation.addedNodes.length > 0) {
                 for (let i = 0; i < mutation.addedNodes.length; i++) {
-                    let node = mutation.addedNodes[i]
+                    let node = mutation.addedNodes[i];
                     if (node.classList && node.classList.contains("highlight-line")) {
                         hljs.highlightElement(node);
                     }
@@ -28,8 +28,7 @@ function createObserver() {
     return highlightObserver;
 }
 
-export function connectObserver(logContainerId) {
-    var container = document.getElementById(logContainerId);
+export function connectObserver(container) {
     if (!container) {
         return;
     }
@@ -39,24 +38,25 @@ export function connectObserver(logContainerId) {
     // case we need to highlight them immediately, or
     // 2. The elements in the log container have not been rendered yet, in which case we need to observe the container
     // for new elements that are added.
-    disconnectObserver(logContainerId);
-
-    var highlightObserver = createObserver();
-
-    highlightObserver.observe(container, {
-        childList: true,
-        subtree: true,
-        attributes: true
-    })
+    if (container.highlightObserver) {
+        container.highlightObserver.disconnect();
+    }
 
     const existingElementsToHighlight = container.getElementsByClassName("highlight-line");
     for (let i = 0; i < existingElementsToHighlight.length; i++) {
         hljs.highlightElement(existingElementsToHighlight[i]);
     }
+
+    var highlightObserver = createObserver();
+    highlightObserver.observe(container, {
+        childList: true,
+        subtree: true,
+        attributes: true
+    });
+    container.highlightObserver = highlightObserver;
 }
 
-export function disconnectObserver(logContainerId) {
-    var container = document.getElementById(logContainerId);
+export function disconnectObserver(container) {
     if (!container) {
         return;
     }
@@ -66,5 +66,6 @@ export function disconnectObserver(logContainerId) {
         return;
     }
 
-    highlightObserver.disconnect()
+    highlightObserver.disconnect();
+    container.highlightObserver = null;
 }

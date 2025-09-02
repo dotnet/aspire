@@ -7,11 +7,14 @@
             <span class="llm-badge">LLM</span> @PageViewModel.Span.Name
         </FluentTreeItem>
 
-        @foreach (var spanEvent in PageViewModel.Messages)
+        @foreach (var messageVM in PageViewModel.Messages)
         {
-            <FluentTreeItem @key="spanEvent" Data="@spanEvent" title="@spanEvent.Type.ToString()" InitiallySelected="@(spanEvent.InternalId == PageViewModel.SelectedMessage?.InternalId)">
+            <FluentTreeItem @key="messageVM"
+                            Data="@messageVM.Index"
+                            title="@messageVM.GetEventTitle().Text"
+                            InitiallySelected="@(messageVM.Index == PageViewModel.SelectedMessage?.Index)">
                 <div style="margin-left: 16px; pointer-events: none;">
-                    <GenAIEventTitle Event="spanEvent" ResourceName="@spanEvent.ResourceName" />
+                    <GenAIEventTitle Event="messageVM" ResourceName="@messageVM.ResourceName" />
                 </div>
             </FluentTreeItem>
         }

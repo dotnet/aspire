@@ -141,3 +141,16 @@
 ::deep .text-visualizer-line-number {
     min-width: 33px;
 }
+
+::deep .event-container .defaultHidden {
+    float: right;
+    display: none;
+}
+
+::deep .event-container fluent-button::part(control):not(:hover) {
+    background: var(--main-container-background-color);
+}
+
+::deep .event-container:hover .defaultHidden {
+    display: block;
+}

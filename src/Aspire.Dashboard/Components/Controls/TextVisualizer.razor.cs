@@ -11,7 +11,8 @@ namespace Aspire.Dashboard.Components.Controls;
 public partial class TextVisualizer : ComponentBase, IAsyncDisposable
 {
     private IJSObjectReference? _jsModule;
-    public readonly string _containerId = $"text-visualizer-{Guid.NewGuid():N}";
+    private ElementReference _containerElement;
+    private bool _isObserving;
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -44,11 +45,19 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
         {
             if (ViewModel.FormatKind is not DashboardUIHelpers.PlaintextFormat)
             {
-                await _jsModule.InvokeVoidAsync("connectObserver", _containerId);
+                if (!_isObserving)
+                {
+                    _isObserving = true;
+                    await _jsModule.InvokeVoidAsync("connectObserver", _containerElement);
+                }
             }
             else
             {
-                await _jsModule.InvokeVoidAsync("disconnectObserver", _containerId);
+                if (_isObserving)
+                {
+                    _isObserving = false;
+                    await _jsModule.InvokeVoidAsync("disconnectObserver", _containerElement);
+                }
             }
         }
     }
@@ -59,7 +68,12 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
         {
             try
             {
-                await _jsModule.InvokeVoidAsync("disconnectObserver", _containerId);
+
+                if (_isObserving)
+                {
+                    _isObserving = false;
+                    await _jsModule.InvokeVoidAsync("disconnectObserver", _containerElement);
+                }
                 await _jsModule.DisposeAsync();
             }
             catch (JSDisconnectedException)

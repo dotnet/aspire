@@ -191,7 +191,7 @@
                                             }
                                         </span>
                                         <span @onclick:stopPropagation="true">
-                                            @if (context.Span.Attributes.GetValue("gen_ai.system") is { Length: > 0 })
+                                            @if (IsGenAISpan(context))
                                             {
                                                 <FluentButton Appearance="Appearance.Lightweight"
                                                               Class="genai-details-button"

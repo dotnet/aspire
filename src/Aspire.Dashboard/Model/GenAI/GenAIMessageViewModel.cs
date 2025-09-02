@@ -14,7 +14,7 @@ public class GenAIMessagePartViewModel
     public required TextVisualizerViewModel TextVisualizerViewModel { get; init; }
 }
 
-[DebuggerDisplay("SpanId = {Span.SpanId}, ResourceName = {ResourceName}, Type = {Type}, InternalId = {InternalId}")]
+[DebuggerDisplay("Index = {Index}, ResourceName = {ResourceName}, Type = {Type}, InternalId = {InternalId}")]
 public class GenAIMessageViewModel
 {
     private static readonly Icon s_toolCallsIcon = new Icons.Regular.Size16.Code();
@@ -24,12 +24,13 @@ public class GenAIMessageViewModel
     private static readonly Icon s_systemIcon = new Icons.Filled.Size16.Laptop();
     private static readonly Icon s_toolIcon = new Icons.Filled.Size20.CodeCircle(); // used in 16px size
 
+    public required int Index { get; set; }
     public required long? InternalId { get; init; }
     public required OtlpSpan Parent { get; init; }
     public required GenAIEventType Type { get; init; }
     public required List<GenAIMessagePartViewModel> MessageParts { get; init; } = [];
     public required string ResourceName { get; init; }
-
+    
     public BadgeDetail GetEventCategory()
     {
         if (Type == GenAIEventType.Choice)

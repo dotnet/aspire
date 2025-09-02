@@ -157,6 +157,23 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     // Internal to be used in unit tests
     internal ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
+        var page = GetVisibleSpanViewModels();
+        var totalItemCount = page.Count();
+        if (request.StartIndex > 0)
+        {
+            page = page.Skip(request.StartIndex);
+        }
+        page = page.Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
+
+        return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
+        {
+            Items = page.ToList(),
+            TotalItemCount = totalItemCount
+        });
+    }
+
+    private IEnumerable<SpanWaterfallViewModel> GetVisibleSpanViewModels()
+    {
         Debug.Assert(_spanWaterfallViewModels != null);
 
         var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
@@ -177,19 +194,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             }
         }
 
-        var page = _spanWaterfallViewModels.Where(visibleViewModels.Contains).AsEnumerable();
-        var totalItemCount = page.Count();
-        if (request.StartIndex > 0)
-        {
-            page = page.Skip(request.StartIndex);
-        }
-        page = page.Take(request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount);
-
-        return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
-        {
-            Items = page.ToList(),
-            TotalItemCount = totalItemCount
-        });
+        return _spanWaterfallViewModels.Where(visibleViewModels.Contains);
     }
 
     private string? GetPageTitle()
@@ -478,6 +483,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
     }
 
+    private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
+    {
+        return spanViewModel.Span.Attributes.GetValue("gen_ai.system") is { Length: > 0 };
+    }
+
     private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
@@ -485,10 +495,19 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             DialogService,
             DialogsLoc,
             spanViewModel.Span,
-            spanViewModel.SpanLogs.Select(l => l.LogEntry).ToList(),
             selectedLogEntryId: null,
             TelemetryRepository,
-            _resources);
+            _resources,
+            () =>
+            {
+                var genAISpans = new List<OtlpSpan>();
+                var visibleSpanViewModels = GetVisibleSpanViewModels();
+                foreach (var vm in visibleSpanViewModels.Where(IsGenAISpan))
+                {
+                    genAISpans.Add(vm.Span);
+                }
+                return genAISpans;
+            });
     }
 
     public void Dispose()

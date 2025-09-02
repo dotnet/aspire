@@ -49,7 +49,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
 
         // Act
-        var vm = Create(repository, spanDetailsViewModel, []);
+        var vm = Create(repository, spanDetailsViewModel);
 
         // Assert
         Assert.Empty(vm.Messages);
@@ -126,10 +126,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
 
         // Act
-        var vm = Create(
-            repository,
-            spanDetailsViewModel,
-            repository.GetLogs(new GetLogsContext { StartIndex = 0, Count = int.MaxValue, ResourceKey = null, Filters = [] }).Items);
+        var vm = Create(repository, spanDetailsViewModel);
 
         // Assert
         Assert.Collection(vm.Messages,
@@ -162,13 +159,12 @@ public sealed class GenAIVisualizerDialogViewModelTests
 
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
-        SpanDetailsViewModel spanDetailsViewModel,
-        List<OtlpLogEntry> logEntries)
+        SpanDetailsViewModel spanDetailsViewModel)
     {
         return GenAIVisualizerDialogViewModel.Create(
-            logEntries,
             spanDetailsViewModel,
             selectedLogEntryId: null,
-            telemetryRepository: repository);
+            telemetryRepository: repository,
+            () => [spanDetailsViewModel.Span]);
     }
 }

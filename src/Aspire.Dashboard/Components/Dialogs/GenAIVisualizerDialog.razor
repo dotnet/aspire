@@ -16,9 +16,19 @@
             @Content.Title
         </FluentLabel>
 
-        <div Style="grid-area: dialog-format;">
-            Test
-        </div>
+        @if (_contextSpans.Count > 1)
+        {
+            <div Style="grid-area: dialog-format;">
+                <FluentButton IconStart="new Icons.Regular.Size16.ArrowUp()"
+                              Appearance="Appearance.Stealth"
+                              Disabled="@(_currentSpanContextIndex == 0)"
+                              OnClick="OnPreviousGenAISpan">Previous</FluentButton>
+                <FluentButton IconStart="new Icons.Regular.Size16.ArrowDown()"
+                              Appearance="Appearance.Stealth"
+                              Disabled="@(_currentSpanContextIndex >= _contextSpans.Count - 1)"
+                              OnClick="OnNextGenAISpan">Next</FluentButton>
+            </div>
+        }
     </div>
 </FluentDialogHeader>
 
@@ -124,58 +134,20 @@
             @foreach (var spanEvent in events)
             {
                 <div class="event-container">
-                    <div class="event-title">@GetEventTitle(spanEvent)</div>
+                    <div class="event-title">
+                        @GetEventTitle(spanEvent)
+                        <span class="defaultHidden">
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewMessage(spanEvent))">
+                                <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
+                            </FluentButton>
+                        </span>
+                    </div>
                     @foreach (var messagePart in spanEvent.MessageParts)
                     {
                         <TextVisualizer ViewModel="@messagePart.TextVisualizerViewModel" HideLineNumbers="true" />
                     }
-                    @*
-                    @if (spanEvent.Body is SystemOrUserEvent systemOrUserEvent)
-                    {
-                        <div>@systemOrUserEvent.Content</div>
-                    }
-                    else if (spanEvent.Body is AssistantEvent assistantEvent)
-                    {
-                        @RenderAssistantEvent(assistantEvent)
-                    }
-                    else if (spanEvent.Body is ToolEvent toolEvent)
-                    {
-                        <div>@toolEvent.Content?.ToJsonString()</div>
-                    }
-                    else if (spanEvent.Body is ChoiceEvent choiceEvent)
-                    {
-                        if (choiceEvent.Message != null)
-                        {
-                            @RenderAssistantEvent(choiceEvent.Message)
-                        }
-                    }
-                    *@
                 </div>
             }
         </div>;
     }
-
-    @*
-    RenderFragment RenderAssistantEvent(AssistantEvent assistantEvent)
-    {
-        if (assistantEvent.Content != null)
-        {
-            return @<div>@assistantEvent.Content</div>;
-        }
-        else if (assistantEvent.ToolCalls is { Length: > 0 } toolCalls)
-        {
-            return @<div>
-                @foreach (var toolCall in toolCalls)
-                {
-                    if (toolCall.Function is { } function)
-                    {
-                        <div>@(function.Name)(@function.Arguments?.ToJsonString())</div>
-                    }
-                }
-            </div>;
-        }
-
-        return@<div></div>;
-    }
-    *@
 }

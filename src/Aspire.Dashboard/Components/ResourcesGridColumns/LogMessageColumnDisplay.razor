@@ -19,7 +19,7 @@
             !string.IsNullOrEmpty(LogEntry.SpanId) &&
             LogEntry.Attributes.GetValue("gen_ai.system") is { Length: > 0 })
         {
-            <FluentButton Appearance="Appearance.Lightweight" OnClick="LaunchGenAiVisualizerAsync">
+            <FluentButton Appearance="Appearance.Lightweight" OnClick="OnLaunchGenAIVisualizerAsync">
                 <FluentIcon Icon="Icons.Regular.Size20.BrainCircuit"
                             Color="Color.Accent" />
             </FluentButton>

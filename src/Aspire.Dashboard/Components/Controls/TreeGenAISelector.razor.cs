@@ -13,9 +13,4 @@ public partial class TreeGenAISelector
 
     [Parameter, EditorRequired]
     public required GenAIVisualizerDialogViewModel PageViewModel { get; set; }
-
-    public void OnResourceChanged()
-    {
-        StateHasChanged();
-    }
 }

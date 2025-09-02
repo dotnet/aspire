@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -25,7 +26,8 @@ public class GenAIVisualizerDialogViewModel
     public required List<OtlpLogEntry> LogEntries { get; init; }
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
-    public required long? SelectedLogEntryId { get; set; }
+    public required long? SelectedLogEntryId { get; init; }
+    public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
 
     public string? PeerName { get; set; }
     public string? SourceName { get; set; }
@@ -34,6 +36,7 @@ public class GenAIVisualizerDialogViewModel
     public List<GenAIMessageViewModel> Messages { get; } = new List<GenAIMessageViewModel>();
 
     public GenAIMessageViewModel? SelectedMessage { get; set; }
+    public bool HasSelectedMessage { get; set; }
 
     public OverviewViewKind OverviewActiveView { get; set; }
     public EventViewKind EventActiveView { get; set; }
@@ -42,15 +45,36 @@ public class GenAIVisualizerDialogViewModel
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
 
-    public static GenAIVisualizerDialogViewModel Create(List<OtlpLogEntry> logEntries, SpanDetailsViewModel spanDetailsViewModel, long? selectedLogEntryId, TelemetryRepository telemetryRepository)
+    public static GenAIVisualizerDialogViewModel Create(
+        SpanDetailsViewModel spanDetailsViewModel,
+        long? selectedLogEntryId,
+        TelemetryRepository telemetryRepository,
+        Func<List<OtlpSpan>> getContextGenAISpans)
     {
+        var logsContext = new GetLogsContext
+        {
+            ResourceKey = null,
+            Count = int.MaxValue,
+            StartIndex = 0,
+            Filters = [
+                new TelemetryFilter
+                {
+                    Field = KnownStructuredLogFields.SpanIdField,
+                    Condition = FilterCondition.Equals,
+                    Value = spanDetailsViewModel.Span.SpanId
+                }
+            ]
+        };
+        var logsResult = telemetryRepository.GetLogs(logsContext);
+
         var viewModel = new GenAIVisualizerDialogViewModel
         {
             Span = spanDetailsViewModel.Span,
-            LogEntries = logEntries,
+            LogEntries = logsResult.Items,
             Title = SpanWaterfallViewModel.GetTitle(spanDetailsViewModel.Span, spanDetailsViewModel.Resources),
             SpanDetailsViewModel = spanDetailsViewModel,
-            SelectedLogEntryId = selectedLogEntryId
+            SelectedLogEntryId = selectedLogEntryId,
+            GetContextGenAISpans = getContextGenAISpans
         };
 
         var resources = telemetryRepository.GetResources();
@@ -81,21 +105,16 @@ public class GenAIVisualizerDialogViewModel
 
     private static void CreateMessages(GenAIVisualizerDialogViewModel viewModel)
     {
+        var currentIndex = 0;
+
         // Attempt to get messages from log entries.
         foreach (var item in viewModel.LogEntries.OrderBy(i => i.TimeStamp))
         {
             if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
             {
                 var parts = DeserializeBody(type.Value, item.Message);
-
-                viewModel.Messages.Add(new GenAIMessageViewModel
-                {
-                    InternalId = item.InternalId,
-                    Type = type.Value,
-                    Parent = viewModel.Span,
-                    ResourceName = type.Value is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? viewModel.PeerName! : viewModel.SourceName!,
-                    MessageParts = parts
-                });
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts));
+                currentIndex++;
             }
         }
 
@@ -104,29 +123,31 @@ public class GenAIVisualizerDialogViewModel
             return;
         }
 
-        /*
         // Attempt get get messages from span events.
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
-            if (item.Attributes.HasKey("gen_ai.system") && item.Attributes.GetValue("gen_ai.event.content") is { } content)
+            if (item.Attributes.HasKey("gen_ai.system") &&
+                item.Attributes.GetValue("gen_ai.event.content") is { } content &&
+                TryMapEventName(item.Name, out var type))
             {
-                content.
-            }
-            ;
-            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
-            {
-                var parts = DeserializeBody(type.Value, item.Message);
-                viewModel.Messages.Add(new GenAIMessageViewModel
-                {
-                    InternalId = null,
-                    Type = type.Value,
-                    Parent = viewModel.Span,
-                    ResourceName = type.Value is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? viewModel.PeerName! : viewModel.SourceName!,
-                    MessageParts = parts
-                });
+                var parts = DeserializeBody(type.Value, content);
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts));
+                currentIndex++;
             }
         }
-        */
+    }
+
+    private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIEventType type, List<GenAIMessagePartViewModel> parts)
+    {
+        return new GenAIMessageViewModel
+        {
+            Index = currentIndex,
+            InternalId = null,
+            Type = type,
+            Parent = viewModel.Span,
+            ResourceName = type is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? viewModel.PeerName! : viewModel.SourceName!,
+            MessageParts = parts
+        };
     }
 
     private static List<GenAIMessagePartViewModel> DeserializeBody(GenAIEventType type, string message)
@@ -150,10 +171,11 @@ public class GenAIVisualizerDialogViewModel
                 break;
             case GenAIEventType.ToolMessage:
                 var toolEvent = JsonSerializer.Deserialize(message, OtelContext.Default.ToolEvent)!;
+                var toolResponse = ProcessJsonPayload(toolEvent.Content);
                 messagePartViewModels.Add(new()
                 {
-                    MessagePart = new ToolCallResponsePart { Id = toolEvent.Id, Response = toolEvent.Content },
-                    TextVisualizerViewModel = new TextVisualizerViewModel(toolEvent.Content?.ToJsonString() ?? string.Empty, indentText: true)
+                    MessagePart = new ToolCallResponsePart { Id = toolEvent.Id, Response = toolResponse },
+                    TextVisualizerViewModel = new TextVisualizerViewModel(toolResponse?.ToJsonString() ?? string.Empty, indentText: true)
                 });
                 break;
             case GenAIEventType.Choice:
@@ -187,7 +209,8 @@ public class GenAIVisualizerDialogViewModel
                         continue;
                     }
 
-                    var content = $"{function.Name}({function.Arguments?.ToJsonString()})";
+                    var args = ProcessJsonPayload(function.Arguments);
+                    var content = $"{function.Name}({args?.ToJsonString()})";
 
                     messagePartViewModels.Add(new()
                     {
@@ -197,6 +220,29 @@ public class GenAIVisualizerDialogViewModel
                 }
             }
         }
+    }
+
+    // Args might be a serialized object string instead of a raw object.
+    // To avoid extra escaping in displaying serialized object string, attempt to convert to object.
+    private static JsonNode? ProcessJsonPayload(JsonNode? args)
+    {
+        if (args?.GetValueKind() == JsonValueKind.String && args.GetValue<string>() is { } argsJson)
+        {
+            try
+            {
+                var node = JsonNode.Parse(argsJson);
+                if (node?.GetValueKind() is JsonValueKind.Object or JsonValueKind.Array)
+                {
+                    args = node;
+                }
+            }
+            catch (Exception)
+            {
+                // Not a JSON string. Ignore.
+            }
+        }
+
+        return args;
     }
 
     private static bool TryMapEventName(string name, [NotNullWhen(true)] out GenAIEventType? type)

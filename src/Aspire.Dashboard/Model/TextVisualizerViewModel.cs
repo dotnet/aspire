@@ -43,11 +43,26 @@ public class TextVisualizerViewModel
 
     private static bool TryFormatXml(string text, [NotNullWhen(true)] out string? formattedText)
     {
+        // Avoid throwing when reading non-XML by doing a quick check of the first character.
+        if (!CouldBeXml(text))
+        {
+            formattedText = null;
+            return false;
+        }
+
         try
         {
-            var document = XDocument.Parse(text);
-            var stringWriter = new StringWriter();
-            document.Save(stringWriter);
+            var document = XDocument.Parse(text.Trim());
+
+            using var stringWriter = new StringWriter();
+            using var xmlWriter = XmlWriter.Create(stringWriter, new XmlWriterSettings
+            {
+                Indent = true,
+                OmitXmlDeclaration = document.Declaration == null
+            });
+
+            document.Save(xmlWriter);
+            xmlWriter.Flush();
             formattedText = stringWriter.ToString();
             return true;
         }
@@ -74,6 +89,13 @@ public class TextVisualizerViewModel
 
     private static bool TryFormatJson(string text, [NotNullWhen(true)] out string? formattedText)
     {
+        // Avoid throwing when reading non-JSON by doing a quick check of the first character.
+        if (!CouldBeJson(text))
+        {
+            formattedText = null;
+            return false;
+        }
+
         try
         {
             formattedText = FormatJson(text);
@@ -156,6 +178,75 @@ public class TextVisualizerViewModel
         var formattedJson = Encoding.UTF8.GetString(stream.ToArray());
 
         return formattedJson;
+    }
+
+    public static bool CouldBeJson(string? input)
+    {
+        if (!TrySkipLeadingWhitespace(input, out var i))
+        {
+            return false;
+        }
+
+        var first = input[i.Value];
+
+        return first switch
+        {
+            '{' => true,   // Object
+            '[' => true,   // Array
+            '"' => true,   // String
+            '-' => true,   // Negative number
+            >= '0' and <= '9' => true, // Number
+            't' => input.AsSpan(i.Value).StartsWith("true"),  // true
+            'f' => input.AsSpan(i.Value).StartsWith("false"), // false
+            'n' => input.AsSpan(i.Value).StartsWith("null"),  // null
+            _ => false
+        };
+    }
+
+    private static bool TrySkipLeadingWhitespace([NotNullWhen(true)] string? input, [NotNullWhen(true)] out int? index)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            index = null;
+            return false;
+        }
+
+        // Skip leading whitespace
+        index = 0;
+        while (index < input.Length && char.IsWhiteSpace(input[index.Value]))
+        {
+            index++;
+        }
+
+        if (index == input.Length)
+        {
+            index = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool CouldBeXml(string? input)
+    {
+        if (!TrySkipLeadingWhitespace(input, out var i))
+        {
+            return false;
+        }
+
+        // XML must start with '<' after whitespace
+        if (input[i.Value] != '<')
+        {
+            return false;
+        }
+
+        // Peek ahead for common XML starts
+        var span = input.AsSpan(i.Value);
+
+        return span.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
+            || span.StartsWith("<!--", StringComparison.Ordinal)
+            || span.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase)
+            || span.Length > 1 && char.IsLetter(span[1]); // element name
     }
 
     internal void UpdateFormat(string newFormat)
