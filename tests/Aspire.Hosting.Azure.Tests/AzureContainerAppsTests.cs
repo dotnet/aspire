@@ -672,7 +672,8 @@ public class AzureContainerAppsTests
         builder.AddContainer("druid", "apache/druid", "34.0.0")
                .WithHttpEndpoint(targetPort: 8081)
                .WithVolume("druid_shared", "/opt/shared")
-               .WithVolume("coordinator_var", "/opt/druid/var");
+               .WithVolume("coordinator_var", "/opt/druid/var")
+               .WithBindMount("bind_mount", "/opt/bind");
 
         using var app = builder.Build();
 
@@ -693,15 +694,16 @@ public class AzureContainerAppsTests
         // The bicep should contain unique parameter names for the storage resources
         Assert.Contains("my_ace_outputs_volumes_druid_0", bicep);
         Assert.Contains("my_ace_outputs_volumes_druid_1", bicep);
+        Assert.Contains("my_ace_outputs_bindmounts_druid_0", bicep);
         
         // Also verify the container app environment resource output
         var containerAppEnvResource = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
         var (envManifest, envBicep) = await GetManifestWithBicep(containerAppEnvResource);
         
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep")
-              .AppendContentAsFile(envManifest.ToString(), "json")
-              .AppendContentAsFile(envBicep, "bicep");
+        await Verify(manifest.ToString())
+              .AppendContentAsFile(bicep)
+              .AppendContentAsFile(envManifest.ToString())
+              .AppendContentAsFile(envBicep);
     }
 
     [Fact]

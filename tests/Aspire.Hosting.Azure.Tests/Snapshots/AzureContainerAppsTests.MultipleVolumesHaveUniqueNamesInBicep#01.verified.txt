@@ -9,6 +9,8 @@ param my_ace_outputs_volumes_druid_0 string
 
 param my_ace_outputs_volumes_druid_1 string
 
+param my_ace_outputs_bindmounts_druid_0 string
+
 resource druid 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'druid'
   location: location
@@ -36,6 +38,10 @@ resource druid 'Microsoft.App/containerApps@2025-01-01' = {
               volumeName: 'v1'
               mountPath: '/opt/druid/var'
             }
+            {
+              volumeName: 'bm0'
+              mountPath: '/opt/bind'
+            }
           ]
         }
       ]
@@ -52,6 +58,11 @@ resource druid 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'v1'
           storageType: 'AzureFile'
           storageName: my_ace_outputs_volumes_druid_1
+        }
+        {
+          name: 'bm0'
+          storageType: 'AzureFile'
+          storageName: my_ace_outputs_bindmounts_druid_0
         }
       ]
     }

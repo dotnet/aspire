@@ -132,9 +132,33 @@ resource managedStorage_volumes_druid_1 'Microsoft.App/managedEnvironments/stora
   parent: my_ace
 }
 
+resource shares_bindmounts_druid_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-01-01' = {
+  name: take('sharesbindmountsdruid0-${uniqueString(resourceGroup().id)}', 63)
+  properties: {
+    enabledProtocols: 'SMB'
+    shareQuota: 1024
+  }
+  parent: storageVolumeFileService
+}
+
+resource managedStorage_bindmounts_druid_0 'Microsoft.App/managedEnvironments/storages@2025-01-01' = {
+  name: take('managedstoragebindmountsdruid${uniqueString(resourceGroup().id)}', 24)
+  properties: {
+    azureFile: {
+      accountName: my_ace_storageVolume.name
+      accountKey: my_ace_storageVolume.listKeys().keys[0].value
+      accessMode: 'ReadWrite'
+      shareName: shares_bindmounts_druid_0.name
+    }
+  }
+  parent: my_ace
+}
+
 output volumes_druid_0 string = managedStorage_volumes_druid_0.name
 
 output volumes_druid_1 string = managedStorage_volumes_druid_1.name
+
+output bindmounts_druid_0 string = managedStorage_bindmounts_druid_0.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = my_ace_law.name
 
