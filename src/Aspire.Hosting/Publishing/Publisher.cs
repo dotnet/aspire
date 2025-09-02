@@ -59,15 +59,15 @@ internal class Publisher(
 
             }
 
-            var (Message, State) = GetTaskInfo(targetResources, options.Value.Deploy);
+            var (message, state) = GetTaskInfo(targetResources, options.Value.Deploy);
 
             await task.CompleteAsync(
-                        Message,
-                        State,
+                        message,
+                        state,
                         cancellationToken)
                         .ConfigureAwait(false);
 
-            if (State == CompletionState.CompletedWithError)
+            if (state == CompletionState.CompletedWithError)
             {
                 // If there are no resources to publish or deploy, we can exit early
                 return;
