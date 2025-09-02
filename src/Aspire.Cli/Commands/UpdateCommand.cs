@@ -127,8 +127,9 @@ internal sealed class UpdateCommand : BaseCommand
 
         if (exitCode != 0)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, "Failed to check for Aspire workload. Exit code: {0}", exitCode));
-            return exitCode;
+            // Don't fail the update if we can't detect the workload, just skip this step
+            _interactionService.DisplayMessage("warning", "Unable to check for Aspire workload. Continuing with update...");
+            return 0;
         }
 
         if (hasAspireWorkload)

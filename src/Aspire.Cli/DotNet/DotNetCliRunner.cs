@@ -929,7 +929,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         // First uninstall existing template if it exists, then install new version
         // This ensures we get the latest version and avoid conflicts
-        List<string> uninstallArgs = ["new", "uninstall", packageName];
+        List<string> uninstallArgs = ["new", "uninstall", packageName, "--force"];
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.

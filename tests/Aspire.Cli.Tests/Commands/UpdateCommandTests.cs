@@ -157,7 +157,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateCommand_ReturnsError_WhenWorkloadCheckFails()
+    public async Task UpdateCommand_ContinuesWhenWorkloadCheckFails()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         
@@ -173,6 +173,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             options.ProjectLocatorFactory = _ => new TestProjectLocator(appHostProject);
             options.PackagingServiceFactory = _ => new TestPackagingService();
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater();
             options.DotNetCliRunnerFactory = _ => new TestServices.TestDotNetCliRunner
             {
                 CheckWorkloadAsyncCallback = (_, _) => { workloadChecked = true; return (1, false); }, // Simulate failure
@@ -186,9 +187,9 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
-        Assert.Equal(1, exitCode); // Should return the workload check error code
+        Assert.Equal(0, exitCode); // Should continue and succeed even when workload check fails
         Assert.True(workloadChecked, "Workload check should be called");
-        Assert.False(templateUpdated, "Template should not be updated when workload check fails");
+        Assert.True(templateUpdated, "Template should still be updated when workload check fails");
     }
 
     private sealed class TestPackagingService : IPackagingService
