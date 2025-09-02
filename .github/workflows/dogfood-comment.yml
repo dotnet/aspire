@@ -1,10 +1,9 @@
 name: Add Dogfooding Comment
 
 on:
-  # Use pull_request_target to run in the context of the base branch
-  # This allows commenting on PRs from forks
+  # Use pull_request_target to run in the context of the base branch (allows commenting on PRs from forks)
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches:
       - 'main'
       - 'release/**'
@@ -15,6 +14,10 @@ on:
         description: 'PR number to add dogfooding comment to'
         required: true
         type: number
+
+concurrency:
+  group: dogfood-comment-${{ github.event.pull_request.number || github.event.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
 
 jobs:
   add-dogfood-comment:
@@ -28,49 +31,60 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
-            // Get PR number from either the PR event or manual input
-            const prNumber = context.payload.number || context.payload.inputs.pr_number;
+            // Determine PR number from various event contexts
+            const prNumber = (context.payload.pull_request && context.payload.pull_request.number)
+              || context.payload.number
+              || (context.payload.inputs && context.payload.inputs.pr_number);
+
+            if (!prNumber) {
+              core.setFailed('Unable to determine PR number.');
+              return;
+            }
+
             const bashScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh';
             const psScript = 'https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1';
-            
+
             // Unique marker to identify dogfooding comments
             const dogfoodMarker = '<!-- dogfood-pr -->';
-            
-            const comment = `${dogfoodMarker}
-            🚀 **Dogfood this PR with:**
 
-            \`\`\`bash
-            curl -fsSL ${bashScript} | bash -s -- ${prNumber}
-            \`\`\`
-            Or
-            - Run remotely in PowerShell:
-            \`\`\`powershell
-            iex "& { $(irm ${psScript}) } ${prNumber}"
-            \`\`\``;
+            const comment = `${dogfoodMarker}\n` +
+              `🚀 **Dogfood this PR with:**\n\n` +
+              '```bash\n' +
+              `curl -fsSL ${bashScript} | bash -s -- ${prNumber}\n` +
+              '```\n' +
+              'Or\n' +
+              '- Run remotely in PowerShell:\n' +
+              '```powershell\n' +
+              `iex "& { $(irm ${psScript}) } ${prNumber}"\n` +
+              '```';
 
-            // Check for existing dogfooding comment
+            // Fetch existing comments
             const comments = await github.rest.issues.listComments({
               issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
 
-            const existingComment = comments.data.find(comment => comment.body.includes(dogfoodMarker));
+            const existingComment = comments.data.find(c => c.body && c.body.includes(dogfoodMarker));
 
             if (existingComment) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
-                comment_id: existingComment.id,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
+              if (existingComment.body.trim() === comment.trim()) {
+                core.info('Dogfood comment already up to date.');
+              } else {
+                await github.rest.issues.updateComment({
+                  comment_id: existingComment.id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+                core.info('Dogfood comment updated.');
+              }
             } else {
-              // Create new comment
               await github.rest.issues.createComment({
                 issue_number: prNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: comment
               });
+              core.info('Dogfood comment created.');
             }
