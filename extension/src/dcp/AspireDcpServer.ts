@@ -31,7 +31,7 @@ export default class AspireDcpServer {
         this.pendingNotificationQueueByDcpId = pendingNotificationQueueByDcpId;
     }
 
-    static async create(debuggerExtensions: ResourceDebuggerExtension[], getDebugSession: () => AspireDebugSession): Promise<AspireDcpServer> {
+    static async create(debuggerExtensions: ResourceDebuggerExtension[], getDebugSession: (debugSessionId: string) => AspireDebugSession | null): Promise<AspireDcpServer> {
         const runsBySession = new Map<string, AspireResourceDebugSession[]>();
         const wsBySession = new Map<string, WebSocket>();
         const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
@@ -78,16 +78,43 @@ export default class AspireDcpServer {
                 const payload: RunSessionPayload = req.body;
                 const runId = generateRunId();
                 const dcpId = req.header('microsoft-developer-dcp-instance-id') as string;
-
+                const debugSessionId = getDcpIdPrefix(dcpId);
                 const processes: AspireResourceDebugSession[] = [];
+
+                if (!debugSessionId) {
+                    const error: ErrorDetails = {
+                        code: 'MissingDebugSessionId',
+                        message: 'Missing valid DCP prefix corresponding to an Aspire debug session.',
+                        details: []
+                    };
+
+                    extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                    const response: ErrorResponse = { error };
+                    res.status(400).json(response).end();
+                    return;
+                }
 
                 for (const launchConfig of payload.launch_configurations) {
                     const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
-                    const aspireDebugSession = getDebugSession();
-                    const config = await createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, dcpId }, foundDebuggerExtension);
-                    const debugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
-                    if (!debugSession) {
+                    const aspireDebugSession = getDebugSession(debugSessionId);
+                    if (!aspireDebugSession) {
+                        const error: ErrorDetails = {
+                            code: 'DebugSessionNotFound',
+                            message: `No Aspire debug session found for Debug Session ID ${debugSessionId}`,
+                            details: []
+                        };
+
+                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                        const response: ErrorResponse = { error };
+                        res.status(400).json(response).end();
+                        return;
+                    }
+
+                    const config = await createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId }, foundDebuggerExtension);
+                    const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
+
+                    if (!resourceDebugSession) {
                         const error: ErrorDetails = {
                             code: 'DebugSessionFailed',
                             message: `Failed to start debug session for run ID ${runId}`,
@@ -100,7 +127,7 @@ export default class AspireDcpServer {
                         return;
                     }
 
-                    processes.push(debugSession);
+                    processes.push(resourceDebugSession);
                 }
 
                 extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);
@@ -245,5 +272,18 @@ export default class AspireDcpServer {
 }
 
 export function generateRunId(): string {
-    return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    return `run-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+export function generateDcpIdPrefix(): string {
+    return `aspire-extension-run-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+function getDcpIdPrefix(dcpId: string): string | null {
+    const regex = /^(aspire-extension-run-[a-z0-9]+)-.+$/;
+    if (regex.test(dcpId)) {
+        return dcpId.match(regex)![1];
+    }
+
+    return null;
 }

@@ -66,7 +66,14 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
-            StopDebuggingAsync().GetAwaiter().GetResult();
+            try
+            {
+                StopDebuggingAsync().GetAwaiter().GetResult();
+            }
+            catch
+            {
+                // Ignore exceptions during shutdown.
+            }
         };
     }
 

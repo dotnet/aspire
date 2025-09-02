@@ -1,33 +1,30 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from './debugger/AspireDebugSession';
 import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigurationProvider';
-import { aspireDebugSessionNotInitialized, extensionContextNotInitialized } from './loc/strings';
+import { extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
-import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
 
-export class AspireExtensionContext {
+export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer: AspireRpcServer | undefined;
     private _dcpServer: AspireDcpServer | undefined;
     private _extensionContext: vscode.ExtensionContext | undefined;
-    private _aspireDebugSession: AspireDebugSession | undefined;
     private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
-    private  _debuggerExtensions: ResourceDebuggerExtension[] | undefined;
+
+    private _aspireDebugSessions: AspireDebugSession[] = [];
 
     constructor() {
         this._rpcServer = undefined;
         this._extensionContext = undefined;
-        this._aspireDebugSession = undefined;
         this._debugConfigProvider = undefined;
         this._dcpServer = undefined;
     }
 
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, debuggerExtensions: ResourceDebuggerExtension[]): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
-        this._debuggerExtensions = debuggerExtensions;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -51,23 +48,24 @@ export class AspireExtensionContext {
         return this._extensionContext;
     }
 
-    get debuggerExtensions(): ResourceDebuggerExtension[] | undefined {
-        return this._debuggerExtensions;
-    }
-
-    hasAspireDebugSession(): boolean {
-        return !!this._aspireDebugSession;
-    }
-
-    get aspireDebugSession(): AspireDebugSession {
-        if (!this._aspireDebugSession) {
-            throw new Error(aspireDebugSessionNotInitialized);
+    getAspireDebugSession(debugSessionId: string | null): AspireDebugSession | null {
+        if (!debugSessionId) {
+            return null;
         }
-        return this._aspireDebugSession;
+
+        return this._aspireDebugSessions.find(session => session.debugSessionId === debugSessionId) || null;
     }
 
-    set aspireDebugSession(value: AspireDebugSession) {
-        this._aspireDebugSession = value;
+    addAspireDebugSession(debugSession: AspireDebugSession) {
+        if (this._aspireDebugSessions.find(session => session.debugSessionId === debugSession.debugSessionId)) {
+            throw new Error(`Debug session with id ${debugSession.debugSessionId} already exists.`);
+        }
+
+        this._aspireDebugSessions.push(debugSession);
+    }
+
+    removeAspireDebugSession(debugSession: AspireDebugSession) {
+        this._aspireDebugSessions = this._aspireDebugSessions.filter(session => session.debugSessionId !== debugSession.debugSessionId);
     }
 
     get debugConfigProvider(): AspireDebugConfigurationProvider | undefined {
@@ -76,5 +74,11 @@ export class AspireExtensionContext {
         }
 
         return this._debugConfigProvider;
+    }
+
+    dispose() {
+        this._rpcServer?.dispose();
+        this._dcpServer?.dispose();
+        this._aspireDebugSessions.forEach(session => session.dispose());
     }
 }
