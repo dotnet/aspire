@@ -362,6 +362,37 @@ internal class NuGetConfigMerger
                 
                 packageSourceMapping.Add(packageSource);
             }
+
+            // Since we're creating packageSourceMapping for the first time, we need to preserve the original behavior
+            // where all existing sources could serve all packages. Any existing source that doesn't get specific
+            // patterns from our mappings should get a wildcard pattern to remain functional.
+            var existingSourceKeys = existingAdds
+                .Select(add => (string?)add.Attribute("key"))
+                .Where(key => !string.IsNullOrEmpty(key))
+                .Cast<string>()
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Find sources that have mappings from our new packageSourceMapping entries
+            var sourcesWithNewMappings = packageSourceMapping.Elements("packageSource")
+                .Select(ps => (string?)ps.Attribute("key"))
+                .Where(key => !string.IsNullOrEmpty(key))
+                .Cast<string>()
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithNewMappings, StringComparer.OrdinalIgnoreCase).ToArray();
+            
+            // Add wildcard pattern to existing sources that don't have any patterns to preserve their original functionality
+            foreach (var sourceKey in sourcesWithoutAnyPatterns)
+            {
+                var sourceElement = new XElement("packageSource");
+                sourceElement.SetAttributeValue("key", sourceKey);
+                
+                var wildcardPackage = new XElement("package");
+                wildcardPackage.SetAttributeValue("pattern", "*");
+                sourceElement.Add(wildcardPackage);
+                
+                packageSourceMapping.Add(sourceElement);
+            }
         }
 
         // Save the updated document

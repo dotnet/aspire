@@ -410,5 +410,68 @@ public class NuGetConfigMergerTests
         Assert.DoesNotContain(dotnet9Mapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
     }
 
+    [Fact]
+    public async Task CreateOrUpdateAsync_PreservesAllExistingSources_WhenCreatingPackageSourceMappingForFirstTime()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Scenario from @mitchdenny: config has multiple sources but NO packageSourceMapping
+        // This means all sources can serve all packages (implicit behavior)
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                    <add key="custom" value="https://example.com/custom/nuget/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """);
+
+        // aspire update adds specific mappings but doesn't include a wildcard
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // All original sources should still be present
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget.org");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "custom");
+
+        // New aspire source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-daily");
+
+        // Debug: Print the XML to understand what's happening
+        _outputHelper.WriteLine("Generated XML:");
+        _outputHelper.WriteLine(xml.ToString());
+
+        // Package source mapping should preserve the original behavior:
+        // Since the original config had NO packageSourceMapping, all existing sources should get "*" patterns
+        // so they can continue to serve packages
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // The aspire source should have its specific pattern
+        var aspireMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://example.com/aspire-daily");
+        Assert.NotNull(aspireMapping);
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+
+        // The existing sources should get wildcard patterns to preserve their original functionality
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget.org");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        var customMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "custom");
+        Assert.NotNull(customMapping);
+        Assert.Contains(customMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+    }
+
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
 }
