@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -217,5 +219,28 @@ public class AzureRedisEnterpriseExtensionsTests
         var (manifest, bicep) = await GetManifestWithBicep(module.Resource, skipPreparer: true);
 
         await Verify(bicep, "bicep");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureRedisEnterpriseWithAccessKeyAuthentication(string? kvName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var redis = builder.AddAzureRedisEnterprise("redis-cache");
+
+        if (kvName is null)
+        {
+            redis.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            redis.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        var (_, bicep) = await GetManifestWithBicep(redis.Resource);
+
+        await Verify(bicep, extension: "bicep");
     }
 }

@@ -3,6 +3,8 @@
 
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
@@ -16,6 +18,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+[Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
 {
@@ -27,6 +30,13 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     private BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
+    /// Gets the "connectionString" secret reference from the key vault associated with this resource.
+    ///
+    /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
+    /// </summary>
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -35,6 +45,12 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// Gets the "hostName" output reference from the bicep template for the Azure Redis resource.
     /// </summary>
     private BicepOutputReference HostNameOutput => new("hostName", this);
+
+    /// <summary>
+    /// Gets a value indicating whether the resource uses access key authentication.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
     /// Gets the inner Redis resource.
@@ -50,7 +66,10 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// Gets the connection string template for the manifest for the Azure Cache for Redis Enterprise resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        InnerResource?.ConnectionStringExpression ?? ReferenceExpression.Create($"{ConnectionStringOutput}");
+        InnerResource?.ConnectionStringExpression ??
+            (UseAccessKeyAuthentication ?
+                ReferenceExpression.Create($"{ConnectionStringSecretOutput}") :
+                ReferenceExpression.Create($"{ConnectionStringOutput}"));
 
     /// <summary>
     /// Gets the host name for the Redis server.
@@ -119,6 +138,8 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
     /// <inheritdoc/>
     public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
     {
+        Debug.Assert(!UseAccessKeyAuthentication, "AddRoleAssignments should not be called when using AccessKeyAuthentication");
+
         var infra = roleAssignmentContext.Infrastructure;
         var redisEnterprise = (RedisEnterpriseCluster)AddAsExistingResource(infra);
 

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.RedisEnterprise;
 using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
@@ -15,6 +15,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding the Azure RedisEnterprise resources to the application model.
 /// </summary>
+[Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public static class AzureRedisEnterpriseExtensions
 {
     /// <summary>
@@ -42,6 +43,7 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> AddAzureRedisEnterprise(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -79,6 +81,7 @@ public static class AzureRedisEnterpriseExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureRedisEnterpriseResource> RunAsContainer(
         this IResourceBuilder<AzureRedisEnterpriseResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
@@ -102,42 +105,154 @@ public static class AzureRedisEnterpriseExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Configures the resource to use access key authentication for Azure Redis Enterprise.
+    /// </summary>
+    /// <param name="builder">The Azure Redis Enterprise resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// The following example creates an Azure Redis Enterprise resource that uses access key authentication.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var cache = builder.AddAzureRedisEnterprise("cache")
+    ///     .WithAccessKeyAuthentication();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(cache);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var kv = builder.ApplicationBuilder.AddAzureKeyVault($"{builder.Resource.Name}-kv")
+                                           .WithParentRelationship(builder.Resource);
+
+        // Remove the KeyVault from the model if the emulator is used during run mode.
+        // need to do this later in case builder becomes an emulator after this method is called.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            {
+                if (builder.Resource.IsContainer())
+                {
+                    data.Model.Resources.Remove(kv.Resource);
+                }
+                return Task.CompletedTask;
+            });
+        }
+
+        return builder.WithAccessKeyAuthentication(kv);
+    }
+
+    /// <summary>
+    /// Configures the resource to use access key authentication for Azure Redis Enterprise.
+    /// </summary>
+    /// <param name="builder">The Azure Redis Enterprise resource builder.</param>
+    /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisEnterpriseResource will be stored.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisEnterpriseResource}"/> builder.</returns>
+    [Experimental("ASPIREAZUREREDIS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<AzureRedisEnterpriseResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisEnterpriseResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keyVaultBuilder);
+
+        var azureResource = builder.Resource;
+        azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
+
+        // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
+        var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
+        foreach (var annotation in roleAssignmentAnnotations)
+        {
+            azureResource.Annotations.Remove(annotation);
+        }
+
+        return builder;
+    }
+
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
-        var redis = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
-        (identifier, name) =>
-        {
-            var resource = RedisEnterpriseCluster.FromExisting(identifier);
-            resource.Name = name;
-            return resource;
-        },
-        (infra) =>
-        {
-            var cluster = new RedisEnterpriseCluster(infrastructure.AspireResource.GetBicepIdentifier())
-            {
-                Sku = new RedisEnterpriseSku
-                {
-                    Name = RedisEnterpriseSkuName.BalancedB0
-                },
-                MinimumTlsVersion = RedisEnterpriseTlsVersion.Tls1_2
-            };
-            infra.Add(cluster);
+        var redisResource = (AzureRedisEnterpriseResource)infrastructure.AspireResource;
 
-            infra.Add(new RedisEnterpriseDatabase(cluster.BicepIdentifier + "_default")
+        var redis = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            (identifier, name) =>
             {
-                Name = "default",
-                Parent = cluster,
-                Port = 10000,
-                AccessKeysAuthentication = AccessKeysAuthentication.Disabled
+                var resource = RedisEnterpriseCluster.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
+            },
+            (infra) =>
+            {
+                var cluster = new RedisEnterpriseCluster(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new RedisEnterpriseSku
+                    {
+                        Name = RedisEnterpriseSkuName.BalancedB0
+                    },
+                    MinimumTlsVersion = RedisEnterpriseTlsVersion.Tls1_2
+                };
+                infra.Add(cluster);
+
+                infra.Add(new RedisEnterpriseDatabase(cluster.BicepIdentifier + "_default")
+                {
+                    Name = "default",
+                    Parent = cluster,
+                    Port = 10000,
+                    AccessKeysAuthentication = redisResource.UseAccessKeyAuthentication ?
+                        AccessKeysAuthentication.Enabled :
+                        AccessKeysAuthentication.Disabled
+                });
+
+                return cluster;
             });
 
-            return cluster;
-        });
-
-        infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+        if (redisResource.UseAccessKeyAuthentication)
         {
-            Value = BicepFunction.Interpolate($"{redis.HostName}:10000,ssl=true")
-        });
+            var kvNameParam = redisResource.ConnectionStringSecretOutput.Resource.NameOutputReference.AsProvisioningParameter(infrastructure);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            infrastructure.Add(keyVault);
+
+            var database = infrastructure.GetProvisionableResources()
+                .OfType<RedisEnterpriseDatabase>()
+                .SingleOrDefault(db => db.BicepIdentifier == redis.BicepIdentifier + "_default");
+            if (database is null)
+            {
+                // existing resource scenario
+                database = new RedisEnterpriseDatabase(redis.BicepIdentifier + "_default")
+                {
+                    Name = "default",
+                    Parent = redis,
+                    Port = 10000,
+                };
+                infrastructure.Add(database);
+            }
+
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = $"connectionstrings--{redisResource.Name}",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"{redis.HostName}:10000,ssl=true,password={database.GetKeys().PrimaryKey}")
+                }
+            };
+            infrastructure.Add(secret);
+        }
+        else
+        {
+            infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"{redis.HostName}:10000,ssl=true")
+            });
+        }
 
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
