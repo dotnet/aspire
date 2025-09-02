@@ -88,17 +88,12 @@
     <value>Updating Aspire templates...</value>
   </data>
   <data name="WorkloadFound" xml:space="preserve">
-    <value>Aspire workload found. Removing workload...</value>
+    <value>Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</value>
   </data>
   <data name="WorkloadNotFound" xml:space="preserve">
-    <value>No Aspire workload found.</value>
+    <value>No Aspire workload detected.</value>
   </data>
-  <data name="WorkloadRemovalSuccessful" xml:space="preserve">
-    <value>Aspire workload removed successfully.</value>
-  </data>
-  <data name="WorkloadRemovalFailed" xml:space="preserve">
-    <value>Failed to remove Aspire workload. Exit code: {0}</value>
-  </data>
+
   <data name="TemplateUpdateSuccessful" xml:space="preserve">
     <value>Aspire templates updated successfully to version {0}.</value>
   </data>

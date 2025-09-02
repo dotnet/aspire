@@ -53,8 +53,8 @@ internal sealed class UpdateCommand : BaseCommand
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
             var channel = await _interactionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);
 
-            // Step 1: Remove Aspire workload if present
-            var workloadResult = await RemoveAspireWorkloadAsync(cancellationToken);
+            // Step 1: Detect and warn about Aspire workload if present
+            var workloadResult = await DetectAndWarnAboutAspireWorkloadAsync(cancellationToken);
             if (workloadResult != 0)
             {
                 return workloadResult;
@@ -117,7 +117,7 @@ internal sealed class UpdateCommand : BaseCommand
         return false;
     }
 
-    private async Task<int> RemoveAspireWorkloadAsync(CancellationToken cancellationToken)
+    private async Task<int> DetectAndWarnAboutAspireWorkloadAsync(CancellationToken cancellationToken)
     {
         var options = new DotNetCliRunnerInvocationOptions();
         
@@ -127,22 +127,13 @@ internal sealed class UpdateCommand : BaseCommand
 
         if (exitCode != 0)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.WorkloadRemovalFailed, exitCode));
+            _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, "Failed to check for Aspire workload. Exit code: {0}", exitCode));
             return exitCode;
         }
 
         if (hasAspireWorkload)
         {
-            _interactionService.DisplayMessage("info", UpdateCommandStrings.WorkloadFound);
-            
-            var uninstallResult = await _dotNetCliRunner.UninstallWorkloadAsync("aspire", options, cancellationToken);
-            if (uninstallResult != 0)
-            {
-                _interactionService.DisplayError(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.WorkloadRemovalFailed, uninstallResult));
-                return uninstallResult;
-            }
-            
-            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.WorkloadRemovalSuccessful);
+            _interactionService.DisplayMessage("warning", UpdateCommandStrings.WorkloadFound);
         }
         else
         {

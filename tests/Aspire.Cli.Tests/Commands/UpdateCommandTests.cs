@@ -79,7 +79,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateCommand_CallsWorkloadCheckAndRemoval_WhenAspireWorkloadExists()
+    public async Task UpdateCommand_CallsWorkloadCheckAndWarns_WhenAspireWorkloadExists()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         
@@ -113,12 +113,12 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(0, exitCode);
         Assert.True(workloadChecked, "Workload check should be called");
-        Assert.True(workloadUninstalled, "Workload should be uninstalled when present");
+        Assert.False(workloadUninstalled, "Workload should not be uninstalled when warning only");
         Assert.True(templateUpdated, "Template should be updated");
     }
 
     [Fact]
-    public async Task UpdateCommand_SkipsWorkloadRemoval_WhenNoAspireWorkloadExists()
+    public async Task UpdateCommand_SkipsWorkloadWarning_WhenNoAspireWorkloadExists()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         
