@@ -441,7 +441,7 @@
     <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
   </Folder>
   <Folder Name="/Tools/QuarantineTools/">
-    <Project Path="tools/QuarantineTools/Quarantine.csproj" />
+    <Project Path="tools/QuarantineTools/QuarantineTools.csproj" />
   </Folder>
   <Folder Name="/Workload/">
     <Project Path="src/Aspire.AppHost.Sdk/Aspire.AppHost.Sdk.csproj" />
