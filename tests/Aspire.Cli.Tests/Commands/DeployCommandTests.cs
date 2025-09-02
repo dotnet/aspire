@@ -7,6 +7,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -157,7 +158,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
                         // Verify that the --deploy flag is included in the arguments
                         Assert.Contains("--deploy", args);
-                        
+
                         // Verify that --output-path is NOT included when not specified
                         Assert.DoesNotContain("--output-path", args);
 
@@ -259,6 +260,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11217")]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
