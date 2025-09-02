@@ -20,6 +20,6 @@ internal static class ServiceBusEmulatorContainerImageTags
     /// <remarks>mssql/server</remarks>
     public const string SqlServerImage = "mssql/server";
 
-    /// <remarks>latest</remarks>
+    /// <remarks>2022-latest</remarks>
     public const string SqlServerTag = "2022-latest";
 }
