@@ -67,20 +67,42 @@ internal sealed class AzureDeployingContext(
         {
             try
             {
-                var deploymentGraph = ResourceDeploymentGraph.Build(bicepResources);
+                var provisioningTasks = new List<Task>();
 
-                await deploymentGraph.ExecuteAsync(async (resource, context) =>
+                foreach (var resource in bicepResources)
                 {
                     if (resource is AzureBicepResource bicepResource)
                     {
-                        var resourceTask = await deployingStep.CreateTaskAsync($"Provisioning {resource.Name}", cancellationToken).ConfigureAwait(false);
-                        await using (resourceTask.ConfigureAwait(false))
+                        var resourceTask = await deployingStep.CreateTaskAsync($"Deploying {resource.Name}", cancellationToken).ConfigureAwait(false);
+
+                        var provisioningTask = Task.Run(async () =>
                         {
-                            await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, context, cancellationToken).ConfigureAwait(false);
-                            await resourceTask.CompleteAsync($"Successfully provisioned {resource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
-                        }
+                            await using (resourceTask.ConfigureAwait(false))
+                            {
+                                try
+                                {
+                                    bicepResource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                                    await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
+
+                                    bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                                    await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    await resourceTask.CompleteAsync($"Failed to provision {bicepResource.Name}: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+                                    bicepResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                                    throw;
+                                }
+                            }
+                        }, cancellationToken);
+
+                        provisioningTasks.Add(provisioningTask);
                     }
-                }, provisioningContext, cancellationToken).ConfigureAwait(false);
+                }
+
+                await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

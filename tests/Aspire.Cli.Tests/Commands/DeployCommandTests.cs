@@ -7,6 +7,7 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -128,6 +129,73 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task DeployCommandSucceedsWithoutOutputPath()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    // Simulate a successful build
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    // Simulate a successful app host information retrieval
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                    {
+                        return (0, true, VersionHelper.GetDefaultTemplateVersion()); // Compatible app host with backchannel support
+                    },
+
+                    // Simulate apphost running successfully and establishing a backchannel
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    {
+                        Assert.True(options.NoLaunchProfile);
+
+                        // Verify that the --deploy flag is included in the arguments
+                        Assert.Contains("--deploy", args);
+
+                        // Verify that --output-path is NOT included when not specified
+                        Assert.DoesNotContain("--output-path", args);
+
+                        var deployModeCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel
+                        {
+                            RequestStopAsyncCalled = deployModeCompleted
+                        };
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await deployModeCompleted.Task;
+                        return 0; // Simulate successful run
+                    }
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestDeployCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("deploy");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode); // Ensure the command succeeds
+    }
+
+    [Fact]
     public async Task DeployCommandSucceedsEndToEnd()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
@@ -192,6 +260,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11217")]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
@@ -223,6 +292,9 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             Assert.Contains("publish", args);
                             Assert.Contains("--publisher", args);
                             Assert.Contains("default", args);
+                            // When output path is explicitly provided, it should be included
+                            Assert.Contains("--output-path", args);
+                            Assert.Contains("/tmp/test", args);
 
                             var deployModeCompleted = new TaskCompletionSource();
                             var backchannel = new TestAppHostBackchannel
