@@ -72,7 +72,9 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             }
             catch
             {
-                // Ignore exceptions during shutdown.
+                // This may fail if the extension is deactivated before the aspire cli process is stopped
+                // or if an active debug session is not occurring. Both of these are fine, we just want to
+                // ensure we try to stop the debug session if one is active.
             }
         };
     }

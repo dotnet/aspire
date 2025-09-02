@@ -61,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('aspire', new AspireDebugAdapterDescriptorFactory(rpcServer, dcpServer, terminalProvider, aspireExtensionContext.addAspireDebugSession.bind(aspireExtensionContext), aspireExtensionContext.removeAspireDebugSession.bind(aspireExtensionContext))));
 
-    aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer);
+    aspireExtensionContext.initialize(rpcServer, context, debugConfigProvider, dcpServer, terminalProvider);
 
     // Return exported API for tests or other extensions
 	return {

@@ -4,27 +4,23 @@ import { AspireDebugConfigurationProvider } from './debugger/AspireDebugConfigur
 import { debugSessionAlreadyExists, extensionContextNotInitialized } from './loc/strings';
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
+import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 
 export class AspireExtensionContext implements vscode.Disposable {
-    private _rpcServer: AspireRpcServer | undefined;
-    private _dcpServer: AspireDcpServer | undefined;
-    private _extensionContext: vscode.ExtensionContext | undefined;
-    private _debugConfigProvider: AspireDebugConfigurationProvider | undefined;
+    private _rpcServer?: AspireRpcServer;
+    private _dcpServer?: AspireDcpServer;
+    private _extensionContext?: vscode.ExtensionContext;
+    private _debugConfigProvider?: AspireDebugConfigurationProvider;
+    private _terminalProvider?: AspireTerminalProvider;
 
     private _aspireDebugSessions: AspireDebugSession[] = [];
 
-    constructor() {
-        this._rpcServer = undefined;
-        this._extensionContext = undefined;
-        this._debugConfigProvider = undefined;
-        this._dcpServer = undefined;
-    }
-
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
+        this._terminalProvider = terminalProvider;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -80,5 +76,6 @@ export class AspireExtensionContext implements vscode.Disposable {
         this._rpcServer?.dispose();
         this._dcpServer?.dispose();
         this._aspireDebugSessions.forEach(session => session.dispose());
+        this._terminalProvider?.dispose();
     }
 }

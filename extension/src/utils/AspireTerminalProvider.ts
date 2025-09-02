@@ -9,7 +9,7 @@ export interface AspireTerminal {
     dispose: () => void;
 }
 
-export class AspireTerminalProvider {
+export class AspireTerminalProvider implements vscode.Disposable {
     private _terminalByDebugSessionId: Map<string | null, AspireTerminal> = new Map();
     private _rpcServerConnectionInfo?: RpcServerConnectionInfo;
     private _dcpServerConnectionInfo?: DcpServerConnectionInfo;
@@ -110,5 +110,11 @@ export class AspireTerminalProvider {
         }
 
         return env;
+    }
+
+    dispose() {
+        for (const terminal of this._terminalByDebugSessionId.values()) {
+            terminal.dispose();
+        }
     }
 }
