@@ -140,8 +140,8 @@
                         @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.Choice).ToList())
-                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.Choice).ToList())
+                                @RenderEventSection("Input", Content.Messages.Where(e => e.Type != GenAIEventType.OutputMessage).ToList())
+                                @RenderEventSection("Output", Content.Messages.Where(e => e.Type == GenAIEventType.OutputMessage).ToList())
                             </div>
                         }
                         @if (Content.OverviewActiveView == OverviewViewKind.Details)

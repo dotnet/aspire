@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -498,7 +499,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                     var filters = ViewModel.GetFilters();
                     filters.Add(new TelemetryFilter
                     {
-                        Field = "gen_ai.system",
+                        Field = GenAIHelpers.GenAISystem,
                         Condition = FilterCondition.NotEqual,
                         Value = string.Empty
                     });

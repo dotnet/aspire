@@ -33,7 +33,7 @@ public class GenAIMessageViewModel
     
     public BadgeDetail GetEventCategory()
     {
-        if (Type == GenAIEventType.Choice)
+        if (Type == GenAIEventType.OutputMessage)
         {
             if (MessageParts.Any(p => p.MessagePart.Type == MessagePart.ToolCallType))
             {
@@ -58,7 +58,7 @@ public class GenAIMessageViewModel
         {
             GenAIEventType.SystemMessage => new BadgeDetail("System", "system", s_systemIcon),
             GenAIEventType.UserMessage => new BadgeDetail("User", "user", s_personIcon),
-            GenAIEventType.AssistantMessage or GenAIEventType.Choice => new BadgeDetail("Assistant", "assistant", s_personIcon),
+            GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage => new BadgeDetail("Assistant", "assistant", s_personIcon),
             GenAIEventType.ToolMessage => new BadgeDetail("Tool", "tool", s_toolIcon),
             _ => throw new InvalidOperationException("Unexpected type: " + Type)
         };

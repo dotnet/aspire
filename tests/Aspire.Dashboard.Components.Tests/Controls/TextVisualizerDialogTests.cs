@@ -58,7 +58,6 @@ public class TextVisualizerDialogTests : DashboardTestContext
         const string rawXml = """<parent><child>text<!-- comment --></child></parent>""";
         const string expectedXml =
             """
-            <?xml version="1.0" encoding="utf-16"?>
             <parent>
               <child>text<!-- comment --></child>
             </parent>
@@ -205,7 +204,7 @@ public class TextVisualizerDialogTests : DashboardTestContext
         Services.AddSingleton(themeManager);
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddLocalization();
-        var module = JSInterop.SetupModule("/Components/Dialogs/TextVisualizerDialog.razor.js");
+        var module = JSInterop.SetupModule("/Components/Controls/TextVisualizer.razor.js");
         module.SetupVoid();
 
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));

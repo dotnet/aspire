@@ -145,7 +145,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         {
             GenAIEventType.SystemMessage => "System message",
             GenAIEventType.UserMessage => "User",
-            GenAIEventType.AssistantMessage or GenAIEventType.Choice => "Assistant",
+            GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage => "Assistant",
             GenAIEventType.ToolMessage => "Tool",
             _ => string.Empty
         };

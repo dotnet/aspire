@@ -191,6 +191,7 @@ public class TextVisualizerViewModel
 
         return first switch
         {
+            '/' => true,   // Comment
             '{' => true,   // Object
             '[' => true,   // Array
             '"' => true,   // String
@@ -201,6 +202,28 @@ public class TextVisualizerViewModel
             'n' => input.AsSpan(i.Value).StartsWith("null"),  // null
             _ => false
         };
+    }
+
+    public static bool CouldBeXml(string? input)
+    {
+        if (!TrySkipLeadingWhitespace(input, out var i))
+        {
+            return false;
+        }
+
+        // XML must start with '<' after whitespace
+        if (input[i.Value] != '<')
+        {
+            return false;
+        }
+
+        // Peek ahead for common XML starts
+        var span = input.AsSpan(i.Value);
+
+        return span.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
+            || span.StartsWith("<!--", StringComparison.Ordinal)
+            || span.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase)
+            || span.Length > 1 && char.IsLetter(span[1]); // element name
     }
 
     private static bool TrySkipLeadingWhitespace([NotNullWhen(true)] string? input, [NotNullWhen(true)] out int? index)
@@ -227,28 +250,6 @@ public class TextVisualizerViewModel
         return true;
     }
 
-    public static bool CouldBeXml(string? input)
-    {
-        if (!TrySkipLeadingWhitespace(input, out var i))
-        {
-            return false;
-        }
-
-        // XML must start with '<' after whitespace
-        if (input[i.Value] != '<')
-        {
-            return false;
-        }
-
-        // Peek ahead for common XML starts
-        var span = input.AsSpan(i.Value);
-
-        return span.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
-            || span.StartsWith("<!--", StringComparison.Ordinal)
-            || span.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase)
-            || span.Length > 1 && char.IsLetter(span[1]); // element name
-    }
-
     internal void UpdateFormat(string newFormat)
     {
         if (newFormat == DashboardUIHelpers.XmlFormat)
@@ -267,7 +268,7 @@ public class TextVisualizerViewModel
         }
         else
         {
-            ChangeFormattedText(DashboardUIHelpers.MarkdownFormat, Text);
+            ChangeFormattedText(DashboardUIHelpers.PlaintextFormat, Text);
         }
     }
 }

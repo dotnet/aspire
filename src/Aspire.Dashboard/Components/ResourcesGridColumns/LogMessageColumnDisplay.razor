@@ -1,6 +1,7 @@
 ﻿@namespace Aspire.Dashboard.Components
 
 @using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model.GenAI
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -17,7 +18,7 @@
     <ContentInButtonArea>
         @if (!string.IsNullOrEmpty(LogEntry.TraceId) &&
             !string.IsNullOrEmpty(LogEntry.SpanId) &&
-            LogEntry.Attributes.GetValue("gen_ai.system") is { Length: > 0 })
+            GenAIHelpers.IsGenAISpan(LogEntry.Attributes))
         {
             <FluentButton Appearance="Appearance.Lightweight" OnClick="OnLaunchGenAIVisualizerAsync">
                 <FluentIcon Icon="Icons.Regular.Size20.BrainCircuit"

@@ -17,7 +17,6 @@ public abstract class MessagePart
     public const string ToolCallType = "tool_call";
     public const string ToolCallResponseType = "tool_call_response";
 
-    [JsonPropertyName("type")]
     public string Type { get; protected set; } = default!;
 }
 
@@ -31,7 +30,6 @@ public class TextPart : MessagePart
         Type = TextType;
     }
 
-    [JsonPropertyName("content")]
     public string? Content { get; set; } = default!;
 }
 
@@ -45,13 +43,8 @@ public class ToolCallRequestPart : MessagePart
         Type = ToolCallType;
     }
 
-    [JsonPropertyName("id")]
     public string? Id { get; set; }
-
-    [JsonPropertyName("name")]
     public string? Name { get; set; } = default!;
-
-    [JsonPropertyName("arguments")]
     public JsonNode? Arguments { get; set; }
 }
 
@@ -65,10 +58,7 @@ public class ToolCallResponsePart : MessagePart
         Type = ToolCallResponseType;
     }
 
-    [JsonPropertyName("id")]
     public string? Id { get; set; }
-
-    [JsonPropertyName("response")]
     public JsonNode? Response { get; set; } = default!;
 }
 
@@ -87,14 +77,9 @@ public class GenericPart : MessagePart
 /// </summary>
 public class ChatMessage
 {
-    [JsonPropertyName("role")]
     public string Role { get; set; } = default!;
-
-    [JsonPropertyName("parts")]
     public List<MessagePart> Parts { get; set; } = new();
-
     // Only set on output message.
-    [JsonPropertyName("finish_reason")]
     public string? FinishReason { get; set; }
 }
 
@@ -128,8 +113,11 @@ public class MessagePartConverter : JsonConverter<MessagePart>
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-[JsonSerializable(typeof(SystemOrUserEvent))]
-[JsonSerializable(typeof(AssistantEvent))]
-[JsonSerializable(typeof(ToolEvent))]
-[JsonSerializable(typeof(ChoiceEvent))]
+[JsonSerializable(typeof(MessagePart))]
+[JsonSerializable(typeof(TextPart))]
+[JsonSerializable(typeof(ToolCallRequestPart))]
+[JsonSerializable(typeof(ToolCallResponsePart))]
+[JsonSerializable(typeof(GenericPart))]
+[JsonSerializable(typeof(ChatMessage))]
+[JsonSerializable(typeof(List<ChatMessage>))]
 public sealed partial class GenAIMessagesContext : JsonSerializerContext;

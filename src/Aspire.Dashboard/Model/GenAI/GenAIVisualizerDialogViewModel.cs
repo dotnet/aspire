@@ -17,7 +17,7 @@ public enum GenAIEventType
     UserMessage,
     AssistantMessage,
     ToolMessage,
-    Choice
+    OutputMessage
 }
 
 public class GenAIVisualizerDialogViewModel
@@ -103,9 +103,41 @@ public class GenAIVisualizerDialogViewModel
         return viewModel;
     }
 
+    // The standard for recording messages has changed a number of times. Try to get messages in the following order:
+    // - Span attributes.
+    // - Log entry bodies.
+    // - Span event attributes.
     private static void CreateMessages(GenAIVisualizerDialogViewModel viewModel)
     {
         var currentIndex = 0;
+
+        var systemInstructions = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAISystemInstructions);
+        var inputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIInputMessages);
+        var outputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIOutputInstructions);
+
+        if (systemInstructions != null || inputMessages != null || outputMessages != null)
+        {
+            if (systemInstructions != null)
+            {
+                var instructionParts = JsonSerializer.Deserialize(systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, GenAIEventType.SystemMessage, instructionParts.Select(p => new GenAIMessagePartViewModel
+                {
+                    MessagePart = p,
+                    TextVisualizerViewModel = CreateMessagePartVisualizer(p)
+                }).ToList()));
+                currentIndex++;
+            }
+            if (inputMessages != null)
+            {
+                ParseMessages(viewModel, inputMessages, isOutput: false, ref currentIndex);
+            }
+            if (outputMessages != null)
+            {
+                ParseMessages(viewModel, outputMessages, isOutput: true, ref currentIndex);
+            }
+
+            return;
+        }
 
         // Attempt to get messages from log entries.
         foreach (var item in viewModel.LogEntries.OrderBy(i => i.TimeStamp))
@@ -126,8 +158,8 @@ public class GenAIVisualizerDialogViewModel
         // Attempt get get messages from span events.
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
-            if (item.Attributes.HasKey("gen_ai.system") &&
-                item.Attributes.GetValue("gen_ai.event.content") is { } content &&
+            if (GenAIHelpers.IsGenAISpan(item.Attributes) &&
+                item.Attributes.GetValue(GenAIHelpers.GenAIEventContent) is { } content &&
                 TryMapEventName(item.Name, out var type))
             {
                 var parts = DeserializeBody(type.Value, content);
@@ -135,6 +167,43 @@ public class GenAIVisualizerDialogViewModel
                 currentIndex++;
             }
         }
+    }
+
+    private static int ParseMessages(GenAIVisualizerDialogViewModel viewModel, string messages, bool isOutput, ref int currentIndex)
+    {
+        var inputParts = JsonSerializer.Deserialize(messages, GenAIMessagesContext.Default.ListChatMessage)!;
+        foreach (var msg in inputParts)
+        {
+            var parts = msg.Parts.Select(p => new GenAIMessagePartViewModel
+            {
+                MessagePart = p,
+                TextVisualizerViewModel = CreateMessagePartVisualizer(p)
+            }).ToList();
+            var type = msg.Role switch
+            {
+                "system" => GenAIEventType.SystemMessage,
+                "user" => msg.Parts.All(p => p is ToolCallResponsePart) ? GenAIEventType.ToolMessage : GenAIEventType.UserMessage,
+                "assistant" => isOutput ? GenAIEventType.OutputMessage : GenAIEventType.AssistantMessage,
+                _ => GenAIEventType.UserMessage
+            };
+            viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type, parts));
+            currentIndex++;
+        }
+
+        return currentIndex;
+    }
+
+    private static TextVisualizerViewModel CreateMessagePartVisualizer(MessagePart p)
+    {
+        var content = p switch
+        {
+            TextPart t => t.Content ?? string.Empty,
+            ToolCallRequestPart f => $"{f.Name}({f.Arguments?.ToJsonString()})",
+            ToolCallResponsePart r => r.Response?.ToJsonString() ?? string.Empty,
+            _ => string.Empty
+        };
+
+        return new TextVisualizerViewModel(content, indentText: true);
     }
 
     private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIEventType type, List<GenAIMessagePartViewModel> parts)
@@ -145,7 +214,7 @@ public class GenAIVisualizerDialogViewModel
             InternalId = null,
             Type = type,
             Parent = viewModel.Span,
-            ResourceName = type is GenAIEventType.AssistantMessage or GenAIEventType.Choice ? viewModel.PeerName! : viewModel.SourceName!,
+            ResourceName = type is GenAIEventType.AssistantMessage or GenAIEventType.OutputMessage ? viewModel.PeerName! : viewModel.SourceName!,
             MessageParts = parts
         };
     }
@@ -158,7 +227,7 @@ public class GenAIVisualizerDialogViewModel
         {
             case GenAIEventType.SystemMessage:
             case GenAIEventType.UserMessage:
-                var systemOrUserEvent = JsonSerializer.Deserialize(message, OtelContext.Default.SystemOrUserEvent)!;
+                var systemOrUserEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.SystemOrUserEvent)!;
                 messagePartViewModels.Add(new()
                 {
                     MessagePart = new TextPart { Content = systemOrUserEvent.Content },
@@ -166,11 +235,11 @@ public class GenAIVisualizerDialogViewModel
                 });
                 break;
             case GenAIEventType.AssistantMessage:
-                var assistantEvent = JsonSerializer.Deserialize(message, OtelContext.Default.AssistantEvent)!;
+                var assistantEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.AssistantEvent)!;
                 ProcessAssistantEvent(messagePartViewModels, assistantEvent);
                 break;
             case GenAIEventType.ToolMessage:
-                var toolEvent = JsonSerializer.Deserialize(message, OtelContext.Default.ToolEvent)!;
+                var toolEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ToolEvent)!;
                 var toolResponse = ProcessJsonPayload(toolEvent.Content);
                 messagePartViewModels.Add(new()
                 {
@@ -178,8 +247,8 @@ public class GenAIVisualizerDialogViewModel
                     TextVisualizerViewModel = new TextVisualizerViewModel(toolResponse?.ToJsonString() ?? string.Empty, indentText: true)
                 });
                 break;
-            case GenAIEventType.Choice:
-                var choiceEvent = JsonSerializer.Deserialize(message, OtelContext.Default.ChoiceEvent)!;
+            case GenAIEventType.OutputMessage:
+                var choiceEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ChoiceEvent)!;
                 if (choiceEvent.Message is { } m)
                 {
                     ProcessAssistantEvent(messagePartViewModels, m);
@@ -253,7 +322,7 @@ public class GenAIVisualizerDialogViewModel
             "gen_ai.user.message" => GenAIEventType.UserMessage,
             "gen_ai.assistant.message" => GenAIEventType.AssistantMessage,
             "gen_ai.tool.message" => GenAIEventType.ToolMessage,
-            "gen_ai.choice" => GenAIEventType.Choice,
+            "gen_ai.choice" => GenAIEventType.OutputMessage,
             _ => null
         };
 

@@ -49,4 +49,4 @@ public sealed class ToolCallFunction
 [JsonSerializable(typeof(AssistantEvent))]
 [JsonSerializable(typeof(ToolEvent))]
 [JsonSerializable(typeof(ChoiceEvent))]
-public sealed partial class OtelContext : JsonSerializerContext;
+public sealed partial class GenAIEventsContext : JsonSerializerContext;

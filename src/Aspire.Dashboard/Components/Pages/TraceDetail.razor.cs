@@ -6,6 +6,7 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -485,7 +486,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
     {
-        return spanViewModel.Span.Attributes.GetValue("gen_ai.system") is { Length: > 0 };
+        return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
     }
 
     private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
