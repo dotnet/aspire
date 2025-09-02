@@ -24,10 +24,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a GitHub Model resource and con
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiKey = builder.AddParameter("github-api-key", secret: true);
-
-var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
-                  .WithApiKey(apiKey);
+var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(chat);
@@ -49,10 +46,23 @@ The GitHub Model resource can be configured with the following options:
 
 ### API Key
 
-The API key can be configured using a parameter:
+The API key can be set as a configuration value using the default name `{resource_name}-gh-apikey` or the `GITHUB_TOKEN` environment variable.
+
+Then in user secrets:
+
+```json
+{
+    "Parameters": 
+    {
+        "chat-gh-apikey": "YOUR_GITHUB_TOKEN_HERE"
+    }
+}
+```
+
+Furthermore, the API key can be configured using a custom parameter:
 
 ```csharp
-var apiKey = builder.AddParameter("github-api-key", secret: true);
+var apiKey = builder.AddParameter("my-api-key", secret: true);
 var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
                   .WithApiKey(apiKey);
 ```
@@ -63,16 +73,9 @@ Then in user secrets:
 {
     "Parameters": 
     {
-        "github-api-key": "YOUR_GITHUB_TOKEN_HERE"
+        "my-api-key": "YOUR_GITHUB_TOKEN_HERE"
     }
 }
-```
-
-Or directly as a string (not recommended for production):
-
-```csharp
-var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini")
-                  .WithApiKey("your-api-key-here");
 ```
 
 ## Available Models

@@ -3,25 +3,38 @@
 
 namespace Aspire.Dashboard.Model;
 
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 internal static class ResourceIconHelpers
 {
     /// <summary>
-    /// Maps a resource to a default icon.
+    /// Maps a resource to an icon, checking for custom icons first, then falling back to default icons.
     /// </summary>
-    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize)
+    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
     {
+        // Check if the resource has a custom icon specified
+        if (!string.IsNullOrWhiteSpace(resource.IconName))
+        {
+            var customIcon = IconResolver.ResolveIconName(resource.IconName, desiredSize, resource.IconVariant ?? IconVariant.Filled);
+            if (customIcon != null)
+            {
+                return customIcon;
+            }
+        }
+
+        // Fall back to default icons based on resource type
         var icon = resource.ResourceType switch
         {
-            KnownResourceTypes.Executable => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Settings", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, IconVariant.Filled),
-            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("CloudArrowUp", desiredSize, IconVariant.Filled),
-            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, IconVariant.Filled),
-            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, IconVariant.Filled),
+            KnownResourceTypes.Executable => IconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
+            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
+            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
+            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
+            KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
+            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("GlobeArrowForward", desiredSize, desiredVariant),
+            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, desiredVariant),
+            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
         };
 
         if (icon == null)
@@ -30,5 +43,16 @@ internal static class ResourceIconHelpers
         }
 
         return icon;
+    }
+
+    public static (Icon? icon, Color color) GetHealthStatusIcon(HealthStatus? healthStatus)
+    {
+        return healthStatus switch
+        {
+            HealthStatus.Healthy => (new Icons.Filled.Size16.Heart(), Color.Success),
+            HealthStatus.Degraded => (new Icons.Filled.Size16.HeartBroken(), Color.Warning),
+            HealthStatus.Unhealthy => (new Icons.Filled.Size16.HeartBroken(), Color.Error),
+            _ => (new Icons.Regular.Size16.CircleHint(), Color.Info)
+        };
     }
 }

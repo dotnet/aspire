@@ -131,9 +131,56 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
+    public async Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
-        var spec = new ProcessSpec("docker")
+        // First check if Docker daemon is running using the same check that DCP uses
+        if (!await CheckDockerDaemonAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        // Then check if Docker buildx is available
+        return await CheckDockerBuildxAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> CheckDockerDaemonAsync(CancellationToken cancellationToken)
+    {
+        var dockerRunningSpec = new ProcessSpec("docker")
+        {
+            Arguments = "container ls -n 1",
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker container ls (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker container ls (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Checking if Docker daemon is running with arguments: {ArgumentList}", dockerRunningSpec.Arguments);
+        var (pendingDockerResult, dockerDisposable) = ProcessUtil.Run(dockerRunningSpec);
+
+        await using (dockerDisposable)
+        {
+            var dockerResult = await pendingDockerResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (dockerResult.ExitCode != 0)
+            {
+                logger.LogError("Docker daemon is not running. Exit code: {ExitCode}.", dockerResult.ExitCode);
+                return false;
+            }
+
+            logger.LogInformation("Docker daemon is running.");
+            return true;
+        }
+    }
+
+    private async Task<bool> CheckDockerBuildxAsync(CancellationToken cancellationToken)
+    {
+        var buildxSpec = new ProcessSpec("docker")
         {
             Arguments = "buildx version",
             OnOutputData = output =>
@@ -148,26 +195,21 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             InheritEnv = true
         };
 
-        logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+        logger.LogInformation("Checking Docker buildx with arguments: {ArgumentList}", buildxSpec.Arguments);
+        var (pendingBuildxResult, buildxDisposable) = ProcessUtil.Run(buildxSpec);
 
-        return CheckDockerBuildxAsync(pendingProcessResult, processDisposable, cancellationToken);
-
-        async Task<bool> CheckDockerBuildxAsync(Task<ProcessResult> pendingResult, IAsyncDisposable processDisposable, CancellationToken ct)
+        await using (buildxDisposable)
         {
-            await using (processDisposable)
+            var buildxResult = await pendingBuildxResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (buildxResult.ExitCode != 0)
             {
-                var processResult = await pendingResult.WaitAsync(ct).ConfigureAwait(false);
-
-                if (processResult.ExitCode != 0)
-                {
-                    logger.LogError("Docker buildx version failed with exit code {ExitCode}.", processResult.ExitCode);
-                    return false;
-                }
-
-                logger.LogInformation("Docker buildx is available and running.");
-                return true;
+                logger.LogError("Docker buildx version failed with exit code {ExitCode}.", buildxResult.ExitCode);
+                return false;
             }
+
+            logger.LogInformation("Docker buildx is available and running.");
+            return true;
         }
     }
 

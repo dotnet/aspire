@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -17,7 +16,7 @@ namespace Aspire.Hosting.Tests.Orchestrator;
 public class ParameterProcessorTests
 {
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParameters_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParameters_SetsRunningState()
     {
         // Arrange
         var parameterProcessor = CreateParameterProcessor();
@@ -35,12 +34,14 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsRunningState()
     {
         // Arrange
         var interactionService = CreateInteractionService(disableDashboard: false);
@@ -59,7 +60,9 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
@@ -90,8 +93,7 @@ public class ParameterProcessorTests
         // Assert
         var (resource, snapshot) = Assert.Single(updates);
         Assert.Same(secretParam, resource);
-        Assert.Equal(KnownResourceStates.Active, snapshot.State?.Text);
-        Assert.Equal(KnownResourceStateStyles.Success, snapshot.State?.Style);
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
     }
 
     [Fact]
@@ -243,17 +245,17 @@ public class ParameterProcessorTests
         Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
 
         // Notification service should have received updates for each parameter
-        // Marking them as Active with the provided values
+        // Marking them as Running with the provided values
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
         Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
     }
@@ -304,7 +306,7 @@ public class ParameterProcessorTests
         var loggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var interactionService = CreateInteractionService();
         var parameterProcessor = CreateParameterProcessor(
-            loggerService: loggerService, 
+            loggerService: loggerService,
             interactionService: interactionService);
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
 
@@ -356,7 +358,7 @@ public class ParameterProcessorTests
         var testInteractionService = new TestInteractionService();
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
         var parameterProcessor = CreateParameterProcessor(
-            notificationService: notificationService, 
+            notificationService: notificationService,
             loggerService: loggerService,
             interactionService: testInteractionService);
         var parameter = CreateParameterWithMissingValue("testParam");
@@ -389,6 +391,88 @@ public class ParameterProcessorTests
         var logEntry = logs[0];
         Assert.Contains("Parameter resource testParam has been resolved via user interaction.", logEntry.Content);
         Assert.False(logEntry.IsErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithParameterDescriptions_CreatesInputsWithDescriptions()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+
+        var param1 = CreateParameterWithMissingValue("param1");
+        param1.Description = "This is a test parameter";
+        param1.EnableDescriptionMarkdown = false;
+
+        var param2 = CreateParameterWithMissingValue("param2");
+        param2.Description = "This parameter has **markdown** formatting";
+        param2.EnableDescriptionMarkdown = true;
+
+        List<ParameterResource> parameters = [param1, param2];
+
+        foreach (var param in parameters)
+        {
+            param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert
+        Assert.Equal(3, inputsInteraction.Inputs.Count); // 2 parameters + 1 save option
+
+        var param1Input = inputsInteraction.Inputs[0];
+        Assert.Equal("param1", param1Input.Label);
+        Assert.Equal("This is a test parameter", param1Input.Description);
+        Assert.False(param1Input.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.Text, param1Input.InputType);
+
+        var param2Input = inputsInteraction.Inputs[1];
+        Assert.Equal("param2", param2Input.Label);
+        Assert.Equal("This parameter has **markdown** formatting", param2Input.Description);
+        Assert.True(param2Input.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.Text, param2Input.InputType);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WithSecretParameterWithDescription_CreatesSecretInput()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+
+        var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
+        secretParam.Description = "This is a secret parameter";
+        secretParam.EnableDescriptionMarkdown = false;
+
+        List<ParameterResource> parameters = [secretParam];
+        secretParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert
+        Assert.Equal(2, inputsInteraction.Inputs.Count); // 1 secret parameter + 1 save option
+
+        var secretInput = inputsInteraction.Inputs[0];
+        Assert.Equal("secretParam", secretInput.Label);
+        Assert.Equal("This is a secret parameter", secretInput.Description);
+        Assert.False(secretInput.EnableDescriptionMarkdown);
+        Assert.Equal(InputType.SecretText, secretInput.InputType);
     }
 
     private static ParameterProcessor CreateParameterProcessor(

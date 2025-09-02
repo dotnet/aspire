@@ -41,9 +41,9 @@
   ],
   "sources": [
     {
-      "source": "./9.3",
+      "source": "./9.4",
       "target": "./",
-      "condition": "AspireVersionActual == 9.3",
+      "condition": "AspireVersionActual == 9.4",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -60,9 +60,9 @@
       ]
     },
     {
-      "source": "./9.4",
+      "source": "./9.5",
       "target": "./",
-      "condition": "AspireVersionActual == 9.4",
+      "condition": "AspireVersionActual == 9.5",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -108,17 +108,17 @@
       "datatype": "choice",
       "choices": [
         {
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses .NET Aspire 9.5"
+        },
+        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.4"
+      "defaultValue": "9.5"
     },
     "AspireVersion": {
       "type": "parameter",
@@ -128,17 +128,17 @@
       "isEnabled": "Framework == net8.0",
       "choices": [
         {
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses .NET Aspire 9.5"
+        },
+        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.4"
+      "defaultValue": "9.5"
     },
     "AspireVersionNet9": {
       "type": "parameter",
@@ -148,17 +148,17 @@
       "isEnabled": "Framework == net9.0",
       "choices": [
         {
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses .NET Aspire 9.5"
+        },
+        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
-        },
-        {
-          "choice": "9.3",
-          "displayName": "9.3",
-          "description": "Chooses .NET Aspire 9.3"
         }
       ],
-      "defaultValue": "9.4"
+      "defaultValue": "9.5"
     },
     "AspireVersionNet10": {
       "type": "parameter",
@@ -168,12 +168,17 @@
       "isEnabled": "Framework == net10.0",
       "choices": [
         {
+          "choice": "9.5",
+          "displayName": "9.5",
+          "description": "Chooses .NET Aspire 9.5"
+        },
+        {
           "choice": "9.4",
           "displayName": "9.4",
           "description": "Chooses .NET Aspire 9.4"
         }
       ],
-      "defaultValue": "9.4"
+      "defaultValue": "9.5"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -182,20 +187,20 @@
       "parameters": {
         "cases": [
           {
-            "condition": "AspireVersionCli == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionCli == 9.4",
+            "value": "9.4"
           },
           {
-            "condition": "AspireVersion == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersion == 9.4",
+            "value": "9.4"
           },
           {
-            "condition": "AspireVersionNet9 == 9.3",
-            "value": "9.3"
+            "condition": "AspireVersionNet9 == 9.4",
+            "value": "9.4"
           },
           {
             "condition": "",
-            "value": "9.4"
+            "value": "9.5"
           }
         ]
       }

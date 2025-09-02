@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine.Parsing;
-using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -34,12 +34,15 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, features, updateNotifier)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;
     }
+
+    protected override string OperationCompletedPrefix => PublishCommandStrings.OperationCompletedPrefix;
+    protected override string OperationFailedPrefix => PublishCommandStrings.OperationFailedPrefix;
 
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 
@@ -47,10 +50,6 @@ internal sealed class PublishCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens) =>
         ["--operation", "publish", "--publisher", "default", "--output-path", fullyQualifiedOutputPath, ..unmatchedTokens];
-
-    protected override string GetSuccessMessage(string fullyQualifiedOutputPath) => string.Format(CultureInfo.CurrentCulture, PublishCommandStrings.SuccessfullyPublishedArtifacts, fullyQualifiedOutputPath);
-
-    protected override string GetFailureMessage(int exitCode) => string.Format(CultureInfo.CurrentCulture, PublishCommandStrings.FailedToPublishArtifacts, exitCode);
 
     protected override string GetCanceledMessage() => InteractionServiceStrings.OperationCancelled;
 

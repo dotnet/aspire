@@ -7,7 +7,7 @@
 <div class="structured-log-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.ApplicationView.Application.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.ResourceView.Resource.ResourceName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, ViewModel.LogEntry.TimeStamp, MillisecondsDisplay.Full)">
@@ -30,7 +30,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsContextHeader)]" Expanded="true">
                 <div slot="end">
@@ -41,7 +42,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             @if (_exceptionAttributes.Count > 0)
             {
@@ -66,7 +68,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
         </FluentAccordion>
     </div>

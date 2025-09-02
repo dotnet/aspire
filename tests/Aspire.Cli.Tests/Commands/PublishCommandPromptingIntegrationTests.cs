@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Xunit;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -62,7 +62,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("production", completedPrompt.Answers[0]);
+        Assert.Equal("production", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("secret-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("SecurePassword123!", completedPrompt.Answers[0]);
+        Assert.Equal("SecurePassword123!", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("choice-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("us-east-1", completedPrompt.Answers[0]);
+        Assert.Equal("us-east-1", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("bool-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("true", completedPrompt.Answers[0]);
+        Assert.Equal("true", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("number-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("3", completedPrompt.Answers[0]);
+        Assert.Equal("3", completedPrompt.Answers[0].Value);
     }
 
     [Fact]
@@ -322,13 +322,13 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Equal(3, promptBackchannel.CompletedPrompts.Count);
 
         Assert.Equal("text-prompt-1", promptBackchannel.CompletedPrompts[0].PromptId);
-        Assert.Equal("MyTestApp", promptBackchannel.CompletedPrompts[0].Answers[0]);
+        Assert.Equal("MyTestApp", promptBackchannel.CompletedPrompts[0].Answers[0].Value);
 
         Assert.Equal("choice-prompt-1", promptBackchannel.CompletedPrompts[1].PromptId);
-        Assert.Equal("prod", promptBackchannel.CompletedPrompts[1].Answers[0]);
+        Assert.Equal("prod", promptBackchannel.CompletedPrompts[1].Answers[0].Value);
 
         Assert.Equal("bool-prompt-1", promptBackchannel.CompletedPrompts[2].PromptId);
-        Assert.Equal("true", promptBackchannel.CompletedPrompts[2].Answers[0]);
+        Assert.Equal("true", promptBackchannel.CompletedPrompts[2].Answers[0].Value);
     }
 
     [Fact]
@@ -409,10 +409,10 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("multi-input-prompt-1", completedPrompt.PromptId);
         Assert.Equal(4, completedPrompt.Answers.Length);
-        Assert.Equal("Server=localhost;Database=MyApp;", completedPrompt.Answers[0]);
-        Assert.Equal("secret-api-key-12345", completedPrompt.Answers[1]);
-        Assert.Equal("staging", completedPrompt.Answers[2]);
-        Assert.Equal("true", completedPrompt.Answers[3]);
+        Assert.Equal("Server=localhost;Database=MyApp;", completedPrompt.Answers[0].Value);
+        Assert.Equal("secret-api-key-12345", completedPrompt.Answers[1].Value);
+        Assert.Equal("staging", completedPrompt.Answers[2].Value);
+        Assert.Equal("true", completedPrompt.Answers[3].Value);
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("development", completedPrompt.Answers[0]);
+        Assert.Equal("development", completedPrompt.Answers[0].Value);
 
         // Verify that the PromptForStringAsync was called with the default value
         var promptCalls = consoleService.StringPromptCalls;
@@ -513,13 +513,59 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptBackchannel.CompletedPrompts);
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("text-prompt-1", completedPrompt.PromptId);
-        Assert.Equal("development", completedPrompt.Answers[0]);
+        Assert.Equal("development", completedPrompt.Answers[0].Value);
 
         // Verify that the PromptForStringAsync was called with the default value
         var promptCalls = consoleService.StringPromptCalls;
         Assert.Single(promptCalls);
         var displayedError = Assert.Single(consoleService.DisplayedErrors);
         Assert.Equal("Environment name must be at least 3 characters long.", displayedError);
+    }
+
+    [Fact]
+    public async Task PublishCommand_MarkdownPromptText_ConvertsToSpectreMarkup()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt with markdown in the activity status text
+        promptBackchannel.AddPrompt("markdown-prompt-1", "Config Value", InputTypes.Text, "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("test-value");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was received
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+
+        // Verify that the prompt text was converted from markdown to Spectre markup
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+
+        // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
+        // should be converted to Spectre markup with URL instead of text
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
+        Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
     private static TestDotNetCliRunner CreateTestRunnerWithPromptBackchannel(TestPromptBackchannel promptBackchannel)
@@ -596,7 +642,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                     Id = prompt.PromptId,
                     StatusText = prompt.Inputs.Count > 1
                         ? prompt.Title ?? prompt.Message
-                        : prompt.Inputs[0].Label,
+                        : prompt.Message,
                     CompletionState = CompletionStates.InProgress,
                     StepId = "publish-step",
                     Inputs = inputs
@@ -609,7 +655,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         _completionSource.SetResult();
     }
 
-    public Task CompletePromptResponseAsync(string promptId, string?[] answers, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
         CompletedPrompts.Add(new PromptCompletion(promptId, answers));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
@@ -622,10 +668,15 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     }
 
     // Default implementations for other interface methods
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken) => Task.FromResult(timestamp);
     public Task RequestStopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<(string, string?)>(("http://localhost:5000", null));
+    public Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new DashboardUrlsState
+        {
+            DashboardHealthy = true,
+            BaseUrlWithLoginToken = "http://localhost:5000",
+            CodespacesUrlWithLoginToken = null
+        });
+
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
@@ -644,12 +695,17 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         await Task.CompletedTask; // Suppress CS1998
         yield break;
     }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        // No-op for test implementation
+    }
 }
 
 // Data structures for tracking prompts
 internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
-internal sealed record PromptCompletion(string PromptId, string?[] Answers);
+internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers);
 
 // Enhanced TestConsoleInteractionService that tracks interaction types
 [SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]
@@ -657,12 +713,12 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 {
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
-    
+
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
     public List<string> DisplayedErrors { get; } = [];
-    
+
     public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
     public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
     public void SetupBooleanResponse(bool response) => _responses.Enqueue((response.ToString().ToLower(), ResponseType.Boolean));
@@ -679,7 +735,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         StringPromptCalls.Add(new StringPromptCall(promptText, defaultValue, isSecret));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();
@@ -716,7 +772,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();
@@ -738,11 +794,11 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message) { }
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
 

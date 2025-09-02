@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting;
@@ -80,21 +82,21 @@ public interface IInteractionService
     /// <param name="options">Optional configuration for the input dialog interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// An <see cref="InteractionResult{T}"/> containing the user's inputs.
+    /// An <see cref="InteractionResult{T}"/> containing the user's inputs as an <see cref="InteractionInputCollection"/>.
     /// </returns>
-    Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Prompts the user with a message bar notification.
+    /// Prompts the user with a notification.
     /// </summary>
-    /// <param name="title">The title of the message bar.</param>
-    /// <param name="message">The message to display in the message bar.</param>
-    /// <param name="options">Optional configuration for the message bar interaction.</param>
+    /// <param name="title">The title of the notification.</param>
+    /// <param name="message">The message to display in the notification.</param>
+    /// <param name="options">Optional configuration for the notification interaction.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
     /// An <see cref="InteractionResult{T}"/> containing <c>true</c> if the user accepted, <c>false</c> otherwise.
     /// </returns>
-    Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default);
+    Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -104,9 +106,27 @@ public interface IInteractionService
 public sealed class InteractionInput
 {
     /// <summary>
-    /// Gets or sets the label for the input.
+    /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// </summary>
-    public required string Label { get; init; }
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the label for the input. If not specified, the name will be used as the label.
+    /// </summary>
+    public string? Label { get; init; }
+
+    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
+
+    /// <summary>
+    /// Gets or sets the description for the input.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the description should be rendered as Markdown.
+    /// Setting this to <c>true</c> allows a description to contain Markdown elements such as links, text decoration and lists.
+    /// </summary>
+    public bool EnableDescriptionMarkdown { get; init; }
 
     /// <summary>
     /// Gets or sets the type of the input.
@@ -133,7 +153,126 @@ public sealed class InteractionInput
     /// </summary>
     public string? Placeholder { get; set; }
 
+    /// <summary>
+    /// gets or sets the maximum length for text inputs.
+    /// </summary>
+    public int? MaxLength
+    {
+        get => field;
+        set
+        {
+            if (value is { } v)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(v, 0);
+            }
+
+            field = value;
+        }
+    }
+
     internal List<string> ValidationErrors { get; } = [];
+}
+
+/// <summary>
+/// A collection of interaction inputs that supports both indexed and name-based access.
+/// </summary>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Count = {Count}")]
+public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
+{
+    private readonly IReadOnlyList<InteractionInput> _inputs;
+    private readonly IReadOnlyDictionary<string, InteractionInput> _inputsByName;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InteractionInputCollection"/> class.
+    /// </summary>
+    /// <param name="inputs">The collection of interaction inputs to wrap.</param>
+    public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
+    {
+        var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Check for duplicate names
+        foreach (var input in inputs)
+        {
+            if (!usedNames.Add(input.Name))
+            {
+                throw new InvalidOperationException($"Duplicate input name '{input.Name}' found. Input names must be unique.");
+            }
+            inputsByName[input.Name] = input;
+        }
+
+        _inputs = inputs;
+        _inputsByName = inputsByName;
+    }
+
+    /// <summary>
+    /// Gets an input by its name.
+    /// </summary>
+    /// <param name="name">The name of the input.</param>
+    /// <returns>The input with the specified name.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when no input with the specified name exists.</exception>
+    public InteractionInput this[string name]
+    {
+        get
+        {
+            if (_inputsByName.TryGetValue(name, out var input))
+            {
+                return input;
+            }
+            throw new KeyNotFoundException($"No input with name '{name}' was found.");
+        }
+    }
+
+    /// <summary>
+    /// Gets an input by its index.
+    /// </summary>
+    /// <param name="index">The zero-based index of the input.</param>
+    /// <returns>The input at the specified index.</returns>
+    public InteractionInput this[int index] => _inputs[index];
+
+    /// <summary>
+    /// Gets the number of inputs in the collection.
+    /// </summary>
+    public int Count => _inputs.Count;
+
+    /// <summary>
+    /// Tries to get an input by its name.
+    /// </summary>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="input">When this method returns, contains the input with the specified name, if found; otherwise, null.</param>
+    /// <returns>true if an input with the specified name was found; otherwise, false.</returns>
+    public bool TryGetByName(string name, [NotNullWhen(true)] out InteractionInput? input)
+    {
+        return _inputsByName.TryGetValue(name, out input);
+    }
+
+    /// <summary>
+    /// Determines whether the collection contains an input with the specified name.
+    /// </summary>
+    /// <param name="name">The name to locate in the collection.</param>
+    /// <returns>true if the collection contains an input with the specified name; otherwise, false.</returns>
+    public bool ContainsName(string name)
+    {
+        return _inputsByName.ContainsKey(name);
+    }
+
+    /// <summary>
+    /// Gets the names of all inputs in the collection.
+    /// </summary>
+    public IEnumerable<string> Names => _inputsByName.Keys;
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    public IEnumerator<InteractionInput> GetEnumerator() => _inputs.GetEnumerator();
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    IEnumerator IEnumerable.GetEnumerator() => _inputs.GetEnumerator();
 }
 
 /// <summary>
@@ -189,7 +328,7 @@ public sealed class InputsDialogValidationContext
     /// <summary>
     /// Gets the inputs that are being validated.
     /// </summary>
-    public required IReadOnlyList<InteractionInput> Inputs { get; init; }
+    public required InteractionInputCollection Inputs { get; init; }
 
     /// <summary>
     /// Gets the cancellation token for the validation operation.
@@ -235,25 +374,25 @@ public class MessageBoxInteractionOptions : InteractionOptions
 }
 
 /// <summary>
-/// Options for configuring a message bar interaction.
+/// Options for configuring a notification interaction.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class MessageBarInteractionOptions : InteractionOptions
+public class NotificationInteractionOptions : InteractionOptions
 {
-    internal static MessageBarInteractionOptions CreateDefault() => new();
+    internal static NotificationInteractionOptions CreateDefault() => new();
 
     /// <summary>
-    /// Gets or sets the intent of the message bar.
+    /// Gets or sets the intent of the notification.
     /// </summary>
     public MessageIntent? Intent { get; set; }
 
     /// <summary>
-    /// Gets or sets the text for a link in the message bar.
+    /// Gets or sets the text for a link in the notification.
     /// </summary>
     public string? LinkText { get; set; }
 
     /// <summary>
-    /// Gets or sets the URL for the link in the message bar.
+    /// Gets or sets the URL for the link in the notification.
     /// </summary>
     public string? LinkUrl { get; set; }
 }
@@ -314,7 +453,7 @@ public class InteractionOptions
     public bool? ShowSecondaryButton { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether show the dismiss button in the header.
+    /// Gets or sets a value indicating whether show the dismiss button.
     /// </summary>
     public bool? ShowDismiss { get; set; }
 

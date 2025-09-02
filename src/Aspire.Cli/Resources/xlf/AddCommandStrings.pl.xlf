@@ -77,6 +77,11 @@
         <target state="translated">Znaleziono nieoczekiwaną liczbę pakietów.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">Korzystanie z pakietów w wersji wstępnej</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">Wersja integracji do dodania.</target>

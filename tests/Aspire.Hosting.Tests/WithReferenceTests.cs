@@ -4,7 +4,6 @@
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -303,6 +302,16 @@ public class WithReferenceTests
 
         Assert.True(resource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var csRelationships));
         Assert.Collection(csRelationships,
+            r =>
+            {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(endpoint.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(key.Resource, r.Resource);
+            },
             r =>
             {
                 Assert.Equal("Reference", r.Type);

@@ -2,9 +2,24 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="new">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="translated">正在連接到主控處理程序...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">儀表板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Aspire 儀表板啟動失敗。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -15,6 +30,11 @@
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">端點</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="new">To view AppHost logs in real-time, switch to the AppHost Debug Console.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -34,7 +54,7 @@
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
         <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
-        <target state="needs-review-translation">按 [bold]Ctrl+C[/] 以停止應用程式主機並結束。</target>
+        <target state="translated">按 [bold]CTRL+C[/] 停止 apphost 並結束。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -52,14 +72,19 @@
         <target state="translated">資源</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="new">Whether to start a debug session during the run.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
         <target state="translated">正在啟動 Aspire 應用程式主機...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">正在啟動 Aspire 儀表板...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">正在啟動儀表板...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

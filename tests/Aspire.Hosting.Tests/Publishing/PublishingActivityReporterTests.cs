@@ -9,7 +9,6 @@ using Aspire.Hosting.Publishing;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
@@ -287,7 +286,7 @@ public class PublishingActivityReporterTests
         var reporter = new PublishingActivityReporter(_interactionService);
 
         // Act
-        await reporter.CompletePublishAsync(null, completionState, CancellationToken.None);
+        await reporter.CompletePublishAsync(null, completionState, isDeploy: false, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -308,7 +307,7 @@ public class PublishingActivityReporterTests
         var expectedStatusText = "Some error occurred";
 
         // Act
-        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, CancellationToken.None);
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: false, CancellationToken.None);
 
         // Assert
         var activityReader = reporter.ActivityItemUpdated.Reader;
@@ -348,7 +347,7 @@ public class PublishingActivityReporterTests
         while (activityReader.TryRead(out _)) { }
 
         // Act - Complete publish without specifying state (should aggregate)
-        await reporter.CompletePublishAsync(cancellationToken: CancellationToken.None);
+        await reporter.CompletePublishAsync(isDeploy: false, cancellationToken: CancellationToken.None);
 
         // Assert
         Assert.True(activityReader.TryRead(out var activity));
@@ -482,7 +481,7 @@ public class PublishingActivityReporterTests
         Assert.Equal("text-label", input.Label);
         Assert.Equal("Text", input.InputType);
 
-        var responses = new string[] { "user-response" };
+        var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
         await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None).DefaultTimeout();
@@ -491,6 +490,46 @@ public class PublishingActivityReporterTests
         var promptResult = await promptTask.DefaultTimeout();
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
+    }
+
+    [Fact]
+    public async Task PromptNotificationAsync_EmitsCorrectActivityAndHandlesCompletion()
+    {
+        // Arrange
+        var reporter = new PublishingActivityReporter(_interactionService);
+        var notificationOptions = new NotificationInteractionOptions
+        {
+            Intent = MessageIntent.Information,
+            LinkText = "Learn more",
+            LinkUrl = "https://example.com"
+        };
+
+        // Start a notification interaction
+        var notificationTask = _interactionService.PromptNotificationAsync("Test Notification", "This is a test notification message", notificationOptions);
+
+        // Get the interaction ID from the activity that was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var notificationId = activity.Data.Id;
+
+        // Assert that notification get mapped to confirmation prompts
+        Assert.Equal(PublishingActivityTypes.Prompt, activity.Type);
+        Assert.Equal("This is a test notification message", activity.Data.StatusText);
+        Assert.Equal(CompletionStates.InProgress, activity.Data.CompletionState);
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("Confirm", input.Label);
+        Assert.Equal("Boolean", input.InputType);
+        Assert.True(input.Required);
+
+        // Act - Complete the notification with a true response
+        PublishingPromptInputAnswer[] responses = [new() { Value = "true" }];
+        await reporter.CompleteInteractionAsync(notificationId, responses, CancellationToken.None).DefaultTimeout();
+
+        // The notification task should complete with the user's response
+        var notificationResult = await notificationTask.DefaultTimeout();
+        Assert.False(notificationResult.Canceled);
+        Assert.True(notificationResult.Data);
     }
 
     [Fact]
@@ -661,6 +700,49 @@ public class PublishingActivityReporterTests
         Assert.True(activity.Data.IsError);
         Assert.False(activity.Data.IsWarning);
         Assert.Equal(completionMessage, activity.Data.CompletionMessage);
+    }
+
+    [Theory]
+    [InlineData(CompletionState.Completed, "Deployment completed successfully", false)]
+    [InlineData(CompletionState.CompletedWithError, "Deployment completed with errors", true)]
+    [InlineData(CompletionState.CompletedWithWarning, "Deployment completed with warnings", false)]
+    public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
+    {
+        // Arrange
+        var reporter = new PublishingActivityReporter(_interactionService);
+
+        // Act
+        await reporter.CompletePublishAsync(null, completionState, isDeploy: true, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Data.Id);
+        Assert.Equal(expectedStatusText, activity.Data.StatusText);
+        Assert.True(activity.Data.IsComplete);
+        Assert.Equal(expectedIsError, activity.Data.IsError);
+        Assert.Equal(completionState == CompletionState.CompletedWithWarning, activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity_WithCompletionMessage()
+    {
+        // Arrange
+        var reporter = new PublishingActivityReporter(_interactionService);
+        var expectedStatusText = "Some deployment error occurred";
+
+        // Act
+        await reporter.CompletePublishAsync(expectedStatusText, CompletionState.CompletedWithError, isDeploy: true, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Type);
+        Assert.Equal(PublishingActivityTypes.PublishComplete, activity.Data.Id);
+        Assert.Equal(expectedStatusText, activity.Data.StatusText);
+        Assert.True(activity.Data.IsComplete);
+        Assert.True(activity.Data.IsError);
     }
 
     internal static InteractionService CreateInteractionService()

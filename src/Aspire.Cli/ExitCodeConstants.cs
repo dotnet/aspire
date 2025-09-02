@@ -16,4 +16,8 @@ internal static class ExitCodeConstants
     public const int FailedToTrustCertificates = 8;
     public const int AppHostIncompatible = 9;
     public const int ConfigNotFound = 10;
+    public const int SdkNotInstalled = 11;
+    public const int DashboardFailure = 12;
+    public const int FailedToUpgradeProject = 13;
+    public const int CentralPackageManagementNotSupported = 14;
 }

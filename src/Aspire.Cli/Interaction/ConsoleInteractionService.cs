@@ -17,15 +17,25 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
 
     private readonly IAnsiConsole _ansiConsole;
+    private readonly CliExecutionContext _executionContext;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
+        ArgumentNullException.ThrowIfNull(executionContext);
         _ansiConsole = ansiConsole;
+        _executionContext = executionContext;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        // In debug mode, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode)
+        {
+            DisplaySubtleMessage(statusText);
+            return await action();
+        }
+        
         return await _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .StartAsync(statusText, (context) => action());
@@ -33,6 +43,14 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
+        // In debug mode, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode)
+        {
+            DisplaySubtleMessage(statusText);
+            action();
+            return;
+        }
+        
         _ansiConsole.Status()
             .Spinner(Spinner.Known.Dots3)
             .Start(statusText, (context) => action());
@@ -51,6 +69,7 @@ internal class ConsoleInteractionService : IInteractionService
         {
             prompt.DefaultValue(defaultValue);
             prompt.ShowDefaultValue();
+            prompt.DefaultValueStyle(new Style(Color.Fuchsia));
         }
 
         if (validator is not null)
@@ -99,7 +118,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayError(string errorMessage)
     {
-        DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+        DisplayMessage("cross_mark", $"[red bold]{errorMessage.EscapeMarkup()}[/]");
     }
 
     public void DisplayMessage(string emoji, string message)
@@ -110,6 +129,12 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayPlainText(string message)
     {
         _ansiConsole.WriteLine(message);
+    }
+
+    public void DisplayMarkdown(string markdown)
+    {
+        var spectreMarkup = MarkdownToSpectreConverter.ConvertToSpectre(markdown);
+        _ansiConsole.MarkupLine(spectreMarkup);
     }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
@@ -130,25 +155,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySuccess(string message)
     {
-        DisplayMessage("thumbs_up", message);
-    }
-
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
-    {
-        _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[green bold]{InteractionServiceStrings.Dashboard}[/]:");
-        if (dashboardUrls.CodespacesUrlWithLoginToken is not null)
-        {
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.DirectLink}: [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-            _ansiConsole.MarkupLine(
-                $":chart_increasing:  {InteractionServiceStrings.CodespacesLink}: [link={dashboardUrls.CodespacesUrlWithLoginToken}]{dashboardUrls.CodespacesUrlWithLoginToken}[/]");
-        }
-        else
-        {
-            _ansiConsole.MarkupLine($":chart_increasing:  [link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]");
-        }
-        _ansiConsole.WriteLine();
+        DisplayMessage("check_mark", message);
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
@@ -157,11 +164,11 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _ansiConsole.MarkupLineInterpolated($"{line}");
+                _ansiConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
             else
             {
-                _ansiConsole.MarkupLineInterpolated($"[red]{line}[/]");
+                _ansiConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
@@ -180,7 +187,7 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
-        _ansiConsole.MarkupLine($"[dim]{message}[/]");
+        _ansiConsole.MarkupLine($"[dim]{message.EscapeMarkup()}[/]");
     }
 
     public void DisplayEmptyLine()
@@ -193,8 +200,8 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine($"[yellow]A new version of the Aspire CLI is available: {newerVersion}[/]");
-        _ansiConsole.MarkupLine($"[dim]For more information, see: [link]{UpdateUrl}[/][/]");
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
         _ansiConsole.WriteLine();
     }
 }

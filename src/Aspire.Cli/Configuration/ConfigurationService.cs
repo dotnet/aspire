@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationService(IConfiguration configuration, DirectoryInfo currentDirectory, FileInfo globalSettingsFile) : IConfigurationService
+internal sealed class ConfigurationService(IConfiguration configuration, CliExecutionContext executionContext, FileInfo globalSettingsFile) : IConfigurationService
 {
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -93,7 +93,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, Directo
 
     private string FindNearestSettingsFile()
     {
-        var searchDirectory = currentDirectory;
+        var searchDirectory = executionContext.WorkingDirectory;
 
         // Walk up the directory tree to find existing settings file
         while (searchDirectory is not null)
@@ -109,7 +109,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, Directo
         }
 
         // If no existing settings file found, create one in current directory
-        return ConfigurationHelper.BuildPathToSettingsJsonFile(currentDirectory.FullName);
+        return ConfigurationHelper.BuildPathToSettingsJsonFile(executionContext.WorkingDirectory.FullName);
     }
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)

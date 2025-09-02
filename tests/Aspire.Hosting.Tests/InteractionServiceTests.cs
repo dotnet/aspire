@@ -5,7 +5,6 @@ using System.Threading.Channels;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -166,17 +165,17 @@ public class InteractionServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => interactionService.PromptMessageBarAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+            () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
     }
 
     [Fact]
-    public async Task PromptInputAsync_InvalidData()
+    public async Task PromptInputAsync_ValidationCallbackInvalidData_ReturnErrors()
     {
         var interactionService = CreateInteractionService();
 
-        var input = new InteractionInput { Label = "Value", InputType = InputType.Text, };
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Text, };
         var resultTask = interactionService.PromptInputAsync(
             "Please provide", "please",
             input,
@@ -194,10 +193,518 @@ public class InteractionServiceTests
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new [] { input } });
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
 
         // The interaction should still be in progress due to validation error
-        Assert.False(interaction.CompletionTcs.Task.IsCompleted); 
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(
+            input.ValidationErrors,
+            error => Assert.Equal("Invalid value", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_MissingRequiredData_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Text, Required = true };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value is required.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_ChoiceHasNonOptionValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Choice, Options = [KeyValuePair.Create("first", "First option!"), KeyValuePair.Create("second", "Second option!")] };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "not-in-options";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be one of the provided options.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_NumberHasNonNumberValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Number };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "one";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be a valid number.", error));
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_BooleanHasNonBooleanValue_ReturnErrors()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Boolean };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "maybe";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        // The interaction should still be in progress due to invalid data
+        Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+        Assert.Collection(input.ValidationErrors,
+            error => Assert.Equal("Value must be a valid boolean.", error));
+    }
+
+    [Theory]
+    [InlineData(InputType.Text, null)]
+    [InlineData(InputType.Text, 1)]
+    [InlineData(InputType.Text, 10)]
+    [InlineData(InputType.Text, InteractionHelpers.DefaultMaxLength)]
+    [InlineData(InputType.SecretText, 10)]
+    public async Task PromptInputsAsync_TextExceedsLimit_ReturnErrors(InputType inputType, int? maxLength)
+    {
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: true);
+        await TextExceedsLimitCoreAsync(inputType, maxLength, success: false);
+
+        static async Task TextExceedsLimitCoreAsync(InputType inputType, int? maxLength, bool success)
+        {
+            var interactionService = CreateInteractionService();
+
+            var input = new InteractionInput { Name = "Value", Label = "Value", InputType = inputType, MaxLength = maxLength };
+            var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+            var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+            var resolvedMaxLength = InteractionHelpers.GetMaxLength(maxLength);
+
+            input.Value = new string('!', success ? resolvedMaxLength : resolvedMaxLength + 1);
+            await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+            if (!success)
+            {
+                // The interaction should still be in progress due to invalid data
+                Assert.False(interaction.CompletionTcs.Task.IsCompleted);
+
+                Assert.Collection(input.ValidationErrors,
+                    error => Assert.Equal($"Value length exceeds {resolvedMaxLength} characters.", error));
+            }
+            else
+            {
+                Assert.True(interaction.CompletionTcs.Task.IsCompletedSuccessfully);
+            }
+        }
+    }
+
+    [Fact]
+    public void InteractionInput_WithDescription_SetsProperties()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Name = "TestLabel",
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "Test description",
+            EnableDescriptionMarkdown = false
+        };
+
+        // Assert
+        Assert.Equal("Test Label", input.Label);
+        Assert.Equal(InputType.Text, input.InputType);
+        Assert.Equal("Test description", input.Description);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void InteractionInput_WithMarkdownDescription_SetsMarkupFlag()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Name = "TestLabel",
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = "**Bold** description",
+            EnableDescriptionMarkdown = true
+        };
+
+        // Assert
+        Assert.Equal("**Bold** description", input.Description);
+        Assert.True(input.EnableDescriptionMarkdown);
+    }
+
+    [Fact]
+    public void InteractionInput_WithNullDescription_AllowsNullValue()
+    {
+        // Arrange & Act
+        var input = new InteractionInput
+        {
+            Name = "TestLabel",
+            Label = "Test Label",
+            InputType = InputType.Text,
+            Description = null,
+            EnableDescriptionMarkdown = false
+        };
+
+        // Assert
+        Assert.Null(input.Description);
+        Assert.False(input.EnableDescriptionMarkdown);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(1, false)]
+    [InlineData(int.MaxValue, false)]
+    [InlineData(0, true)]
+    [InlineData(-1, true)]
+    [InlineData(int.MinValue, true)]
+    public void InteractionInput_WithLengths_ErrorOnInvalid(int? length, bool invalid)
+    {
+        // Arrange & Act
+        if (invalid)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => SetLength(length));
+        }
+        else
+        {
+            SetLength(length);
+        }
+
+        static void SetLength(int? length)
+        {
+            var input = new InteractionInput
+            {
+                Name = "TestLabel",
+                Label = "Test Label",
+                InputType = InputType.Text,
+                MaxLength = length
+            };
+        }
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithExplicitNames_AccessibleByName()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Username", Label = "Username", InputType = InputType.Text },
+            new InteractionInput { Name = "Password", Label = "Password", InputType = InputType.SecretText },
+            new InteractionInput { Name = "RememberMe", Label = "Remember Me", InputType = InputType.Boolean }
+        };
+
+        // Act
+        var collection = new InteractionInputCollection(inputs);
+
+        // Assert
+        Assert.Equal(3, collection.Count);
+        Assert.Equal("Username", collection["Username"].Label);
+        Assert.Equal("Password", collection["Password"].Label);
+        Assert.Equal("Remember Me", collection["RememberMe"].Label);
+
+        // Check names collection
+        Assert.Contains("Username", collection.Names);
+        Assert.Contains("Password", collection.Names);
+        Assert.Contains("RememberMe", collection.Names);
+
+        // Check TryGetByName
+        Assert.True(collection.TryGetByName("Username", out var usernameInput));
+        Assert.Equal("Username", usernameInput.Label);
+
+        Assert.False(collection.TryGetByName("NonExistent", out var nonExistentInput));
+        Assert.Null(nonExistentInput);
+
+        Assert.True(collection.TryGetByName("RememberMe", out _));
+        Assert.False(collection.TryGetByName("Remember Me", out _));
+
+        // Check ContainsName
+        Assert.True(collection.ContainsName("Username"));
+        Assert.False(collection.ContainsName("NonExistent"));
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithNames_AccessibleByName()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "UserName", Label = "User Name", InputType = InputType.Text },
+            new InteractionInput { Name = "EmailAddress", Label = "Email Address", InputType = InputType.Text },
+            new InteractionInput { Name = "Age", InputType = InputType.Number }
+        };
+
+        // Act
+        var collection = new InteractionInputCollection(inputs);
+
+        // Assert
+        Assert.Equal(3, collection.Count);
+        
+        // Names should be accessible
+        Assert.True(collection.ContainsName("UserName"));
+        Assert.True(collection.ContainsName("EmailAddress"));
+        Assert.True(collection.ContainsName("Age"));
+        
+        // Check that names are accessible
+        Assert.Equal("User Name", collection["UserName"].Label);
+        Assert.Equal("Email Address", collection["EmailAddress"].Label);
+        Assert.Null(collection["Age"].Label); // No label specified, should use EffectiveLabel
+        Assert.Equal("Age", collection["Age"].EffectiveLabel);
+        
+        // Check that the original inputs still work by index
+        Assert.Equal("User Name", collection[0].Label);
+        Assert.Equal("Email Address", collection[1].Label);
+        Assert.Null(collection[2].Label);
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithMixedNames_HandlesCorrectly()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "ExplicitName", Label = "Explicit", InputType = InputType.Text },
+            new InteractionInput { Name = "GeneratedLabel", Label = "Generated Label", InputType = InputType.Text },
+            new InteractionInput { Name = "AnotherExplicit", Label = "Another", InputType = InputType.Text }
+        };
+
+        // Act
+        var collection = new InteractionInputCollection(inputs);
+
+        // Assert
+        Assert.Equal(3, collection.Count);
+        
+        // All names should work
+        Assert.Equal("Explicit", collection["ExplicitName"].Label);
+        Assert.Equal("Another", collection["AnotherExplicit"].Label);
+        Assert.Equal("Generated Label", collection["GeneratedLabel"].Label);
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithDuplicateNames_ThrowsException()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Duplicate", Label = "First", InputType = InputType.Text },
+            new InteractionInput { Name = "Duplicate", Label = "Second", InputType = InputType.Text }
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new InteractionInputCollection(inputs));
+        Assert.Contains("Duplicate input name 'Duplicate' found", exception.Message);
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithCaseInsensitiveNames_ThrowsException()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Username", Label = "First", InputType = InputType.Text },
+            new InteractionInput { Name = "USERNAME", Label = "Second", InputType = InputType.Text }
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new InteractionInputCollection(inputs));
+        Assert.Contains("Duplicate input name 'USERNAME' found", exception.Message);
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithUniqueNames_WorksCorrectly()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Input1", InputType = InputType.Text },
+            new InteractionInput { Name = "Input2", InputType = InputType.Text },
+            new InteractionInput { Name = "Input3", InputType = InputType.Text }
+        };
+
+        // Act
+        var collection = new InteractionInputCollection(inputs);
+
+        // Assert
+        Assert.Equal(3, collection.Count);
+        
+        // All names should be accessible
+        Assert.True(collection.ContainsName("Input1"));
+        Assert.True(collection.ContainsName("Input2"));
+        Assert.True(collection.ContainsName("Input3"));
+        
+        // All should be accessible by their names
+        Assert.NotNull(collection["Input1"]);
+        Assert.NotNull(collection["Input2"]);
+        Assert.NotNull(collection["Input3"]);
+        
+        // All should use name as effective label since no label is specified
+        Assert.Equal("Input1", collection["Input1"].EffectiveLabel);
+        Assert.Equal("Input2", collection["Input2"].EffectiveLabel);
+        Assert.Equal("Input3", collection["Input3"].EffectiveLabel);
+    }
+
+    [Fact]
+    public void InteractionInputCollection_WithValidNamesAndLabels_WorksCorrectly()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "SpecialInput", Label = "!@#$%^&*()", InputType = InputType.Text },
+            new InteractionInput { Name = "EmptyLabel", Label = "", InputType = InputType.Text },
+            new InteractionInput { Name = "WhitespaceLabel", Label = "   ", InputType = InputType.Text }
+        };
+
+        // Act
+        var collection = new InteractionInputCollection(inputs);
+
+        // Assert
+        Assert.Equal(3, collection.Count);
+        
+        // All names should be accessible
+        Assert.True(collection.Names.All(name => !string.IsNullOrWhiteSpace(name)));
+        
+        // All inputs should be accessible by their names
+        foreach (var name in collection.Names)
+        {
+            Assert.NotNull(collection[name]);
+        }
+        
+        // Labels should be preserved as specified, effective labels should fall back to names
+        Assert.Equal("!@#$%^&*()", collection["SpecialInput"].Label);
+        Assert.Equal("!@#$%^&*()", collection["SpecialInput"].EffectiveLabel);
+        
+        Assert.Equal("", collection["EmptyLabel"].Label);
+        Assert.Equal("EmptyLabel", collection["EmptyLabel"].EffectiveLabel); // Falls back to name
+        
+        Assert.Equal("   ", collection["WhitespaceLabel"].Label);
+        Assert.Equal("WhitespaceLabel", collection["WhitespaceLabel"].EffectiveLabel); // Falls back to name
+    }
+
+    [Fact]
+    public void InteractionInputCollection_AccessByInvalidName_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Valid", Label = "Valid", InputType = InputType.Text }
+        };
+        var collection = new InteractionInputCollection(inputs);
+
+        // Act & Assert
+        var exception = Assert.Throws<KeyNotFoundException>(() => collection["Invalid"]);
+        Assert.Contains("No input with name 'Invalid' was found", exception.Message);
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_WithNamedInputs_ReturnsNamedCollection()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService();
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Username", Label = "Username", InputType = InputType.Text },
+            new InteractionInput { Name = "Password", Label = "Password", InputType = InputType.SecretText }
+        };
+
+        // Act
+        var resultTask = interactionService.PromptInputsAsync("Login", "Please enter credentials", inputs);
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+        
+        // Set values and complete
+        inputs[0].Value = "testuser";
+        inputs[1].Value = "testpass";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, 
+            new InteractionCompletionState { Complete = true, State = inputs });
+
+        var result = await resultTask.DefaultTimeout();
+
+        // Assert
+        Assert.False(result.Canceled);
+        Assert.NotNull(result.Data);
+        
+        var resultCollection = result.Data;
+        Assert.Equal(2, resultCollection.Count);
+        
+        // Should be accessible by name
+        Assert.Equal("testuser", resultCollection["Username"].Value);
+        Assert.Equal("testpass", resultCollection["Password"].Value);
+        
+        // Should also be accessible by index for backward compatibility
+        Assert.Equal("testuser", resultCollection[0].Value);
+        Assert.Equal("testpass", resultCollection[1].Value);
+    }
+
+    [Fact]
+    public async Task ValidationContext_WithNamedInputs_AllowsNameAccess()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService();
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Email", Label = "Email", InputType = InputType.Text, Required = true },
+            new InteractionInput { Name = "Age", Label = "Age", InputType = InputType.Number, Required = true }
+        };
+        
+        var validationCalled = false;
+        var options = new InputsDialogInteractionOptions
+        {
+            ValidationCallback = context =>
+            {
+                validationCalled = true;
+                
+                // Should be able to access by name
+                Assert.True(context.Inputs.ContainsName("Email"));
+                Assert.True(context.Inputs.ContainsName("Age"));
+                
+                var emailInput = context.Inputs["Email"];
+                var ageInput = context.Inputs["Age"];
+                
+                Assert.Equal("Email", emailInput.Label);
+                Assert.Equal("Age", ageInput.Label);
+                
+                return Task.CompletedTask;
+            }
+        };
+
+        // Act
+        var resultTask = interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs, options);
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+        
+        inputs[0].Value = "test@example.com";
+        inputs[1].Value = "25";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, 
+            new InteractionCompletionState { Complete = true, State = inputs });
+
+        var result = await resultTask.DefaultTimeout();
+
+        // Assert
+        Assert.True(validationCalled);
+        Assert.False(result.Canceled);
     }
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)

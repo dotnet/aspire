@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
-        <target state="new">Don't wrap log lines</target>
+        <target state="translated">Günlük satırlarını sarmalama</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -52,19 +52,14 @@
         <target state="translated">&lt;Günlük yakalama, {0} ile {1} arasında duraklatıldı, {2} günlük filtrelendi&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Kaynak eylemleri</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Kaynak seç</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Konsol günlük ayarları</target>
+        <source>Settings</source>
+        <target state="translated">Ayarlar</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">
@@ -94,7 +89,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsWrapLogs">
         <source>Wrap log lines</source>
-        <target state="new">Wrap log lines</target>
+        <target state="translated">Günlük satırlarını sarmala</target>
         <note />
       </trans-unit>
       <trans-unit id="DownloadLogs">

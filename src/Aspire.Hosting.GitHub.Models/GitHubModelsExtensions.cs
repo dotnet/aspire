@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.GitHub;
 using Aspire.Hosting.GitHub.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -27,19 +28,75 @@ public static class GitHubModelsExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(model);
 
-        var resource = new GitHubModelResource(name, model, organization?.Resource);
+        var defaultApiKeyParameter = builder.AddParameter($"{name}-gh-apikey", () =>
+            builder.Configuration[$"Parameters:{name}-gh-apikey"] ??
+            Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
+            throw new MissingParameterValueException($"GitHub API key parameter '{name}-gh-apikey' is missing and GITHUB_TOKEN environment variable is not set."),
+            secret: true);
+        defaultApiKeyParameter.Resource.Description = """
+            The API key used to authenticate requests to the GitHub Models API.
+            A [fine-grained personal access token](https://github.com/settings/tokens) with the `models: read` scope is recommended.
+            See [GitHub documentation for more details](https://docs.github.com/en/rest/models/inference).
+            """;
+        defaultApiKeyParameter.Resource.EnableDescriptionMarkdown = true;
+        var resource = new GitHubModelResource(name, model, organization?.Resource, defaultApiKeyParameter.Resource);
+
+        defaultApiKeyParameter.WithParentRelationship(resource);
 
         return builder.AddResource(resource)
             .WithInitialState(new()
             {
                 ResourceType = "GitHubModel",
                 CreationTimeStamp = DateTime.UtcNow,
-                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success),
+                State = KnownResourceStates.Waiting,
                 Properties =
-                    [
-                        new(CustomResourceKnownProperties.Source, "GitHub Models")
-                    ]
+                [
+                    new(CustomResourceKnownProperties.Source, "GitHub Models")
+                ]
+            })
+            .OnInitializeResource(async (r, evt, ct) =>
+            {
+                // Connection string resolution is dependent on parameters being resolved
+                // We use this to wait for the parameters to be resolved before we can compute the connection string.
+                var cs = await r.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+                // Publish the update with the connection string value and the state as running.
+                // This will allow health checks to start running.
+                await evt.Notifications.PublishUpdateAsync(r, s => s with
+                {
+                    State = KnownResourceStates.Running,
+                    Properties = [.. s.Properties, new(CustomResourceKnownProperties.ConnectionString, cs) { IsSensitive = true }]
+                }).ConfigureAwait(false);
+
+                // Publish the connection string available event for other resources that may depend on this resource.
+                await evt.Eventing.PublishAsync(new ConnectionStringAvailableEvent(r, evt.Services), ct)
+                                  .ConfigureAwait(false);
             });
+    }
+
+    /// <summary>
+    /// Adds a GitHub Model resource to the application model using a <see cref="GitHubModel"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="model">The model descriptor, using the <see cref="GitHubModel"/> class like so: <code lang="csharp">builder.AddGitHubModel(name: "chat", model: GitHubModel.Microsoft.Phi3MediumInstruct)</code></param>
+    /// <param name="organization">The organization login associated with the organization to which the request is to be attributed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a GitHub Model resource for the Microsoft Phi-3 Medium Instruct model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var githubModel = builder.AddGitHubModel("chat", GitHubModel.Microsoft.Phi3MediumInstruct);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<GitHubModelResource> AddGitHubModel(this IDistributedApplicationBuilder builder, [ResourceName] string name, GitHubModel model, IResourceBuilder<ParameterResource>? organization = null)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        return AddGitHubModel(builder, name, model.Id, organization);
     }
 
     /// <summary>
@@ -48,10 +105,22 @@ public static class GitHubModelsExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="apiKey">The API key parameter.</param>
     /// <returns>The resource builder.</returns>
+    /// <exception cref="ArgumentException">Thrown when the provided parameter is not marked as secret.</exception>
     public static IResourceBuilder<GitHubModelResource> WithApiKey(this IResourceBuilder<GitHubModelResource> builder, IResourceBuilder<ParameterResource> apiKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(apiKey);
+
+        if (!apiKey.Resource.Secret)
+        {
+            throw new ArgumentException("The API key parameter must be marked as secret. Use AddParameter with secret: true when creating the parameter.", nameof(apiKey));
+        }
+
+        // Remove the existing parameter if it's the default one
+        if (builder.Resource.DefaultKeyParameter == builder.Resource.Key)
+        {
+            builder.ApplicationBuilder.Resources.Remove(builder.Resource.Key);
+        }
 
         builder.Resource.Key = apiKey.Resource;
 
@@ -86,6 +155,9 @@ public static class GitHubModelsExtensions
         var healthCheckKey = $"{builder.Resource.Name}_check";
         GitHubModelsHealthCheck? healthCheck = null;
 
+        // Ensure IHttpClientFactory is available by registering HTTP client services
+        builder.ApplicationBuilder.Services.AddHttpClient();
+
         // Register the health check
         builder.ApplicationBuilder.Services.AddHealthChecks()
             .Add(new HealthCheckRegistration(
@@ -94,7 +166,7 @@ public static class GitHubModelsExtensions
                 {
                     // Cache the health check instance so we can reuse its result in order to avoid multiple API calls
                     // that would exhaust the rate limit.
-                    
+
                     if (healthCheck is not null)
                     {
                         return healthCheck;

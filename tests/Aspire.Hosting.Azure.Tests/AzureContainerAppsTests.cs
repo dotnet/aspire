@@ -275,7 +275,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").AddBlobService("blobs");
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -352,7 +352,7 @@ public class AzureContainerAppsTests
 
         var rawCs = builder.AddConnectionString("cs");
 
-        var blob = builder.AddAzureStorage("storage").AddBlobService("blobs");
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
         // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
@@ -423,10 +423,12 @@ public class AzureContainerAppsTests
 
         var secret = builder.AddParameter("secret", secret: true);
         var kv = builder.AddAzureKeyVault("kv");
+        var existingKv = builder.AddAzureKeyVault("existingKv").PublishAsExisting("existingKvName", "existingRgName");
 
         builder.AddContainer("api", "myimage")
                .WithEnvironment("TOP_SECRET", secret)
-                .WithEnvironment("TOP_SECRET2", kv.Resource.GetSecret("secret"));
+               .WithEnvironment("TOP_SECRET2", kv.GetSecret("secret"))
+               .WithEnvironment("EXISTING_TOP_SECRET", existingKv.GetSecret("secret"));
 
         using var app = builder.Build();
 
@@ -670,8 +672,15 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb").WithAccessKeyAuthentication();
         db.AddCosmosDatabase("db");
 
+        var kvName = builder.AddParameter("kvName");
+        var sharedRg = builder.AddParameter("sharedRg");
+
+        var existingKv = builder.AddAzureKeyVault("existingKv")
+                                .PublishAsExisting(kvName, sharedRg);
+
         builder.AddContainer("api", "image")
-            .WithReference(db);
+            .WithReference(db)
+            .WithEnvironment("SECRET_VALUE", existingKv.GetSecret("secret"));
 
         using var app = builder.Build();
 
@@ -924,7 +933,7 @@ public class AzureContainerAppsTests
 
         var storage = builder.AddAzureStorage("storage")
             .PublishAsExisting(storageName, storageRG);
-        var blobs = storage.AddBlobService("blobs");
+        var blobs = storage.AddBlobs("blobs");
 
         builder.AddProject<Project>("api", launchProfileName: null)
                .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);

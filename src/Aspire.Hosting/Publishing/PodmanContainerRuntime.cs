@@ -97,14 +97,14 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
     {
         var spec = new ProcessSpec("podman")
         {
-            Arguments = "info",
+            Arguments = "container ls -n 1",
             OnOutputData = output =>
             {
-                logger.LogInformation("podman info (stdout): {Output}", output);
+                logger.LogInformation("podman container ls (stdout): {Output}", output);
             },
             OnErrorData = error =>
             {
-                logger.LogInformation("podman info (stderr): {Error}", error);
+                logger.LogInformation("podman container ls (stderr): {Error}", error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
@@ -123,7 +123,7 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
 
                 if (processResult.ExitCode != 0)
                 {
-                    logger.LogError("Podman info failed with exit code {ExitCode}.", processResult.ExitCode);
+                    logger.LogError("Podman container ls failed with exit code {ExitCode}.", processResult.ExitCode);
                     return false;
                 }
 

@@ -4,13 +4,14 @@
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -88,12 +89,18 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
     }
 
     [Fact]
     public async Task RunCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
 
             // Fake apphost information to return a compatable app host.
@@ -135,6 +142,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -142,6 +154,15 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+        }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new List<FileInfo>
+            {
+                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
+                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
+            });
         }
     }
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -175,10 +196,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
 
             return backchannel;
-            
+
         };
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
 
             // Fake the certificate check to always succeed
@@ -193,7 +215,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             // public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<AppHostBackchannel>? backchannelCompletionSource, CancellationToken cancellationToken)
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
-                // Make a backchannel and return it, but don't return from the run call until the backchannel 
+                // Make a backchannel and return it, but don't return from the run call until the backchannel
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
 
@@ -207,7 +229,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         };
 
         var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -234,7 +256,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     public async Task RunCommand_WithNoResources_CompletesSuccessfully()
     {
         var getResourceStatesAsyncCalled = new TaskCompletionSource();
-        var backchannelFactory = (IServiceProvider sp) => {
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
             var backchannel = new TestAppHostBackchannel();
 
             // Return empty resources using an empty enumerable
@@ -243,12 +266,13 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return backchannel;
         };
 
-        var runnerFactory = (IServiceProvider sp) => {
+        var runnerFactory = (IServiceProvider sp) =>
+        {
             var runner = new TestDotNetCliRunner();
             runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
             runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
             runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
-            
+
             runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
             {
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
@@ -261,7 +285,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         };
 
         var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -282,5 +306,170 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await pendingRun.WaitAsync(CliTestConstants.LongTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenDashboardFailsToStart_ReturnsNonZeroExitCodeWithClearErrorMessage()
+    {
+        var errorMessages = new List<string>();
+
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
+            var backchannel = new TestAppHostBackchannel();
+            // Configure the backchannel to throw DashboardStartupException when GetDashboardUrlsAsync is called
+            backchannel.GetDashboardUrlsAsyncCallback = (ct) =>
+            {
+                return Task.FromResult(new DashboardUrlsState
+                {
+                    DashboardHealthy = false,
+                    BaseUrlWithLoginToken = null,
+                    CodespacesUrlWithLoginToken = null
+                });
+            };
+            return backchannel;
+        };
+
+        var runnerFactory = (IServiceProvider sp) =>
+        {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+            // Fake apphost information to return a compatible app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            // Configure the runner to establish a backchannel but simulate dashboard failure
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                // Set up the backchannel
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+
+                // Just simulate the process running until the user cancels.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.DisplayErrorCallback = errorMessages.Add;
+                return interactionService;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert that the command returns the expected failure exit code
+        Assert.Equal(ExitCodeConstants.DashboardFailure, exitCode);
+    }
+
+    [Fact]
+    public async Task AppHostHelper_BuildAppHostAsync_IncludesRelativePathInStatusMessage()
+    {
+        var testInteractionService = new TestConsoleInteractionService();
+        testInteractionService.ShowStatusCallback = (statusText) =>
+        {
+            Assert.Contains(
+                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                statusText);
+        };
+
+        var testRunner = new TestDotNetCliRunner();
+        testRunner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostDirectoryPath = Path.Combine(workspace.WorkspaceRoot.FullName, "src", "MyApp.AppHost");
+        var appHostDirectory = Directory.CreateDirectory(appHostDirectoryPath);
+        var appHostProjectPath = Path.Combine(appHostDirectory.FullName, "MyApp.AppHost.csproj");
+        var appHostProjectFile = new FileInfo(appHostProjectPath);
+        File.WriteAllText(appHostProjectFile.FullName, "<Project></Project>");
+
+        var options = new DotNetCliRunnerInvocationOptions();
+        await AppHostHelper.BuildAppHostAsync(testRunner, testInteractionService, appHostProjectFile, options, workspace.WorkspaceRoot, CancellationToken.None);
+    }
+
+    [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11169")]
+    public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
+    {
+        var buildCalled = false;
+
+        var extensionBackchannel = new TestExtensionBackchannel();
+        extensionBackchannel.GetCapabilitiesAsyncCallback = ct => Task.FromResult(new[] { "devkit" });
+
+        var appHostBackchannel = new TestAppHostBackchannel();
+        appHostBackchannel.GetDashboardUrlsAsyncCallback = (ct) => Task.FromResult(new DashboardUrlsState
+        {
+            DashboardHealthy = true,
+            BaseUrlWithLoginToken = "http://localhost/dashboard",
+            CodespacesUrlWithLoginToken = null
+        });
+        appHostBackchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+
+        var backchannelFactory = (IServiceProvider sp) => appHostBackchannel;
+
+        var extensionInteractionServiceFactory = (IServiceProvider sp) => new TestExtensionInteractionService(sp);
+
+        var runnerFactory = (IServiceProvider sp) => {
+            var runner = new TestDotNetCliRunner();
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+            runner.BuildAsyncCallback = (projectFile, options, ct) => {
+                buildCalled = true;
+                return 0;
+            };
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) => {
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+                return 0;
+            };
+            return runner;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.ExtensionBackchannelFactory = _ => extensionBackchannel;
+            options.InteractionServiceFactory = extensionInteractionServiceFactory;
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        var pendingRun = result.InvokeAsync(cts.Token);
+        cts.Cancel();
+        var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+        Assert.False(buildCalled, "Build should be skipped when extension DevKit capability is available.");
     }
 }

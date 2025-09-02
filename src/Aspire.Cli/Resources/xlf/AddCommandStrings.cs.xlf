@@ -77,6 +77,11 @@
         <target state="translated">Byl nalezen neočekávaný počet balíčků.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UsePrereleasePackages">
+        <source>Use pre-release packages</source>
+        <target state="translated">Použít balíčky v předběžné verzi</target>
+        <note />
+      </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add.</source>
         <target state="translated">Verze integrace, která se má přidat</target>

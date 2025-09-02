@@ -3,6 +3,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -73,7 +74,7 @@ internal class InteractionService : IInteractionService
 
     public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
+        return await PromptInputAsync(title, message, new InteractionInput { Name = inputLabel, InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -87,7 +88,7 @@ internal class InteractionService : IInteractionService
         return InteractionResult.Ok(result.Data[0]);
     }
 
-    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
@@ -95,7 +96,10 @@ internal class InteractionService : IInteractionService
 
         options ??= InputsDialogInteractionOptions.Default;
 
-        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputs), cancellationToken);
+        // Create the collection early to validate names and generate missing ones
+        var inputCollection = new InteractionInputCollection(inputs);
+
+        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -103,19 +107,19 @@ internal class InteractionService : IInteractionService
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         var inputState = completion.State as IReadOnlyList<InteractionInput>;
         return inputState == null
-            ? InteractionResult.Cancel<IReadOnlyList<InteractionInput>>()
-            : InteractionResult.Ok(inputState);
+            ? InteractionResult.Cancel<InteractionInputCollection>()
+            : InteractionResult.Ok(new InteractionInputCollection(inputState));
     }
 
-    public async Task<InteractionResult<bool>> PromptMessageBarAsync(string title, string message, MessageBarInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        options ??= MessageBarInteractionOptions.CreateDefault();
+        options ??= NotificationInteractionOptions.CreateDefault();
 
-        var newState = new Interaction(title, message, options, new Interaction.MessageBarInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), cancellationToken);
+        var newState = new Interaction(title, message, options, new Interaction.NotificationInteractionInfo(intent: options.Intent ?? MessageIntent.None, linkText: options.LinkText, linkUrl: options.LinkUrl), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -234,25 +238,77 @@ internal class InteractionService : IInteractionService
             // State could be null if the user dismissed the inputs dialog. There is nothing to validate in this situation.
             if (result.State is IReadOnlyList<InteractionInput> inputs)
             {
-                var options = (InputsDialogInteractionOptions)interactionState.Options;
-
-                if (options.ValidationCallback is { } validationCallback)
+                foreach (var input in inputs)
                 {
-                    foreach (var input in inputs)
-                    {
-                        input.ValidationErrors.Clear();
-                    }
-
-                    var context = new InputsDialogValidationContext
-                    {
-                        CancellationToken = cancellationToken,
-                        ServiceProvider = _serviceProvider,
-                        Inputs = inputsInfo.Inputs
-                    };
-                    await validationCallback(context).ConfigureAwait(false);
-
-                    return !context.HasErrors;
+                    input.ValidationErrors.Clear();
                 }
+
+                var context = new InputsDialogValidationContext
+                {
+                    CancellationToken = cancellationToken,
+                    ServiceProvider = _serviceProvider,
+                    Inputs = inputsInfo.Inputs
+                };
+
+                foreach (var input in inputs)
+                {
+                    var value = input.Value = input.Value?.Trim();
+
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        if (input.Required)
+                        {
+                            context.AddValidationError(input, "Value is required.");
+                        }
+                    }
+                    else
+                    {
+                        switch (input.InputType)
+                        {
+                            case InputType.Text:
+                            case InputType.SecretText:
+                                var maxLength = InteractionHelpers.GetMaxLength(input.MaxLength);
+
+                                if (value.Length > maxLength)
+                                {
+                                    context.AddValidationError(input, $"Value length exceeds {maxLength} characters.");
+                                }
+                                break;
+                            case InputType.Choice:
+                                if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                {
+                                    context.AddValidationError(input, "Value must be one of the provided options.");
+                                }
+                                break;
+                            case InputType.Boolean:
+                                if (!bool.TryParse(value, out _))
+                                {
+                                    context.AddValidationError(input, "Value must be a valid boolean.");
+                                }
+                                break;
+                            case InputType.Number:
+                                if (!int.TryParse(value, CultureInfo.InvariantCulture, out _))
+                                {
+                                    context.AddValidationError(input, "Value must be a valid number.");
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                // Only run validation callback if there are no data validation errors.
+                if (!context.HasErrors)
+                {
+                    var options = (InputsDialogInteractionOptions)interactionState.Options;
+                    if (options.ValidationCallback is { } validationCallback)
+                    {
+                        await validationCallback(context).ConfigureAwait(false);
+                    }
+                }
+
+                return !context.HasErrors;
             }
         }
 
@@ -364,9 +420,9 @@ internal class Interaction
         public MessageIntent Intent { get; }
     }
 
-    internal sealed class MessageBarInteractionInfo : InteractionInfoBase
+    internal sealed class NotificationInteractionInfo : InteractionInfoBase
     {
-        public MessageBarInteractionInfo(MessageIntent intent, string? linkText, string? linkUrl)
+        public NotificationInteractionInfo(MessageIntent intent, string? linkText, string? linkUrl)
         {
             Intent = intent;
             LinkText = linkText;
@@ -380,12 +436,12 @@ internal class Interaction
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase
     {
-        public InputsInteractionInfo(IReadOnlyList<InteractionInput> inputs)
+        public InputsInteractionInfo(InteractionInputCollection inputs)
         {
             Inputs = inputs;
         }
 
-        public IReadOnlyList<InteractionInput> Inputs { get; }
+        public InteractionInputCollection Inputs { get; }
     }
 }
 

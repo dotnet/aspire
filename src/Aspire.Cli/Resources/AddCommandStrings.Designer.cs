@@ -9,135 +9,183 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class AddCommandStrings {
-        
+    public class AddCommandStrings
+    {
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal AddCommandStrings() {
+        internal AddCommandStrings()
+        {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static System.Resources.ResourceManager ResourceManager {
-            get {
-                if (object.Equals(null, resourceMan)) {
+        public static System.Resources.ResourceManager ResourceManager
+        {
+            get
+            {
+                if (object.Equals(null, resourceMan))
+                {
                     System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.AddCommandStrings", typeof(AddCommandStrings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        public static System.Globalization.CultureInfo Culture {
-            get {
+        public static System.Globalization.CultureInfo Culture
+        {
+            get
+            {
                 return resourceCulture;
             }
-            set {
+            set
+            {
                 resourceCulture = value;
             }
         }
-        
-        public static string Description {
-            get {
+
+        public static string Description
+        {
+            get
+            {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
-        public static string IntegrationArgumentDescription {
-            get {
+
+        public static string IntegrationArgumentDescription
+        {
+            get
+            {
                 return ResourceManager.GetString("IntegrationArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string ProjectArgumentDescription {
-            get {
+
+        public static string ProjectArgumentDescription
+        {
+            get
+            {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string VersionArgumentDescription {
-            get {
+
+        public static string VersionArgumentDescription
+        {
+            get
+            {
                 return ResourceManager.GetString("VersionArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string SourceArgumentDescription {
-            get {
+
+        public static string SourceArgumentDescription
+        {
+            get
+            {
                 return ResourceManager.GetString("SourceArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string SearchingForAspirePackages {
-            get {
+
+        public static string SearchingForAspirePackages
+        {
+            get
+            {
                 return ResourceManager.GetString("SearchingForAspirePackages", resourceCulture);
             }
         }
-        
-        public static string NoIntegrationPackagesFound {
-            get {
+
+        public static string NoIntegrationPackagesFound
+        {
+            get
+            {
                 return ResourceManager.GetString("NoIntegrationPackagesFound", resourceCulture);
             }
         }
-        
-        public static string NoPackagesFound {
-            get {
+
+        public static string NoPackagesFound
+        {
+            get
+            {
                 return ResourceManager.GetString("NoPackagesFound", resourceCulture);
             }
         }
-        
-        public static string UnexpectedNumberOfPackagesFound {
-            get {
+
+        public static string UnexpectedNumberOfPackagesFound
+        {
+            get
+            {
                 return ResourceManager.GetString("UnexpectedNumberOfPackagesFound", resourceCulture);
             }
         }
-        
-        public static string AddingAspireIntegration {
-            get {
+
+        public static string AddingAspireIntegration
+        {
+            get
+            {
                 return ResourceManager.GetString("AddingAspireIntegration", resourceCulture);
             }
         }
-        
-        public static string PackageInstallationFailed {
-            get {
+
+        public static string PackageInstallationFailed
+        {
+            get
+            {
                 return ResourceManager.GetString("PackageInstallationFailed", resourceCulture);
             }
         }
-        
-        public static string PackageAddedSuccessfully {
-            get {
+
+        public static string PackageAddedSuccessfully
+        {
+            get
+            {
                 return ResourceManager.GetString("PackageAddedSuccessfully", resourceCulture);
             }
         }
-        
-        public static string ErrorOccurredWhileAddingPackage {
-            get {
+
+        public static string ErrorOccurredWhileAddingPackage
+        {
+            get
+            {
                 return ResourceManager.GetString("ErrorOccurredWhileAddingPackage", resourceCulture);
             }
         }
-        
-        public static string SelectAVersionOfPackage {
-            get {
+
+        public static string SelectAVersionOfPackage
+        {
+            get
+            {
                 return ResourceManager.GetString("SelectAVersionOfPackage", resourceCulture);
             }
         }
-        
-        public static string SelectAnIntegrationToAdd {
-            get {
+
+        public static string SelectAnIntegrationToAdd
+        {
+            get
+            {
                 return ResourceManager.GetString("SelectAnIntegrationToAdd", resourceCulture);
             }
         }
-        
-        public static string NoPackagesMatchedSearchTerm {
-            get {
+
+        public static string NoPackagesMatchedSearchTerm
+        {
+            get
+            {
                 return ResourceManager.GetString("NoPackagesMatchedSearchTerm", resourceCulture);
+            }
+        }
+
+        public static string UsePrereleasePackages
+        {
+            get
+            {
+                return ResourceManager.GetString("UsePrereleasePackages", resourceCulture);
             }
         }
     }

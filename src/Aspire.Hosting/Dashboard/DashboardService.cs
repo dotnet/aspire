@@ -98,17 +98,17 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             change.MessageBox = new InteractionMessageBox();
                             change.MessageBox.Intent = MapMessageIntent(messageBox.Intent);
                         }
-                        else if (interaction.InteractionInfo is MessageBarInteractionInfo messageBar)
+                        else if (interaction.InteractionInfo is NotificationInteractionInfo notification)
                         {
-                            change.MessageBar = new InteractionMessageBar();
-                            change.MessageBar.Intent = MapMessageIntent(messageBar.Intent);
-                            if (messageBar.LinkText != null)
+                            change.Notification = new InteractionNotification();
+                            change.Notification.Intent = MapMessageIntent(notification.Intent);
+                            if (notification.LinkText != null)
                             {
-                                change.MessageBar.LinkText = messageBar.LinkText;
+                                change.Notification.LinkText = notification.LinkText;
                             }
-                            if (messageBar.LinkUrl != null)
+                            if (notification.LinkUrl != null)
                             {
-                                change.MessageBar.LinkUrl = messageBar.LinkUrl;
+                                change.Notification.LinkUrl = notification.LinkUrl;
                             }
                         }
                         else if (interaction.InteractionInfo is InputsInteractionInfo inputs)
@@ -122,9 +122,14 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required
                                 };
-                                if (input.Label != null)
+                                if (input.EffectiveLabel != null)
                                 {
-                                    dto.Label = input.Label;
+                                    dto.Label = input.EffectiveLabel;
+                                }
+                                if (input.Description != null)
+                                {
+                                    dto.Description = input.Description;
+                                    dto.EnableDescriptionMarkdown = input.EnableDescriptionMarkdown;
                                 }
                                 if (input.Placeholder != null)
                                 {
@@ -137,6 +142,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.MaxLength != null)
+                                {
+                                    dto.MaxLength = input.MaxLength.Value;
                                 }
                                 dto.ValidationErrors.AddRange(input.ValidationErrors);
                                 return dto;
