@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.CommandLine;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.RegularExpressions;
 
 //
 // QuarantineTools – high-level overview
@@ -132,6 +133,9 @@ public class Program
             .GroupBy(t => t.Method, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.Select(t => t.PathPartsBeforeMethod).ToList(), StringComparer.Ordinal);
 
+        // Build a single regex to prefilter files by method name (avoids N x Contains)
+        var methodNamePrefilterRegex = BuildAnyMethodNameRegex(targetsByMethod.Keys);
+
         // Gather candidate source files under tests, ignoring build outputs and common heavy folders
         var csFiles = EnumerateCsFiles(testsRoot).ToList();
 
@@ -140,6 +144,8 @@ public class Program
 
         // Prep attribute handling based on configuration
         PrepareAttributeHandling(attributeFullName, out var attributeNameToInsert, out var attributeNamespaceToEnsure, out var isTargetAttribute);
+        // Build a regex to quickly detect the attribute textually in files
+        var attributePrefilterRegex = BuildAttributeRegex(attributeNamespaceToEnsure, attributeNameToInsert);
 
         // Parallel parse each file asynchronously, identify target methods, then add/remove attributes
         await Parallel.ForEachAsync(
@@ -173,17 +179,16 @@ public class Program
 
                     if (unquarantine)
                     {
-                        // If attribute short name isn't present textually, skip.
-                        if (!ContainsAttributeHint(text, attributeNamespaceToEnsure, attributeNameToInsert))
+                        // If attribute isn't present textually (regex), skip.
+                        if (!attributePrefilterRegex.IsMatch(text))
                         {
                             return;
                         }
                     }
                     else if (quarantine) // quarantine
                     {
-                        // If none of the target method names appear, skip.
-                        var anyMethodNamePresent = targetsByMethod.Keys.Any(m => text.Contains(m, StringComparison.Ordinal));
-                        if (!anyMethodNamePresent)
+                        // If none of the target method names appear (regex), skip.
+                        if (!methodNamePrefilterRegex.IsMatch(text))
                         {
                             return;
                         }
@@ -378,26 +383,45 @@ public class Program
     }
 
     /// <summary>
-    /// Heuristic: determine if file text may contain the attribute we're targeting.
-    /// Checks both short and fully-qualified names if available.
+    /// Builds a compiled regex that matches any appearance of the configured attribute name in text, including:
+    /// - short name (e.g., QuarantinedTest)
+    /// - with Attribute suffix (e.g., QuarantinedTestAttribute)
+    /// - fully-qualified with namespace if provided (e.g., Aspire.TestUtilities.QuarantinedTest[Attribute])
+    /// Word boundaries are enforced to avoid partial matches.
     /// </summary>
-    private static bool ContainsAttributeHint(string text, string? attributeNamespace, string attributeShortName)
+    private static Regex BuildAttributeRegex(string? attributeNamespace, string attributeShortName)
     {
-        if (text.Contains(attributeShortName, StringComparison.Ordinal) ||
-            text.Contains(attributeShortName + "Attribute", StringComparison.Ordinal))
+        var variants = new List<string>
         {
-            return true;
-        }
+            Regex.Escape(attributeShortName),
+            Regex.Escape(attributeShortName + "Attribute")
+        };
+
         if (!string.IsNullOrEmpty(attributeNamespace))
         {
-            var fq = attributeNamespace + "." + attributeShortName;
-            if (text.Contains(fq, StringComparison.Ordinal) ||
-                text.Contains(fq + "Attribute", StringComparison.Ordinal))
-            {
-                return true;
-            }
+            variants.Add(Regex.Escape(attributeNamespace + "." + attributeShortName));
+            variants.Add(Regex.Escape(attributeNamespace + "." + attributeShortName + "Attribute"));
         }
-        return false;
+
+        // Use alternation with word boundaries
+        var pattern = $"\\b(?:{string.Join("|", variants.Distinct(StringComparer.Ordinal))})\\b";
+        return new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
+    }
+
+    /// <summary>
+    /// Builds a compiled regex that matches any of the provided method names as whole words.
+    /// Intended for fast prefiltering of files before Roslyn parsing.
+    /// </summary>
+    private static Regex BuildAnyMethodNameRegex(IEnumerable<string> methodNames)
+    {
+        var alts = methodNames
+            .Where(n => !string.IsNullOrEmpty(n))
+            .Select(Regex.Escape)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var pattern = alts.Length == 0 ? "(?!)" : $"\\b(?:{string.Join("|", alts)})\\b";
+        return new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
     }
 
     /// <summary>
