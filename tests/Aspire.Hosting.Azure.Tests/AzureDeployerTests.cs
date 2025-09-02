@@ -411,17 +411,31 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", notificationInteraction.Message);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
         // Wait for the parameter inputs interaction
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the parameter input
+        // Verify the parameter input (should include save to secrets option)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
                 Assert.Equal("test-param", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.Equal("Enter value for test-param", input.Placeholder);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -431,7 +445,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
 
-        var setValue = await param.Resource.WaitForValueTcs!.Task;
+        var setValue = await param.Resource.GetValueAsync(default);
         Assert.Equal("test-value", setValue);
     }
 
@@ -482,11 +496,18 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
         // Wait for the parameter inputs interaction
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the custom input generator is respected
+        // Verify the custom input generator is respected (should include save to secrets option)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
@@ -496,6 +517,12 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 Assert.Equal(InputType.Number, input.InputType);
                 Assert.Equal("8080", input.Placeholder);
                 Assert.False(input.EnableDescriptionMarkdown);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -505,7 +532,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
 
-        var setValue = await param.Resource.WaitForValueTcs!.Task;
+        var setValue = await param.Resource.GetValueAsync(default);
         Assert.Equal("9090", setValue);
     }
 

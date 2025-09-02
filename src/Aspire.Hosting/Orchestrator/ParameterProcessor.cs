@@ -3,6 +3,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
@@ -14,7 +15,8 @@ namespace Aspire.Hosting.Orchestrator;
 /// <summary>
 /// Handles processing of parameter resources during application orchestration.
 /// </summary>
-internal sealed class ParameterProcessor(
+[Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class ParameterProcessor(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
@@ -22,7 +24,13 @@ internal sealed class ParameterProcessor(
     DistributedApplicationOptions options)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
+    private Task? _parameterResolutionTask;
 
+    /// <summary>
+    /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
+    /// </summary>
+    /// <param name="parameterResources">The parameter resources to initialize.</param>
+    /// <returns>A task that completes when all parameters are resolved or if no unresolved parameters exist.</returns>
     public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources)
     {
         // Initialize all parameter resources by setting their WaitForValueTcs.
@@ -42,7 +50,7 @@ internal sealed class ParameterProcessor(
             if (_unresolvedParameters.Count > 0)
             {
                 // Start the loop that will allow the user to specify values for unresolved parameters.
-                _ = Task.Run(async () =>
+                _parameterResolutionTask = Task.Run(async () =>
                 {
                     try
                     {
@@ -57,6 +65,15 @@ internal sealed class ParameterProcessor(
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// Waits for all unresolved parameters to be handled.
+    /// </summary>
+    /// <returns>A task that completes when all parameters are resolved.</returns>
+    public Task WaitForParameterResolutionAsync()
+    {
+        return _parameterResolutionTask ?? Task.CompletedTask;
     }
 
     private async Task ProcessParameterAsync(ParameterResource parameterResource)

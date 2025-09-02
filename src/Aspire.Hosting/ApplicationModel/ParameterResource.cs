@@ -75,7 +75,7 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     /// <summary>
     /// A task completion source that can be used to wait for the value of the parameter to be set.
     /// </summary>
-    public TaskCompletionSource<string>? WaitForValueTcs { get; set; }
+    internal TaskCompletionSource<string>? WaitForValueTcs { get; set; }
 
     /// <summary>
     /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
