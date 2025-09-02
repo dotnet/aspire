@@ -48,9 +48,7 @@
 
 ### Building
 
-**Always use the dotnet scripts to ensure expected versions are used.** Run `./restore.sh` (Linux/macOS) or `./restore.cmd` (Windows) first to install the local SDK, then use `./dotnet.sh` (Linux/macOS) or `./dotnet.cmd` (Windows) for all dotnet commands to ensure you are using the correct SDK version.
-
-**Important**: Never use `dotnet` without extension. Always use `./dotnet.sh` on Unix, `./dotnet.cmd` on Windows.
+**Always run restore first to set up the local SDK.** Run `./restore.sh` (Linux/macOS) or `./restore.cmd` (Windows) first to install the local SDK. After restore, you can use standard `dotnet` commands, which will automatically use the local SDK when available due to the paths configuration in global.json.
 
 #### Prerequisites
 1. **Container Runtime Required**: Install Docker Desktop or Podman before building/testing
@@ -87,13 +85,13 @@
 
 (1) Build from the root with `./build.sh` (~3-5 minutes).
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To run tests for a specific project: `./dotnet.sh test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true"` (Linux/macOS) or `./dotnet.cmd test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true"` (Windows)
+(3) To run tests for a specific project: `dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true"`
 
 Note that tests for a project can be executed without first building from the root.
 
 (4) To run specific tests, include the filter after `--`:
 ```bash
-./dotnet.sh test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true"
+dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true"
 ```
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
@@ -104,10 +102,10 @@ When running tests in automated environments (including Copilot agent), **always
 
 ```bash
 # Correct - excludes quarantined tests (use this in automation)
-./dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
 
 # For specific test filters, combine with quarantine exclusion
-./dotnet.sh test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true"
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true"
 ```
 
 Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
@@ -149,7 +147,7 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 ### Dependencies and Hidden Requirements
 - **Container Runtime**: Docker or Podman must be running for integration tests
-- **Local .NET SDK**: Automatically uses local SDK when available after running restore
+- **Local .NET SDK**: Automatically uses local SDK when available after running restore due to paths configuration in global.json
 - **Package References**: Centrally managed via Directory.Packages.props
 - **API Surface**: Public APIs tracked in `src/*/api/*.cs` files (auto-generated, don't edit)
 
