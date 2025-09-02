@@ -83,8 +83,7 @@ public class Program
             var scanRoot = parseResult.GetValue<string?>("--root");
             var attributeFullName = parseResult.GetValue<string>("--attribute") ?? DefaultAttributeFullName;
 
-            var mode = quarantine ? "quarantine" : "unquarantine";
-            if (mode == "quarantine")
+            if (quarantine)
             {
                 if (string.IsNullOrWhiteSpace(issueUrl))
                 {
@@ -99,7 +98,8 @@ public class Program
             }
 
             return ExecuteAsync(
-                    mode,
+                    quarantine,
+                    unquarantine,
                     tests.ToList(),
                     string.IsNullOrWhiteSpace(issueUrl) ? null : issueUrl,
                     scanRoot,
@@ -110,7 +110,7 @@ public class Program
         return rootCommand.Parse(args).InvokeAsync();
     }
 
-    private static async Task<int> ExecuteAsync(string mode, List<string> fullMethodNames, string? issueUrl, string? scanRootOverride, string attributeFullName, CancellationToken cancellationToken)
+    private static async Task<int> ExecuteAsync(bool quarantine, bool unquarantine, List<string> fullMethodNames, string? issueUrl, string? scanRootOverride, string attributeFullName, CancellationToken cancellationToken)
     {
         // Resolve repository root and tests folder
         var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
@@ -171,7 +171,7 @@ public class Program
                         return;
                     }
 
-                    if (mode == "unquarantine")
+                    if (unquarantine)
                     {
                         // If attribute short name isn't present textually, skip.
                         if (!ContainsAttributeHint(text, attributeNamespaceToEnsure, attributeNameToInsert))
@@ -179,7 +179,7 @@ public class Program
                             return;
                         }
                     }
-                    else // quarantine
+                    else if (quarantine) // quarantine
                     {
                         // If none of the target method names appear, skip.
                         var anyMethodNamePresent = targetsByMethod.Keys.Any(m => text.Contains(m, StringComparison.Ordinal));
@@ -224,7 +224,7 @@ public class Program
 
                         Interlocked.Increment(ref foundAnyCount);
 
-                        if (mode == "unquarantine")
+                        if (unquarantine)
                         {
                             var updated = RemoveTargetAttribute(method, isTargetAttribute, out var removed);
                             if (removed)
@@ -232,7 +232,7 @@ public class Program
                                 updates.Add((method, updated));
                             }
                         }
-                        else // quarantine
+                        else if (quarantine) // quarantine
                         {
                             var updated = AddTargetAttribute(method, attributeNameToInsert, issueUrl ?? string.Empty, newline);
                             if (!ReferenceEquals(updated, method))
@@ -252,14 +252,14 @@ public class Program
                     var newRoot = root.ReplaceNodes(map.Keys, (orig, _) => map[orig]);
 
                     // Manage using directives for configured attribute namespace when using short name
-                    if (mode == "quarantine")
+                    if (quarantine)
                     {
                         if (!string.IsNullOrEmpty(attributeNamespaceToEnsure) && !attributeNameToInsert.Contains('.'))
                         {
                             newRoot = EnsureUsingDirective(newRoot, attributeNamespaceToEnsure!, newline);
                         }
                     }
-                    else if (mode == "unquarantine")
+                    else if (unquarantine)
                     {
                         if (!string.IsNullOrEmpty(attributeNamespaceToEnsure))
                         {
@@ -302,7 +302,7 @@ public class Program
 
         if (modifiedFiles.IsEmpty)
         {
-            Console.WriteLine(mode == "quarantine"
+            Console.WriteLine(quarantine
                 ? "The test is already quarantined or no change was necessary."
                 : "The test was already unquarantined or no change was necessary.");
             return 0;
