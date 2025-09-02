@@ -842,7 +842,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                     {
                         Path = endpointProbeAnnotation.Path,
                         Port = AsInt(GetValue(endpointMapping, EndpointProperty.TargetPort)),
-                        Scheme = endpointProbeAnnotation.EndpointReference.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
+                        Scheme = endpointMapping.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
                     },
                 };
             }

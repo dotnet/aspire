@@ -243,7 +243,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
                     {
                         Path = endpointProbeAnnotation.Path,
                         Port = GetEndpointValue(endpointMapping, EndpointProperty.TargetPort),
-                        Scheme = endpointProbeAnnotation.EndpointReference.Scheme,
+                        Scheme = endpointMapping.Scheme,
                     },
                 };
             }
