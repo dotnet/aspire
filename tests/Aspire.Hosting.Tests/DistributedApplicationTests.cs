@@ -567,6 +567,11 @@ public class DistributedApplicationTests
                         SourcePath = "/tmp/test2.sh",
                         Mode = UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead,
                     },
+                    new ContainerOpenSSLCertificateFile
+                    {
+                        Name = "testcert.pem",
+                        Contents = "value",
+                    },
                 ],
             },
         };
