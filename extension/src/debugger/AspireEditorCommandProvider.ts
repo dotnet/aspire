@@ -8,21 +8,34 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
     constructor(context: vscode.ExtensionContext) {
         this._disposable = vscode.workspace.onDidOpenTextDocument(async (document) => {
-            // The opened .csproj is an Aspire project if it contains the Aspire host property
-            if (document.fileName.endsWith('.csproj')) {
-                const isAspire = document.getText().includes('<IsAspireHost>true</IsAspireHost>');
-                await context.workspaceState.update('aspire.appHostProjectPath', isAspire ? document.uri.fsPath : null);
-                await vscode.commands.executeCommand('setContext', 'aspire.isAspireProject', isAspire);
-            }
-
-            // The opened file is part of an Aspire project if it resides within a folder in its direct hierarchy containing an Aspire .csproj
-            // it has to be in the direct hierarchy of the file!!
-            if (document.fileName.endsWith('.cs')) {
-                const appHostProject = await this.getFileAppHostProject(document.uri);
-                await context.workspaceState.update('aspire.appHostProjectPath', appHostProject);
-                await vscode.commands.executeCommand('setContext', 'aspire.appHostProjectPath', appHostProject);
-            }
+            await this.processDocument(context, document);
         });
+
+        // Initialize context for the currently active document
+        this.initializeActiveDocument(context);
+    }
+
+    private async initializeActiveDocument(context: vscode.ExtensionContext): Promise<void> {
+        const activeDocument = vscode.window.activeTextEditor?.document;
+        if (activeDocument) {
+            await this.processDocument(context, activeDocument);
+        }
+    }
+
+    private async processDocument(context: vscode.ExtensionContext, document: vscode.TextDocument): Promise<void> {
+        // The opened .csproj is an Aspire project if it contains the Aspire host property
+        if (document.fileName.endsWith('.csproj')) {
+            const isAspire = document.getText().includes('<IsAspireHost>true</IsAspireHost>');
+            await context.workspaceState.update('aspire.appHostProjectPath', isAspire ? document.uri.fsPath : null);
+            await vscode.commands.executeCommand('setContext', 'aspire.isAspireProject', isAspire);
+        }
+
+        // The opened file is part of an Aspire project if it resides within a folder in its direct hierarchy containing an Aspire .csproj
+        if (document.fileName.endsWith('.cs')) {
+            const appHostProject = await this.getFileAppHostProject(document.uri);
+            await context.workspaceState.update('aspire.appHostProjectPath', appHostProject);
+            await vscode.commands.executeCommand('setContext', 'aspire.appHostProjectPath', appHostProject);
+        }
     }
 
     /**
@@ -91,7 +104,6 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
                 if (appHostProject) {
                     await extensionContext.workspaceState.update('aspire.appHostProjectPath', appHostProject);
                     await vscode.commands.executeCommand('setContext', 'aspire.appHostProjectPath', appHostProject);
-                    await vscode.commands.executeCommand('setContext', 'aspire.isFileInAspireProject', true);
                 }
             }
 

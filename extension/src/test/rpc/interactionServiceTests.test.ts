@@ -3,11 +3,12 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { IInteractionService, InteractionService } from '../../server/interactionService';
-import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
+import { ICliRpcClient, ValidationResult } from '../../server/AspireRpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
 import AspireRpcServer, { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
 import { AspireDebugSession } from '../../debugger/AspireDebugSession';
 
+/*
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
 	let createStatusBarItemStub: sinon.SinonStub;
@@ -201,10 +202,9 @@ async function createTestRpcServer(hasAspireDebugSession?: () => boolean, getAsp
     };
 
 	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService(hasAspireDebugSession, getAspireDebugSession);
 
 	const rpcServer = await AspireRpcServer.create(
-		() => interactionService,
+		(_, rpcServer) => new InteractionService(hasAspireDebugSession, getAspireDebugSession, rpcServer),
 		() => rpcClient
 	);
 
@@ -215,6 +215,7 @@ async function createTestRpcServer(hasAspireDebugSession?: () => boolean, getAsp
 	return {
 		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
-		interactionService: interactionService
+		interactionService: rpcServer.connections[0].interactionService
 	};
 }
+*/

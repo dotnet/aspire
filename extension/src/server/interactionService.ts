@@ -1,15 +1,20 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
-import { ICliRpcClient } from './rpcClient';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
+import { ICliRpcClient } from './AspireRpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import AspireRpcServer from './AspireRpcServer';
+import { createDebugSessionConfiguration } from '../debugger/debuggerExtensions';
+import { projectDebuggerExtension } from '../debugger/languages/dotnet';
 
 export interface IInteractionService {
-    showStatus: (statusText: string | null) => void;
+    onStatusChange: vscode.Event<StatusChange>;
+
+    showStatus: (dcpId: string, statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
@@ -24,9 +29,10 @@ export interface IInteractionService {
     displayCancellationMessage: () => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
-    stopDebugging: () => void;
-    notifyAppHostStartupCompleted: () => void;
+    launchAppHost: (dcpId: string, projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => Promise<void>;
+    stopDebugging: (dcpId: string) => void;
+    notifyAppHostStartupCompleted: (dcpId: string) => void;
+    notifyReadyForDebugSessionStart: (dcpId: string) => void;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -41,18 +47,25 @@ type ConsoleLine = {
     Line: string;
 };
 
-export class InteractionService implements IInteractionService {
-    private _hasAspireDebugSession: () => boolean;
-    private _getAspireDebugSession: () => AspireDebugSession;
+interface StatusChange {
+    text: string | null;
+    dcpId: string;
+}
 
+export class InteractionService implements IInteractionService {
+    private _getAspireDebugSession: (dcpId: string) => AspireDebugSession | null;
+    private _rpcServer: AspireRpcServer;
     private _statusBarItem: vscode.StatusBarItem | undefined;
 
-    constructor(hasAspireDebugSession: () => boolean, getAspireDebugSession: () => AspireDebugSession) {
-        this._hasAspireDebugSession = hasAspireDebugSession;
+    private _onStatusChange: vscode.EventEmitter<StatusChange> = new vscode.EventEmitter<StatusChange>();
+    public readonly onStatusChange: vscode.Event<StatusChange> = this._onStatusChange.event;
+
+    constructor(getAspireDebugSession: (dcpId: string) => AspireDebugSession | null, rpcServer: AspireRpcServer) {
         this._getAspireDebugSession = getAspireDebugSession;
+        this._rpcServer = rpcServer;
     }
 
-    showStatus(statusText: string | null) {
+    showStatus(dcpId: string, statusText: string | null) {
         extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
 
         if (!this._statusBarItem) {
@@ -62,13 +75,15 @@ export class InteractionService implements IInteractionService {
         if (statusText) {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
-
-            if (this._hasAspireDebugSession()) {
-                this._getAspireDebugSession().sendMessage(formatText(statusText));
-            }
-        } else if (this._statusBarItem) {
+        }
+        else if (this._statusBarItem) {
             this._statusBarItem.hide();
         }
+
+        this._onStatusChange.fire({
+            text: statusText,
+            dcpId
+        });
     }
 
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -273,17 +288,33 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        return this._getAspireDebugSession().startAppHost(projectFile, args, environment, debug);
+    async launchAppHost(dcpId: string, projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId }, projectDebuggerExtension);
+        this.notifyReadyForDebugSessionStart(dcpId);
+        const debugSession = this._getAspireDebugSession(dcpId);
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        return debugSession.startAppHost(projectFile, appHostDebugSessionConfiguration);
     }
 
-    stopDebugging() {
+    stopDebugging(dcpId: string) {
         this.clearStatusBar();
-        this._getAspireDebugSession().dispose();
+        this._getAspireDebugSession(dcpId)?.dispose();
     }
 
-    notifyAppHostStartupCompleted() {
-        this._getAspireDebugSession().notifyAppHostStartupCompleted();
+    notifyReadyForDebugSessionStart(dcpId: string) {
+        this._rpcServer.notifyReadyForDebugSessionStart(dcpId);
+    }
+
+    notifyAppHostStartupCompleted(dcpId: string) {
+        const debugSession = this._getAspireDebugSession(dcpId);
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        debugSession.notifyAppHostStartupCompleted();
     }
 
     clearStatusBar() {
@@ -311,7 +342,8 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
+    connection.onRequest("launchAppHost", withAuthentication(async (dcpId: string, projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(dcpId, projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
+    connection.onRequest("notifyReadyForDebugSessionStart", withAuthentication(interactionService.notifyReadyForDebugSessionStart.bind(interactionService)));
 }

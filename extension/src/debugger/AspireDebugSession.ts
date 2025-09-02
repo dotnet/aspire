@@ -1,24 +1,25 @@
 import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
-import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from "../dcp/AspireDcpServer";
-import { spawnCliProcess } from "./languages/cli";
-import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
+import { disconnectingFromSession, processExitedWithCode } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
-import { createDebugSessionConfiguration } from "./debuggerExtensions";
+import { ICliRpcClient } from "../server/AspireRpcClient";
+import { formatText } from "../utils/strings";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
   private _messageSeq = 1;
 
   private readonly _session: vscode.DebugSession;
+
   private _appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
   private _resourceDebugSessions: AspireResourceDebugSession[] = [];
   private _trackedDebugAdapters: string[] = [];
+  private _rpcClient?: ICliRpcClient;
 
   private readonly _rpcServer: AspireRpcServer;
   private readonly _dcpServer: AspireDcpServer;
@@ -26,11 +27,27 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _disposables: vscode.Disposable[] = [];
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
+  public readonly dcpId: string;
 
   constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer) {
     this._session = session;
     this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
+
+    this.dcpId = (session.configuration as AspireExtendedDebugConfiguration).dcpId;
+
+    const rpcClient = rpcServer.getConnection(this.dcpId);
+    if (!rpcClient) {
+      // TODO localize
+      throw new Error('RPC client not found for DCP ID: ' + this.dcpId);
+    }
+    this._rpcClient = rpcClient;
+
+    this._disposables.push(rpcClient.interactionService.onStatusChange(status => {
+      if (this.dcpId === status.dcpId && status.text) {
+        this.sendMessage(formatText(status.text), true);
+      }
+    }));
   }
 
   handleMessage(message: any): void {
@@ -47,21 +64,12 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'launch') {
-      const appHostPath = this._session.configuration.program as string;
-
-      if (isDirectory(appHostPath)) {
-        this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
-      }
-      else {
-        this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
-
-        const args = message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'];
-        args.push("--project", appHostPath);
-
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        this.spawnRunCommand(args, workspaceFolder);
-      }
+      this._disposables.push({
+        dispose: () => {
+          this._rpcServer.requestStopCli();
+          extensionLogOutputChannel.info('Requested Aspire CLI exit');
+        }
+      });
 
       this.sendEvent({
         type: 'response',
@@ -96,52 +104,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         body: {}
       });
     }
-
-    function isDirectory(pathToCheck: string): boolean {
-      return fs.existsSync(pathToCheck) && fs.statSync(pathToCheck).isDirectory();
-    }
-  }
-
-  spawnRunCommand(args: string[], workingDirectory: string | undefined) {
-    spawnCliProcess(
-      this._rpcServer.connectionInfo,
-      'aspire',
-      args,
-      {
-        stdoutCallback: (data) => {
-          for (const line of trimMessage(data)) {
-            this.sendMessage(line);
-          }
-        },
-        stderrCallback: (data) => {
-          for (const line of trimMessage(data)) {
-            this.sendMessageWithEmoji("❌", line, false);
-          }
-        },
-        exitCallback: (code) => {
-          this.sendMessageWithEmoji("🔚", processExitedWithCode(code ?? '?'));
-          // if the process failed, we want to stop the debug session
-          this.dispose();
-        },
-        dcpServerConnectionInfo: this._dcpServer.connectionInfo,
-        workingDirectory: workingDirectory
-      }
-    );
-
-    this._disposables.push({
-      dispose: () => {
-        this._rpcServer.requestStopCli();
-        extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
-      }
-    });
-
-    function trimMessage(message: string): string[] {
-      return message
-        .replace('\r\n', '\n')
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-    }
   }
 
   createDebugAdapterTrackerCore(debugAdapter: string) {
@@ -153,11 +115,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
   }
 
-  async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+  async startAppHost(projectFile: string, appHostDebugSessionConfiguration: AspireExtendedDebugConfiguration): Promise<void> {
     this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
-    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
-    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null }, projectDebuggerExtension);
+    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile}`);
     const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
     if (!appHostDebugSession) {
@@ -170,7 +131,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
         // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
         this.dispose();
-        disposable.dispose();
       }
     });
 

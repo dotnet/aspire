@@ -41,8 +41,6 @@ export const rpcServerNotInitialized = localize('aspire-vscode.strings.rpcServer
 export const extensionContextNotInitialized = localize('aspire-vscode.strings.extensionContextNotInitialized', 'Extension context is not initialized');
 export const aspireDebugSessionNotInitialized = localize('aspire-vscode.strings.aspireDebugSessionNotInitialized', 'Aspire debug session is not initialized');
 export const errorRetrievingAppHosts = localize('aspire-vscode.strings.errorRetrievingAppHosts', 'Error retrieving app hosts in the current workspace. Debug options may be incomplete.');
-export const launchingWithDirectory = (appHostPath: string) => localize('aspire-vscode.strings.launchingWithDirectory', 'Launching Aspire debug session using directory {0}: attempting to determine effective AppHost...', appHostPath);
-export const launchingWithAppHost = (appHostPath: string) => localize('aspire-vscode.strings.launchingWithAppHost', 'Launching Aspire debug session for AppHost {0}...', appHostPath);
 export const disconnectingFromSession = localize('aspire-vscode.strings.disconnectingFromSession', 'Disconnecting from Aspire debug session... Child processes will be stopped.');
 export const processExitedWithCode = (code: number | string) => localize('aspire-vscode.strings.processExitedWithCode', 'Process exited with code {0}', code);
 export const failedToStartPythonProgram = (errorMessage: string) => localize('aspire-vscode.strings.failedToStartPythonProgram', 'Failed to start Python program: {0}', errorMessage);

@@ -479,19 +479,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
             startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
-            if (backchannelCompletionSource is not null
-                && projectFile is not null
-                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+            if (backchannelCompletionSource is not null && projectFile is not null)
             {
-                await extensionInteractionService.LaunchAppHostAsync(
-                    projectFile.FullName,
-                    startInfo.ArgumentList.ToList(),
-                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
-                    options.StartDebugSession);
+                if (!await backchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
+                {
+                    // If the extension does not support the DevKit capability then we will have built the
+                    // apphost already on the CLI and are ready to start the app host debug session
+                    await extensionInteractionService.NotifyReadyForDebugSessionStart();
+                }
 
-                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+                if (await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+                {
+                    await extensionInteractionService.LaunchAppHostAsync(
+                        projectFile.FullName,
+                        startInfo.ArgumentList.ToList(),
+                        startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                        options.StartDebugSession);
 
-                return ExitCodeConstants.Success;
+                    _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+                    return ExitCodeConstants.Success;
+                }
             }
         }
 

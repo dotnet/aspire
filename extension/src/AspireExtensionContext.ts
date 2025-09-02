@@ -8,12 +8,14 @@ export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer: AspireRpcServer | undefined;
     private _dcpServer: AspireDcpServer | undefined;
     private _extensionContext: vscode.ExtensionContext | undefined;
-    private _aspireDebugSession: AspireDebugSession | undefined;
+    private _aspireDebugSessionByDcpId: Map<string, AspireDebugSession>;
+
+    public activeDebugConfiguration: vscode.DebugConfiguration | undefined;
 
     constructor() {
         this._rpcServer = undefined;
         this._extensionContext = undefined;
-        this._aspireDebugSession = undefined;
+        this._aspireDebugSessionByDcpId = new Map();
         this._dcpServer = undefined;
     }
 
@@ -44,24 +46,21 @@ export class AspireExtensionContext implements vscode.Disposable {
         return this._extensionContext;
     }
 
-    hasAspireDebugSession(): boolean {
-        return !!this._aspireDebugSession;
+    getAspireDebugSession(dcpId: string): AspireDebugSession | null {
+        return this._aspireDebugSessionByDcpId.get(dcpId) ?? null;
     }
 
-    get aspireDebugSession(): AspireDebugSession {
-        if (!this._aspireDebugSession) {
-            throw new Error(aspireDebugSessionNotInitialized);
-        }
-        return this._aspireDebugSession;
+    setAspireDebugSession(debugSession: AspireDebugSession): void {
+        this._aspireDebugSessionByDcpId.set(debugSession.dcpId, debugSession);
     }
 
-    set aspireDebugSession(value: AspireDebugSession) {
-        this._aspireDebugSession = value;
+    removeAspireDebugSession(dcpId: string): void {
+        this._aspireDebugSessionByDcpId.delete(dcpId);
     }
 
     dispose(): void {
         this._rpcServer?.dispose();
         this._dcpServer?.dispose();
-        this._aspireDebugSession?.dispose();
+        this._aspireDebugSessionByDcpId.forEach(session => session.dispose());
     }
 }
