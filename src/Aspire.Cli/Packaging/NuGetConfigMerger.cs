@@ -152,12 +152,17 @@ internal class NuGetConfigMerger
                     }
 
                     // Check if this pattern needs to be remapped to a new source
-                    if (patternToNewSource.TryGetValue(pattern, out var newSource) && 
-                        !string.Equals(sourceKey, newSource, StringComparison.OrdinalIgnoreCase))
+                    if (patternToNewSource.TryGetValue(pattern, out var newSource))
                     {
-                        // This pattern needs to be moved to the new source
-                        elementsToRemove.Add(packageElement);
-                        patternsToAdd.Add((pattern, newSource));
+                        // Determine the key that will be used for the new source
+                        var expectedKey = urlToExistingKey.TryGetValue(newSource, out var existingKey) ? existingKey : newSource;
+                        
+                        if (!string.Equals(sourceKey, expectedKey, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // This pattern needs to be moved to the new source
+                            elementsToRemove.Add(packageElement);
+                            patternsToAdd.Add((pattern, newSource));
+                        }
                     }
                 }
 
@@ -215,7 +220,94 @@ internal class NuGetConfigMerger
                 sourcesInUse.Add(keyToUse);
             }
 
-            // Third pass: Remove empty packageSource elements and their corresponding sources from packageSources
+            // Fourth pass: Fix packageSource elements that use URLs as keys when proper keys exist
+            var packageSourceElementsToFix = packageSourceMapping.Elements("packageSource")
+                .Where(ps => {
+                    var key = (string?)ps.Attribute("key");
+                    return !string.IsNullOrEmpty(key) && urlToExistingKey.TryGetValue(key, out var properKey) && 
+                           !string.Equals(key, properKey, StringComparison.OrdinalIgnoreCase);
+                })
+                .ToArray();
+
+            foreach (var elementToFix in packageSourceElementsToFix)
+            {
+                var urlKey = (string?)elementToFix.Attribute("key");
+                if (urlToExistingKey.TryGetValue(urlKey!, out var properKey))
+                {
+                    // Find if there's already a packageSource with the proper key
+                    var existingProperElement = packageSourceMapping.Elements("packageSource")
+                        .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), properKey, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (existingProperElement is not null)
+                    {
+                        // Move all packages from URL-based element to proper key element
+                        var packagesToMove = elementToFix.Elements("package").ToArray();
+                        foreach (var packageToMove in packagesToMove)
+                        {
+                            // Check if the pattern already exists in the target element
+                            var pattern = (string?)packageToMove.Attribute("pattern");
+                            var existingPattern = existingProperElement.Elements("package")
+                                .FirstOrDefault(p => string.Equals((string?)p.Attribute("pattern"), pattern, StringComparison.OrdinalIgnoreCase));
+                            
+                            if (existingPattern is null)
+                            {
+                                packageToMove.Remove();
+                                existingProperElement.Add(packageToMove);
+                            }
+                        }
+                        
+                        // Remove the URL-based element if it's now empty
+                        if (!elementToFix.Elements("package").Any())
+                        {
+                            elementToFix.Remove();
+                        }
+                    }
+                    else
+                    {
+                        // Just update the key to use the proper key
+                        elementToFix.SetAttributeValue("key", properKey);
+                        sourcesInUse.Add(properKey);
+                    }
+                }
+            }
+
+            // Check if we have a wildcard pattern being added - if so, add it to unmapped existing sources
+            var hasWildcardMapping = mappings.Any(m => m.PackageFilter == "*");
+            if (hasWildcardMapping)
+            {
+                // Find all existing sources
+                var existingSourceKeys = existingAdds
+                    .Select(add => (string?)add.Attribute("key"))
+                    .Where(key => !string.IsNullOrEmpty(key))
+                    .Cast<string>()
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Find sources that have any package patterns (after all the processing above)
+                var sourcesWithPatterns = packageSourceMapping.Elements("packageSource")
+                    .Where(ps => ps.Elements("package").Any())
+                    .Select(ps => (string?)ps.Attribute("key"))
+                    .Where(key => !string.IsNullOrEmpty(key))
+                    .Cast<string>()
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithPatterns, StringComparer.OrdinalIgnoreCase).ToArray();
+                
+                // Add wildcard pattern only to sources that have NO patterns at all
+                foreach (var sourceKey in sourcesWithoutAnyPatterns)
+                {
+                    var sourceElement = new XElement("packageSource");
+                    sourceElement.SetAttributeValue("key", sourceKey);
+                    
+                    var wildcardPackage = new XElement("package");
+                    wildcardPackage.SetAttributeValue("pattern", "*");
+                    sourceElement.Add(wildcardPackage);
+                    
+                    packageSourceMapping.Add(sourceElement);
+                    sourcesInUse.Add(sourceKey);
+                }
+            }
+
+            // Fifth pass: Remove empty packageSource elements and their corresponding sources from packageSources
             var emptyPackageSourceElements = packageSourceMapping.Elements("packageSource")
                 .Where(ps => !ps.Elements("package").Any())
                 .ToArray();
@@ -228,10 +320,18 @@ internal class NuGetConfigMerger
                 // Remove the corresponding source from packageSources if it's not in use elsewhere
                 if (!string.IsNullOrEmpty(sourceKey) && !sourcesInUse.Contains(sourceKey))
                 {
-                    var sourceToRemove = packageSources.Elements("add")
-                        .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
-                                              string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
-                    sourceToRemove?.Remove();
+                    // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
+                    var isUsedByExistingKey = urlToExistingKey.Any(kvp => 
+                        string.Equals(kvp.Key, sourceKey, StringComparison.OrdinalIgnoreCase) && 
+                        sourcesInUse.Contains(kvp.Value));
+                        
+                    if (!isUsedByExistingKey)
+                    {
+                        var sourceToRemove = packageSources.Elements("add")
+                            .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
+                                                  string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                        sourceToRemove?.Remove();
+                    }
                 }
             }
         }
