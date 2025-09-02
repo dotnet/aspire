@@ -1,14 +1,23 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "openai-openai-apikey": {
+      "type": "parameter.v0",
+      "value": "{openai-openai-apikey.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
     "openai": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{openai.outputs.connectionString}",
-      "path": "openai.module.bicep"
+      "type": "value.v0",
+      "connectionString": "Endpoint=https://api.openai.com/v1;Key={openai-openai-apikey.value}"
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{openai.outputs.connectionString};Deployment=chat"
+      "connectionString": "{openai.connectionString};Model=gpt-4o-mini"
     },
     "webstory": {
       "type": "project.v0",
@@ -34,15 +43,6 @@
           "transport": "http",
           "external": true
         }
-      }
-    },
-    "openai-roles": {
-      "type": "azure.bicep.v0",
-      "path": "openai-roles.module.bicep",
-      "params": {
-        "openai_outputs_name": "{openai.outputs.name}",
-        "principalType": "",
-        "principalId": ""
       }
     }
   }

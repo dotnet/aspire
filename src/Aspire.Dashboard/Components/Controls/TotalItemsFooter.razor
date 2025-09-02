@@ -1,10 +1,8 @@
-﻿@using Aspire.Dashboard.Resources
-@namespace Aspire.Dashboard.Components
-@inject IStringLocalizer<ControlsStrings> Loc
+﻿@namespace Aspire.Dashboard.Components
 
 <div class="items-footer">
-    <span class="result-count">
-        @((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], TotalItemCount))
+    <span class="result-count" aria-live="polite" aria-atomic="true">
+        @((MarkupString)string.Format(TotalItemCount == 1 ? SingularText : PluralText, TotalItemCount))
     </span>
 
     @if (PauseText is not null)
@@ -12,27 +10,3 @@
         <PauseWarning PauseText="@PauseText" />
     }
 </div>
-
-@code {
-    // Total item count can be set via the parameter or via method.
-    // Required because the count is updated when the data grid data is refreshed.
-
-    /// <summary>
-    /// This parameter is required because this control could be added and removed from the page.
-    /// When the control is re-added to the page it gets the count back via the parameter.
-    /// </summary>
-    [Parameter]
-    public int TotalItemCount { get; set; }
-
-    [Parameter]
-    public string? PauseText { get; set; }
-
-    /// <summary>
-    /// Called when data grid data is refreshed. This sets the count explicitly and forces the control to re-render.
-    /// </summary>
-    public void UpdateDisplayedCount(int totalItemCount)
-    {
-        TotalItemCount = totalItemCount;
-        StateHasChanged();
-    }
-}

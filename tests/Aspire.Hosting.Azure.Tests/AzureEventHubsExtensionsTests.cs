@@ -617,4 +617,40 @@ public class AzureEventHubsExtensionsTests(ITestOutputHelper testOutputHelper)
         Assert.True(eventHubs.Resource.IsEmulator());
         Assert.Contains(eventHubs.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureEventHubsResource()
+    {
+        // Arrange
+        var eventHubsResource = new AzureEventHubsResource("test-eventhubs", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(eventHubsResource, "test-eventhubs");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = eventHubsResource.AddAsExistingResource(infrastructure);
+        var secondResult = eventHubsResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureEventHubsResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-eventhubs-name");
+        var existingResourceGroup = builder.AddParameter("existing-eventhubs-rg");
+
+        var eventHubs = builder.AddAzureEventHubs("test-eventhubs")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = eventHubs.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }

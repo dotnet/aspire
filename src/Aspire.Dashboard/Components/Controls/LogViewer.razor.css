@@ -27,10 +27,6 @@
     user-select: none;
 }
 
-::deep .log-content > .timestamp + fluent-badge {
-    margin-left: 1ch;
-}
-
 ::deep .ansi-fg-black {
     color: var(--console-theme-black);
 }
@@ -137,4 +133,17 @@
 
 ::deep .ansi-strikethrough {
     text-decoration: line-through;
+}
+
+::deep .resource-prefix {
+    color: var(--resource-text-color);
+    border-radius: calc(var(--control-corner-radius) * 1px);
+    padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
+    border: calc(var(--stroke-width) * 1px) solid transparent;
+    font-family: var(--body-font);
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: var(--type-ramp-minus-1-line-height);
+    font-weight: initial;
+    font-variation-settings: var(--type-ramp-minus-1-font-variations);
+    user-select: none;
 }

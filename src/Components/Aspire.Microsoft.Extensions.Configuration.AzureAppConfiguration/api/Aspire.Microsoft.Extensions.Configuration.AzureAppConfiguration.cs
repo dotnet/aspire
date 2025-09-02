@@ -12,6 +12,8 @@ namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration
     {
         public global::Azure.Core.TokenCredential? Credential { get { throw null; } set { } }
 
+        public bool DisableTracing { get { throw null; } set { } }
+
         public System.Uri? Endpoint { get { throw null; } set { } }
 
         public bool Optional { get { throw null; } set { } }

@@ -431,6 +431,101 @@ public class ResourceNotificationTests
         }
     }
 
+    [Fact]
+    public async Task UpdateIcons_DoesNotOverwriteExistingIconValues()
+    {
+        var resource = new CustomResource("myResource");
+        
+        // Add icon annotation to the resource
+        resource.Annotations.Add(new ResourceIconAnnotation("NewIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellationToken)
+        {
+            var values = new List<ResourceEvent>();
+
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                values.Add(item);
+
+                if (values.Count == 2)
+                {
+                    break;
+                }
+            }
+
+            return values;
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetValuesAsync(cts.Token);
+
+        // First, publish an update with existing icon values in the snapshot
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            IconName = "ExistingIcon",
+            IconVariant = IconVariant.Filled
+        }).DefaultTimeout();
+
+        // Publish another update that should NOT overwrite the existing icon values
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = "Running"  // Change something else to trigger an update
+        }).DefaultTimeout();
+
+        var values = await enumerableTask.DefaultTimeout();
+
+        Assert.Equal(2, values.Count);
+
+        // Check the first event (with initial icon values)
+        var firstEvent = values[0];
+        Assert.Equal("ExistingIcon", firstEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Filled, firstEvent.Snapshot.IconVariant);
+
+        // Check the second event (icon values should not be overwritten)
+        var secondEvent = values[1];
+        Assert.Equal("ExistingIcon", secondEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Filled, secondEvent.Snapshot.IconVariant);
+        Assert.Equal("Running", secondEvent.Snapshot.State?.Text);
+    }
+
+    [Fact]
+    public async Task UpdateIcons_SetsIconValuesWhenNotAlreadySet()
+    {
+        var resource = new CustomResource("myResource");
+        
+        // Add icon annotation to the resource
+        resource.Annotations.Add(new ResourceIconAnnotation("AnnotationIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<ResourceEvent> GetFirstValueAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                return item;
+            }
+            throw new InvalidOperationException("No events received");
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetFirstValueAsync(cts.Token);
+
+        // Publish an update with no existing icon values
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = "Starting"
+        }).DefaultTimeout();
+
+        var value = await enumerableTask.DefaultTimeout();
+
+        // Verify that the icon values were set from the annotation
+        Assert.Equal("AnnotationIcon", value.Snapshot.IconName);
+        Assert.Equal(IconVariant.Regular, value.Snapshot.IconVariant);
+        Assert.Equal("Starting", value.Snapshot.State?.Text);
+    }
+
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
         IResourceWithConnectionString,

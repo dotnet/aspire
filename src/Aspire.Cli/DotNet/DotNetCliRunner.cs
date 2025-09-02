@@ -8,8 +8,11 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
+using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -26,11 +29,12 @@ internal interface IDotNetCliRunner
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -39,12 +43,19 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public Action<string>? StandardErrorCallback { get; set; }
 
     public bool NoLaunchProfile { get; set; }
+    public bool StartDebugSession { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
 {
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
+
+    internal Func<long> GetCurrentProcessStartTime { get; set; } = () =>
+    {
+        var startTime = Process.GetCurrentProcess().StartTime;
+        return ((DateTimeOffset)startTime).ToUnixTimeSeconds();
+    };
 
     private string GetMsBuildServerValue()
     {
@@ -162,10 +173,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var exitCode = await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: projectFile,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: null,
             options: options,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         var stdout = stdoutBuilder.ToString();
         var stderr = stderrBuilder.ToString();
@@ -216,9 +228,26 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             };
         }
 
+        // Check if update notifications are disabled and set version check environment variable
+        if (!features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, defaultValue: true))
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey(KnownConfigNames.VersionCheckDisabled))
+            {
+                finalEnv[KnownConfigNames.VersionCheckDisabled] = "true";
+            }
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
+            projectFile: projectFile,
             workingDirectory: projectFile.Directory!,
             backchannelCompletionSource: backchannelCompletionSource,
             options: options,
@@ -233,6 +262,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -247,17 +277,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
     }
 
-    public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity(nameof(InstallTemplateAsync), ActivityKind.Client);
 
-        List<string> cliArgs = ["new", "install", $"{packageName}::{version}"];
+        // NOTE: The change to @ over :: for template version separator (now enforced in .NET 10.0 SDK).
+        List<string> cliArgs = ["new", "install", $"{packageName}@{version}"];
 
         if (force)
         {
@@ -284,6 +316,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             existingStandardErrorCallback?.Invoke(line);
         };
 
+        // The dotnet new install command does not support the --configfile option so if we
+        // are installing packages based on a channel config we'll be passing in a nuget config
+        // file which is dynamically generated in a temporary folder. We'll use that temporary
+        // folder as the working directory for the command. If we are using an implicit channel
+        // then we just use the current execution context for the CLI and inherit whatever
+        // NuGet.configs that may or may not be laying around.
+        var workingDirectory = nugetConfigFile?.Directory ?? executionContext.WorkingDirectory;
+
         var exitCode = await ExecuteAsync(
             args: [.. cliArgs],
             env: new Dictionary<string, string>
@@ -292,7 +332,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 // See NOTE: below
                 [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
             },
-            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
+            projectFile: null,
+            workingDirectory: workingDirectory,
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);
@@ -377,6 +418,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
             options: options,
@@ -398,7 +440,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return socketPath;
     }
 
-    public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public virtual async Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -437,8 +479,37 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // not exist the orphan detector will exit.
         startInfo.EnvironmentVariables[KnownConfigNames.CliProcessId] = GetCurrentProcessId().ToString(CultureInfo.InvariantCulture);
 
+        // Set the CLI process start time for robust orphan detection to prevent PID reuse issues.
+        // The AppHost will verify both PID and start time to ensure it's monitoring the correct process.
+        if (features.IsFeatureEnabled(KnownFeatures.OrphanDetectionWithTimestampEnabled, true))
+        {
+            startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTime().ToString(CultureInfo.InvariantCulture);
+        }
+
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
+
+        if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
+        {
+            // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
+
+            if (backchannelCompletionSource is not null
+                && projectFile is not null
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+            {
+                await extensionInteractionService.LaunchAppHostAsync(
+                    projectFile.FullName,
+                    startInfo.ArgumentList.ToList(),
+                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                    options.StartDebugSession);
+
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+                return ExitCodeConstants.Success;
+            }
+        }
 
         var process = new Process { StartInfo = startInfo };
 
@@ -520,7 +591,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    private async Task StartBackchannelAsync(Process process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
+    private async Task StartBackchannelAsync(Process? process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -540,10 +611,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
                 await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
+                backchannel.AddDisconnectHandler((_, _) =>
+                {
+                    // If the backchannel disconnects, we want to stop the CLI process
+                    Environment.Exit(ExitCodeConstants.Success);
+                });
+
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
             }
-            catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
+            catch (SocketException ex) when (process is not null && process.HasExited && process.ExitCode != 0)
             {
                 logger.LogError(ex, "AppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
                 var backchannelException = new FailedToConnectBackchannelConnection($"AppHost process has exited unexpectedly. Use --debug to see more details.", process, ex);
@@ -609,6 +686,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return await ExecuteAsync(
             args: cliArgs,
             env: env,
+            projectFile: projectFilePath,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
@@ -628,7 +706,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             packageVersion
         };
 
-        if (!string.IsNullOrEmpty(nugetSource))
+        if (string.IsNullOrEmpty(nugetSource))
+        {
+            cliArgsList.Add("--no-restore");
+        }
+        else
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -641,6 +723,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var result = await ExecuteAsync(
             args: cliArgs,
             env: null,
+            projectFile: projectFilePath,
             workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
@@ -658,7 +741,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         List<string> cliArgs = [
@@ -673,10 +756,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             "json"
         ];
 
-        if (nugetSource is not null)
+        if (nugetConfigFile is not null)
         {
-            cliArgs.Add("--source");
-            cliArgs.Add(nugetSource);
+            cliArgs.Add("--configfile");
+            cliArgs.Add(nugetConfigFile.FullName);
         }
 
         if (prerelease)
@@ -701,6 +784,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var result = await ExecuteAsync(
             args: cliArgs.ToArray(),
             env: null,
+            projectFile: null,
             workingDirectory: workingDirectory!,
             backchannelCompletionSource: null,
             options: options,
@@ -737,6 +821,46 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
+        }
+    }
+
+    public async Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["nuget", "config", "paths"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: workingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<string>());
+        }
+        else
+        {
+            return (exitCode, stdoutLines.ToArray());
         }
     }
 }

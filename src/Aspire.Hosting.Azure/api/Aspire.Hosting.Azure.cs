@@ -16,11 +16,13 @@ namespace Aspire.Hosting
 
         public static Azure.BicepOutputReference GetOutput(this ApplicationModel.IResourceBuilder<Azure.AzureBicepResource> builder, string name) { throw null; }
 
+        [System.Obsolete("GetSecretOutput is obsolete. Use IAzureKeyVaultResource.GetSecret instead.")]
         public static Azure.BicepSecretOutputReference GetSecretOutput(this ApplicationModel.IResourceBuilder<Azure.AzureBicepResource> builder, string name) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, Azure.BicepOutputReference bicepOutputReference)
             where T : ApplicationModel.IResourceWithEnvironment { throw null; }
 
+        [System.Obsolete("BicepSecretOutputReference is no longer supported. Use WithEnvironment(IAzureKeyVaultSecretReference) instead.")]
         public static ApplicationModel.IResourceBuilder<T> WithEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, Azure.BicepSecretOutputReference bicepOutputReference)
             where T : ApplicationModel.IResourceWithEnvironment { throw null; }
 
@@ -163,8 +165,10 @@ namespace Aspire.Hosting.Azure
 
         public static partial class KnownParameters
         {
+            [System.Obsolete("KnownParameters.KeyVaultName is deprecated. Use an AzureKeyVaultResource instead.")]
             public static readonly string KeyVaultName;
             public static readonly string Location;
+            [System.Obsolete("KnownParameters.LogAnalyticsWorkspaceId is deprecated. Use an AzureLogAnalyticsWorkspaceResource instead.")]
             public static readonly string LogAnalyticsWorkspaceId;
             public static readonly string PrincipalId;
             public static readonly string PrincipalName;
@@ -211,6 +215,10 @@ namespace Aspire.Hosting.Azure
         public static ApplicationModel.IResourceBuilder<AzureEnvironmentResource> WithResourceGroup(this ApplicationModel.IResourceBuilder<AzureEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> resourceGroup) { throw null; }
     }
 
+    public sealed partial class AzureFunctionsAnnotation : ApplicationModel.IResourceAnnotation
+    {
+    }
+
     public sealed partial class AzureProvisioningOptions
     {
         public global::Azure.Provisioning.ProvisioningBuildOptions ProvisioningBuildOptions { get { throw null; } }
@@ -241,7 +249,7 @@ namespace Aspire.Hosting.Azure
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class AzurePublishingContext
     {
-        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger) { }
+        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger, Publishing.IPublishingActivityReporter activityReporter) { }
 
         public global::Azure.Provisioning.Infrastructure MainInfrastructure { get { throw null; } }
 
@@ -262,6 +270,9 @@ namespace Aspire.Hosting.Azure
     public static partial class AzureUserAssignedIdentityExtensions
     {
         public static ApplicationModel.IResourceBuilder<AzureUserAssignedIdentityResource> AddAzureUserAssignedIdentity(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithAzureUserAssignedIdentity<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<AzureUserAssignedIdentityResource> identityResourceBuilder)
+            where T : ApplicationModel.IComputeResource { throw null; }
     }
 
     public sealed partial class AzureUserAssignedIdentityResource : AzureProvisioningResource, IAppIdentityResource
@@ -271,6 +282,8 @@ namespace Aspire.Hosting.Azure
         public BicepOutputReference ClientId { get { throw null; } }
 
         public BicepOutputReference Id { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public BicepOutputReference PrincipalId { get { throw null; } }
 
@@ -300,6 +313,7 @@ namespace Aspire.Hosting.Azure
         bool System.IEquatable<BicepOutputReference>.Equals(BicepOutputReference? other) { throw null; }
     }
 
+    [System.Obsolete("BicepSecretOutputReference is no longer supported. Use IAzureKeyVaultResource instead.")]
     public sealed partial class BicepSecretOutputReference : ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public BicepSecretOutputReference(string name, AzureBicepResource resource) { }
@@ -368,6 +382,11 @@ namespace Aspire.Hosting.Azure
         BicepOutputReference PrincipalId { get; }
 
         BicepOutputReference PrincipalName { get; }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial interface IAzureComputeEnvironmentResource : ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
+    {
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]

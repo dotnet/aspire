@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared\ResourceNameComparer.cs" />
-    <Compile Include="$(SharedDir)BicepFunction2.cs" Link="Provisioning\Utils\BicepFunction2.cs" />
   </ItemGroup>
 
   <ItemGroup>

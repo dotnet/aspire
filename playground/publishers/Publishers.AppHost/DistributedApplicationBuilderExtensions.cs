@@ -36,6 +36,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 [
                     new InteractionInput
                     {
+                        Name = "ApplicationName",
                         Label = "Application Name",
                         InputType = InputType.Text,
                         Required = true,
@@ -43,6 +44,7 @@ internal static class IDistributedApplicationBuilderExtensions
                     },
                     new InteractionInput
                     {
+                        Name = "ApplicationVersion",
                         Label = "Application Version",
                         InputType = InputType.Text,
                         Required = false,
@@ -50,6 +52,7 @@ internal static class IDistributedApplicationBuilderExtensions
                     },
                     new InteractionInput
                     {
+                        Name = "SSLCertificateType",
                         Label = "SSL Certificate Type",
                         InputType = InputType.Choice,
                         Required = true,
@@ -95,6 +98,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Please enter the target environment name:",
                 new InteractionInput
                 {
+                    Name = "EnvironmentName",
                     Label = "Environment Name",
                     InputType = InputType.Text,
                     Required = true,
@@ -117,6 +121,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Please enter a secure database password:",
                 new InteractionInput
                 {
+                    Name = "DatabasePassword",
                     Label = "Database Password",
                     InputType = InputType.SecretText,
                     Required = true,
@@ -131,6 +136,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Select the target deployment region:",
                 new InteractionInput
                 {
+                    Name = "Region",
                     Label = "Region",
                     InputType = InputType.Choice,
                     Required = true,
@@ -151,6 +157,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Configure application logging settings:",
                 new InteractionInput
                 {
+                    Name = "EnableVerboseLogging",
                     Label = "Enable Verbose Logging",
                     InputType = InputType.Boolean,
                     Required = false
@@ -164,6 +171,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Specify the number of application instances to deploy:",
                 new InteractionInput
                 {
+                    Name = "InstanceCount",
                     Label = "Instance Count",
                     InputType = InputType.Number,
                     Required = true,
@@ -178,6 +186,7 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Choose your deployment strategy:",
                 new InteractionInput
                 {
+                    Name = "Strategy",
                     Label = "Strategy",
                     InputType = InputType.Choice,
                     Required = true,

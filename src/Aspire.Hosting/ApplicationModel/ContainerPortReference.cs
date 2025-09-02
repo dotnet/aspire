@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a TCP/UDP port that a container can expose.
 /// </summary>
 [DebuggerDisplay("{ValueExpression}")]
-public class ContainerPortReference(IResource resource) : IManifestExpressionProvider, IValueWithReferences
+public class ContainerPortReference(IResource resource) : IManifestExpressionProvider, IValueWithReferences, IValueProvider
 {
     /// <summary>
     /// Gets the resource that this container port is associated with.
@@ -21,4 +21,7 @@ public class ContainerPortReference(IResource resource) : IManifestExpressionPro
 
     /// <inheritdoc/>
     public IEnumerable<object> References => [Resource];
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+        => ValueTask.FromResult<string?>("8080");
 }

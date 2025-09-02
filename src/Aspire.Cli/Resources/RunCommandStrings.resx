@@ -115,6 +115,9 @@
   <data name="WatchArgumentDescription" xml:space="preserve">
     <value>Start project resources in watch mode.</value>
   </data>
+  <data name="StartDebugSessionArgumentDescription" xml:space="preserve">
+    <value>Whether to start a debug session during the run.</value>
+  </data>
   <data name="IsCompatibleAppHostIsNull" xml:space="preserve">
     <value>IsCompatibleAppHost is null</value>
   </data>
@@ -155,10 +158,16 @@
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
+  <data name="ExtensionSwitchingToAppHostConsole" xml:space="preserve">
+    <value>To view AppHost logs in real-time, switch to the AppHost Debug Console.</value>
+  </data>
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to app host...</value>
   </data>
   <data name="DashboardFailedToStart" xml:space="preserve">
     <value>Aspire Dashboard failed to start.</value>
+  </data>
+  <data name="AppHost" xml:space="preserve">
+    <value>AppHost</value>
   </data>
 </root>

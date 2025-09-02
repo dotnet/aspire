@@ -17,6 +17,11 @@
         <target state="translated">Le fichier AppHost a été spécifié dans « {0} » mais il n’existe pas dans « {1} ».</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">Aucun hôte d’application générable n’a été trouvé, mais il se peut qu’il y ait des hôtes d’application non générables.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion est nul</target>
@@ -82,6 +87,11 @@
         <target state="translated">Échec de l’analyse de la version du modèle à partir de stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">Échec de la récupération de tous les packages Aspire via le cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Échec de la récupération des packages de modèles via le cache.</target>
@@ -130,6 +140,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="translated">Le fichier projet de bot n’existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">Impossible de construire : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

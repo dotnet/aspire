@@ -13,8 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
 public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure),
-    IResourceWithConnectionString
+    AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithConnectionString
 {
     internal Uri? EmulatorServiceUri { get; set; }
 
@@ -61,8 +60,28 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var csa = CognitiveServicesAccount.FromExisting(this.GetBicepIdentifier());
-        csa.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a CognitiveServicesAccount with the same identifier already exists
+        var existingCsa = resources.OfType<CognitiveServicesAccount>().SingleOrDefault(csa => csa.BicepIdentifier == bicepIdentifier);
+
+        if (existingCsa is not null)
+        {
+            return existingCsa;
+        }
+
+        // Create and add new resource if it doesn't exist
+        var csa = CognitiveServicesAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            csa))
+        {
+            csa.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(csa);
         return csa;
     }
@@ -73,7 +92,4 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
 
         _deployments.Add(deployment);
     }
-
-    internal ReferenceExpression GetConnectionString(string deploymentName) =>
-        ReferenceExpression.Create($"{ConnectionStringExpression};DeploymentId={deploymentName};Model={deploymentName}");
 }

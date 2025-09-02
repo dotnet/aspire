@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
@@ -101,6 +102,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     private string _filter = "";
     private bool? _isMaskAllChecked;
     private bool _dataChanged;
+    private Dictionary<string, ComponentMetadata>? _valueComponents;
 
     private bool IsMaskAllChecked
     {
@@ -145,6 +147,25 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                     item.IsValueMasked = !_unmaskedItemNames.Contains(item.Name);
                 }
             }
+
+            _valueComponents = new Dictionary<string, ComponentMetadata>
+            {
+                [KnownProperties.Resource.State] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceStateValue),
+                    Parameters = { ["Resource"] = _resource }
+                },
+                [KnownProperties.Resource.DisplayName] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceNameValue),
+                    Parameters = { ["Resource"] = _resource, ["FormatName"] = new Func<ResourceViewModel, string>(FormatName) }
+                },
+                [KnownProperties.Resource.HealthState] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceHealthStateValue),
+                    Parameters = { ["Resource"] = _resource }
+                },
+            };
         }
 
         UpdateTelemetryProperties();
@@ -270,6 +291,11 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 _unmaskedItemNames.Add(vm.Name);
             }
         }
+    }
+
+    private string FormatName(ResourceViewModel resource)
+    {
+        return ResourceViewModel.GetResourceName(resource, ResourceByName);
     }
 
     public Task OnViewRelationshipAsync(ResourceDetailRelationshipViewModel relationship)

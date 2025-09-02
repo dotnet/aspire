@@ -1,10 +1,13 @@
+.interaction-input-dialog .interaction-message {
+    margin-bottom: 1rem;
+}
+
 .interaction-input-dialog .interaction-input ::deep {
     width: 100%;
 }
 
 .interaction-input-dialog .interaction-input ::deep fluent-text-field,
-.interaction-input-dialog .interaction-input ::deep fluent-select,
-.interaction-input-dialog .interaction-input ::deep .input-description {
+.interaction-input-dialog .interaction-input ::deep fluent-select {
     width: 75%;
 }
 
@@ -18,4 +21,13 @@
 .interaction-input-dialog .interaction-input ::deep .input-description ul,
 .interaction-input-dialog .interaction-input ::deep .input-description ol {
     margin-bottom: 0.2em;
+}
+
+.interaction-input-dialog .interaction-message ::deep code,
+.interaction-input-dialog .interaction-input ::deep code {
+    font-family: 'Cascadia Mono', Consolas, monospace;
+    color: unset;
+    background-color: var(--neutral-fill-secondary-focus);
+    padding: .15rem .3rem;
+    border-radius: .25rem;
 }

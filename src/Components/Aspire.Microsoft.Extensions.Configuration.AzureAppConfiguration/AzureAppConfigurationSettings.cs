@@ -12,6 +12,14 @@ namespace Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
 public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
 {
     /// <summary>
+    /// Gets or sets the connection string used to connect to the App Configuration service. 
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/> and <see cref="Credential"/>.
+    /// </remarks>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>
     /// A <see cref="Uri"/> to the App Configuration store on which the client operates. Appears as "Endpoint" in the Azure portal.
     /// This is likely to be similar to "https://{store_name}.azconfig.io".
     /// </summary>
@@ -29,6 +37,14 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
     public bool Optional { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the App Configuration provider health check is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
@@ -36,12 +52,36 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
     /// </value>
     public bool DisableTracing { get; set; }
 
+    /// <summary>
+    /// Indicates whether to connect to the Azure App Configuration service without authentication.
+    /// </summary>
+    /// <remarks>
+    /// This is only supported when using the Azure App Configuration emulator with anonymous authentication enabled.
+    /// It will not be used for the real Azure App Configuration service.
+    /// </remarks>
+    internal bool AnonymousAccess { get; set; }
+
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
-        if (!string.IsNullOrEmpty(connectionString) &&
-            Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            Endpoint = uri;
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                Endpoint = uri;
+            }
+            else
+            {
+                var connectionBuilder = new StableConnectionStringBuilder(connectionString);
+
+                if (connectionBuilder.TryGetValue("Anonymous", out string enabled))
+                {
+                    AnonymousAccess = Boolean.Parse(enabled);
+
+                    connectionBuilder.Remove("Anonymous");
+                }
+
+                ConnectionString = connectionBuilder.ConnectionString;
+            }
         }
     }
 }

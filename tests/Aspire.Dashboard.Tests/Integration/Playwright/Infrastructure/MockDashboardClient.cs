@@ -11,7 +11,7 @@ namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 public sealed class MockDashboardClient : IDashboardClient
 {
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
-        appName: "TestResource",
+        resourceName: "TestResource",
         resourceType: KnownResourceTypes.Project,
         properties: new[]
         {
@@ -57,6 +57,11 @@ public sealed class MockDashboardClient : IDashboardClient
     }
 
     public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ResourceViewModel? GetResource(string resourceName)
     {
         throw new NotImplementedException();
     }

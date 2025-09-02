@@ -17,6 +17,11 @@
         <target state="translated">在 '{0}' 中指定了 AppHost 檔案，但在 '{1}' 中不存在。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">找不到可建置的應用程式主機，但可能有無法建置的應用程式主機。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion 為 null</target>
@@ -82,6 +87,11 @@
         <target state="translated">無法從 stdout 剖析範本版本。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">無法透過快取來擷取所有 Aspire 套件。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">無法透過快取擷取範本套件。</target>
@@ -130,6 +140,11 @@
       <trans-unit id="ProjectFileDoesntExist">
         <source>Project file does not exist.</source>
         <target state="translated">專案檔案不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">無法建置: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">

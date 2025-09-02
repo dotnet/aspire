@@ -57,7 +57,9 @@ internal sealed class DashboardServiceData : IDisposable
                     HealthReports = snapshot.HealthReports,
                     Commands = snapshot.Commands,
                     IsHidden = snapshot.IsHidden,
-                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
+                    IconName = snapshot.IconName,
+                    IconVariant = snapshot.IconVariant
                 };
             }
 
@@ -97,6 +99,10 @@ internal sealed class DashboardServiceData : IDisposable
         try
         {
             var result = await _resourceCommandService.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            if (result.Canceled)
+            {
+                return (ExecuteCommandResultType.Canceled, result.ErrorMessage);
+            }
             return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
         catch

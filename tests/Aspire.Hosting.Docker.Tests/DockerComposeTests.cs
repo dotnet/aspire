@@ -82,7 +82,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         var composeContent = File.ReadAllText(composeFile);
 
         await Verify(composeContent, "yaml");
-        
+
         tempDir.Delete(recursive: true);
     }
 
@@ -140,6 +140,66 @@ public class DockerComposeTests(ITestOutputHelper output)
         await app.RunAsync();
 
         await VerifyDirectory(tempDir.Path);
+    }
+
+    [Fact]
+    public async Task DashboardWithForwardedHeadersWritesEnvVar()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("env")
+               .WithDashboard(d => d.WithForwardedHeaders());
+
+        // Add a sample service to force compose generation
+        builder.AddContainer("api", "myimage");
+
+        using var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+        var composeContent = File.ReadAllText(composeFile);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
+    public async Task DockerSwarmDeploymentLabelsSerializedCorrectly()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("swarm-env");
+
+        // Add a service with Docker Swarm deployment labels
+        builder.AddContainer("my-service", "my-image:latest")
+            .PublishAsDockerComposeService((resource, service) =>
+            {
+                service.Deploy = new Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm.Deploy
+                {
+                    Labels = new Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm.LabelSpecs
+                    {
+                        ["com.example.foo"] = "bar",
+                        ["com.example.env"] = "production"
+                    }
+                };
+            });
+
+        using var app = builder.Build();
+        app.Run();
+
+        var composeFile = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+        var composeContent = File.ReadAllText(composeFile);
+
+        // Verify the deployment labels are serialized as direct key-value pairs
+        // instead of nested under "additional_labels"
+        await Verify(composeContent, "yaml");
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder

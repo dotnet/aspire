@@ -226,7 +226,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext([], resource, cancellationToken: cancellationToken);
 
             foreach (var c in commandLineArgsCallbackAnnotations)
             {
@@ -311,10 +311,25 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
     }
 
-    internal class HelmExpressionWithValue(string helmExpression, string? value)
+    internal class HelmExpressionWithValue
     {
-        public string HelmExpression { get; } = helmExpression;
-        public string? Value { get; } = value;
+        public HelmExpressionWithValue(string helmExpression, string? value)
+        {
+            HelmExpression = helmExpression;
+            Value = value;
+            ParameterSource = null;
+        }
+
+        public HelmExpressionWithValue(string helmExpression, ParameterResource parameterSource)
+        {
+            HelmExpression = helmExpression;
+            Value = null;
+            ParameterSource = parameterSource;
+        }
+
+        public string HelmExpression { get; }
+        public string? Value { get; }
+        public ParameterResource? ParameterSource { get; }
         public bool IsHelmSecretExpression => HelmExpression.ContainsHelmSecretExpression();
         public bool ValueContainsSecretExpression => Value?.ContainsHelmSecretExpression() ?? false;
         public bool ValueContainsHelmExpression => Value?.ContainsHelmExpression() ?? false;

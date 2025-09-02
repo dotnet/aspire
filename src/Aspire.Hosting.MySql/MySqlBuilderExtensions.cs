@@ -92,6 +92,19 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When adding a <see cref="MySqlDatabaseResource"/> to your application model the resource can then
+    /// be referenced by other resources using the resource name. When the dependent resource is using
+    /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// then the dependent resource will wait until the MySQL database is available.
+    /// </para>
+    /// <para>
+    /// Note that calling <see cref="AddDatabase(IResourceBuilder{MySqlServerResource}, string, string?)"/>
+    /// will result in the database being created on the MySQL server when the server becomes ready.
+    /// The database creation happens automatically as part of the resource lifecycle.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -172,6 +185,21 @@ public static class MySqlBuilderExtensions
 
         builder.WithAnnotation(new MySqlCreateDatabaseScriptAnnotation(script));
 
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the MySQL resource uses.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the MySQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithPassword(this IResourceBuilder<MySqlServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
         return builder;
     }
 
