@@ -4,7 +4,7 @@ on:
   # Use pull_request_target to run in the context of the base branch
   # This allows commenting on PRs from forks
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches:
       - 'main'
       - 'release/**'
