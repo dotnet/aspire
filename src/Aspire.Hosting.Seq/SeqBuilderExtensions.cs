@@ -27,19 +27,7 @@ public static class SeqBuilderExtensions
         string name,
         int? port = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
-
-        var seqResource = new SeqResource(name);
-        var resourceBuilder = builder.AddResource(seqResource)
-            .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
-            .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
-            .WithImageRegistry(SeqContainerImageTags.Registry)
-            .WithEnvironment("ACCEPT_EULA", "Y")
-            .WithEnvironment("SEQ_FIRSTRUN_NOAUTHENTICATION", "True")
-            .WithHttpHealthCheck("/health"); // Add health check for Seq's /health endpoint
-
-        return resourceBuilder;
+        return AddSeq(builder, name, adminPassword: null, port: port);
     }
 
     /// <summary>
