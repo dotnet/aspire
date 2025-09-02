@@ -114,7 +114,7 @@ public class GenAIVisualizerDialogViewModel
                 {
                     MessagePart = p,
                     TextVisualizerViewModel = CreateMessagePartVisualizer(p)
-                }).ToList()));
+                }).ToList(), internalId: null));
                 currentIndex++;
             }
             if (inputMessages != null)
@@ -135,7 +135,7 @@ public class GenAIVisualizerDialogViewModel
             if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
             {
                 var parts = DeserializeBody(type.Value, item.Message);
-                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts));
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: item.InternalId));
                 currentIndex++;
             }
         }
@@ -153,7 +153,7 @@ public class GenAIVisualizerDialogViewModel
                 TryMapEventName(item.Name, out var type))
             {
                 var parts = DeserializeBody(type.Value, content);
-                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts));
+                viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
                 currentIndex++;
             }
         }
@@ -176,7 +176,7 @@ public class GenAIVisualizerDialogViewModel
                 "assistant" => isOutput ? GenAIMessageType.OutputMessage : GenAIMessageType.AssistantMessage,
                 _ => GenAIMessageType.UserMessage
             };
-            viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type, parts));
+            viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type, parts, internalId: null));
             currentIndex++;
         }
 
@@ -196,12 +196,12 @@ public class GenAIVisualizerDialogViewModel
         return new TextVisualizerViewModel(content, indentText: true);
     }
 
-    private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIMessageType type, List<GenAIMessagePartViewModel> parts)
+    private static GenAIMessageViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIMessageType type, List<GenAIMessagePartViewModel> parts, long? internalId)
     {
         return new GenAIMessageViewModel
         {
             Index = currentIndex,
-            InternalId = null,
+            InternalId = internalId,
             Type = type,
             Parent = viewModel.Span,
             ResourceName = type is GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage ? viewModel.PeerName! : viewModel.SourceName!,
