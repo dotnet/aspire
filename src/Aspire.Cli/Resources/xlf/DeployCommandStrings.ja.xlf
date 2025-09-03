@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for deployment artifacts.</source>
-        <target state="needs-review-translation">デプロイ成果物の出力パス。</target>
+        <target state="new">The optional output path for deployment artifacts.</target>
         <note />
       </trans-unit>
     </body>

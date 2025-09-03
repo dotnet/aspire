@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHost">
         <source>AppHost</source>
-        <target state="new">AppHost</target>
+        <target state="translated">AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ExtensionSwitchingToAppHostConsole">
         <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
-        <target state="new">To view AppHost logs in real-time, switch to the AppHost Debug Console.</target>
+        <target state="translated">Para visualizar os logs do AppHost em tempo real, mude para o Console de Depuração do AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session during the run.</source>
-        <target state="new">Whether to start a debug session during the run.</target>
+        <target state="translated">Se deve iniciar uma sessão de depuração durante a execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">

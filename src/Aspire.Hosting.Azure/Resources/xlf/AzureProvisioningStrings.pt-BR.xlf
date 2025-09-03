@@ -18,7 +18,7 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       </trans-unit>
       <trans-unit id="LocationDialogTitle">
         <source>Azure location and resource group</source>
-        <target state="new">Azure location and resource group</target>
+        <target state="translated">Localização do Azure e grupo de recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
@@ -33,7 +33,7 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       </trans-unit>
       <trans-unit id="LocationSelectionMessage">
         <source>Select your Azure location and specify resource group:</source>
-        <target state="new">Select your Azure location and specify resource group:</target>
+        <target state="translated">Selecione sua localização do Azure e especifique o grupo de recursos:</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
@@ -58,7 +58,7 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
-        <target state="new">Azure subscription</target>
+        <target state="translated">Assinatura do Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
@@ -73,12 +73,12 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       </trans-unit>
       <trans-unit id="SubscriptionManualEntryMessage">
         <source>Enter your Azure subscription ID:</source>
-        <target state="new">Enter your Azure subscription ID:</target>
+        <target state="translated">Insira sua ID de assinatura do Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionSelectionMessage">
         <source>Select your Azure subscription:</source>
-        <target state="new">Select your Azure subscription:</target>
+        <target state="translated">Selecione sua assinatura do Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
