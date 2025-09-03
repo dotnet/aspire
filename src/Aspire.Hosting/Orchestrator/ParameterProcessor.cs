@@ -31,7 +31,7 @@ public sealed class ParameterProcessor(
     /// <param name="parameterResources">The parameter resources to initialize.</param>
     /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
     /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
-    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = true)
+    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = false)
     {
         // Initialize all parameter resources by setting their WaitForValueTcs.
         // This allows them to be processed asynchronously later.
