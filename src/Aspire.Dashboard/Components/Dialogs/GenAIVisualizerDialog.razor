@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using System.Globalization
 
 @inject IStringLocalizer<Dialogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -117,9 +118,14 @@
                                     <span>@Content.Span.Name</span>
                                     <span class="message-header-date">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, Content.Span.StartTime, MillisecondsDisplay.Truncated)</span>
                                 </div>
+                                @{
+                                    var tokenTotal = Content.InputTokens + Content.OutputTokens;
+                                    var tokenText = tokenTotal == null ? "N/A" : tokenTotal.Value.ToString(CultureInfo.CurrentCulture);
+                                    var tokenTooltip = tokenTotal == null ? "N/A" : $"Input tokens: {Content.InputTokens ?? 0}{Environment.NewLine}Output tokens: {Content.OutputTokens ?? 0}";
+                                }
                                 <div class="message-header-details">
                                     <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
-                                    <span>Tokens <strong title="@($"Input tokens: {Content.InputTokens} Output tokens: {Content.OutputTokens}")">@(Content.InputTokens + Content.OutputTokens)</strong></span>
+                                    <span>Tokens <strong title="@tokenTooltip">@tokenText</strong></span>
                                 </div>
                             </div>
                             @*
