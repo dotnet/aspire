@@ -1,6 +1,5 @@
-import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
-import { sendToAspireTerminal } from '../utils/terminal';
+import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 
-export async function newCommand(rpcServerConnectionInfo: RpcServerConnectionInfo) {
-    sendToAspireTerminal("aspire new", rpcServerConnectionInfo);
+export async function newCommand(terminalProvider: AspireTerminalProvider) {
+    terminalProvider.sendToAspireTerminal("aspire new", null);
 };

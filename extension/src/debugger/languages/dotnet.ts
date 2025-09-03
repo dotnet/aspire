@@ -55,12 +55,32 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
         return buildTask;
     });
 
-    extensionLogOutputChannel.info(`Executing build task: ${buildTask.name} for project: ${projectFile}`);
-    await vscode.tasks.executeTask(buildTask);
+// Modify the task to target the specific project
+    const projectName = path.basename(projectFile, '.csproj');
 
+    // Create a modified task definition with just the project file
+    const modifiedDefinition = {
+        ...buildTask.definition,
+        file: projectFile  // This will make it build the specific project directly
+    };
+
+    // Create a new task with the modified definition
+    const modifiedTask = new vscode.Task(
+        modifiedDefinition,
+        buildTask.scope || vscode.TaskScope.Workspace,
+        `build ${projectName}`,
+        buildTask.source,
+        buildTask.execution,
+        buildTask.problemMatchers
+    );
+
+    extensionLogOutputChannel.info(`Executing build task: ${modifiedTask.name} for project: ${projectFile}`);
+    await vscode.tasks.executeTask(modifiedTask);
+
+    let disposable: vscode.Disposable;
     return new Promise<void>((resolve, reject) => {
-        vscode.tasks.onDidEndTaskProcess(async e => {
-            if (e.execution.task === buildTask) {
+        disposable = vscode.tasks.onDidEndTaskProcess(async e => {
+            if (e.execution.task === modifiedTask) {
                 if (e.exitCode !== 0) {
                     reject(new Error(buildFailedWithExitCode(e.exitCode ?? 0)));
                 }
@@ -69,7 +89,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
                 }
             }
         });
-    });
+    }).finally(() => disposable.dispose());
 }
 
 async function getDotNetTargetPath(projectFile: string): Promise<string> {

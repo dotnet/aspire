@@ -173,6 +173,14 @@ type RpcServerTestInfo = {
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
+
+    constructor(debugSessionId: string | null, interactionService: IInteractionService) {
+        this.debugSessionId = debugSessionId;
+        this.interactionService = interactionService;
+    }
+
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}
@@ -194,19 +202,15 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 }
 
-async function createTestRpcServer(hasAspireDebugSession?: () => boolean, getAspireDebugSession?: () => AspireDebugSession): Promise<RpcServerTestInfo> {
-    hasAspireDebugSession ??= () => false;
+async function createTestRpcServer(debugSessionId?: string | null, getAspireDebugSession?: () => AspireDebugSession | null): Promise<RpcServerTestInfo> {
     getAspireDebugSession ??= () => {
-        throw new Error();
+        return null;
     };
 
-	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService(hasAspireDebugSession, getAspireDebugSession);
+	const interactionService = new InteractionService(getAspireDebugSession);
+	const rpcClient = new TestCliRpcClient(debugSessionId ?? null, interactionService);
 
-	const rpcServer = await AspireRpcServer.create(
-		() => interactionService,
-		() => rpcClient
-	);
+	const rpcServer = await AspireRpcServer.create(() => rpcClient);
 
 	if (!rpcServer) {
 		throw new Error('Failed to set up RPC server');

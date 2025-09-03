@@ -8,7 +8,6 @@ import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
-import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -16,30 +15,42 @@ export type RpcServerConnectionInfo = {
     cert: string;
 };
 
-interface RpcClientConnection {
-    stopCli: () => void;
-}
-
 export default class AspireRpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
-    public connections: RpcClientConnection[] = [];
+    private _connections: ICliRpcClient[] = [];
+
+    private _onNewConnection = new vscode.EventEmitter<ICliRpcClient>();
+    public readonly onNewConnection = this._onNewConnection.event;
 
     constructor(server: tls.Server, connectionInfo: RpcServerConnectionInfo) {
         this.server = server;
         this.connectionInfo = connectionInfo;
     }
 
+    public getConnection(debugSessionId: string): ICliRpcClient | null {
+        return this._connections.find(connection => connection.debugSessionId === debugSessionId) || null;
+    }
+
+    public addConnection(connection: ICliRpcClient) {
+        this._connections.push(connection);
+        this._onNewConnection.fire(connection);
+    }
+
+    public removeConnection(connection: ICliRpcClient) {
+        const index = this._connections.indexOf(connection);
+        if (index !== -1) {
+            this._connections.splice(index, 1);
+        }
+    }
+
     public dispose() {
         extensionLogOutputChannel.info(`Disposing RPC server`);
+        this._onNewConnection.dispose();
         this.server.close();
     }
 
-    public requestStopCli() {
-        this.connections.forEach(connection => connection.stopCli());
-    }
-
-    static create(interactionServiceFactory: (connection: MessageConnection) => IInteractionService, rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string) => ICliRpcClient): Promise<AspireRpcServer> {
+    static create(rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => ICliRpcClient): Promise<AspireRpcServer> {
         const token = generateToken();
         const { key, cert } = createSelfSignedCert();
 
@@ -80,7 +91,7 @@ export default class AspireRpcServer {
 
                     const rpcServer = new AspireRpcServer(server, connectionInfo);
 
-                    server.on('secureConnection', (socket) => {
+                    server.on('secureConnection', async (socket) => {
                         extensionLogOutputChannel.info('Client connected to RPC server');
                         const connection = createMessageConnection(
                             new StreamMessageReader(socket),
@@ -95,27 +106,17 @@ export default class AspireRpcServer {
                             return 'pong';
                         }));
 
-                        const rpcClient = rpcClientFactory(connectionInfo, connection, token);
-                        const interactionService = interactionServiceFactory(connection);
-                        addInteractionServiceEndpoints(connection, interactionService, rpcClient, withAuthentication);
-
-                        const clientFunctionality: RpcClientConnection = {
-                            stopCli: () => {
-                                rpcClient.stopCli();
-                            }
-                        };
-
-                        rpcServer.connections.push(clientFunctionality);
-
-                        connection.onClose(() => {
-                            const index = rpcServer.connections.indexOf(clientFunctionality);
-                            if (index !== -1) {
-                                rpcServer.connections.splice(index, 1);
-                            }
-                            extensionLogOutputChannel.info('Client disconnected from RPC server');
-                        });
-
                         connection.listen();
+
+                        const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId', token);
+
+                        const rpcClient = rpcClientFactory(connectionInfo, connection, token, clientDebugSessionId);
+                        addInteractionServiceEndpoints(connection,rpcClient.interactionService, rpcClient, withAuthentication);
+
+                        rpcServer.addConnection(rpcClient);
+
+                        connection.onClose(() => rpcServer.removeConnection(rpcClient));
+
                     });
 
                     resolve(rpcServer);
