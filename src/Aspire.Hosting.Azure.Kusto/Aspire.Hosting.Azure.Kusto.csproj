@@ -3,9 +3,10 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <EnablePackageValidation>false</EnablePackageValidation> <!-- TODO: Remove this once the package ships -->
     <PackageTags>aspire integration hosting azure kusto</PackageTags>
     <Description>Azure Kusto support for .NET Aspire.</Description>
+    <!-- This package is currently in preview because it lacks Azure Provisioning and only provides emulator support. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
