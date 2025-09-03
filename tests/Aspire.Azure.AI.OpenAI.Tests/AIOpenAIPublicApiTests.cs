@@ -15,8 +15,9 @@ public class AIOpenAIPublicApiTests
         const string connectionName = "openai";
         const string? serviceKey = null;
         const bool disableTracing = false;
+        const bool enableSensitiveTelemetryData = false;
 
-        var action = () => new AspireAzureOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing);
+        var action = () => new AspireAzureOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(hostBuilder), exception.ParamName);
@@ -31,8 +32,9 @@ public class AIOpenAIPublicApiTests
         var connectionName = isNull ? null! : string.Empty;
         const string? serviceKey = null;
         const bool disableTracing = false;
+        const bool enableSensitiveTelemetryData = false;
 
-        var action = () => new AspireAzureOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing);
+        var action = () => new AspireAzureOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
