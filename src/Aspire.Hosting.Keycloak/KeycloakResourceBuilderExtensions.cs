@@ -221,11 +221,14 @@ public static class KeycloakResourceBuilderExtensions
     /// <code lang="csharp">
     /// var keycloak = builder.AddKeycloak("keycloak");
     /// 
-    /// // For production deployment with reverse proxy (e.g., Azure Container Apps)
+    /// // Option 1: Manual check for production deployment with reverse proxy
     /// if (!builder.ExecutionContext.IsRunMode)
     /// {
     ///     keycloak.WithReverseProxy();
     /// }
+    /// 
+    /// // Option 2: Use the convenience method that automatically checks the execution context
+    /// keycloak.PublishWithReverseProxy();
     /// </code>
     /// </example>
     /// </remarks>
@@ -247,5 +250,37 @@ public static class KeycloakResourceBuilderExtensions
                 : builder.GetEndpoint(endpointName);
             context.EnvironmentVariables[HostnameEnvVarName] = endpointReference;
         });
+    }
+
+    /// <summary>
+    /// Configures Keycloak to run behind a reverse proxy with TLS termination when not in run mode.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint to use for hostname configuration. If not specified, uses the primary HTTP endpoint.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper around <see cref="WithReverseProxy"/> that automatically applies
+    /// the reverse proxy configuration only when not in run mode (i.e., during publish operations).
+    /// This is useful for scenarios where you want to deploy to environments with reverse proxy support
+    /// (such as Azure Container Apps) without affecting local development.
+    /// 
+    /// <example>
+    /// Configure Keycloak for deployment behind a reverse proxy
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak")
+    ///                       .PublishWithReverseProxy(); // Only applies during publish, not local development
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<KeycloakResource> PublishWithReverseProxy(this IResourceBuilder<KeycloakResource> builder, string? endpointName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            builder.WithReverseProxy(endpointName);
+        }
+
+        return builder;
     }
 }
