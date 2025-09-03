@@ -15,7 +15,6 @@ using Azure;
 using Aspire.Hosting.ApplicationModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Orchestrator;
 
 namespace Aspire.Hosting.Azure;
 

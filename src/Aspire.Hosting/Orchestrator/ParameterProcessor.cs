@@ -10,7 +10,7 @@ using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
-namespace Aspire.Hosting.Orchestrator;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Handles processing of parameter resources during application orchestration.
@@ -24,13 +24,12 @@ public sealed class ParameterProcessor(
     DistributedApplicationOptions options)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
-    private Task? _parameterResolutionTask;
 
     /// <summary>
     /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
     /// </summary>
     /// <param name="parameterResources">The parameter resources to initialize.</param>
-    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before returning.</param>
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
     /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
     public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = true)
     {
@@ -47,9 +46,9 @@ public sealed class ParameterProcessor(
         // This will allow the user to provide values for parameters that could not be initialized.
         if (interactionService.IsAvailable && _unresolvedParameters.Count > 0)
         {
-            if (waitForResolution)
+            // Start the loop that will allow the user to specify values for unresolved parameters.
+            var parameterResolutionTask = Task.Run(async () =>
             {
-                // Handle unresolved parameters synchronously and wait for completion.
                 try
                 {
                     await HandleUnresolvedParametersAsync().ConfigureAwait(false);
@@ -59,22 +58,11 @@ public sealed class ParameterProcessor(
                 {
                     logger.LogError(ex, "Failed to handle unresolved parameters.");
                 }
-            }
-            else
+            });
+
+            if (waitForResolution)
             {
-                // Start the loop that will allow the user to specify values for unresolved parameters.
-                _parameterResolutionTask = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await HandleUnresolvedParametersAsync().ConfigureAwait(false);
-                        logger.LogDebug("All unresolved parameters have been handled successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to handle unresolved parameters.");
-                    }
-                });
+                await parameterResolutionTask.ConfigureAwait(false);
             }
         }
     }
@@ -151,10 +139,10 @@ public sealed class ParameterProcessor(
                 InteractionStrings.ParametersBarTitle,
                 InteractionStrings.ParametersBarMessage,
                  new NotificationInteractionOptions
-                {
-                    Intent = MessageIntent.Warning,
-                    PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                })
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                 })
                 .ConfigureAwait(false);
 
             if (result.Data)

@@ -105,10 +105,6 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     public bool EnableDescriptionMarkdown { get; set; }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    /// <summary>
-    /// Generates an <see cref="InteractionInput"/> for the parameter, respecting
-    /// <see cref="InputGeneratorAnnotation"/> if it exists.
-    /// </summary>
     internal InteractionInput CreateInput()
     {
         if (this.TryGetLastAnnotation<InputGeneratorAnnotation>(out var annotation))
