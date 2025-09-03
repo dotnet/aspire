@@ -18,7 +18,7 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="LocationDialogTitle">
         <source>Azure location and resource group</source>
-        <target state="new">Azure location and resource group</target>
+        <target state="translated">Azure konumu ve kaynak grubu</target>
         <note />
       </trans-unit>
       <trans-unit id="LocationLabel">
@@ -33,7 +33,7 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="LocationSelectionMessage">
         <source>Select your Azure location and specify resource group:</source>
-        <target state="new">Select your Azure location and specify resource group:</target>
+        <target state="translated">Azure konumunuzu seçin ve kaynak grubunu belirtin:</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
@@ -58,7 +58,7 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
-        <target state="new">Azure subscription</target>
+        <target state="translated">Azure aboneliği</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
@@ -73,12 +73,12 @@ Daha fazla bilgi için [Azure sağlama belgelerine](https://aka.ms/dotnet/aspire
       </trans-unit>
       <trans-unit id="SubscriptionManualEntryMessage">
         <source>Enter your Azure subscription ID:</source>
-        <target state="new">Enter your Azure subscription ID:</target>
+        <target state="translated">Azure abonelik kimliğinizi girin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionSelectionMessage">
         <source>Select your Azure subscription:</source>
-        <target state="new">Select your Azure subscription:</target>
+        <target state="translated">Azure aboneliğinizi seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
