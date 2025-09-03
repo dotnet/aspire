@@ -177,7 +177,7 @@ internal sealed class UpdateCommand : BaseCommand
                         // For explicit channels, we use the temp config file, not a specific source
                     }
 
-                    return await _dotNetCliRunner.UpdateTemplateAsync(latestTemplate.Id, latestTemplate.Version, nugetConfigFile, nugetSource, options, cancellationToken);
+                    return await _dotNetCliRunner.InstallTemplateAsync(latestTemplate.Id, latestTemplate.Version, nugetConfigFile, nugetSource, force: true, options, cancellationToken);
                 });
 
             if (templateResult != 0)

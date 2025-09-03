@@ -37,7 +37,6 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -921,51 +920,5 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         return result;
-    }
-
-    public async Task<(int ExitCode, string? TemplateVersion)> UpdateTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity(nameof(UpdateTemplateAsync), ActivityKind.Client);
-
-        // First uninstall existing template if it exists, then install new version
-        // This ensures we get the latest version and avoid conflicts
-        List<string> uninstallArgs = ["new", "uninstall", packageName, "--force"];
-
-        var stdoutBuilder = new StringBuilder();
-        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) => {
-            stdoutBuilder.AppendLine(line);
-            existingStandardOutputCallback?.Invoke(line);
-        };
-
-        var stderrBuilder = new StringBuilder();
-        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) => {
-            stderrBuilder.AppendLine(line);
-            existingStandardErrorCallback?.Invoke(line);
-        };
-
-        var workingDirectory = nugetConfigFile?.Directory ?? executionContext.WorkingDirectory;
-
-        // Try to uninstall existing template (ignore failures as template might not be installed)
-        await ExecuteAsync(
-            args: [.. uninstallArgs],
-            env: new Dictionary<string, string>
-            {
-                // Force English output for consistent parsing.
-                [KnownConfigNames.DotnetCliUiLanguage] = "en-US"
-            },
-            projectFile: null,
-            workingDirectory: workingDirectory,
-            backchannelCompletionSource: null,
-            options: new DotNetCliRunnerInvocationOptions(), // Don't capture output for uninstall
-            cancellationToken: cancellationToken);
-
-        // Clear builders for install operation
-        stdoutBuilder.Clear();
-        stderrBuilder.Clear();
-
-        // Now install the new version
-        return await InstallTemplateAsync(packageName, version, nugetConfigFile, nugetSource, force: true, options, cancellationToken);
     }
 }
