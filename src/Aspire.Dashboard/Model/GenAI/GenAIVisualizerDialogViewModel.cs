@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -11,10 +12,10 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-public class GenAIVisualizerDialogViewModel
+[DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Messages = {Messages.Count}")]
+public sealed class GenAIVisualizerDialogViewModel
 {
     public required OtlpSpan Span { get; init; }
-    public required List<OtlpLogEntry> LogEntries { get; init; }
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
     public required long? SelectedLogEntryId { get; init; }
@@ -41,26 +42,9 @@ public class GenAIVisualizerDialogViewModel
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
-        var logsContext = new GetLogsContext
-        {
-            ResourceKey = null,
-            Count = int.MaxValue,
-            StartIndex = 0,
-            Filters = [
-                new TelemetryFilter
-                {
-                    Field = KnownStructuredLogFields.SpanIdField,
-                    Condition = FilterCondition.Equals,
-                    Value = spanDetailsViewModel.Span.SpanId
-                }
-            ]
-        };
-        var logsResult = telemetryRepository.GetLogs(logsContext);
-
         var viewModel = new GenAIVisualizerDialogViewModel
         {
             Span = spanDetailsViewModel.Span,
-            LogEntries = logsResult.Items,
             Title = SpanWaterfallViewModel.GetTitle(spanDetailsViewModel.Span, spanDetailsViewModel.Resources),
             SpanDetailsViewModel = spanDetailsViewModel,
             SelectedLogEntryId = selectedLogEntryId,
@@ -83,7 +67,7 @@ public class GenAIVisualizerDialogViewModel
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger("gen_ai.usage.input_tokens");
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger("gen_ai.usage.output_tokens");
 
-        CreateMessages(viewModel);
+        CreateMessages(viewModel, telemetryRepository);
 
         if (viewModel.SelectedLogEntryId != null)
         {
@@ -97,7 +81,7 @@ public class GenAIVisualizerDialogViewModel
     // - Span attributes.
     // - Log entry bodies.
     // - Span event attributes.
-    private static void CreateMessages(GenAIVisualizerDialogViewModel viewModel)
+    private static void CreateMessages(GenAIVisualizerDialogViewModel viewModel, TelemetryRepository telemetryRepository)
     {
         var currentIndex = 0;
 
@@ -130,7 +114,8 @@ public class GenAIVisualizerDialogViewModel
         }
 
         // Attempt to get messages from log entries.
-        foreach (var item in viewModel.LogEntries.OrderBy(i => i.TimeStamp))
+        var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
+        foreach (var item in logEntries.OrderBy(i => i.TimeStamp))
         {
             if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
             {
@@ -317,6 +302,26 @@ public class GenAIVisualizerDialogViewModel
         };
 
         return type != null;
+    }
+
+    private static List<OtlpLogEntry> GetSpanLogEntries(TelemetryRepository telemetryRepository, OtlpSpan span)
+    {
+        var logsContext = new GetLogsContext
+        {
+            ResourceKey = null,
+            Count = int.MaxValue,
+            StartIndex = 0,
+            Filters = [
+                new TelemetryFilter
+                {
+                    Field = KnownStructuredLogFields.SpanIdField,
+                    Condition = FilterCondition.Equals,
+                    Value = span.SpanId
+                }
+            ]
+        };
+        var logsResult = telemetryRepository.GetLogs(logsContext);
+        return logsResult.Items;
     }
 }
 

@@ -8,7 +8,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-[DebuggerDisplay("Type = {Type}, Index = {Index}, ResourceName = {ResourceName}")]
+[DebuggerDisplay("Index = {Index}, Type = {Type}, ResourceName = {ResourceName}")]
 public class GenAIMessageViewModel
 {
     private static readonly Icon s_toolCallsIcon = new Icons.Regular.Size16.Code();
