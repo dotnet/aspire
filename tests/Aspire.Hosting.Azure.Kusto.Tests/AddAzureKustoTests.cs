@@ -344,7 +344,7 @@ public class AddAzureKustoTests
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-        
+
         var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
         Assert.NotNull(httpEndpoint);
         Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
@@ -367,8 +367,7 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator()
-            .WithHttpPort(port);
+            .RunAsEmulator(c => c.WithHttpPort(port));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -391,8 +390,7 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator()
-            .WithIngestionHttpPort(port);
+            .RunAsEmulator(c => c.WithIngestionHttpPort(port));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -411,7 +409,7 @@ public class AddAzureKustoTests
         IResourceBuilder<AzureKustoClusterResource> builder = null!;
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() => builder.WithHttpPort(8080));
+        var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHttpPort(8080)));
         Assert.Equal("builder", exception.ParamName);
     }
 
@@ -422,7 +420,7 @@ public class AddAzureKustoTests
         IResourceBuilder<AzureKustoClusterResource> builder = null!;
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() => builder.WithIngestionHttpPort(8081));
+        var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithIngestionHttpPort(8081)));
         Assert.Equal("builder", exception.ParamName);
     }
 
@@ -437,13 +435,11 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator()
-            .WithHttpPort(httpPort)
-            .WithIngestionHttpPort(ingestionPort);
+            .RunAsEmulator(c => c.WithHttpPort(httpPort).WithIngestionHttpPort(ingestionPort));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-        
+
         var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
         Assert.NotNull(httpEndpoint);
         Assert.Equal(httpPort, httpEndpoint.Port);
@@ -463,12 +459,11 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator()
-            .WithHttpPort(9090);
+            .RunAsEmulator(c => c.WithHttpPort(9090));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-        
+
         var ingestionEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "ingestionHttp");
         Assert.NotNull(ingestionEndpoint);
         Assert.Null(ingestionEndpoint.Port); // Should remain null (default)
@@ -483,12 +478,11 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator()
-            .WithIngestionHttpPort(9091);
+            .RunAsEmulator(c => c.WithIngestionHttpPort(9091));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-        
+
         var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
         Assert.NotNull(httpEndpoint);
         Assert.Null(httpEndpoint.Port); // Should remain null (default)
