@@ -28,7 +28,7 @@ internal sealed class QueryWorker : BackgroundService
         while (!stoppingToken.IsCancellationRequested && !_workerOptions.CurrentValue.IsIngestionComplete)
         {
             // Wait for ingestion to complete
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
         }
 
         var reader = await _queryClient.ExecuteQueryAsync(_queryClient.DefaultDatabaseName, _workerOptions.CurrentValue.TableName, new ClientRequestProperties(), stoppingToken);

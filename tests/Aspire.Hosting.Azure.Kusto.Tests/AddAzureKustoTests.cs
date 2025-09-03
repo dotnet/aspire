@@ -167,7 +167,7 @@ public class AddAzureKustoTests
         var resourceBuilder = builder.AddAzureKustoCluster("kusto");
 
         // Assert
-        Assert.IsAssignableFrom<IResourceWithConnectionString>(resourceBuilder.Resource);
+        Assert.IsType<IResourceWithConnectionString>(resourceBuilder.Resource, exactMatch: false);
     }
 
     [Theory]

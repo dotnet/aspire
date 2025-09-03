@@ -47,6 +47,7 @@ public class AzureKustoDatabaseResource : Resource, IResourceWithParent<AzureKus
             return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
