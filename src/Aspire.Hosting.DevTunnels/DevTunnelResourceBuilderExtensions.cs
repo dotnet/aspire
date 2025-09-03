@@ -1,15 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Http.Headers;
-using System.Reflection;
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
-using Microsoft.DevTunnels.Connections;
-using Microsoft.DevTunnels.Contracts;
-using Microsoft.DevTunnels.Management;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -25,23 +21,23 @@ public static class DevTunnelsResourceBuilderExtensions
     public static IResourceBuilder<DevTunnelResource> AddDevTunnel(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
+        string? tunnelId = null,
         Action<DevTunnelOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        builder.Services.TryAddSingleton<ITunnelManagementClient>(_ =>
-        {
-            var userAgent = TunnelUserAgent.GetUserAgent(typeof(DevTunnelResource).Assembly)
-                ?? new ProductInfoHeaderValue("Aspire.Hosting.DevTunnels", Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0");
-            return new TunnelManagementClient(userAgent, userTokenCallback: null, apiVersion: ManagementApiVersions.Version20230927Preview);
-        });
-
         var options = new DevTunnelOptions();
         configure?.Invoke(options);
 
-        var rb = builder.AddResource(new DevTunnelResource(name, options))
-            .WithInitialState(new CustomResourceSnapshot
+        var workingDirectory = builder.AppHostDirectory;
+        var appHostSha = builder.Configuration["Aspire:AppHostSha"]?[..8];
+        tunnelId ??= $"{name}-{builder.Environment.ApplicationName}-{appHostSha}";
+
+        var rb = builder.AddResource(new DevTunnelResource(name, tunnelId, "devtunnel", workingDirectory, options))
+            //.WithExplicitStart()
+            .WithArgs("host", tunnelId)
+            .WithInitialState(new()
             {
                 ResourceType = "DevTunnel",
                 CreationTimeStamp = DateTime.UtcNow,
@@ -50,74 +46,72 @@ public static class DevTunnelsResourceBuilderExtensions
             });
 
         // Lifecycle
-        rb.OnInitializeResource(static async (resource, init, token) =>
+        rb.OnBeforeResourceStarted(static async (resource, e, ct) =>
         {
             var tunnelResource = resource;
-            var logger = init.Logger;
-            var notifications = init.Notifications;
+            var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
+            var eventing = e.Services.GetRequiredService<DistributedApplicationEventing>();
+            var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            var interaction = e.Services.GetRequiredService<IInteractionService>();
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-            await notifications.PublishUpdateAsync(tunnelResource, s => s with { State = KnownResourceStates.Starting }).ConfigureAwait(false);
-            // TODO: Need to publish BeforeStart event for this resource here so subscribers have a chance to update the model before continuing
+            var cli = new DevTunnelCli();
 
-            // Find ports under this tunnel.
-            var portResources = tunnelResource.Ports;
-
-            if (portResources.Count == 0)
+            // Login to the cev tunnels service if needed
+            if (await cli.UserIsLoggedInAsync(logger, ct).ConfigureAwait(false) != true)
             {
-                logger.LogInformation("Dev tunnel '{Tunnel}' has no ports so will not start.", tunnelResource.Name);
-                await notifications.PublishUpdateAsync(tunnelResource, s => s with { State = KnownResourceStates.Finished }).ConfigureAwait(false);
-                return;
-            }
-
-            var tunnelManager = init.Services.GetRequiredService<ITunnelManagementClient>();
-            logger.LogInformation("Starting dev tunnel '{Tunnel}' with {Count} port(s)...", tunnelResource.Name, portResources.Count);
-
-            try
-            {
-                var tunnel = new Tunnel
+                if (interaction.IsAvailable)
                 {
-                    TunnelId = tunnelResource.TunnelId,
-                    Labels = ["aspire"],
-                    Description = tunnelResource.Options.Description
-                };
-                tunnel = await tunnelManager.CreateOrUpdateTunnelAsync(tunnel, null, token).ConfigureAwait(false);
-
-                // TODO: Consider lifetime of the trace listener, it's disposable, perhaps make it a singleton for the app
-                // TODO: Reconsider if this should instead map the resource ILogger instead of the ILoggerFactory
-                var traceListener = new LoggerFactoryTraceListener(init.Services.GetRequiredService<ILoggerFactory>());
-                var traceSource = new System.Diagnostics.TraceSource(tunnelResource.Name);
-                traceSource.Listeners.Add(traceListener);
-                var tunnelHost = new TunnelRelayTunnelHost(tunnelManager, traceSource);
-                await notifications.PublishUpdateAsync(tunnelResource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
-
-                // Subscribe to endpoint allocated events for resources being exposed by the tunnel
-                foreach (var portResource in portResources)
-                {
-                    init.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(portResource.TargetEndpoint.Resource, async (e, ct) =>
-                    {
-                        if (!portResource.TargetEndpoint.IsAllocated)
-                        {
-                            return;
-                        }
-
-                        var port = new TunnelPort
-                        {
-                            PortNumber = (ushort)portResource.TargetEndpoint.Port,
-                            Labels = [portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName]
-                        };
-                        port = await tunnelManager.CreateOrUpdateTunnelPortAsync(tunnel, port, null, ct).ConfigureAwait(false);
-                        logger.LogInformation("Dev tunnel '{Tunnel}' port '{Port}' is forwarding to {Source}/{Endpoint} at {Url}", tunnelResource.Name, port.PortNumber, portResource.TargetResource.Name, portResource.TargetEndpoint.EndpointName, port.PortForwardingUris?.First());
-
-                        // TODO: Allocate endpoint to the tunnel port here
-                        // TODO: Publish URLs update with port-forwarding and inspect URLs
-                    });
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                    await interaction.PromptNotificationAsync(
+                        "Dev tunnels",
+                        "One or more dev tunnels resources require authentication to continue.",
+                        new() { Intent = MessageIntent.Warning, PrimaryButtonText = "Login", ShowDismiss = false },
+                        ct).ConfigureAwait(false);
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 }
-
+                var loginResult = await cli.UserLoginMicrosoftAsync(logger, cancellationToken: ct).ConfigureAwait(false);
+                if (loginResult != 0)
+                {
+                    throw new DistributedApplicationException($"Failed to login to the dev tunnels service (exit code {loginResult}).");
+                }
             }
-            catch (Exception ex)
+
+            // Create the dev tunnel if needed
+            await cli.CreateOrUpdateTunnelAsync(logger, tunnelResource.TunnelId, tunnelResource.Name, tunnelResource.Options, ct).ConfigureAwait(false);
+
+            // Subscribe to endpoint allocated events for resources being exposed by the tunnel
+            foreach (var portResource in tunnelResource.Ports)
             {
-                logger.LogError(ex, "Failed to start dev tunnel '{Tunnel}'.", tunnelResource.Name);
-                await notifications.PublishUpdateAsync(tunnelResource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
+                eventing.Subscribe<ResourceEndpointsAllocatedEvent>(portResource.TargetEndpoint.Resource, async (e, ct) =>
+                {
+                    if (!portResource.TargetEndpoint.IsAllocated)
+                    {
+                        return;
+                    }
+
+                    var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
+
+                    await cli.CreateOrUpdatePortAsync(portLogger, tunnelResource.TunnelId, portResource.TargetEndpoint.Port, new()
+                    {
+                        Labels = [portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName]
+                    }, ct).ConfigureAwait(false);
+
+                    // Allocate endpoint to the tunnel port here
+                    if (portResource.TryGetEndpoints(out var portEndpoints))
+                    {
+                        var publicEndpoint = portEndpoints.FirstOrDefault(ep => ep.Name == DevTunnelPortResource.PublicEndpointName);
+                        var inspectionEndpoint = portEndpoints.FirstOrDefault(ep => ep.Name == DevTunnelPortResource.InspectionEndpointName);
+
+                        Debug.Assert(publicEndpoint is not null);
+
+                        publicEndpoint.AllocatedEndpoint = new(publicEndpoint, "", 1234) { };
+                    }
+
+                    // TODO: Add resource URLs with port-forwarding and inspect URLs
+                    // TODO: Publish resource update
+                });
             }
         });
 
@@ -205,6 +199,7 @@ public static class DevTunnelsResourceBuilderExtensions
         tunnelBuilder.ApplicationBuilder.AddResource(portResource)
             .WithParentRelationship(tunnelBuilder) // visual grouping beneath the tunnel
             .WithEndpoint(name: DevTunnelPortResource.PublicEndpointName, scheme: portOptions.Protocol) // runtime URL supplied when running
+            .WithEndpoint(name: DevTunnelPortResource.InspectionEndpointName, scheme: "https")
             .WithInitialState(new()
             {
                 ResourceType = "DevTunnelPort",

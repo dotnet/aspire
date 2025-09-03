@@ -5,7 +5,6 @@ namespace Aspire.Hosting.DevTunnels;
 
 /// <summary>
 /// Options for the dev tunnel resource.
-/// Mirrors common settings available via the dev tunnels CLI while keeping to Aspire's API aesthetics.
 /// </summary>
 public sealed class DevTunnelOptions
 {
@@ -13,11 +12,6 @@ public sealed class DevTunnelOptions
     /// Optional description for the tunnel.
     /// </summary>
     public string? Description { get; set; }
-
-    /// <summary>
-    /// Whether the tunnel is ephemeral (auto-deleted when stopped).
-    /// </summary>
-    public bool Ephemeral { get; set; } = true;
 
     /// <summary>
     /// Whether to allow anonymous access. If false, authentication is required.
@@ -30,20 +24,24 @@ public sealed class DevTunnelOptions
     public string? Domain { get; set; }
 
     /// <summary>
+    /// Optional Microsoft Entra tenant ID or domain that should be granted access to the tunnel.
+    /// </summary>
+    public string? Tenant { get; set; }
+
+    /// <summary>
+    /// Optional GitHub organization name whose members should be granted access to the tunnel.
+    /// </summary>
+    public string? Organization { get; set; }
+
+    /// <summary>
     /// Optional expiration in minutes for ephemeral tunnels.
     /// </summary>
     public int? ExpirationMinutes { get; set; }
 
     /// <summary>
-    /// Optional access token to authenticate with the Dev Tunnels service (PAT or AAD token).
-    /// If not set, the SDK's default auth flow is used (e.g., interactive / cached device login).
+    /// Optional labels to attach to the tunnel as a one-dimensional list of strings.
     /// </summary>
-    public string? AccessToken { get; set; }
-
-    /// <summary>
-    /// Cluster to use (e.g., "global", "eastus", etc.) if applicable for the Dev Tunnels service.
-    /// </summary>
-    public string? Cluster { get; set; }
+    public List<string>? Labels { get; set; }
 }
 
 /// <summary>
@@ -80,4 +78,9 @@ public sealed class DevTunnelPortOptions
     /// Optional path prefix to match and forward for http(s).
     /// </summary>
     public string? PathPrefix { get; set; }
+
+    /// <summary>
+    /// Optional labels to attach to this tunnel port as a one-dimensional list of strings.
+    /// </summary>
+    public List<string>? Labels { get; set; }
 }
