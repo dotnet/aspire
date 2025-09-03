@@ -109,7 +109,7 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     /// Generates an <see cref="InteractionInput"/> for the parameter, respecting
     /// <see cref="InputGeneratorAnnotation"/> if it exists.
     /// </summary>
-    public InteractionInput CreateInput()
+    internal InteractionInput CreateInput()
     {
         if (this.TryGetLastAnnotation<InputGeneratorAnnotation>(out var annotation))
         {

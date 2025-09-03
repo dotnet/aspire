@@ -30,8 +30,9 @@ public sealed class ParameterProcessor(
     /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
     /// </summary>
     /// <param name="parameterResources">The parameter resources to initialize.</param>
-    /// <returns>A task that completes when all parameters are resolved or if no unresolved parameters exist.</returns>
-    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources)
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before returning.</param>
+    /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
+    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = true)
     {
         // Initialize all parameter resources by setting their WaitForValueTcs.
         // This allows them to be processed asynchronously later.
@@ -44,10 +45,22 @@ public sealed class ParameterProcessor(
 
         // If interaction service is available, we can handle unresolved parameters.
         // This will allow the user to provide values for parameters that could not be initialized.
-        if (interactionService.IsAvailable)
+        if (interactionService.IsAvailable && _unresolvedParameters.Count > 0)
         {
-            // All parameters have been processed, we can now handle unresolved parameters if any.
-            if (_unresolvedParameters.Count > 0)
+            if (waitForResolution)
+            {
+                // Handle unresolved parameters synchronously and wait for completion.
+                try
+                {
+                    await HandleUnresolvedParametersAsync().ConfigureAwait(false);
+                    logger.LogDebug("All unresolved parameters have been handled successfully.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to handle unresolved parameters.");
+                }
+            }
+            else
             {
                 // Start the loop that will allow the user to specify values for unresolved parameters.
                 _parameterResolutionTask = Task.Run(async () =>
@@ -55,7 +68,6 @@ public sealed class ParameterProcessor(
                     try
                     {
                         await HandleUnresolvedParametersAsync().ConfigureAwait(false);
-
                         logger.LogDebug("All unresolved parameters have been handled successfully.");
                     }
                     catch (Exception ex)
@@ -65,15 +77,6 @@ public sealed class ParameterProcessor(
                 });
             }
         }
-    }
-
-    /// <summary>
-    /// Waits for all unresolved parameters to be handled.
-    /// </summary>
-    /// <returns>A task that completes when all parameters are resolved.</returns>
-    public Task WaitForParameterResolutionAsync()
-    {
-        return _parameterResolutionTask ?? Task.CompletedTask;
     }
 
     private async Task ProcessParameterAsync(ParameterResource parameterResource)

@@ -37,8 +37,7 @@ internal sealed class AzureDeployingContext(
         var parameters = model.Resources.OfType<ParameterResource>();
         if (parameters.Any())
         {
-            await parameterProcessor.InitializeParametersAsync(parameters).ConfigureAwait(false);
-            await parameterProcessor.WaitForParameterResolutionAsync().ConfigureAwait(false);
+            await parameterProcessor.InitializeParametersAsync(parameters, waitForResolution: true).ConfigureAwait(false);
         }
 
         // Step 1: Provision Azure Bicep resources from the distributed application model

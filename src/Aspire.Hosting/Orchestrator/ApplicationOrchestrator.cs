@@ -431,7 +431,7 @@ internal sealed class ApplicationOrchestrator
     private async Task PublishResourcesInitialStateAsync(CancellationToken cancellationToken)
     {
         // Initialize all parameter resources up front
-        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>()).ConfigureAwait(false);
+        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>(), waitForResolution: false).ConfigureAwait(false);
 
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)

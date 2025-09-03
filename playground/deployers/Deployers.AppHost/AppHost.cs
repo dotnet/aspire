@@ -3,6 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var computeParam = builder.AddParameter("computeParam");
+var secretParam = builder.AddParameter("secretParam", secret: true);
+var parameterWithDefault = builder.AddParameter("parameterWithDefault", "default");
+
 var aca = builder.AddAzureContainerAppEnvironment("aca-env");
 var aas = builder.AddAzureAppServiceEnvironment("aas-env");
 
@@ -45,6 +49,9 @@ builder.AddProject<Projects.Deployers_ApiService>("api-service")
 builder.AddDockerfile("python-app", "../Deployers.Dockerfile")
     .WithHttpEndpoint(targetPort: 80)
     .WithExternalHttpEndpoints()
+    .WithEnvironment("P0", computeParam)
+    .WithEnvironment("P1", secretParam)
+    .WithEnvironment("P3", parameterWithDefault)
     .WithComputeEnvironment(aca);
 
 builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("func-app")
