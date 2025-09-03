@@ -5,6 +5,7 @@ using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
 
 namespace Aspire.Hosting.Keycloak.Tests;
 
@@ -223,5 +224,29 @@ public class KeycloakResourceBuilderTests
         Assert.Equal("true", reverseProxyContext.EnvironmentVariables["KC_HTTP_ENABLED"]);
         Assert.Equal("xforwarded", reverseProxyContext.EnvironmentVariables["KC_PROXY_HEADERS"]);
         Assert.Contains("KC_HOSTNAME", reverseProxyContext.EnvironmentVariables);
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithReverseProxy()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithReverseProxy();
+
+        var manifest = await ManifestUtils.GetManifest(keycloak.Resource);
+
+        // Validate that reverse proxy environment variables are included in the manifest
+        var manifestJson = JsonDocument.Parse(manifest.ToString());
+        var env = manifestJson.RootElement.GetProperty("env");
+        
+        // Verify original Keycloak environment variables are present
+        Assert.Equal("admin", env.GetProperty("KC_BOOTSTRAP_ADMIN_USERNAME").GetString());
+        Assert.Equal("{keycloak-password.value}", env.GetProperty("KC_BOOTSTRAP_ADMIN_PASSWORD").GetString());
+        Assert.Equal("true", env.GetProperty("KC_HEALTH_ENABLED").GetString());
+        
+        // Verify reverse proxy environment variables are present
+        Assert.Equal("true", env.GetProperty("KC_HTTP_ENABLED").GetString());
+        Assert.Equal("xforwarded", env.GetProperty("KC_PROXY_HEADERS").GetString());
+        Assert.Equal("{keycloak.bindings.http.url}", env.GetProperty("KC_HOSTNAME").GetString());
     }
 }
