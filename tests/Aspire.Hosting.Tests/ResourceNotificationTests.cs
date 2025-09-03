@@ -526,6 +526,118 @@ public class ResourceNotificationTests
         Assert.Equal("Starting", value.Snapshot.State?.Text);
     }
 
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWaitsForResourceReadyEvent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a TaskCompletionSource to control when the ResourceReadyEvent completes
+        var resourceReadyTcs = new TaskCompletionSource<bool>();
+        var eventSnapshot = new EventSnapshot(resourceReadyTcs.Task);
+
+        // Start the wait task - this should not complete until ResourceReadyEvent is done
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // First, make the resource running (which makes it healthy) but without ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with 
+        { 
+            State = KnownResourceStates.Running 
+        }).DefaultTimeout();
+
+        // Wait a short time to ensure the wait task doesn't complete prematurely
+        await Task.Delay(100);
+        Assert.False(waitTask.IsCompleted, "WaitForResourceHealthyAsync should not complete without ResourceReadyEvent");
+
+        // Now add the ResourceReadyEvent but don't complete it yet
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = eventSnapshot
+        }).DefaultTimeout();
+
+        // Wait a short time to ensure the wait task still doesn't complete
+        await Task.Delay(100);
+        Assert.False(waitTask.IsCompleted, "WaitForResourceHealthyAsync should not complete until ResourceReadyEvent task completes");
+
+        // Complete the ResourceReadyEvent
+        resourceReadyTcs.SetResult(true);
+
+        // Now the wait task should complete
+        var resourceEvent = await waitTask.DefaultTimeout();
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+        Assert.Equal(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy, resourceEvent.Snapshot.HealthStatus);
+        Assert.NotNull(resourceEvent.Snapshot.ResourceReadyEvent);
+        Assert.True(resourceEvent.Snapshot.ResourceReadyEvent.EventTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWaitsForResourceReadyEventWithException()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Create a TaskCompletionSource that will throw an exception
+        var resourceReadyTcs = new TaskCompletionSource<bool>();
+        var eventSnapshot = new EventSnapshot(resourceReadyTcs.Task);
+
+        // Start the wait task
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // Make the resource running (healthy) and add ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = eventSnapshot
+        }).DefaultTimeout();
+
+        // Set an exception in the ResourceReadyEvent
+        resourceReadyTcs.SetException(new InvalidOperationException("ResourceReady failed"));
+
+        // The wait task should propagate the exception
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => waitTask.DefaultTimeout());
+        Assert.Equal("ResourceReady failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task WaitForResourceHealthyAsyncWorksWithoutResourceReadyEvent()
+    {
+        var resource = new CustomResource("myResource");
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        // Start the wait task
+        var waitTask = notificationService.WaitForResourceHealthyAsync("myResource");
+
+        // Make the resource running (healthy) without ResourceReadyEvent
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running
+        }).DefaultTimeout();
+
+        // Wait a bit to simulate no ResourceReadyEvent being published
+        await Task.Delay(100);
+
+        // The task should still be waiting for ResourceReadyEvent
+        Assert.False(waitTask.IsCompleted);
+
+        // Now publish an update with ResourceReadyEvent that's already completed
+        // In practice, this represents a resource that doesn't have OnResourceReady handlers
+        var completedTask = Task.FromResult(true);
+        var eventSnapshot = new EventSnapshot(completedTask);
+
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Running,
+            ResourceReadyEvent = eventSnapshot
+        }).DefaultTimeout();
+
+        // Now the wait task should complete
+        var resourceEvent = await waitTask.DefaultTimeout();
+        Assert.True(waitTask.IsCompletedSuccessfully);
+        Assert.Equal(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy, resourceEvent.Snapshot.HealthStatus);
+    }
+
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
         IResourceWithConnectionString,
