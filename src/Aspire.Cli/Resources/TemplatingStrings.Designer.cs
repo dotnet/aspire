@@ -258,5 +258,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NuGetConfigCreatedConfirmationMessage", resourceCulture);
             }
         }
+
+        public static string PromptForFramework_Prompt {
+            get {
+                return ResourceManager.GetString("PromptForFramework_Prompt", resourceCulture);
+            }
+        }
+
+        public static string PromptForFramework_UsingFramework {
+            get {
+                return ResourceManager.GetString("PromptForFramework_UsingFramework", resourceCulture);
+            }
+        }
     }
 }

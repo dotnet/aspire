@@ -426,7 +426,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return (0, version); // Success, return the template version
                 };
 
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
                 {
                     return 0; // Success
                 };
@@ -479,7 +479,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return (0, version); // Success, return the template version
                 };
 
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
                 {
                     return 73; // Simulate exit code 73 (directory already contains files)
                 };
@@ -494,6 +494,76 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
+    }
+
+    [Fact]
+    public async Task NewCommand_InteractiveFlow_PromptsForFramework()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var frameworkPrompted = false;
+        var selectedFramework = string.Empty;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var testService = new TestInteractionService();
+                testService.PromptForSelectionCallback = (prompt, choices, _, _) =>
+                {
+                    if (prompt.Contains("target framework"))
+                    {
+                        frameworkPrompted = true;
+                        selectedFramework = choices[1]; // Select net9.0
+                        return Task.FromResult(selectedFramework);
+                    }
+                    return Task.FromResult(choices[0]); // Default selection for other prompts
+                };
+                return testService;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
+                {
+                    // Verify framework parameter is correctly passed
+                    Assert.Equal("net9.0", framework);
+                    return 0; // Success
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        Assert.Equal(0, exitCode);
+        Assert.True(frameworkPrompted, "Framework selection should have been prompted");
+        Assert.Equal("net9.0", selectedFramework);
     }
 
     private sealed class ThrowingCertificateService : ICertificateService

@@ -112,6 +112,16 @@
         <target state="translated">Tworzenie projektu nie powiodło się z kodem zakończenia {0}. Aby uzyskać więcej informacji, uruchom polecenie przełącznika --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
+      <trans-unit id="PromptForFramework_Prompt">
+        <source>Select a target framework</source>
+        <target state="new">Select a target framework</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForFramework_UsingFramework">
+        <source>Using {0} as target framework.</source>
+        <target state="new">Using {0} as target framework.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
         <target state="translated">Konfiguruje, czy utworzyć projekt na potrzeby testów integracji przy użyciu narzędzia MSTest, NUnit lub xUnit.net.</target>

@@ -112,6 +112,16 @@
         <target state="translated">Échec de la création du projet avec le code de sortie {0}. Pour plus d’informations, exécutez avec le commutateur --debug.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
+      <trans-unit id="PromptForFramework_Prompt">
+        <source>Select a target framework</source>
+        <target state="new">Select a target framework</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForFramework_UsingFramework">
+        <source>Using {0} as target framework.</source>
+        <target state="new">Using {0} as target framework.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
         <target state="translated">Configure s’il faut créer un projet pour les tests d’intégration à l’aide de MSTest, NUnit ou xUnit.net.</target>

@@ -112,6 +112,16 @@
         <target state="translated">專案建立失敗，結束代碼為 {0}。如需詳細資訊，請使用 --debug 切換執行。</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
+      <trans-unit id="PromptForFramework_Prompt">
+        <source>Select a target framework</source>
+        <target state="new">Select a target framework</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForFramework_UsingFramework">
+        <source>Using {0} as target framework.</source>
+        <target state="new">Using {0} as target framework.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
         <target state="translated">設定是否要使用 MSTest、NUnit、或 xUnit.net 專案為整合測試建立專案。</target>
