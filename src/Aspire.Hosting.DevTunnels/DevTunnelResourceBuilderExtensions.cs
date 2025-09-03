@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -56,30 +55,34 @@ public static class DevTunnelsResourceBuilderExtensions
             var interaction = e.Services.GetRequiredService<IInteractionService>();
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-            var cli = new DevTunnelCli();
+            var devTunnelClient = new DevTunnelCliClient(new());
 
-            // Login to the cev tunnels service if needed
-            if (await cli.UserIsLoggedInAsync(logger, ct).ConfigureAwait(false) != true)
+            // Login to the dev tunnels service if needed
+            var userLoginStatus = await devTunnelClient.GetUserLoginStatusAsync(ct).ConfigureAwait(false);
+            if (!userLoginStatus.IsLoggedIn)
             {
                 if (interaction.IsAvailable)
                 {
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                     await interaction.PromptNotificationAsync(
                         "Dev tunnels",
-                        "One or more dev tunnels resources require authentication to continue.",
+                        $"The dev tunnel resource '{tunnelResource.Name}' requires authentication to continue.",
                         new() { Intent = MessageIntent.Warning, PrimaryButtonText = "Login", ShowDismiss = false },
                         ct).ConfigureAwait(false);
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 }
-                var loginResult = await cli.UserLoginMicrosoftAsync(logger, cancellationToken: ct).ConfigureAwait(false);
-                if (loginResult != 0)
+                // TODO: Support login for GitHub auth too
+                userLoginStatus = await devTunnelClient.UserLoginAsync(LoginProvider.Microsoft, ct).ConfigureAwait(false);
+                if (!userLoginStatus.IsLoggedIn)
                 {
-                    throw new DistributedApplicationException($"Failed to login to the dev tunnels service (exit code {loginResult}).");
+                    throw new DistributedApplicationException($"Failed to login to the dev tunnels service.");
                 }
             }
 
             // Create the dev tunnel if needed
-            await cli.CreateOrUpdateTunnelAsync(logger, tunnelResource.TunnelId, tunnelResource.Name, tunnelResource.Options, ct).ConfigureAwait(false);
+            var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
+
+            // TODO: What to do with the tunnelStatus here? Publish as resource properties?
 
             // Subscribe to endpoint allocated events for resources being exposed by the tunnel
             foreach (var portResource in tunnelResource.Ports)
@@ -93,7 +96,7 @@ public static class DevTunnelsResourceBuilderExtensions
 
                     var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
 
-                    await cli.CreateOrUpdatePortAsync(portLogger, tunnelResource.TunnelId, portResource.TargetEndpoint.Port, new()
+                    var portStatus = await devTunnelClient.CreateOrUpdatePortAsync(tunnelResource.TunnelId, portResource.TargetEndpoint.Port, new()
                     {
                         Labels = [portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName]
                     }, ct).ConfigureAwait(false);
@@ -109,6 +112,7 @@ public static class DevTunnelsResourceBuilderExtensions
                         publicEndpoint.AllocatedEndpoint = new(publicEndpoint, "", 1234) { };
                     }
 
+                    // TODO: What to do with the portStatus here? Publish as resource properties?
                     // TODO: Add resource URLs with port-forwarding and inspect URLs
                     // TODO: Publish resource update
                 });
