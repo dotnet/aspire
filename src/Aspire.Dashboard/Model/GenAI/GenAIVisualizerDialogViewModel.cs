@@ -63,9 +63,9 @@ public sealed class GenAIVisualizerDialogViewModel
             viewModel.PeerName = OtlpHelpers.GetPeerAddress(viewModel.Span.Attributes)!;
         }
 
-        viewModel.ModelName = viewModel.Span.Attributes.GetValue("gen_ai.response.model");
-        viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger("gen_ai.usage.input_tokens");
-        viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger("gen_ai.usage.output_tokens");
+        viewModel.ModelName = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIResponseModel);
+        viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
+        viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
         CreateMessages(viewModel, telemetryRepository);
 
