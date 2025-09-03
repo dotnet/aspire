@@ -184,8 +184,7 @@ public class KustoFunctionalTests
 
         // Assert no warnings or errors were logged about the database already existing
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(record => (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase))
-            .Where(record => record.Level >= LogLevel.Warning);
+        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
         Assert.Empty(logs);
     }
 
@@ -215,8 +214,7 @@ public class KustoFunctionalTests
 
         // Assert an error was logged about the invalid database
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(record => (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase))
-            .Where(record => record.Level >= LogLevel.Warning);
+        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
         Assert.Single(logs);
     }
 
@@ -267,6 +265,11 @@ public class KustoFunctionalTests
 
             return Directory.GetFileSystemEntries(temp.Path, searchPattern, enumerationOptions);
         }
+    }
+
+    private static bool IsResourceLog(FakeLogRecord record)
+    {
+        return (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
