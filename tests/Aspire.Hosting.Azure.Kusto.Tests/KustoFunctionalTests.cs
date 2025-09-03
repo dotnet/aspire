@@ -96,13 +96,11 @@ public class KustoFunctionalTests
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
         var kustoDb = kusto.AddDatabase("TestDb");
 
-        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
-
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:KustoTestDbConnection"] = await kustoDb.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
@@ -187,8 +185,6 @@ public class KustoFunctionalTests
             )
             """);
 
-        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
-
         // Ensure the directory is empty before starting the application
         Assert.Empty(GetFilesInMount());
 
@@ -196,7 +192,7 @@ public class KustoFunctionalTests
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
 
         // Ensure the directory has dbs
         Assert.NotEmpty(GetFilesInMount());
@@ -211,13 +207,6 @@ public class KustoFunctionalTests
 
             return Directory.GetFileSystemEntries(temp.Path, searchPattern, enumerationOptions);
         }
-    }
-
-    /// <summary>
-    /// A simple / fake resource who's only job is to wait for other resources to be ready.
-    /// </summary>
-    private sealed class WaiterResource(string name) : Resource(name), IResourceWithWaitSupport
-    {
     }
 
     /// <summary>
