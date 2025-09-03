@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using YamlDotNet.Core;
 
 namespace Aspire.Hosting;
 
@@ -33,13 +34,22 @@ public static class ExecutableResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
+        var executableAnnotation = builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault();
+        if (executableAnnotation is { })
         {
             executableAnnotation.Command = command;
-            return builder;
+        }
+        else
+        {
+            executableAnnotation = new ExecutableAnnotation
+            {
+                Command = command,
+                WorkingDirectory = string.Empty
+            };
+            builder.Resource.Annotations.Add(executableAnnotation);            
         }
 
-        return ThrowResourceIsMissingExecutableAnnotation(builder);
+        return builder;
     }
 
     /// <summary>
@@ -59,11 +69,6 @@ public static class ExecutableResourceExtensions
             return builder;
         }
 
-        return ThrowResourceIsMissingExecutableAnnotation(builder);
-    }
-
-    private static IResourceBuilder<T> ThrowResourceIsMissingExecutableAnnotation<T>(IResourceBuilder<T> builder) where T : ExecutableResource
-    {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' is missing the ExecutableAnnotation");
-    }    
+    }
 }
