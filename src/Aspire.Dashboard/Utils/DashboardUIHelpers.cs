@@ -14,7 +14,7 @@ internal static class DashboardUIHelpers
 {
     public const string MessageBarSection = "MessagesTop";
 
-    // xml and json are language names supported by highlight.js
+    // these are language names supported by highlight.js
     public const string XmlFormat = "xml";
     public const string JsonFormat = "json";
     public const string JavascriptFormat = "javascript";

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -8,6 +9,7 @@ using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.Model;
 
+[DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}")]
 public sealed class SpanDetailsViewModel
 {
     public required OtlpSpan Span { get; init; }
