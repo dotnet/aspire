@@ -101,6 +101,10 @@ public static class AspireAzureAIInferenceExtensions
 
     private sealed class ChatCompletionsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, ChatCompletionsClient, AzureAIInferenceClientOptions>
     {
+        protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI"];
+
+        protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI"];
+
         protected override IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder,
             ChatCompletionsClientSettings settings,
@@ -213,6 +217,9 @@ public static class AspireAzureAIInferenceExtensions
         }
 
         var loggerFactory = services.GetService<ILoggerFactory>();
-        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)))
+        {
+            EnableSensitiveData = true
+        };
     }
 }

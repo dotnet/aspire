@@ -12,8 +12,8 @@ builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("Experimental.M
 builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("WebStory"));
 builder.Services.AddOpenTelemetry().WithMetrics(b => b.AddMeter("Experimental.Microsoft.Extensions.AI"));
 
-builder.AddAzureChatCompletionsClient("chat", s => s.DisableTracing = true)
-       .AddChatClient(deploymentId: null, configureChatClient: c => c.EnableSensitiveData = true)
+builder.AddAzureChatCompletionsClient("chat")
+       .AddChatClient()
        .UseFunctionInvocation();
 
 // Add services to the container.

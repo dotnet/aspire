@@ -82,9 +82,9 @@ public static class AspireAzureOpenAIExtensions
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
     {
-        protected override string[] ActivitySourceNames => ["OpenAI.*"];
+        protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI"];
 
-        protected override string[] MetricSourceNames => ["OpenAI.*"];
+        protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI"];
 
         protected override IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,
