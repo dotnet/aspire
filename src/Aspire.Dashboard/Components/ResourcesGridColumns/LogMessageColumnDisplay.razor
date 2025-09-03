@@ -7,6 +7,7 @@
 @using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<StructuredLogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <GridValue Value="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.ColumnMaximumTextLength)"
            ValueToVisualize="@LogEntry.Message"
@@ -20,7 +21,9 @@
             !string.IsNullOrEmpty(LogEntry.SpanId) &&
             GenAIHelpers.IsGenAISpan(LogEntry.Attributes))
         {
-            <FluentButton Appearance="Appearance.Lightweight" OnClick="OnLaunchGenAIVisualizerAsync">
+            <FluentButton Appearance="Appearance.Lightweight"
+                          Title="@ControlStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"
+                          OnClick="OnLaunchGenAIVisualizerAsync">
                 <FluentIcon Icon="Icons.Regular.Size20.BrainCircuit"
                             Color="Color.Accent" />
             </FluentButton>
