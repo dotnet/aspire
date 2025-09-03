@@ -579,7 +579,7 @@ public class ResourceNotificationTests
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
         // Create a TaskCompletionSource that will throw an exception
-        var resourceReadyTcs = new TaskCompletionSource<bool>();
+        var resourceReadyTcs = new TaskCompletionSource();
         var eventSnapshot = new EventSnapshot(resourceReadyTcs.Task);
 
         // Start the wait task
