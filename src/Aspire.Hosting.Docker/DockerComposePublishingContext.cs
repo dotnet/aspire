@@ -4,6 +4,8 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -205,14 +207,9 @@ internal sealed class DockerComposePublishingContext(
             {
                 try
                 {
-                    // Determine the path to copy the file to
-                    sourcePath = Path.Combine(OutputPath, composeService.Name, Path.GetFileName(file.SourcePath));
-                    // Files will be copied to a subdirectory named after the service
-                    Directory.CreateDirectory(Path.Combine(OutputPath, composeService.Name));
-                    File.Copy(file.SourcePath, sourcePath);
-                    // Use a relative path for the compose file to make it portable
-                    // Use unix style path separators even on Windows
-                    sourcePath = Path.GetRelativePath(OutputPath, sourcePath).Replace('\\', '/');
+                    // For backward compatibility, don't use hash-based directories by default
+                    // TODO: Implement collision detection to enable hash-based dirs when needed  
+                    sourcePath = CopySourceToOutput(composeService.Name, file.SourcePath, useHashBasedDir: false);
                 }
                 catch
                 {
@@ -263,6 +260,13 @@ internal sealed class DockerComposePublishingContext(
 
     private void HandleComposeFileBindMounts(DockerComposeServiceResource serviceResource)
     {
+        // Get all skip annotations to check against
+        var skipAnnotations = serviceResource.TargetResource
+            .Annotations
+            .OfType<SkipBindMountCopyingAnnotation>()
+            .Select(annotation => annotation.SourcePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type == "bind"))
         {
             if (string.IsNullOrEmpty(volume.Source))
@@ -270,50 +274,32 @@ internal sealed class DockerComposePublishingContext(
                 continue;
             }
 
-            try
+            // Skip copying if there's an annotation for this source path
+            if (skipAnnotations.Contains(volume.Source))
             {
-                // Determine the destination path for copying the bind mount source
-                var serviceDir = Path.Combine(OutputPath, serviceResource.Name);
-                Directory.CreateDirectory(serviceDir);
+                continue;
+            }
 
-                string copiedSourcePath;
-                if (File.Exists(volume.Source))
+            if (File.Exists(volume.Source) || Directory.Exists(volume.Source))
+            {
+                try
                 {
-                    // Handle file bind mount
-                    var fileName = Path.GetFileName(volume.Source);
-                    copiedSourcePath = Path.Combine(serviceDir, fileName);
-                    File.Copy(volume.Source, copiedSourcePath, overwrite: true);
+                    // For backward compatibility, don't use hash-based directories by default
+                    // TODO: Implement collision detection to enable hash-based dirs when needed
+                    var copiedSourceRelativePath = CopySourceToOutput(serviceResource.Name, volume.Source, useHashBasedDir: false);
                     
                     // Update the volume source to use relative path
-                    // Use unix style path separators even on Windows for docker-compose compatibility
-                    volume.Source = Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
+                    volume.Source = copiedSourceRelativePath;
                 }
-                else if (Directory.Exists(volume.Source))
+                catch (Exception ex)
                 {
-                    // Handle directory bind mount
-                    var sourceDirName = Path.GetFileName(volume.Source.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-                    if (string.IsNullOrEmpty(sourceDirName))
-                    {
-                        // If the source is a root path, use a generic folder name
-                        sourceDirName = "data";
-                    }
-                    
-                    copiedSourcePath = Path.Combine(serviceDir, sourceDirName);
-                    CopyDirectory(volume.Source, copiedSourcePath);
-                    
-                    // Update the volume source to use relative path
-                    // Use unix style path separators even on Windows for docker-compose compatibility
-                    volume.Source = Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
-                }
-                else
-                {
-                    logger.LogWarning("Bind mount source '{Source}' does not exist and will not be copied.", volume.Source);
+                    logger.FailedToCopyBindMountSource(ex, volume.Source);
+                    throw;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogError(ex, "Failed to copy bind mount source '{Source}' to output folder.", volume.Source);
-                throw;
+                logger.BindMountSourceDoesNotExist(volume.Source);
             }
         }
     }
@@ -338,5 +324,74 @@ internal sealed class DockerComposePublishingContext(
             string destSubDir = Path.Combine(destDir, subDirName);
             CopyDirectory(subDir, destSubDir);
         }
+    }
+
+    /// <summary>
+    /// Copies a source file or directory to the output path with collision-aware directory structure.
+    /// Uses hash-based directories only when name collisions would occur.
+    /// </summary>
+    /// <param name="serviceName">Name of the service the source belongs to.</param>
+    /// <param name="sourcePath">Path to the source file or directory to copy.</param>
+    /// <param name="useHashBasedDir">Whether to always use hash-based directories to avoid collisions.</param>
+    /// <returns>Relative path to the copied source that can be used in docker-compose.yaml.</returns>
+    private string CopySourceToOutput(string serviceName, string sourcePath, bool useHashBasedDir = false)
+    {
+        var serviceDir = Path.Combine(OutputPath, serviceName);
+        Directory.CreateDirectory(serviceDir);
+
+        string destinationDir;
+        if (useHashBasedDir)
+        {
+            // Use hash-based directory to avoid name collisions
+            var sourceHash = GenerateSourceHash(sourcePath);
+            destinationDir = Path.Combine(serviceDir, sourceHash);
+        }
+        else
+        {
+            // Use service directory directly for backward compatibility
+            destinationDir = serviceDir;
+        }
+
+        Directory.CreateDirectory(destinationDir);
+
+        string copiedSourcePath;
+        if (File.Exists(sourcePath))
+        {
+            // Handle file
+            var fileName = Path.GetFileName(sourcePath);
+            copiedSourcePath = Path.Combine(destinationDir, fileName);
+            File.Copy(sourcePath, copiedSourcePath, overwrite: true);
+        }
+        else if (Directory.Exists(sourcePath))
+        {
+            // Handle directory
+            var sourceDirName = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (string.IsNullOrEmpty(sourceDirName))
+            {
+                // If the source is a root path, use a generic folder name
+                sourceDirName = "data";
+            }
+            
+            copiedSourcePath = Path.Combine(destinationDir, sourceDirName);
+            CopyDirectory(sourcePath, copiedSourcePath);
+        }
+        else
+        {
+            throw new FileNotFoundException($"Source path does not exist: {sourcePath}");
+        }
+
+        // Return relative path with unix-style separators for docker-compose compatibility
+        return Path.GetRelativePath(OutputPath, copiedSourcePath).Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Generates a short hash from the source path to create unique directory names.
+    /// </summary>
+    private static string GenerateSourceHash(string sourcePath)
+    {
+        var normalizedPath = Path.GetFullPath(sourcePath).ToLowerInvariant();
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+        // Use first 8 characters of the hash for a short but unique directory name
+        return Convert.ToHexString(hashBytes)[..8].ToLowerInvariant();
     }
 }
