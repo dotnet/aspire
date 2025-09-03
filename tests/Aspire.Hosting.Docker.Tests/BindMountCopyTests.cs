@@ -195,6 +195,71 @@ echo "Hello World"
         await Verify(composeContent, "yaml");
     }
 
+    [Fact]
+    public async Task PublishAsync_WithCollisionInBindMounts_UsesHashBasedDirectories()
+    {
+        using var tempDir = new TempDirectory();
+        
+        // Create two different source files with the same name
+        var sourceDir1 = Path.Combine(tempDir.Path, "source1");
+        var sourceDir2 = Path.Combine(tempDir.Path, "source2");
+        Directory.CreateDirectory(sourceDir1);
+        Directory.CreateDirectory(sourceDir2);
+        
+        var configFile1 = Path.Combine(sourceDir1, "config.txt");
+        var configFile2 = Path.Combine(sourceDir2, "config.txt");
+        await File.WriteAllTextAsync(configFile1, "config from source 1");
+        await File.WriteAllTextAsync(configFile2, "config from source 2");
+        
+        // Create output directory
+        var outputDir = Path.Combine(tempDir.Path, "output");
+        Directory.CreateDirectory(outputDir);
+        
+        // Arrange
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: outputDir);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container with two bind mounts that have the same filename - this should trigger collision detection
+        builder.AddContainer("test-container", "busybox")
+               .WithBindMount(configFile1, "/app/config1.txt")
+               .WithBindMount(configFile2, "/app/config2.txt");
+
+        var app = builder.Build();
+
+        // Act
+        app.Run();
+
+        // Assert
+        var composePath = Path.Combine(outputDir, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath), "docker-compose.yaml should be generated");
+
+        var composeContent = await File.ReadAllTextAsync(composePath);
+        outputHelper.WriteLine("Generated docker-compose.yaml:");
+        outputHelper.WriteLine(composeContent);
+
+        // Check that files are copied with hash-based directory structure due to collision
+        var containerOutputDir = Path.Combine(outputDir, "test-container");
+        Assert.True(Directory.Exists(containerOutputDir), "Container-specific directory should be created in output");
+        
+        // Should find two different hash-based directories
+        var subDirs = Directory.GetDirectories(containerOutputDir);
+        Assert.Equal(2, subDirs.Length); // Two hash-based directories for the two colliding files
+        
+        // Each hash directory should contain the respective config.txt file
+        foreach (var subDir in subDirs)
+        {
+            var configFilePath = Path.Combine(subDir, "config.txt");
+            Assert.True(File.Exists(configFilePath), $"config.txt should exist in {subDir}");
+        }
+
+        // Check that docker-compose.yaml uses hash-based paths for bind mounts
+        Assert.Contains("/test-container/", composeContent); // Should contain hash-based paths
+        Assert.DoesNotContain(configFile1, composeContent); // Should not contain absolute source paths
+        Assert.DoesNotContain(configFile2, composeContent); // Should not contain absolute source paths
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)

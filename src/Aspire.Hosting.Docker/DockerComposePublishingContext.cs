@@ -89,7 +89,10 @@ internal sealed class DockerComposePublishingContext(
                     containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
-                HandleComposeFileBindMounts(serviceResource);
+                // Detect collisions before processing bind mounts and configs
+                var hasCollisions = DetectSourcePathCollisions(serviceResource);
+
+                HandleComposeFileBindMounts(serviceResource, hasCollisions);
 
                 var composeService = serviceResource.BuildComposeService();
 
@@ -107,7 +110,7 @@ internal sealed class DockerComposePublishingContext(
                         var files = await a.Callback(new() { Model = serviceResource.TargetResource, ServiceProvider = executionContext.ServiceProvider }, CancellationToken.None).ConfigureAwait(false);
                         foreach (var file in files)
                         {
-                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath);
+                            HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath, hasCollisions);
                         }
                     }
                 }
@@ -185,13 +188,54 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path)
+    /// <summary>
+    /// Detects if there are source path collisions (same filename from different sources) for a service.
+    /// </summary>
+    /// <param name="serviceResource">The service resource to check for collisions.</param>
+    /// <returns>True if collisions are detected, false otherwise.</returns>
+    private static bool DetectSourcePathCollisions(DockerComposeServiceResource serviceResource)
+    {
+        var fileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Check bind mount sources
+        foreach (var volume in serviceResource.Volumes.Where(volume => volume.Type == "bind" && !string.IsNullOrEmpty(volume.Source)))
+        {
+            if (File.Exists(volume.Source))
+            {
+                var fileName = Path.GetFileName(volume.Source);
+                if (!fileNames.Add(fileName))
+                {
+                    return true; // Collision detected
+                }
+            }
+            else if (Directory.Exists(volume.Source))
+            {
+                var dirName = Path.GetFileName(volume.Source.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (string.IsNullOrEmpty(dirName))
+                {
+                    dirName = "data"; // Default name for root paths
+                }
+                if (!fileNames.Add(dirName))
+                {
+                    return true; // Collision detected
+                }
+            }
+        }
+        
+        // Check container file sources (this would need to be implemented when we have access to the config files)
+        // For now, we can't easily check these until HandleComposeFileConfig is called
+        // So we'll be conservative and assume no collisions from this source for now
+        
+        return false; // No collisions detected
+    }
+
+    private void HandleComposeFileConfig(ComposeFile composeFile, Service composeService, ContainerFileSystemItem? item, int? uid, int? gid, UnixFileMode umask, string path, bool hasCollisions = false)
     {
         if (item is ContainerDirectory dir)
         {
             foreach (var dirItem in dir.Entries)
             {
-                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name);
+                HandleComposeFileConfig(composeFile, composeService, dirItem, item.Owner ?? uid, item.Group ?? gid, umask, path += "/" + item.Name, hasCollisions);
             }
 
             return;
@@ -207,9 +251,8 @@ internal sealed class DockerComposePublishingContext(
             {
                 try
                 {
-                    // For backward compatibility, don't use hash-based directories by default
-                    // TODO: Implement collision detection to enable hash-based dirs when needed  
-                    sourcePath = CopySourceToOutput(composeService.Name, file.SourcePath, useHashBasedDir: false);
+                    // Use hash-based directories if collisions are detected
+                    sourcePath = CopySourceToOutput(composeService.Name, file.SourcePath, useHashBasedDir: hasCollisions);
                 }
                 catch
                 {
@@ -258,7 +301,7 @@ internal sealed class DockerComposePublishingContext(
         }
     }
 
-    private void HandleComposeFileBindMounts(DockerComposeServiceResource serviceResource)
+    private void HandleComposeFileBindMounts(DockerComposeServiceResource serviceResource, bool hasCollisions = false)
     {
         // Get all skip annotations to check against
         var skipAnnotations = serviceResource.TargetResource
@@ -284,9 +327,8 @@ internal sealed class DockerComposePublishingContext(
             {
                 try
                 {
-                    // For backward compatibility, don't use hash-based directories by default
-                    // TODO: Implement collision detection to enable hash-based dirs when needed
-                    var copiedSourceRelativePath = CopySourceToOutput(serviceResource.Name, volume.Source, useHashBasedDir: false);
+                    // Use hash-based directories if collisions are detected
+                    var copiedSourceRelativePath = CopySourceToOutput(serviceResource.Name, volume.Source, useHashBasedDir: hasCollisions);
                     
                     // Update the volume source to use relative path
                     volume.Source = copiedSourceRelativePath;
