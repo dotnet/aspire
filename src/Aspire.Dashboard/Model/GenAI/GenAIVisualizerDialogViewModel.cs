@@ -134,10 +134,10 @@ public sealed class GenAIVisualizerDialogViewModel
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
             if (GenAIHelpers.IsGenAISpan(item.Attributes) &&
-                item.Attributes.GetValue(GenAIHelpers.GenAIEventContent) is { } content &&
                 TryMapEventName(item.Name, out var type))
             {
-                var parts = DeserializeBody(type.Value, content);
+                var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
+                var parts = content != null ? DeserializeBody(type.Value, content) : [];
                 viewModel.Messages.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
                 currentIndex++;
             }
