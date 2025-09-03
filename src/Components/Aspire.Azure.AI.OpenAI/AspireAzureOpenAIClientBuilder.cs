@@ -15,6 +15,7 @@ namespace Aspire.Azure.AI.OpenAI;
 /// <param name="connectionName">The name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
 /// <param name="serviceKey">The service key used to register the <see cref="AzureOpenAIClient"/> service, if any.</param>
 /// <param name="disableTracing">A flag to indicate whether tracing should be disabled.</param>
+/// <param name="enableSensitiveTelemetryData">A flag indicating whether potentially sensitive information should be included in telemetry.</param>
 public class AspireAzureOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing, bool enableSensitiveTelemetryData)
     : AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData)
 {
