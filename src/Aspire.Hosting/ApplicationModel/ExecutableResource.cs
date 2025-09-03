@@ -24,15 +24,29 @@ public class ExecutableResource(string name, string command, string workingDirec
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
     IComputeResource
 {
+    /// <inheritdoc/>
+    public override ResourceAnnotationCollection Annotations { get; } = [
+        new ExecutableAnnotation
+        {
+            Command = ThrowIfNullOrEmpty(command),
+            WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory)),
+        }
+    ];
+
+    //TODO: Should Command & WorkingDirectory be obsoleted in favour of the annotation
+
     /// <summary>
     /// Gets the command associated with this executable resource.
     /// </summary>
-    public string Command { get; } = ThrowIfNullOrEmpty(command);
+    public string Command => GetAnnotation().Command;
 
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
+    public string WorkingDirectory => GetAnnotation().WorkingDirectory;
+
+    private ExecutableAnnotation GetAnnotation() => Annotations.OfType<ExecutableAnnotation>().LastOrDefault()
+        ?? throw new InvalidOperationException("Unable to find ExecutableAnnotation on resource.");
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
