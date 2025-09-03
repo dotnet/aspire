@@ -34,7 +34,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             if (!string.IsNullOrEmpty(customTag))
             {
@@ -57,7 +57,10 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(httpPort: port);
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(containerBuilder =>
+        {
+            containerBuilder.WithEndpoint("http", endpoint => endpoint.Port = port);
+        });
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -105,7 +108,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: builder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(builder =>
         {
             builder.WithAnnotation(new ContainerNameAnnotation() { Name = "custom-kusto-emulator" });
         });
@@ -195,7 +198,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             containerBuilder.WithVolume($"{builder.GetVolumePrefix()}-test-kusto-data", "/data", isReadOnly);
         });
@@ -218,7 +221,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             containerBuilder.WithBindMount("./custom-data", "/data", isReadOnly);
         });
@@ -239,7 +242,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             containerBuilder.WithVolume("volume-data", "/data")
                            .WithBindMount("./config", "/app/config", isReadOnly: true);
@@ -270,7 +273,7 @@ public class AddAzureKustoTests
         const string customTag = "custom-tag";
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             containerBuilder.WithImageRegistry(customRegistry).WithImage(customImage).WithImageTag(customTag);
         });
@@ -290,7 +293,7 @@ public class AddAzureKustoTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(configureContainer: containerBuilder =>
+        var resourceBuilder = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator(containerBuilder =>
         {
             containerBuilder.WithLifetime(ContainerLifetime.Persistent);
         });

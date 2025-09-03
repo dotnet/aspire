@@ -133,14 +133,12 @@ public static class AzureKustoBuilderExtensions
     /// This version of the package defaults to the <inheritdoc cref="AzureKustoEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="AzureKustoEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="AzureKustoEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
-    /// <param name="httpPort">The host port that the Kusto HTTP endpoint is bound to.</param>
     /// <param name="configureContainer">
     /// Optional action to configure the Kusto emulator container.
     /// </param>
     /// <returns>The resource builder.</returns>
     public static IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(
         this IResourceBuilder<AzureKustoClusterResource> builder,
-        int? httpPort = null,
         Action<IResourceBuilder<AzureKustoEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -150,7 +148,7 @@ public static class AzureKustoBuilderExtensions
 
         surrogateBuilder
             .WithAnnotation(new EmulatorResourceAnnotation())
-            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, port: httpPort, name: "http")
+            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = AzureKustoEmulatorContainerImageTags.Registry,
