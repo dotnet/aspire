@@ -10,6 +10,8 @@
 	"command.config": "Manage configuration settings",
 	"command.deploy": "Deploy app host",
 	"command.configureLaunchJson": "Configure launch.json file",
+	"command.runAppHost": "Run Aspire app host",
+	"command.debugAppHost": "Debug Aspire app host",
 	"aspire-vscode.strings.noCsprojFound": "No AppHost found in the current workspace",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -56,6 +58,5 @@
 	"aspire-vscode.strings.openLaunchJson": "Open launch.json",
 	"aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}",
 	"aspire-vscode.strings.debugSessionAlreadyExists": "A debug session is already active for id {0}.",
-	"aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}",
-	"aspire-vscode.strings.unexpectedAspireProcessExit": "Aspire process exited unexpectedly with code {0}"
+	"aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}"
 }
