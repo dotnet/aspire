@@ -6,8 +6,6 @@
 @using Aspire.Dashboard.Utils
 @using System.Globalization
 
-@inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="true">
@@ -23,11 +21,11 @@
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowUp()"
                               Appearance="Appearance.Stealth"
                               Disabled="@(_currentSpanContextIndex == 0)"
-                              OnClick="OnPreviousGenAISpan">Previous</FluentButton>
+                              OnClick="OnPreviousGenAISpan">@Loc[nameof(Dialogs.GenAIPreviousButtonText)]</FluentButton>
                 <FluentButton IconStart="new Icons.Regular.Size16.ArrowDown()"
                               Appearance="Appearance.Stealth"
                               Disabled="@(_currentSpanContextIndex >= _contextSpans.Count - 1)"
-                              OnClick="OnNextGenAISpan">Next</FluentButton>
+                              OnClick="OnNextGenAISpan">@Loc[nameof(Dialogs.GenAINextButtonText)]</FluentButton>
             </div>
         }
     </div>
@@ -61,11 +59,11 @@
                             <FluentTabs ActiveTabId="@($"tab-message-{Content.MessageActiveView}")" OnTabChange="@OnMessageTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-message-{MessageViewKind.Preview}")"
-                                           Label="Preview">
+                                           Label="@Loc[nameof(Dialogs.GenAIPreviewTabText)]">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-message-{MessageViewKind.Raw}")"
-                                           Label="Raw">
+                                           Label="@Loc[nameof(Dialogs.GenAIRawTabText)]">
                                 </FluentTab>
                             </FluentTabs>
                         </div>
@@ -120,12 +118,22 @@
                                 </div>
                                 @{
                                     var tokenTotal = Content.InputTokens + Content.OutputTokens;
-                                    var tokenText = tokenTotal == null ? "N/A" : tokenTotal.Value.ToString(CultureInfo.CurrentCulture);
-                                    var tokenTooltip = tokenTotal == null ? "N/A" : $"Input tokens: {Content.InputTokens ?? 0}{Environment.NewLine}Output tokens: {Content.OutputTokens ?? 0}";
+                                    var tokenText = tokenTotal == null ? Loc[nameof(Dialogs.GenAINAText)] : tokenTotal.Value.ToString(CultureInfo.CurrentCulture);
+                                    string tokenTooltip;
+                                    if (tokenTotal == null)
+                                    {
+                                        tokenTooltip = Loc[nameof(Dialogs.GenAINAText)];
+                                    }
+                                    else
+                                    {
+                                        tokenTooltip = string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAIInputTokensText)], Content.InputTokens ?? 0) +
+                                            Environment.NewLine +
+                                            string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAIOutputTokensText)], Content.OutputTokens ?? 0);
+                                    }
                                 }
                                 <div class="message-header-details">
-                                    <span>Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
-                                    <span title="@tokenTooltip">Tokens <strong>@tokenText</strong></span>
+                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                    <span title="@tokenTooltip">@Loc[nameof(Dialogs.GenAITokensLabel)] <strong>@tokenText</strong></span>
                                 </div>
                             </div>
                             @*
@@ -135,19 +143,19 @@
                             <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
-                                           Label="Input & output">
+                                           Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]">
                                 </FluentTab>
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.Details}")"
-                                           Label="Details">
+                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]">
                                 </FluentTab>
                             </FluentTabs>
                         </div>
                         @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @RenderMessageSection("Input", Content.Messages.Where(e => e.Type != GenAIMessageType.OutputMessage).ToList())
-                                @RenderMessageSection("Output", Content.Messages.Where(e => e.Type == GenAIMessageType.OutputMessage).ToList())
+                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.Messages.Where(e => e.Type != GenAIMessageType.OutputMessage).ToList())
+                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.Messages.Where(e => e.Type == GenAIMessageType.OutputMessage).ToList())
                             </div>
                         }
                         @if (Content.OverviewActiveView == OverviewViewKind.Details)

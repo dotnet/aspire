@@ -11,7 +11,7 @@
         {
             <FluentTreeItem @key="messageVM"
                             Data="@messageVM.Index"
-                            title="@messageVM.GetMessageTitle().Text"
+                            title="@messageVM.GetTitleBadge(Loc).Text"
                             InitiallySelected="@(messageVM.Index == PageViewModel.SelectedMessage?.Index)">
                 <div class="message-tree-item-container">
                     <GenAIMessageTitle Message="messageVM" ResourceName="@messageVM.ResourceName" />

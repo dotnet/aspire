@@ -1,11 +1,11 @@
 ﻿@using Aspire.Dashboard.Otlp.Model
 @using Metrics = Aspire.Dashboard.Resources.Metrics
 
-@if (_messageBadge is { } messageBadge)
+@if (_titleBadge is { } titleBadge)
 {
     <span class="message-name">
-        <FluentIcon Value="@messageBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(ResourceName)" />
-        @messageBadge.Text
+        <FluentIcon Value="@titleBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(ResourceName)" />
+        @titleBadge.Text
     </span>
 }
 

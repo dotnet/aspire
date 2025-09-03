@@ -6,6 +6,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -28,10 +29,16 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     public required GenAIVisualizerDialogViewModel Content { get; set; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
     protected override void OnInitialized()
     {
@@ -139,14 +146,14 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return true;
     }
 
-    private static string GetMessageTitle(GenAIMessageViewModel e)
+    private string GetMessageTitle(GenAIMessageViewModel e)
     {
         return e.Type switch
         {
-            GenAIMessageType.SystemMessage => "System message",
-            GenAIMessageType.UserMessage => "User",
-            GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage => "Assistant",
-            GenAIMessageType.ToolMessage => "Tool",
+            GenAIMessageType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
+            GenAIMessageType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
+            GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
+            GenAIMessageType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
             _ => string.Empty
         };
     }

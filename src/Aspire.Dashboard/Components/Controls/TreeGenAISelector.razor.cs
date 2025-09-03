@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model.GenAI;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -13,4 +14,7 @@ public partial class TreeGenAISelector
 
     [Parameter, EditorRequired]
     public required GenAIVisualizerDialogViewModel PageViewModel { get; set; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 }
