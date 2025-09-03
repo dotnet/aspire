@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
 using Aspire.Hosting.Utils;
@@ -146,6 +147,11 @@ public static class PythonAppResourceBuilderExtensions
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
             resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
         }
+
+        resourceBuilder.WithVSCodeDebugSupport(Path.Join(appDirectory, scriptPath), "python", "ms-python.python", ctx =>
+        {
+            ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
+        });
 
         resourceBuilder.PublishAsDockerFile();
 

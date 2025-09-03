@@ -248,6 +248,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<InteractionService>();
         _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
+        _innerBuilder.Services.AddSingleton<ParameterProcessor>();
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
@@ -369,7 +370,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
-            _innerBuilder.Services.AddSingleton<ParameterProcessor>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff

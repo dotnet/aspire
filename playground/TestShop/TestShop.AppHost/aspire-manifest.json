@@ -4,7 +4,7 @@
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:17.5",
+      "image": "docker.io/library/postgres:17.6",
       "volumes": [
         {
           "name": "testshop.apphost-48e1ce2b9b-postgres-data",
@@ -34,7 +34,7 @@
     "basketcache": {
       "type": "container.v0",
       "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port},password={basketcache-password.value}",
-      "image": "docker.io/library/redis:7.4",
+      "image": "docker.io/library/redis:8.2",
       "entrypoint": "/bin/sh",
       "args": [
         "-c",

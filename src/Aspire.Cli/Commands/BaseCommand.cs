@@ -15,6 +15,8 @@ internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
     private readonly CliExecutionContext _executionContext;
+    
+    protected CliExecutionContext ExecutionContext => _executionContext;
 
     protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base(name, description)
     {

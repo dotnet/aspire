@@ -97,6 +97,7 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -252,7 +253,8 @@ internal sealed class CliServiceCollectionTestOptions
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
     };
 
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>

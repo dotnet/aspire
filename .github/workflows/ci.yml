@@ -15,7 +15,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-
 jobs:
 
   prepare_for_ci:
@@ -33,13 +32,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if only documentation changed
+      - name: Check for any changes that require CI
         id: check_docs
         if: ${{ github.event_name == 'pull_request' }}
         uses: ./.github/actions/check-changed-files
         with:
           patterns: |
             \.md$
+            eng/pipelines/.*
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs

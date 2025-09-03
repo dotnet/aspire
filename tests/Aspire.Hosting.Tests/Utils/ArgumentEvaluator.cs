@@ -8,12 +8,15 @@ namespace Aspire.Hosting.Tests.Utils;
 
 public sealed class ArgumentEvaluator
 {
-    public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource)
+    public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource, IServiceProvider? serviceProvider = null)
     {
         var args = new List<string>();
 
         await resource.ProcessArgumentValuesAsync(
-            new(DistributedApplicationOperation.Run),
+            new(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+            {
+                ServiceProvider = serviceProvider
+            }),
             (_, processed, ex, _) =>
             {
                 if (ex is not null)

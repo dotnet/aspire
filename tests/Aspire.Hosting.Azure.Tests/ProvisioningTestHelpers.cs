@@ -42,8 +42,7 @@ internal static class ProvisioningTestHelpers
         AzureLocation? location = null,
         UserPrincipal? principal = null,
         JsonObject? userSecrets = null,
-        DistributedApplicationExecutionContext? executionContext = null,
-        string? outputPath = null)
+        DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
             credential ?? new TestTokenCredential(),
@@ -54,12 +53,13 @@ internal static class ProvisioningTestHelpers
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
             userSecrets ?? [],
-            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            outputPath);
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
     // Factory methods for test implementations of provisioning services interfaces
     public static IArmClientProvider CreateArmClientProvider() => new TestArmClientProvider();
+    public static IArmClientProvider CreateArmClientProvider(Dictionary<string, object> deploymentOutputs) => new TestArmClientProvider(deploymentOutputs);
+    public static IArmClientProvider CreateArmClientProvider(Func<string, Dictionary<string, object>> deploymentOutputsProvider) => new TestArmClientProvider(deploymentOutputsProvider);
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
@@ -107,11 +107,19 @@ internal static class ProvisioningTestHelpers
     }
 
     /// <summary>
-    /// Creates a test logger for DefaultProvisioningContextProvider.
+    /// Creates a test logger for RunModeProvisioningContextProvider.
     /// </summary>
-    public static ILogger<DefaultProvisioningContextProvider> CreateLogger()
+    public static ILogger<RunModeProvisioningContextProvider> CreateLogger()
     {
-        return NullLogger<DefaultProvisioningContextProvider>.Instance;
+        return NullLogger<RunModeProvisioningContextProvider>.Instance;
+    }
+
+    /// <summary>
+    /// Creates a test logger for the specified type.
+    /// </summary>
+    public static ILogger<T> CreateLogger<T>() where T : class
+    {
+        return NullLogger<T>.Instance;
     }
 }
 
@@ -168,9 +176,20 @@ internal sealed class TestTokenCredential : TokenCredential
 /// <summary>
 /// Test implementation of <see cref="IArmClient"/>.
 /// </summary>
-internal sealed class TestArmClient(Dictionary<string, object> deploymentOutputs) : IArmClient
+internal sealed class TestArmClient : IArmClient
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+
+    public TestArmClient(Dictionary<string, object> deploymentOutputs)
+    {
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestArmClient(Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestArmClient() : this([])
     {
@@ -178,18 +197,57 @@ internal sealed class TestArmClient(Dictionary<string, object> deploymentOutputs
 
     public Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default)
     {
-        var subscription = new TestSubscriptionResource(_deploymentOutputs);
+        ISubscriptionResource subscription;
+        if (_deploymentOutputsProvider is not null)
+        {
+            subscription = new TestSubscriptionResource(_deploymentOutputsProvider);
+        }
+        else
+        {
+            subscription = new TestSubscriptionResource(_deploymentOutputs!);
+        }
         var tenant = new TestTenantResource();
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
+    }
+
+    public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
+    {
+        var subscriptions = new List<ISubscriptionResource>
+        {
+            new TestSubscriptionResource()
+        };
+        return Task.FromResult<IEnumerable<ISubscriptionResource>>(subscriptions);
+    }
+
+    public Task<IEnumerable<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var locations = new List<(string Name, string DisplayName)>
+        {
+            ("eastus", "East US"),
+            ("westus", "West US"),
+            ("westus2", "West US 2")
+        };
+        return Task.FromResult<IEnumerable<(string, string)>>(locations);
     }
 }
 
 /// <summary>
 /// Test implementation of <see cref="ISubscriptionResource"/>.
 /// </summary>
-internal sealed class TestSubscriptionResource(Dictionary<string, object> deploymentOutputs) : ISubscriptionResource
+internal sealed class TestSubscriptionResource : ISubscriptionResource
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+
+    public TestSubscriptionResource(Dictionary<string, object> deploymentOutputs)
+    {
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestSubscriptionResource(Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestSubscriptionResource() : this([])
     {
@@ -201,21 +259,40 @@ internal sealed class TestSubscriptionResource(Dictionary<string, object> deploy
 
     public IArmDeploymentCollection GetArmDeployments()
     {
-        return new TestArmDeploymentCollection(_deploymentOutputs);
+        if (_deploymentOutputsProvider is not null)
+        {
+            return new TestArmDeploymentCollection(_deploymentOutputsProvider);
+        }
+        return new TestArmDeploymentCollection(_deploymentOutputs!);
     }
 
     public IResourceGroupCollection GetResourceGroups()
     {
-        return new TestResourceGroupCollection(_deploymentOutputs);
+        if (_deploymentOutputsProvider is not null)
+        {
+            return new TestResourceGroupCollection(_deploymentOutputsProvider);
+        }
+        return new TestResourceGroupCollection(_deploymentOutputs!);
     }
 }
 
 /// <summary>
 /// Test implementation of <see cref="IResourceGroupCollection"/>.
 /// </summary>
-internal sealed class TestResourceGroupCollection(Dictionary<string, object> deploymentOutputs) : IResourceGroupCollection
+internal sealed class TestResourceGroupCollection : IResourceGroupCollection
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+
+    public TestResourceGroupCollection(Dictionary<string, object> deploymentOutputs)
+    {
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestResourceGroupCollection(Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestResourceGroupCollection() : this([])
     {
@@ -223,13 +300,29 @@ internal sealed class TestResourceGroupCollection(Dictionary<string, object> dep
 
     public Task<Response<IResourceGroupResource>> GetAsync(string resourceGroupName, CancellationToken cancellationToken = default)
     {
-        var resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputs);
+        IResourceGroupResource resourceGroup;
+        if (_deploymentOutputsProvider is not null)
+        {
+            resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputsProvider);
+        }
+        else
+        {
+            resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputs!);
+        }
         return Task.FromResult(Response.FromValue<IResourceGroupResource>(resourceGroup, new MockResponse(200)));
     }
 
     public Task<ArmOperation<IResourceGroupResource>> CreateOrUpdateAsync(WaitUntil waitUntil, string resourceGroupName, ResourceGroupData data, CancellationToken cancellationToken = default)
     {
-        var resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputs);
+        IResourceGroupResource resourceGroup;
+        if (_deploymentOutputsProvider is not null)
+        {
+            resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputsProvider);
+        }
+        else
+        {
+            resourceGroup = new TestResourceGroupResource(resourceGroupName, _deploymentOutputs!);
+        }
         var operation = new TestArmOperation<IResourceGroupResource>(resourceGroup);
         return Task.FromResult<ArmOperation<IResourceGroupResource>>(operation);
     }
@@ -238,29 +331,58 @@ internal sealed class TestResourceGroupCollection(Dictionary<string, object> dep
 /// <summary>
 /// Test implementation of <see cref="IResourceGroupResource"/>.
 /// </summary>
-internal sealed class TestResourceGroupResource(string name, Dictionary<string, object> deploymentOutputs) : IResourceGroupResource
+internal sealed class TestResourceGroupResource : IResourceGroupResource
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+    private readonly string _name;
+
+    public TestResourceGroupResource(string name, Dictionary<string, object> deploymentOutputs)
+    {
+        _name = name;
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestResourceGroupResource(string name, Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _name = name;
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestResourceGroupResource(string name = "test-rg") : this(name, [])
     {
     }
 
     public ResourceIdentifier Id { get; } = new ResourceIdentifier("/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg");
-    public string Name { get; } = name;
+    public string Name => _name;
 
     public IArmDeploymentCollection GetArmDeployments()
     {
-        return new TestArmDeploymentCollection(_deploymentOutputs);
+        if (_deploymentOutputsProvider is not null)
+        {
+            return new TestArmDeploymentCollection(_deploymentOutputsProvider);
+        }
+        return new TestArmDeploymentCollection(_deploymentOutputs!);
     }
 }
 
 /// <summary>
 /// Test implementation of <see cref="IArmDeploymentCollection"/>.
 /// </summary>
-internal sealed class TestArmDeploymentCollection(Dictionary<string, object> deploymentOutputs) : IArmDeploymentCollection
+internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+
+    public TestArmDeploymentCollection(Dictionary<string, object> deploymentOutputs)
+    {
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestArmDeploymentCollection(Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestArmDeploymentCollection() : this([])
     {
@@ -272,7 +394,15 @@ internal sealed class TestArmDeploymentCollection(Dictionary<string, object> dep
         ArmDeploymentContent content,
         CancellationToken cancellationToken = default)
     {
-        var deployment = new TestArmDeploymentResource(deploymentName, _deploymentOutputs);
+        TestArmDeploymentResource deployment;
+        if (_deploymentOutputsProvider is not null)
+        {
+            deployment = new TestArmDeploymentResource(deploymentName, _deploymentOutputsProvider);
+        }
+        else
+        {
+            deployment = new TestArmDeploymentResource(deploymentName, _deploymentOutputs!);
+        }
         var operation = new TestArmOperation<ArmDeploymentResource>(deployment);
         return Task.FromResult<ArmOperation<ArmDeploymentResource>>(operation);
     }
@@ -309,10 +439,43 @@ internal sealed class TestArmOperation<T>(T value) : ArmOperation<T>
 /// <summary>
 /// Test implementation of ArmDeploymentResource for testing.
 /// </summary>
-internal sealed class TestArmDeploymentResource(string name, Dictionary<string, object> deploymentData) : ArmDeploymentResource
+internal sealed class TestArmDeploymentResource : ArmDeploymentResource
 {
-    public override ResourceIdentifier Id { get; } = new ResourceIdentifier($"/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg/providers/Microsoft.Resources/deployments/{name}");
-    public override ArmDeploymentData Data => ArmResourcesModelFactory.ArmDeploymentData(Id, name, properties: ArmResourcesModelFactory.ArmDeploymentPropertiesExtended(provisioningState: ResourcesProvisioningState.Succeeded, outputs: BinaryData.FromObjectAsJson(deploymentData)));
+    private readonly string _name;
+    private readonly Dictionary<string, object>? _deploymentData;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentDataProvider;
+
+    public TestArmDeploymentResource(string name, Dictionary<string, object> deploymentData)
+    {
+        _name = name;
+        _deploymentData = deploymentData;
+    }
+
+    public TestArmDeploymentResource(string name, Func<string, Dictionary<string, object>> deploymentDataProvider)
+    {
+        _name = name;
+        _deploymentDataProvider = deploymentDataProvider;
+    }
+
+    public override ResourceIdentifier Id => new ResourceIdentifier($"/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/test-rg/providers/Microsoft.Resources/deployments/{_name}");
+
+    public override ArmDeploymentData Data
+    {
+        get
+        {
+            Dictionary<string, object> data;
+            if (_deploymentDataProvider is not null)
+            {
+                data = _deploymentDataProvider(_name);
+            }
+            else
+            {
+                data = _deploymentData!;
+            }
+            return ArmResourcesModelFactory.ArmDeploymentData(Id, _name, properties: ArmResourcesModelFactory.ArmDeploymentPropertiesExtended(provisioningState: ResourcesProvisioningState.Succeeded, outputs: BinaryData.FromObjectAsJson(data)));
+        }
+    }
+
     public override bool HasData => true;
 }
 
@@ -341,9 +504,20 @@ internal sealed class MockResponse(int status) : Response
     public override void Dispose() { }
 }
 
-internal sealed class TestArmClientProvider(Dictionary<string, object> deploymentOutputs) : IArmClientProvider
+internal sealed class TestArmClientProvider : IArmClientProvider
 {
-    private readonly Dictionary<string, object> _deploymentOutputs = deploymentOutputs;
+    private readonly Dictionary<string, object>? _deploymentOutputs;
+    private readonly Func<string, Dictionary<string, object>>? _deploymentOutputsProvider;
+
+    public TestArmClientProvider(Dictionary<string, object> deploymentOutputs)
+    {
+        _deploymentOutputs = deploymentOutputs;
+    }
+
+    public TestArmClientProvider(Func<string, Dictionary<string, object>> deploymentOutputsProvider)
+    {
+        _deploymentOutputsProvider = deploymentOutputsProvider;
+    }
 
     public TestArmClientProvider() : this([])
     {
@@ -351,7 +525,16 @@ internal sealed class TestArmClientProvider(Dictionary<string, object> deploymen
 
     public IArmClient GetArmClient(TokenCredential credential, string subscriptionId)
     {
-        return new TestArmClient(_deploymentOutputs);
+        if (_deploymentOutputsProvider is not null)
+        {
+            return new TestArmClient(_deploymentOutputsProvider);
+        }
+        return new TestArmClient(_deploymentOutputs!);
+    }
+
+    public IArmClient GetArmClient(TokenCredential credential)
+    {
+        return new TestArmClient();
     }
 }
 

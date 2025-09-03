@@ -4,127 +4,117 @@
     <body>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
-        <target state="new">Analyze App Host</target>
+        <target state="translated">Uygulama Ana İşlemi</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHostSdk">
         <source>Analyze App Host SDK</source>
-        <target state="new">Analyze App Host SDK</target>
+        <target state="translated">Uygulama Ana İşlemi SDK’sini Analiz Etme</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeProjectFormat">
         <source>Analyze project: {0}</source>
-        <target state="new">Analyze project: {0}</target>
+        <target state="translated">Projeyi analiz et: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzingProjectStatus">
         <source>Analyzing project...</source>
-        <target state="new">Analyzing project...</target>
+        <target state="translated">Proje analiz ediliyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
-        <target state="new">Central package management is currently not supported by 'aspire update'.</target>
+        <target state="translated">Merkezi paket yönetimi şu anda 'aspire update' tarafından desteklenmiyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
-        <target state="new">Could not find root &lt;Project&gt; element in {0}</target>
+        <target state="translated">{0} içinde &lt;Project&gt; bileşeni bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindSdkElementFormat">
         <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
-        <target state="new">Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</target>
+        <target state="translated">{0} içinde &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; öğesi bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
-        <target state="new">Update integrations in the Aspire project. (Preview)</target>
+        <target state="translated">Aspire projesindeki tümleştirme güncelleştirmelerini yapın. (Önizleme)</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
-        <target state="new">Executing: {0}</target>
+        <target state="translated">Yürütülüyor: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedDiscoverNuGetConfig">
         <source>Failed to discover NuGet.config files.</source>
-        <target state="new">Failed to discover NuGet.config files.</target>
+        <target state="translated">NuGet.config dosyalarını bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedFetchItemsAndPropertiesFormat">
         <source>Failed to fetch items and properties for project: {0}</source>
-        <target state="new">Failed to fetch items and properties for project: {0}</target>
+        <target state="translated">Proje için öğeler ve özellikler getirilemedi: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedUpdatePackageReferenceFormat">
         <source>Failed to update package reference for {0} in project {1}.</source>
-        <target state="new">Failed to update package reference for {0} in project {1}.</target>
+        <target state="translated">{1} projesinde {0} için paket başvurusu güncellenemedi.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
-        <target state="new">No package found with ID '{0}' in channel '{1}'.</target>
+        <target state="translated">'{1}' kanalında '{0}' kimliğine sahip paket bulunamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
-        <target state="new">Package reference does not have Identity.</target>
+        <target state="translated">Paket başvurusunda Kimlik yok.</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoVersion">
         <source>Package reference does not have Version.</source>
-        <target state="new">Package reference does not have Version.</target>
+        <target state="translated">Paket başvurusunda Sürüm yok.</target>
         <note />
       </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
-        <target state="new">Perform updates?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectHasUpdatesMessage">
-        <source>Project has updates!</source>
-        <target state="new">Project has updates!</target>
+        <target state="translated">Güncelleştirmeler uygulansın mı?</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
-        <target state="new">Project reference does not have FullPath.</target>
+        <target state="translated">Proje başvurusunda FullPath yok.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
-        <target state="new">Project is up to date! (no updates necessary)</target>
+        <target state="translated">Proje güncel! (güncelleştirme gerekmiyor)</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
-        <target state="new">Select a channel:</target>
+        <target state="translated">Kanal seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
-        <target state="new">Unexpected code path.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateAppHostSdkFormat">
-        <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="new">Update AppHost SDK from {0} to {1}</target>
+        <target state="translated">Beklenmeyen kod yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
         <source>Update package {0} from {1} to {2}</source>
-        <target state="new">Update package {0} from {1} to {2}</target>
+        <target state="translated">{1} olan {0} paketini {2} olarak güncelleyin</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateSuccessfulMessage">
         <source>Update successful!</source>
-        <target state="new">Update successful!</target>
+        <target state="translated">Güncelleme başarılı!</target>
         <note />
       </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
-        <target state="new">Which directory for NuGet.config file?</target>
+        <target state="translated">NuGet.config dosyası için hangi dizin kullanılsın?</target>
         <note />
       </trans-unit>
     </body>

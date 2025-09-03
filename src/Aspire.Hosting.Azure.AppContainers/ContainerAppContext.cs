@@ -475,7 +475,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                     _ => throw new NotSupportedException()
                 };
 
-                var storageName = _containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, volume, volumeIndex);
+                var storageName = _containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, volume, index);
 
                 Volumes[volumeName] = (volume, storageName);
 
