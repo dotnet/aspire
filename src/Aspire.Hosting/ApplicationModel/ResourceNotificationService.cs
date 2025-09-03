@@ -226,6 +226,13 @@ public class ResourceNotificationService : IDisposable
             throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to become healthy because it failed to start.");
         }
 
+        // Now wait for the resource ready event to be executed (matching behavior of WaitUntilHealthyAsync).
+        _logger.LogDebug("Waiting for resource ready to execute for '{Name}'.", resourceName);
+        resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.ResourceId == resourceEvent.ResourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Observe the result of the resource ready event task
+        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
 
         return resourceEvent;
