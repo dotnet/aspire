@@ -149,6 +149,7 @@ public static class AzureKustoBuilderExtensions
         surrogateBuilder
             .WithAnnotation(new EmulatorResourceAnnotation())
             .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http")
+            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultIngestionTargetPort, name: "ingestionHttp")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = AzureKustoEmulatorContainerImageTags.Registry,
@@ -182,6 +183,38 @@ public static class AzureKustoBuilderExtensions
         builder.WithAnnotation(new AzureKustoCreateDatabaseScriptAnnotation(script));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Modifies the host port that the Kusto emulator listens on for HTTP query requests.
+    /// </summary>
+    /// <param name="builder">Kusto emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureKustoClusterResource"/>.</returns>
+    public static IResourceBuilder<AzureKustoClusterResource> WithHttpPort(this IResourceBuilder<AzureKustoClusterResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Modifies the host port that the Kusto emulator listens on for HTTP ingestion requests.
+    /// </summary>
+    /// <param name="builder">Kusto emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureKustoClusterResource"/>.</returns>
+    public static IResourceBuilder<AzureKustoClusterResource> WithIngestionHttpPort(this IResourceBuilder<AzureKustoClusterResource> builder, int port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("ingestionHttp", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, AzureKustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
