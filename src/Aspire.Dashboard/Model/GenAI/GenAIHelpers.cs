@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Model.GenAI;
 public static class GenAIHelpers
 {
     public const string GenAISystem = "gen_ai.system";
+    public const string GenAIProviderName = "gen_ai.provider.name";
     public const string GenAIEventContent = "gen_ai.event.content";
     public const string GenAISystemInstructions = "gen_ai.system_instructions";
     public const string GenAIInputMessages = "gen_ai.input.messages";
@@ -18,6 +19,7 @@ public static class GenAIHelpers
 
     public static bool IsGenAISpan(KeyValuePair<string, string>[] attributes)
     {
-        return attributes.GetValue(GenAISystem) is { Length: > 0 };
+        return attributes.GetValue(GenAISystem) is { Length: > 0 } ||
+            attributes.GetValue(GenAIProviderName) is { Length: > 0 };
     }
 }

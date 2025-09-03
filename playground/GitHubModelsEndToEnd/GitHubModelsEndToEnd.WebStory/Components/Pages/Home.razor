@@ -26,8 +26,6 @@
         "Charles", "Karen"
     };
 
-    private static readonly ActivitySource s_appActivitySource = new ActivitySource("WebStory");
-
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
         new(ChatRole.System, "You are a story generator.")
@@ -44,21 +42,6 @@
     }
 
     private async Task GenerateNextParagraph()
-    {
-        var activity = Activity.Current;
-        Activity.Current = null;
-
-        using var appActivity = s_appActivitySource.StartActivity(nameof(GenerateNextParagraph));
-
-        await GenerateCoreAsync();
-        await GenerateCoreAsync();
-
-        appActivity?.Stop();
-
-        Activity.Current = activity;
-    }
-
-    private async Task GenerateCoreAsync()
     {
         var chatOptions = new ChatOptions
         {

@@ -8,10 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("Experimental.Microsoft.Extensions.AI"));
-builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("WebStory"));
-builder.Services.AddOpenTelemetry().WithMetrics(b => b.AddMeter("Experimental.Microsoft.Extensions.AI"));
-
 builder.AddAzureChatCompletionsClient("chat")
        .AddChatClient()
        .UseFunctionInvocation();
