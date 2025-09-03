@@ -615,12 +615,12 @@ public class ResourceNotificationService : IDisposable
                 if (!string.IsNullOrWhiteSpace(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
                 {
                     // The state text has changed from the previous state
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
+                    _logger.LogDebug("Resource {ResourceName}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
                 }
                 else if (string.IsNullOrWhiteSpace(previousStateText))
                 {
                     // There was no previous state text so just log the new state
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
+                    _logger.LogDebug("Resource {ResourceName}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
                 }
             }
 
@@ -630,7 +630,7 @@ public class ResourceNotificationService : IDisposable
                 // makes them more easily analyzed in a text editor
                 _logger.LogTrace(
                     "Version: {Version} " +
-                    "Resource {Resource}/{ResourceId} update published: " +
+                    "Resource {ResourceName}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, " +
                     "CreationTimeStamp = {CreationTimeStamp:s}, " +
                     "State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
