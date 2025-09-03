@@ -65,6 +65,7 @@ This will update the project to use the daily packages and feeds.
 > [!TIP]
 > `aspire update` can be used at any time to update your project to the latest available Aspire build, including daily builds.
 
+After updating your project, you can run it using the following command:
 ```shell
 aspire run
 ```
