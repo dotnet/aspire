@@ -512,18 +512,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
             options.InteractionServiceFactory = (sp) =>
             {
-                var testService = new TestInteractionService();
-                testService.PromptForSelectionCallback = (prompt, choices, _, _) =>
+                return new TestFrameworkInteractionService(() => 
                 {
-                    if (prompt.Contains("target framework"))
-                    {
-                        frameworkPrompted = true;
-                        selectedFramework = choices[1]; // Select net9.0
-                        return Task.FromResult(selectedFramework);
-                    }
-                    return Task.FromResult(choices[0]); // Default selection for other prompts
-                };
-                return testService;
+                    frameworkPrompted = true;
+                    selectedFramework = "net9.0";
+                });
             };
 
             options.DotNetCliRunnerFactory = (sp) =>
@@ -727,6 +720,52 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         return Task.FromResult(choices.First());
     }
 
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
+    public void DisplayError(string errorMessage) { }
+    public void DisplayMessage(string emoji, string message) { }
+    public void DisplaySuccess(string message) { }
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayCancellationMessage() { }
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
+    public void DisplaySubtleMessage(string message) { }
+    public void DisplayEmptyLine() { }
+    public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
+}
+
+internal sealed class TestFrameworkInteractionService : IInteractionService
+{
+    private readonly Action _frameworkPromptCallback;
+
+    public TestFrameworkInteractionService(Action frameworkPromptCallback)
+    {
+        _frameworkPromptCallback = frameworkPromptCallback;
+    }
+
+    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (promptText.Contains("target framework"))
+        {
+            _frameworkPromptCallback();
+            // Return net9.0 (second choice)
+            return Task.FromResult(choices.Skip(1).First());
+        }
+
+        // For other prompts, return first choice
+        return Task.FromResult(choices.First());
+    }
+
+    // Default implementations for other interface methods
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
+    public void ShowStatus(string statusText, Action action) => action();
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) => Task.FromResult(defaultValue ?? string.Empty);
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(string emoji, string message) { }

@@ -238,7 +238,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
-            var framework = await PromptForFrameworkOptionsAsync(cancellationToken);
+            
+            // Only prompt for framework selection in interactive mode (when no specific template was specified)
+            // This happens when the user runs just "aspire new" without a template name
+            var isInteractiveMode = parseResult.CommandResult.Command.Name == "new";
+            var framework = isInteractiveMode ? await PromptForFrameworkOptionsAsync(cancellationToken) : null;
 
             var source = parseResult.GetValue<string?>("--source");
             var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
