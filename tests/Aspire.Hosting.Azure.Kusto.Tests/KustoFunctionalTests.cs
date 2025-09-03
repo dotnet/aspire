@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Polly;
 
 namespace Aspire.Hosting.Azure.Kusto.Tests;
@@ -158,6 +160,36 @@ public class KustoFunctionalTests
 
             return results;
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
+    {
+        const string kustoName = "kusto";
+        const string dbName = "TestDb";
+
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
+
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
+        builder.Services.AddFakeLogging();
+
+        var kusto = builder.AddAzureKustoCluster(kustoName).RunAsEmulator();
+        kusto.AddDatabase("TestDb1", dbName);
+        kusto.AddDatabase("TestDb2", dbName);
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
+
+        // Assert no warnings or errors were logged about the database already existing
+        var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
+        var logs = snapshot.Where(record => record.Category == $"Aspire.Hosting.Tests.Resources.{kustoName}")
+            .Where(record => record.Level >= LogLevel.Warning);
+        Assert.Empty(logs);
     }
 
     [Fact]
