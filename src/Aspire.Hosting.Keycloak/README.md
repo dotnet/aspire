@@ -30,13 +30,8 @@ var myService = builder.AddProject<Projects.MyService>()
 When deploying Keycloak to production environments that use reverse proxies with TLS termination (such as Azure Container Apps), you need to configure Keycloak to work properly behind the proxy:
 
 ```csharp
-var keycloak = builder.AddKeycloak("keycloak");
-
-// For deployment behind a reverse proxy (e.g., Azure Container Apps)
-if (!builder.ExecutionContext.IsRunMode)
-{
-    keycloak.WithReverseProxy();
-}
+var keycloak = builder.AddKeycloak("keycloak")
+    .PublishWithReverseProxy(); // Automatically configures reverse proxy settings for deployment
 ```
 
 The `WithReverseProxy()` method configures the following Keycloak environment variables:

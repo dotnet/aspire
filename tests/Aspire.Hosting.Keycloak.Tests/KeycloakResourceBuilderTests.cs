@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.ApplicationModel;
 using System.Text.Json;
-using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Hosting.Keycloak.Tests;
 
@@ -154,8 +153,7 @@ public class KeycloakResourceBuilderTests
         var keycloak = builder.AddKeycloak("keycloak")
                               .WithReverseProxy();
 
-        var envTask = keycloak.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var env = await envTask;
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
 
         var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
         Assert.Equal("true", kcHttpEnabled.Value);
@@ -179,8 +177,7 @@ public class KeycloakResourceBuilderTests
                               .WithHttpEndpoint(port: 9080, name: "custom")
                               .WithReverseProxy("custom");
 
-        var envTask = keycloak.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var env = await envTask;
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
 
         var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
         Assert.Equal("true", kcHttpEnabled.Value);
@@ -207,11 +204,8 @@ public class KeycloakResourceBuilderTests
         var keycloakWithProxy = builder.AddKeycloak("keycloak2")
                                       .WithReverseProxy();
 
-        var envWithoutProxyTask = keycloakWithoutProxy.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var envWithProxyTask = keycloakWithProxy.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        
-        var envWithoutProxy = await envWithoutProxyTask;
-        var envWithProxy = await envWithProxyTask;
+        var envWithoutProxy = await keycloakWithoutProxy.Resource.GetEnvironmentVariableValuesAsync();
+        var envWithProxy = await keycloakWithProxy.Resource.GetEnvironmentVariableValuesAsync();
 
         // Environment variables without proxy should not include reverse proxy settings
         Assert.DoesNotContain(envWithoutProxy, e => e.Key == "KC_HTTP_ENABLED");
@@ -259,8 +253,7 @@ public class KeycloakResourceBuilderTests
         var keycloak = builder.AddKeycloak("keycloak")
                               .PublishWithReverseProxy();
 
-        var envTask = keycloak.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var env = await envTask;
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
 
         // Should not contain reverse proxy settings in run mode
         Assert.DoesNotContain(env, e => e.Key == "KC_HTTP_ENABLED");
@@ -281,8 +274,7 @@ public class KeycloakResourceBuilderTests
         var keycloak = builder.AddKeycloak("keycloak")
                               .PublishWithReverseProxy();
 
-        var envTask = keycloak.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var env = await envTask;
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
 
         // Should contain reverse proxy settings in publish mode
         var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
@@ -307,8 +299,7 @@ public class KeycloakResourceBuilderTests
                               .WithHttpEndpoint(port: 9080, name: "custom")
                               .PublishWithReverseProxy("custom");
 
-        var envTask = keycloak.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
-        var env = await envTask;
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
 
         // Should contain reverse proxy settings with custom endpoint
         var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");

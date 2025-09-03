@@ -221,13 +221,7 @@ public static class KeycloakResourceBuilderExtensions
     /// <code lang="csharp">
     /// var keycloak = builder.AddKeycloak("keycloak");
     /// 
-    /// // Option 1: Manual check for production deployment with reverse proxy
-    /// if (!builder.ExecutionContext.IsRunMode)
-    /// {
-    ///     keycloak.WithReverseProxy();
-    /// }
-    /// 
-    /// // Option 2: Use the convenience method that automatically checks the execution context
+    /// // Use the convenience method that automatically checks the execution context
     /// keycloak.PublishWithReverseProxy();
     /// </code>
     /// </example>
