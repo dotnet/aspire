@@ -5,8 +5,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) redis azure cache</PackageTags>
     <Description>An Azure Cache for Redis® client that integrates with Aspire, including Azure AD authentication, health checks, logging and telemetry.</Description>
-    <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

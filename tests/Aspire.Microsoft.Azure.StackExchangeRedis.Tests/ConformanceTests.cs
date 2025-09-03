@@ -30,20 +30,16 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, AzureSt
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
-    protected override string? ConfigurationSectionName => "Aspire:Microsoft:Azure:StackExchange:Redis";
+    protected override string? ConfigurationSectionName => "Aspire:StackExchange:Redis";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
-            "Microsoft": {
-              "Azure": {
-                "StackExchange": {
-                  "Redis": {
-                    "ConnectionString": "localhost:6379",
-                    "DisableHealthChecks": true,
-                    "DisableTracing": false
-                  }
-                }
+            "StackExchange": {
+              "Redis": {
+                "ConnectionString": "localhost:6379",
+                "DisableHealthChecks": true,
+                "DisableTracing": false
               }
             }
           }
@@ -63,7 +59,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, AzureSt
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Microsoft:Azure:StackExchange:Redis", key, "ConnectionString"), ConnectionString)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureStackExchangeRedisSettings>? configure = null, string? key = null)

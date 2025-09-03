@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Microsoft.Azure.StackExchangeRedis;
 using Aspire.StackExchange.Redis;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 
@@ -14,8 +14,6 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireMicrosoftAzureStackExchangeRedisExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:Microsoft:Azure:StackExchange:Redis";
-
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> service for connecting Azure Cache for Redis with StackExchange.Redis client.
     /// Configures health check, logging and telemetry for the StackExchange.Redis client.
@@ -24,7 +22,7 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional delegate that can be used for customizing the <see cref="ConfigurationOptions"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:StackExchange:Redis" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureStackExchangeRedisSettings.ConnectionString"/> is not provided.</exception>
     public static void AddAzureRedisClient(this IHostApplicationBuilder builder, string connectionName, Action<AzureStackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
@@ -32,7 +30,22 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
-        AddAzureRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
+        AzureStackExchangeRedisSettings? azureSettings = null;
+
+        builder.AddRedisClient(connectionName, settings => azureSettings = ConfigureSettings(configureSettings, settings), options =>
+        {
+            Debug.Assert(azureSettings != null);
+
+            // Configure Azure authentication if credential is provided
+            if (azureSettings.Credential != null)
+            {
+                // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
+                // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
+                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, azureSettings.Credential).GetAwaiter().GetResult();
+            }
+
+            configureOptions?.Invoke(options);
+        });
     }
 
     /// <summary>
@@ -43,7 +56,7 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional delegate that can be used for customizing the <see cref="ConfigurationOptions"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:StackExchange:Redis:{name}" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis:{name}" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="name"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="name"/> is empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureStackExchangeRedisSettings.ConnectionString"/> is not provided.</exception>
@@ -52,88 +65,51 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddAzureRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
-    }
+        AzureStackExchangeRedisSettings? azureSettings = null;
 
-    private static void AddAzureRedisClient(
-        IHostApplicationBuilder builder,
-        Action<AzureStackExchangeRedisSettings>? configureSettings,
-        Action<ConfigurationOptions>? configureOptions,
-        string connectionName,
-        object? serviceKey)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        builder.AddKeyedRedisClient(name, settings => azureSettings = ConfigureSettings(configureSettings, settings), options =>
+        {
+            Debug.Assert(azureSettings != null);
 
-        var configSection = builder.Configuration.GetSection(DefaultConfigSectionName);
-        var namedConfigSection = configSection.GetSection(connectionName);
-
-        AzureStackExchangeRedisSettings settings = new();
-        
-        // Manually bind configuration properties, excluding Credential which can't be bound from config
-        if (configSection["ConnectionString"] is string globalConnectionString)
-        {
-            settings.ConnectionString = globalConnectionString;
-        }
-        if (configSection["DisableHealthChecks"] is string globalDisableHealthChecks && bool.TryParse(globalDisableHealthChecks, out var globalHealthChecks))
-        {
-            settings.DisableHealthChecks = globalHealthChecks;
-        }
-        if (configSection["DisableTracing"] is string globalDisableTracing && bool.TryParse(globalDisableTracing, out var globalTracing))
-        {
-            settings.DisableTracing = globalTracing;
-        }
-
-        // Named configuration overrides global configuration
-        if (namedConfigSection["ConnectionString"] is string namedConnectionString)
-        {
-            settings.ConnectionString = namedConnectionString;
-        }
-        if (namedConfigSection["DisableHealthChecks"] is string namedDisableHealthChecks && bool.TryParse(namedDisableHealthChecks, out var namedHealthChecks))
-        {
-            settings.DisableHealthChecks = namedHealthChecks;
-        }
-        if (namedConfigSection["DisableTracing"] is string namedDisableTracing && bool.TryParse(namedDisableTracing, out var namedTracing))
-        {
-            settings.DisableTracing = namedTracing;
-        }
-
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            settings.ConnectionString = connectionString;
-        }
-
-        configureSettings?.Invoke(settings);
-
-        // Create StackExchangeRedisSettings from AzureStackExchangeRedisSettings
-        Action<StackExchangeRedisSettings> configureRedisSettings = redisConfig =>
-        {
-            // Copy Azure settings to Redis settings
-            redisConfig.ConnectionString = settings.ConnectionString;
-            redisConfig.DisableHealthChecks = settings.DisableHealthChecks;
-            redisConfig.DisableTracing = settings.DisableTracing;
-        };
-
-        Action<ConfigurationOptions> configureRedisOptions = options =>
-        {
             // Configure Azure authentication if credential is provided
-            if (settings.Credential != null)
+            if (azureSettings.Credential != null)
             {
                 // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
                 // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
-                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, settings.Credential).GetAwaiter().GetResult();
+                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, azureSettings.Credential).GetAwaiter().GetResult();
             }
 
             configureOptions?.Invoke(options);
-        };
+        });
+    }
 
-        if (serviceKey is null)
-        {
-            builder.AddRedisClient(connectionName, configureRedisSettings, configureRedisOptions);
-        }
-        else
-        {
-            builder.AddKeyedRedisClient(connectionName, configureRedisSettings, configureRedisOptions);
-        }
+    private static AzureStackExchangeRedisSettings ConfigureSettings(Action<AzureStackExchangeRedisSettings>? userConfigureSettings, StackExchangeRedisSettings settings)
+    {
+        var azureSettings = new AzureStackExchangeRedisSettings();
+
+        // Copy the values updated by Redis integration.
+        CopySettings(settings, azureSettings);
+
+        // Invoke the Aspire configuration.
+        userConfigureSettings?.Invoke(azureSettings);
+
+        // Copy to the Redis integration settings as it needs to get any values set in userConfigureSettings.
+        CopySettings(azureSettings, settings);
+
+        return azureSettings;
+    }
+
+    private static void CopySettings(StackExchangeRedisSettings from, AzureStackExchangeRedisSettings to)
+    {
+        to.ConnectionString = from.ConnectionString;
+        to.DisableHealthChecks = from.DisableHealthChecks;
+        to.DisableTracing = from.DisableTracing;
+    }
+
+    private static void CopySettings(AzureStackExchangeRedisSettings from, StackExchangeRedisSettings to)
+    {
+        to.ConnectionString = from.ConnectionString;
+        to.DisableHealthChecks = from.DisableHealthChecks;
+        to.DisableTracing = from.DisableTracing;
     }
 }

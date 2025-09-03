@@ -32,7 +32,7 @@ public class ConfigurationTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:ConnectionString", "localhost:6379")
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:ConnectionString", "localhost:6379")
         ]);
 
         builder.AddAzureRedisClient("redis");
@@ -49,7 +49,7 @@ public class ConfigurationTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:redis", "localhost:6379"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:DisableHealthChecks", "true")
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:DisableHealthChecks", "true")
         ]);
 
         builder.AddAzureRedisClient("redis");
@@ -66,7 +66,7 @@ public class ConfigurationTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:redis", "localhost:6379"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:DisableTracing", "true")
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:DisableTracing", "true")
         ]);
 
         builder.AddAzureRedisClient("redis");
@@ -83,8 +83,8 @@ public class ConfigurationTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:redis", "localhost:6379"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:ConfigurationOptions:ConnectTimeout", "5000"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:ConfigurationOptions:ConnectRetry", "3")
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:ConfigurationOptions:ConnectTimeout", "5000"),
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:ConfigurationOptions:ConnectRetry", "3")
         ]);
 
         builder.AddAzureRedisClient("redis");
@@ -101,7 +101,7 @@ public class ConfigurationTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:cache1", "localhost:6379"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:Azure:StackExchange:Redis:cache1:DisableHealthChecks", "true")
+            new KeyValuePair<string, string?>("Aspire:StackExchange:Redis:cache1:DisableHealthChecks", "true")
         ]);
 
         builder.AddKeyedAzureRedisClient("cache1");
