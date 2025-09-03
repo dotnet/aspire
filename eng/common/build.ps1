@@ -150,7 +150,7 @@ function Build-Extension {
             throw "vsce package failed with exit code $LASTEXITCODE"
           }
 
-          Write-Host "Extension packaged successfully as $preReleaseVersion"
+          Write-Host "Extension packaged successfully"
         } else {
           Write-Host "Warning: package.json not found, skipping vsce package"
         }
