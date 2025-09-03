@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -7,7 +7,6 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
-using Aspire.TestUtilities;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -260,7 +259,6 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11217")]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
