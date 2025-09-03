@@ -22,6 +22,9 @@ internal interface IExtensionRpcTarget
 
     [JsonRpcMethod("stopCli")]
     Task StopCliAsync(string token);
+
+    [JsonRpcMethod("getDcpId")]
+    Task<string?> GetDcpIdAsync(string token);
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget
@@ -57,5 +60,16 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
 
         Environment.Exit(ExitCodeConstants.Success);
         return Task.CompletedTask;
+    }
+
+    public Task<string?> GetDcpIdAsync(string token)
+    {
+        if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
+        {
+            throw new AuthenticationException();
+        }
+
+        var dcpId = configuration[KnownConfigNames.ExtensionDcpId] ?? null;
+        return Task.FromResult(dcpId);
     }
 }

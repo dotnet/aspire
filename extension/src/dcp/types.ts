@@ -64,7 +64,7 @@ export interface LaunchOptions {
     debug: boolean;
     forceBuild?: boolean;
     runId: string;
-    dcpId: string | null;
+    dcpId: string;
 };
 
 export interface AspireResourceDebugSession {
@@ -74,6 +74,5 @@ export interface AspireResourceDebugSession {
 }
 
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
-    runId: string;
-    dcpId: string | null;
+    dcpId: string;
 }

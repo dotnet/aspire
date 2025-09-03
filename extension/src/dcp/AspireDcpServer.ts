@@ -31,7 +31,7 @@ export default class AspireDcpServer {
         this.pendingNotificationQueueByDcpId = pendingNotificationQueueByDcpId;
     }
 
-    static async create(debuggerExtensions: ResourceDebuggerExtension[], getDebugSession: () => AspireDebugSession): Promise<AspireDcpServer> {
+    static async create(debuggerExtensions: ResourceDebuggerExtension[], getDebugSession: (dcpId: string) => AspireDebugSession | null): Promise<AspireDcpServer> {
         const runsBySession = new Map<string, AspireResourceDebugSession[]>();
         const wsBySession = new Map<string, WebSocket>();
         const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
@@ -83,7 +83,20 @@ export default class AspireDcpServer {
 
                 for (const launchConfig of payload.launch_configurations) {
                     const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
-                    const aspireDebugSession = getDebugSession();
+                    const aspireDebugSession = getDebugSession(dcpId);
+                    if (!aspireDebugSession) {
+                        const error: ErrorDetails = {
+                            code: 'DebugSessionNotFound',
+                            message: `No Aspire debug session found for DCP ID ${dcpId}`,
+                            details: []
+                        };
+
+                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                        const response: ErrorResponse = { error };
+                        res.status(400).json(response).end();
+                        return;
+                    }
+
                     const config = await createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, dcpId }, foundDebuggerExtension);
                     const debugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
@@ -247,3 +260,8 @@ export default class AspireDcpServer {
 export function generateRunId(): string {
     return `run-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 }
+
+export function generateDcpId(): string {
+    return `dcp-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
+

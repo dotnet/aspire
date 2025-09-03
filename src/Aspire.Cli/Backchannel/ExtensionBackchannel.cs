@@ -40,6 +40,7 @@ internal interface IExtensionBackchannel
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
+    Task NotifyReadyForDebugSessionStartAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -385,12 +386,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
+        var dcpId = GetDcpId();
 
         _logger.LogDebug("Sent status update: {Status}", status);
 
         await rpc.InvokeWithCancellationAsync(
             "showStatus",
-            [_token, status],
+            [_token, dcpId, status],
             cancellationToken);
     }
 
@@ -526,12 +528,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
+        var dcpId = GetDcpId();
 
         _logger.LogDebug("Running .NET project at {ProjectFile} with arguments: {Arguments}", projectFile, string.Join(" ", arguments));
 
         await rpc.InvokeWithCancellationAsync(
             "launchAppHost",
-            [_token, projectFile, arguments, environment, debug],
+            [_token, dcpId, projectFile, arguments, environment, debug],
             cancellationToken);
     }
 
@@ -542,29 +545,56 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         using var activity = _activitySource.StartActivity();
 
         var rpc = await _rpcTaskCompletionSource.Task;
+        var dcpId = GetDcpId();
 
         _logger.LogDebug("Notifying that app host startup is completed");
 
         await rpc.InvokeWithCancellationAsync(
             "notifyAppHostStartupCompleted",
-            [_token],
+            [_token, dcpId],
+            cancellationToken);
+    }
+
+    public async Task NotifyReadyForDebugSessionStartAsync(CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+        var dcpId = GetDcpId();
+
+        _logger.LogDebug("Notifying that we are ready to start a debug session");
+
+        await rpc.InvokeWithCancellationAsync(
+            "notifyReadyForDebugSessionStart",
+            [_token, dcpId],
             cancellationToken);
     }
 
     public async Task StopDebuggingAsync()
     {
-        await ConnectAsync(CancellationToken.None);
+        try
+        {
+            await ConnectAsync(CancellationToken.None);
 
-        using var activity = _activitySource.StartActivity();
+            using var activity = _activitySource.StartActivity();
 
-        var rpc = await _rpcTaskCompletionSource.Task;
+            var rpc = await _rpcTaskCompletionSource.Task;
+            var dcpId = GetDcpId();
 
-        _logger.LogDebug("Stopping extension debugging session");
+            _logger.LogDebug("Stopping extension debugging session");
 
-        await rpc.InvokeWithCancellationAsync(
-            "stopDebugging",
-            [_token],
-            CancellationToken.None);
+            await rpc.InvokeWithCancellationAsync(
+                "stopDebugging",
+                [_token, dcpId],
+                CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            // We don't care if we fail to stop debugging because the process is exiting and
+            // we may not even be debugging.
+        }
     }
 
     private X509Certificate2 GetCertificate()
@@ -573,5 +603,18 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         Debug.Assert(!string.IsNullOrEmpty(serverCertificate));
         var data = Convert.FromBase64String(serverCertificate);
         return new X509Certificate2(data);
+    }
+
+    private string GetDcpId()
+    {
+        var dcpId = _configuration[KnownConfigNames.ExtensionDcpId];
+
+        if (string.IsNullOrEmpty(dcpId))
+        {
+            // TODO localize
+            throw new ArgumentNullException("dcp id is null");
+        }
+
+        return dcpId;
     }
 }
