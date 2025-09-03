@@ -419,7 +419,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, options, cancellationToken) =>
+                runner.InstallTemplateAsyncCallback = (packageName, version, nugetConfigFile, nugetSource, force, options, cancellationToken) =>
                 {
                     return (0, version); // Success, return the template version
                 };
@@ -472,7 +472,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, options, cancellationToken) =>
+                runner.InstallTemplateAsyncCallback = (packageName, version, nugetConfigFile, nugetSource, force, options, cancellationToken) =>
                 {
                     return (0, version); // Success, return the template version
                 };

@@ -101,7 +101,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             {
                 CheckWorkloadAsyncCallback = (_, _) => { workloadChecked = true; return (0, true); },
                 UninstallWorkloadAsyncCallback = (_, _, _) => { workloadUninstalled = true; return 0; },
-                InstallTemplateAsyncCallback = (_, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
+                InstallTemplateAsyncCallback = (_, _, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
             };
         });
 
@@ -140,7 +140,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             {
                 CheckWorkloadAsyncCallback = (_, _) => { workloadChecked = true; return (0, false); },
                 UninstallWorkloadAsyncCallback = (_, _, _) => { workloadUninstalled = true; return 0; },
-                InstallTemplateAsyncCallback = (_, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
+                InstallTemplateAsyncCallback = (_, _, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
             };
         });
 
@@ -177,7 +177,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = _ => new TestServices.TestDotNetCliRunner
             {
                 CheckWorkloadAsyncCallback = (_, _) => { workloadChecked = true; return (1, false); }, // Simulate failure
-                InstallTemplateAsyncCallback = (_, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
+                InstallTemplateAsyncCallback = (_, _, _, _, _, _, _) => { templateUpdated = true; return (0, "9.5.0"); }
             };
         });
 
