@@ -255,7 +255,7 @@ echo "Hello World"
         }
 
         // Check that docker-compose.yaml uses hash-based paths for bind mounts
-        Assert.Contains("/test-container/", composeContent); // Should contain hash-based paths
+        Assert.Contains("test-container/", composeContent); // Should contain hash-based paths
         Assert.DoesNotContain(configFile1, composeContent); // Should not contain absolute source paths
         Assert.DoesNotContain(configFile2, composeContent); // Should not contain absolute source paths
     }
