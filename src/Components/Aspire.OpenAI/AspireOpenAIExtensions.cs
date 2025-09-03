@@ -118,7 +118,7 @@ public static class AspireOpenAIExtensions
                 .WithMetrics(b => b.AddMeter("OpenAI.*"));
         }
 
-        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing);
+        return new AspireOpenAIClientBuilder(builder, connectionName, serviceKey, settings.DisableTracing, enableSensitiveTelemetryData: false);
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
         {
