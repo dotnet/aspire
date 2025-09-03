@@ -52,6 +52,6 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         Organization is not null
-            ? ReferenceExpression.Create($"Endpoint=https://models.github.ai/orgs/{Organization}/inference;Key={Key};Model={Model};DeploymentId={Model}")
-            : ReferenceExpression.Create($"Endpoint=https://models.github.ai/inference;Key={Key};Model={Model};DeploymentId={Model}");
+            ? ReferenceExpression.Create($"Endpoint=https://models.github.ai/orgs/{Organization}/inference;Key={Key};Model={Model}")
+            : ReferenceExpression.Create($"Endpoint=https://models.github.ai/inference;Key={Key};Model={Model}");
 }

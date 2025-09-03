@@ -20,8 +20,8 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IInteractionService _interactionService;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("config", ConfigCommandStrings.Description, features, updateNotifier)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -33,10 +33,10 @@ internal sealed class ConfigCommand : BaseCommand
         _interactionService = interactionService;
         _sdkInstaller = sdkInstaller;
 
-        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
-        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
-        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
+        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -57,8 +57,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -101,8 +101,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -170,8 +170,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier)
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -203,8 +203,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier)
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;

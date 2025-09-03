@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
+
 
 function isExtensionInstalled(extensionId: string): boolean {
     const extension = vscode.extensions.getExtension(extensionId);
@@ -9,7 +11,7 @@ function isCsDevKitInstalled() {
     return isExtensionInstalled("ms-dotnettools.csdevkit");
 }
 
-function isCsharpInstalled() {
+export function isCsharpInstalled() {
     return isExtensionInstalled("ms-dotnettools.csharp");
 }
 
@@ -21,8 +23,10 @@ export function getSupportedCapabilities(): string[] {
     }
 
     if (isCsharpInstalled()) {
-        capabilities.push("csharp");
+        capabilities.push("project");
     }
+
+    vscode.extensions.all.forEach(ext => capabilities.push(ext.id));
 
     return capabilities;
 }
