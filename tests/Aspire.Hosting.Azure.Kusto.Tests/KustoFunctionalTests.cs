@@ -194,6 +194,37 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
+    {
+        const string kustoName = "kusto";
+        const string dbName = "TestDb";
+        const string invalidDbName = "__invalid";
+
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
+
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
+        builder.Services.AddFakeLogging();
+
+        var kusto = builder.AddAzureKustoCluster(kustoName).RunAsEmulator();
+        kusto.AddDatabase("TestDb1", dbName);
+        kusto.AddDatabase("TestDb2", invalidDbName);
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
+
+        // Assert an error was logged about the invalid database
+        var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
+        var logs = snapshot.Where(record => record.Category == $"Aspire.Hosting.Tests.Resources.{kustoName}")
+            .Where(record => record.Level >= LogLevel.Warning);
+        Assert.Single(logs);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
