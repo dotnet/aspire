@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREINTERACTION001
+
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
@@ -429,7 +431,7 @@ internal sealed class ApplicationOrchestrator
     private async Task PublishResourcesInitialStateAsync(CancellationToken cancellationToken)
     {
         // Initialize all parameter resources up front
-        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>()).ConfigureAwait(false);
+        await _parameterProcessor.InitializeParametersAsync(_model.Resources.OfType<ParameterResource>(), waitForResolution: false).ConfigureAwait(false);
 
         // Publish the initial state of the resources that have a snapshot annotation.
         foreach (var resource in _model.Resources)

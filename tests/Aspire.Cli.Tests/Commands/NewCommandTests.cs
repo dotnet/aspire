@@ -191,12 +191,14 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11222")]
     public async Task NewCommandDoesNotPromptForOutputPathIfSpecifiedOnCommandLine()
     {
         bool promptedForPath = false;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -385,11 +387,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("new");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
         Assert.Contains("No template versions were found", displayedErrorMessage);
     }
-    
+
     [Fact]
     public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {

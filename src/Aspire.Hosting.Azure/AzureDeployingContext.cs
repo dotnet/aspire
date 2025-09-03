@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,12 +24,20 @@ internal sealed class AzureDeployingContext(
     IBicepProvisioner bicepProvisioner,
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
-    IProcessRunner processRunner)
+    IProcessRunner processRunner,
+    ParameterProcessor parameterProcessor)
 {
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+
+        // Step 0: Resolve parameter resources using ParameterProcessor
+        var parameters = model.Resources.OfType<ParameterResource>();
+        if (parameters.Any())
+        {
+            await parameterProcessor.InitializeParametersAsync(parameters, waitForResolution: true).ConfigureAwait(false);
+        }
 
         // Step 1: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
