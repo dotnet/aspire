@@ -166,28 +166,25 @@ public class KustoFunctionalTests
     [RequiresDocker]
     public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
     {
-        const string kustoName = "kusto";
-        const string dbName = "TestDb";
-
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
         builder.Services.AddFakeLogging();
 
-        var kusto = builder.AddAzureKustoCluster(kustoName).RunAsEmulator();
-        kusto.AddDatabase("TestDb1", dbName);
-        kusto.AddDatabase("TestDb2", dbName);
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        kusto.AddDatabase("TestDb1", "TestDb");
+        kusto.AddDatabase("TestDb2", "TestDb");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cts.Token);
 
         // Assert no warnings or errors were logged about the database already existing
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(record => record.Category == $"Aspire.Hosting.Tests.Resources.{kustoName}")
+        var logs = snapshot.Where(record => (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase))
             .Where(record => record.Level >= LogLevel.Warning);
         Assert.Empty(logs);
     }
@@ -196,29 +193,29 @@ public class KustoFunctionalTests
     [RequiresDocker]
     public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
     {
-        const string kustoName = "kusto";
-        const string dbName = "TestDb";
-        const string invalidDbName = "__invalid";
-
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
         builder.Services.AddFakeLogging();
 
-        var kusto = builder.AddAzureKustoCluster(kustoName).RunAsEmulator();
-        kusto.AddDatabase("TestDb1", dbName);
-        kusto.AddDatabase("TestDb2", invalidDbName);
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        var db1 = kusto.AddDatabase("TestDb1", "TestDb");
+        var db2 = kusto.AddDatabase("TestDb2", "__invalid");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cts.Token);
+
+        // Assert the valid database is healthy and the invalid database failed to start
+        await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+        await rns.WaitForResourceAsync(db2.Resource.Name, KnownResourceStates.FailedToStart, cts.Token);
 
         // Assert an error was logged about the invalid database
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(record => record.Category == $"Aspire.Hosting.Tests.Resources.{kustoName}")
+        var logs = snapshot.Where(record => (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase))
             .Where(record => record.Level >= LogLevel.Warning);
         Assert.Single(logs);
     }
@@ -255,7 +252,7 @@ public class KustoFunctionalTests
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cts.Token);
 
         // Ensure the directory has dbs
         Assert.NotEmpty(GetFilesInMount());

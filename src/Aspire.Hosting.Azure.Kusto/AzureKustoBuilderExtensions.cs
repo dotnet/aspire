@@ -211,7 +211,9 @@ public static class AzureKustoBuilderExtensions
         var scriptAnnotation = databaseResource.Annotations.OfType<AzureKustoCreateDatabaseScriptAnnotation>().LastOrDefault();
         var script = scriptAnnotation?.Script ?? $".create database {databaseResource.DatabaseName} volatile;";
 
-        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource.Parent);
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource);
+        var rns = serviceProvider.GetRequiredService<ResourceNotificationService>();
+
         logger.LogDebug("Creating database '{DatabaseName}'", databaseResource.DatabaseName);
 
         try
@@ -227,6 +229,10 @@ public static class AzureKustoBuilderExtensions
         catch (Exception e)
         {
             logger.LogError(e, "Failed to create database '{DatabaseName}'", databaseResource.DatabaseName);
+            await rns.PublishUpdateAsync(databaseResource, state => state with
+            {
+                State = KnownResourceStates.FailedToStart
+            }).ConfigureAwait(false);
         }
     }
 }
