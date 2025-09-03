@@ -21,4 +21,49 @@ public static class ExecutableResourceExtensions
 
         return model.Resources.OfType<ExecutableResource>();
     }
+
+    /// <summary>
+    /// Sets the command for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="command">Command.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithCommand<T>(this IResourceBuilder<T> builder, string command) where T : ExecutableResource
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
+        {
+            executableAnnotation.Command = command;
+            return builder;
+        }
+
+        return ThrowResourceIsMissingExecutableAnnotation(builder);
+    }
+
+    /// <summary>
+    /// Sets the working directory for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="workingDirectory">Working directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithWorkingDirectory<T>(this IResourceBuilder<T> builder, string workingDirectory) where T : ExecutableResource
+    {
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
+        {
+            executableAnnotation.WorkingDirectory = workingDirectory;
+            return builder;
+        }
+
+        return ThrowResourceIsMissingExecutableAnnotation(builder);
+    }
+
+    private static IResourceBuilder<T> ThrowResourceIsMissingExecutableAnnotation<T>(IResourceBuilder<T> builder) where T : ExecutableResource
+    {
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' is missing the ExecutableAnnotation");
+    }    
 }
