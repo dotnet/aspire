@@ -144,4 +144,84 @@ public class KeycloakResourceBuilderTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+
+    [Fact]
+    public void WithReverseProxyAddsEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithReverseProxy();
+
+        var resource = keycloak.Resource;
+        var envAnnotation = resource.Annotations.OfType<EnvironmentCallbackAnnotation>().Last();
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext, []);
+        envAnnotation.Callback(context);
+
+        Assert.Equal("true", context.EnvironmentVariables["KC_HTTP_ENABLED"]);
+        Assert.Equal("xforwarded", context.EnvironmentVariables["KC_PROXY_HEADERS"]);
+        Assert.Contains("KC_HOSTNAME", context.EnvironmentVariables);
+        
+        // Check that the hostname is set to an endpoint reference
+        var hostnameValue = context.EnvironmentVariables["KC_HOSTNAME"];
+        Assert.NotNull(hostnameValue);
+        Assert.IsType<EndpointReference>(hostnameValue);
+    }
+
+    [Fact]
+    public void WithReverseProxyWithSpecificEndpointUsesCorrectEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithHttpEndpoint(port: 9080, name: "custom")
+                              .WithReverseProxy("custom");
+
+        var resource = keycloak.Resource;
+        var envAnnotation = resource.Annotations.OfType<EnvironmentCallbackAnnotation>().Last();
+
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext, []);
+        envAnnotation.Callback(context);
+
+        Assert.Equal("true", context.EnvironmentVariables["KC_HTTP_ENABLED"]);
+        Assert.Equal("xforwarded", context.EnvironmentVariables["KC_PROXY_HEADERS"]);
+        
+        var hostnameValue = context.EnvironmentVariables["KC_HOSTNAME"];
+        Assert.NotNull(hostnameValue);
+        Assert.IsType<EndpointReference>(hostnameValue);
+        
+        // Check that the endpoint reference uses the correct endpoint name
+        var endpointRef = (EndpointReference)hostnameValue;
+        Assert.Equal("custom", endpointRef.EndpointName);
+    }
+
+    [Fact]
+    public void WithReverseProxyDoesNotAffectOtherEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithReverseProxy();
+
+        var resource = keycloak.Resource;
+        
+        // Get the original environment callback (should be the first one)
+        var originalEnvAnnotation = resource.Annotations.OfType<EnvironmentCallbackAnnotation>().First();
+        var reverseProxyEnvAnnotation = resource.Annotations.OfType<EnvironmentCallbackAnnotation>().Last();
+
+        var originalContext = new EnvironmentCallbackContext(builder.ExecutionContext, []);
+        originalEnvAnnotation.Callback(originalContext);
+
+        var reverseProxyContext = new EnvironmentCallbackContext(builder.ExecutionContext, []);
+        reverseProxyEnvAnnotation.Callback(reverseProxyContext);
+
+        // Original environment variables should still be available from the first callback
+        // These will be reference expressions in the context, not plain strings
+        Assert.Contains("KC_BOOTSTRAP_ADMIN_USERNAME", originalContext.EnvironmentVariables);
+        Assert.Contains("KC_BOOTSTRAP_ADMIN_PASSWORD", originalContext.EnvironmentVariables);
+        Assert.Equal("true", originalContext.EnvironmentVariables["KC_HEALTH_ENABLED"]);
+
+        // Reverse proxy variables should only be in the second callback
+        Assert.Equal("true", reverseProxyContext.EnvironmentVariables["KC_HTTP_ENABLED"]);
+        Assert.Equal("xforwarded", reverseProxyContext.EnvironmentVariables["KC_PROXY_HEADERS"]);
+        Assert.Contains("KC_HOSTNAME", reverseProxyContext.EnvironmentVariables);
+    }
 }

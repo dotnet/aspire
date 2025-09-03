@@ -14,6 +14,9 @@ public static class KeycloakResourceBuilderExtensions
     private const string AdminEnvVarName = "KC_BOOTSTRAP_ADMIN_USERNAME";
     private const string AdminPasswordEnvVarName = "KC_BOOTSTRAP_ADMIN_PASSWORD";
     private const string HealthCheckEnvVarName = "KC_HEALTH_ENABLED"; // As per https://www.keycloak.org/observability/health
+    private const string HttpEnabledEnvVarName = "KC_HTTP_ENABLED";
+    private const string ProxyHeadersEnvVarName = "KC_PROXY_HEADERS";
+    private const string HostnameEnvVarName = "KC_HOSTNAME";
 
     private const int DefaultContainerPort = 8080;
     private const int ManagementInterfaceContainerPort = 9000; // As per https://www.keycloak.org/server/management-interface
@@ -193,5 +196,56 @@ public static class KeycloakResourceBuilderExtensions
             KeycloakImportDirectory,
             importFullPath,
             defaultOwner: KeycloakContainerImageTags.ContainerUser);
+    }
+
+    /// <summary>
+    /// Configures Keycloak to run behind a reverse proxy with TLS termination.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint to use for hostname configuration. If not specified, uses the primary HTTP endpoint.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method configures Keycloak for deployment scenarios where TLS termination is handled by a reverse proxy
+    /// (such as Azure Container Apps). It sets the necessary environment variables to enable HTTP communication
+    /// and proper proxy header handling.
+    /// 
+    /// The following Keycloak environment variables are configured:
+    /// <list type="bullet">
+    /// <item><description><c>KC_HTTP_ENABLED=true</c> - Enables HTTP since the reverse proxy handles TLS termination</description></item>
+    /// <item><description><c>KC_PROXY_HEADERS=xforwarded</c> - Configures Keycloak to respect X-Forwarded headers from the reverse proxy</description></item>
+    /// <item><description><c>KC_HOSTNAME</c> - Sets the hostname to match the endpoint URL for proper URL generation</description></item>
+    /// </list>
+    /// 
+    /// <example>
+    /// Configure Keycloak for deployment behind a reverse proxy
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak");
+    /// 
+    /// // For production deployment with reverse proxy (e.g., Azure Container Apps)
+    /// if (!builder.ExecutionContext.IsRunMode)
+    /// {
+    ///     keycloak.WithReverseProxy();
+    /// }
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<KeycloakResource> WithReverseProxy(this IResourceBuilder<KeycloakResource> builder, string? endpointName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvironment(context =>
+        {
+            // Enable HTTP since reverse proxy handles TLS termination
+            context.EnvironmentVariables[HttpEnabledEnvVarName] = "true";
+            
+            // Configure proxy headers for proper client IP and protocol detection
+            context.EnvironmentVariables[ProxyHeadersEnvVarName] = "xforwarded";
+            
+            // Set hostname from endpoint reference for proper URL generation
+            var endpointReference = string.IsNullOrEmpty(endpointName) 
+                ? builder.GetEndpoint("http") 
+                : builder.GetEndpoint(endpointName);
+            context.EnvironmentVariables[HostnameEnvVarName] = endpointReference;
+        });
     }
 }
