@@ -20,9 +20,9 @@ public static class FilterHelpers
 
     public static List<MenuButtonItem> GetFilterMenuItems<TView, TR>(
         this IPageWithSessionAndUrlState<TView, TR> page,
-        IReadOnlyList<TelemetryFilter> filters,
+        IReadOnlyList<FieldTelemetryFilter> filters,
         Action clearFilters,
-        Func<TelemetryFilter, Task> openFilterAsync,
+        Func<FieldTelemetryFilter, Task> openFilterAsync,
         IStringLocalizer<StructuredFiltering> filterLoc,
         IStringLocalizer<Dialogs> dialogsLoc,
         AspirePageContentLayout? contentLayout) where TR : class

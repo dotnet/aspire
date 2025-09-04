@@ -490,4 +490,7 @@
   <data name="PlotlyChartExemplar" xml:space="preserve">
     <value>Exemplar</value>
   </data>
+  <data name="LabelOther" xml:space="preserve">
+    <value>(Other)</value>
+  </data>
 </root>

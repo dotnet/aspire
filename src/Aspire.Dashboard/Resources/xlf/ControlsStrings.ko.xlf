@@ -257,6 +257,11 @@
         <target state="translated">(없음)</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="new">(Other)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
         <target state="translated">(설정 해제)</target>

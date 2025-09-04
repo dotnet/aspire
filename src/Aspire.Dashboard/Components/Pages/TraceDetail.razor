@@ -40,7 +40,17 @@
                                           Immediate="true"
                                           ImmediateDelay="@FluentUIExtensions.InputDelay"
                                           Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                                          title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                                          title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]" />
+
+                            <DesktopToolbarDivider />
+
+                            <SpanTypeSelect slot="end"
+                                            @bind-SpanType="@_selectedSpanType"
+                                            SpanTypes="@_spanTypes"
+                                            HandleSelectedSpanTypeChangedAsync="@HandleSelectedSpanTypeChangedAsync" />
+
+                            <DesktopToolbarDivider />
+
                             <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                                               Icon="@(new Icons.Regular.Size20.Options())"
                                               Items="@_traceActionsMenuItems"
