@@ -8,7 +8,6 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
-using Aspire.TestUtilities;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
