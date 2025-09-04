@@ -252,6 +252,9 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
+        // Detect if this project uses Central Package Management
+        var cpmInfo = DetectCentralPackageManagement(projectFile);
+
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -273,23 +276,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 continue;
             }
 
-            var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
-            var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
-
-            if (packageVersion == latestPackage?.Version)
+            if (cpmInfo.UsesCentralPackageManagement)
             {
-                logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
-                continue;
+                await AnalyzePackageForCentralPackageManagementAsync(packageId, projectFile, cpmInfo.DirectoryPackagesPropsFile!, context, cancellationToken);
             }
-
-            var updateStep = new PackageUpdateStep(
-                string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
-                () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
-                packageId,
-                packageVersion,
-                latestPackage!.Version,
-                projectFile);
-            context.UpdateSteps.Enqueue(updateStep);
+            else
+            {
+                // Traditional package management - Version should be in PackageReference
+                if (!packageReference.TryGetProperty("Version", out var versionElement) || versionElement.GetString() is null)
+                {
+                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                }
+                
+                var packageVersion = versionElement.GetString()!;
+                await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+            }
         }
     }
 
@@ -298,6 +299,118 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         return packageId.StartsWith("Aspire.")
             || packageId.StartsWith("Microsoft.Extensions.ServiceDiscovery.")
             || packageId.Equals("Microsoft.Extensions.ServiceDiscovery");
+    }
+
+    private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)
+    {
+        // Heuristic 1: Presence of Directory.Packages.props in directory tree.
+        for (var current = projectFile.Directory; current is not null; current = current.Parent)
+        {
+            var directoryPackagesPropsPath = Path.Combine(current.FullName, "Directory.Packages.props");
+            if (File.Exists(directoryPackagesPropsPath))
+            {
+                return new CentralPackageManagementInfo(true, new FileInfo(directoryPackagesPropsPath));
+            }
+        }
+
+        // Heuristic 2: ManagePackageVersionsCentrally property inside project.
+        try
+        {
+            var doc = new XmlDocument { PreserveWhitespace = true };
+            doc.Load(projectFile.FullName);
+            var manageNode = doc.SelectSingleNode("/Project/PropertyGroup/ManagePackageVersionsCentrally");
+            if (manageNode?.InnerText.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return new CentralPackageManagementInfo(true, null);
+            }
+        }
+        catch
+        {
+            // Ignore parse errors.
+        }
+
+        return new CentralPackageManagementInfo(false, null);
+    }
+
+    private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
+
+        if (packageVersion == latestPackage?.Version)
+        {
+            logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
+            return;
+        }
+
+        var updateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
+            () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
+            packageId,
+            packageVersion,
+            latestPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(updateStep);
+    }
+
+    private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        var currentVersion = GetPackageVersionFromDirectoryPackagesProps(packageId, directoryPackagesPropsFile);
+        
+        if (currentVersion is null)
+        {
+            logger.LogInformation("Package '{PackageId}' not found in Directory.Packages.props, skipping.", packageId);
+            return;
+        }
+
+        var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
+
+        if (currentVersion == latestPackage?.Version)
+        {
+            logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
+            return;
+        }
+
+        var updateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, currentVersion, latestPackage!.Version),
+            () => UpdatePackageVersionInDirectoryPackagesProps(packageId, latestPackage!.Version, directoryPackagesPropsFile),
+            packageId,
+            currentVersion,
+            latestPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(updateStep);
+    }
+
+    private static string? GetPackageVersionFromDirectoryPackagesProps(string packageId, FileInfo directoryPackagesPropsFile)
+    {
+        try
+        {
+            var doc = new XmlDocument { PreserveWhitespace = true };
+            doc.Load(directoryPackagesPropsFile.FullName);
+            var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+            return packageVersionNode?.Attributes?["Version"]?.Value;
+        }
+        catch
+        {
+            // Ignore parse errors.
+            return null;
+        }
+    }
+
+    private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
+    {
+        var doc = new XmlDocument { PreserveWhitespace = true };
+        doc.Load(directoryPackagesPropsFile.FullName);
+        
+        var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+        if (packageVersionNode?.Attributes?["Version"] is null)
+        {
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindPackageVersionInDirectoryPackagesProps, packageId, directoryPackagesPropsFile.FullName));
+        }
+
+        packageVersionNode.Attributes["Version"]!.Value = newVersion;
+        doc.Save(directoryPackagesPropsFile.FullName);
+
+        await Task.CompletedTask;
     }
 
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, CancellationToken cancellationToken)
@@ -363,3 +476,5 @@ internal sealed class ProjectUpdaterException : System.Exception
     public ProjectUpdaterException(string message) : base(message) { }
     public ProjectUpdaterException(string message, System.Exception inner) : base(message, inner) { }
 }
+
+internal record CentralPackageManagementInfo(bool UsesCentralPackageManagement, FileInfo? DirectoryPackagesPropsFile);

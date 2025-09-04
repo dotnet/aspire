@@ -27,6 +27,11 @@
         <target state="translated">"aspire update" 当前不支持中央包管理。</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">在 {0} 中找不到根 &lt;Project&gt;元素</target>

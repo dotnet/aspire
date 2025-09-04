@@ -27,6 +27,11 @@
         <target state="translated">중앙 패키지 관리는 현재 'aspire update'에서 지원되지 않습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">{0}에서 &lt;Project&gt; 루트 요소를 찾을 수 없습니다.</target>
