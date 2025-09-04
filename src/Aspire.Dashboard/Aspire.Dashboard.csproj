@@ -19,8 +19,6 @@
     <RollForward>Major</RollForward>
 
     <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
-
-    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -37,8 +35,6 @@
     <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\dashboard_service.proto">
       <Link>ServiceClient\dashboard_service.proto</Link>
     </Protobuf>
-
-    <EmbeddedResource Include="Embedded\blazor.web.js" LogicalName="_aspire/blazor.web.js" />
   </ItemGroup>
 
   <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
@@ -47,9 +43,9 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>
@@ -62,6 +58,7 @@
   <ItemGroup>
     <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
+    <Using Include="Aspire.Dashboard.ServiceClient" />
   </ItemGroup>
 
   <ItemGroup>
@@ -249,6 +246,7 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
@@ -268,7 +266,8 @@
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
-    <Compile Include="..\Shared\KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)KnownUrls.cs" Link="Utils\KnownUrls.cs" />
+    <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

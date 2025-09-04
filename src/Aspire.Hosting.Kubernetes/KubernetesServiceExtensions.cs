@@ -43,8 +43,8 @@ public static class KubernetesServiceExtensions
             return builder;
         }
 
-        builder.WithAnnotation(new KubernetesServiceCustomizationAnnotation(configure));
+        builder.ApplicationBuilder.AddKubernetesInfrastructureCore();
 
-        return builder;
+        return builder.WithAnnotation(new KubernetesServiceCustomizationAnnotation(configure));
     }
 }

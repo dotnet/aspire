@@ -6,6 +6,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -13,7 +16,7 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents the root Azure deployment target for an Aspire application.
-/// Emits a <c>main.bicep</c> that aggregates all provisionable resources.
+/// Manages deployment parameters and context for Azure resources.
 /// </summary>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzureEnvironmentResource : Resource
@@ -45,6 +48,8 @@ public sealed class AzureEnvironmentResource : Resource
     public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+        Annotations.Add(new DeployingCallbackAnnotation(DeployAsync));
+        Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
 
         Location = location;
         ResourceGroupName = resourceGroupName;
@@ -54,13 +59,34 @@ public sealed class AzureEnvironmentResource : Resource
     private Task PublishAsync(PublishingContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-
-        var azureCtx = new AzurePublishingContext(
+        var publishingContext = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger,
-            context.ProgressReporter);
+            context.ActivityReporter);
 
-        return azureCtx.WriteModelAsync(context.Model, this);
+        return publishingContext.WriteModelAsync(context.Model, this);
+    }
+
+    private Task DeployAsync(DeployingContext context)
+    {
+        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var processRunner = context.Services.GetRequiredService<IProcessRunner>();
+        var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+
+        var azureCtx = new AzureDeployingContext(
+            provisioningContextProvider,
+            userSecretsManager,
+            bicepProvisioner,
+            activityPublisher,
+            containerImageBuilder,
+            processRunner,
+            parameterProcessor);
+
+        return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }
 }

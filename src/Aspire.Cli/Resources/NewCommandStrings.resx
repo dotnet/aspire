@@ -107,7 +107,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Create a new Aspire sample project.</value>
+    <value>Create a new Aspire project.</value>
   </data>
   <data name="NameArgumentDescription" xml:space="preserve">
     <value>The name of the project to create.</value>
@@ -124,11 +124,14 @@
   <data name="SelectATemplateVersion" xml:space="preserve">
     <value>Select a template version:</value>
   </data>
+  <data name="UsePrereleaseTemplates" xml:space="preserve">
+    <value>(use pre-release templates)</value>
+  </data>
   <data name="EnterTheOutputPath" xml:space="preserve">
     <value>Enter the output path:</value>
   </data>
   <data name="EnterTheProjectName" xml:space="preserve">
-    <value>Enter the project name:</value>
+    <value>Enter the project name</value>
   </data>
   <data name="InvalidProjectName" xml:space="preserve">
     <value>Invalid project name.</value>

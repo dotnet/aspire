@@ -14,7 +14,7 @@ public class ComponentTelemetryContextTests
     public async Task ComponentTelemetryContext_TelemetryEnabled_EndToEnd()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
@@ -24,7 +24,7 @@ public class ComponentTelemetryContextTests
 
         // Act & assert initialize
         telemetryContextProvider.Initialize(telemetryContext);
-        for (var i = 0; i < telemetryService.GetDefaultProperties().Count; i++)
+        for (var i = 0; i < telemetryService._defaultProperties.Count; i++)
         {
             Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out var postPropertyOperation));
             Assert.Equal(TelemetryEndpoints.TelemetryPostProperty, postPropertyOperation.Name);
@@ -34,24 +34,24 @@ public class ComponentTelemetryContextTests
         Assert.Equal("/telemetry/userTask - $aspire/dashboard/component/initialize", initializeOperation.Name);
 
         Assert.Single(initializeOperation.Properties);
-        Assert.Equal(2, telemetryContext.Properties.Count);
+        Assert.Equal(3, telemetryContext.Properties.Count);
 
         OperationContext? parametersUpdateOperation;
 
         // Act & assert update properties
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
-        Assert.Equal(3, telemetryContext.Properties.Count);
+        Assert.Equal(4, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
         Assert.Equal("/telemetry/operation - $aspire/dashboard/component/paramsSet", parametersUpdateOperation.Name);
         Assert.Single(parametersUpdateOperation.Properties);
 
         // If value didn't change, we shouldn't post again
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
-        Assert.Equal(3, telemetryContext.Properties.Count);
+        Assert.Equal(4, telemetryContext.Properties.Count);
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("NewValue"))], logger);
-        Assert.Equal(3, telemetryContext.Properties.Count);
+        Assert.Equal(4, telemetryContext.Properties.Count);
         Assert.True(telemetrySender.ContextChannel.Reader.TryRead(out parametersUpdateOperation));
 
         // Act & assert dispose
@@ -64,7 +64,7 @@ public class ComponentTelemetryContextTests
     public async Task ComponentTelemetryContext_TelemetryDisabled_EndToEnd()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
         var telemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = false };
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance, telemetrySender);
         var telemetryContextProvider = new ComponentTelemetryContextProvider(telemetryService);
@@ -78,7 +78,27 @@ public class ComponentTelemetryContextTests
 
         // Act & assert update properties
         telemetryContext.UpdateTelemetryProperties([new ComponentTelemetryProperty("Test", new AspireTelemetryProperty("Value"))], logger);
-        Assert.Equal(3, telemetryContext.Properties.Count);
+        Assert.Collection(telemetryContext.Properties.OrderBy(p => p.Key),
+            kvp =>
+            {
+                Assert.Equal("Aspire.Dashboard.ComponentId", kvp.Key);
+                Assert.Equal("ComponentTelemetryContextTests", kvp.Value.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Aspire.Dashboard.ComponentType", kvp.Key);
+                Assert.Equal("Page", kvp.Value.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Aspire.Dashboard.UserAgent", kvp.Key);
+                Assert.Equal("mozilla", kvp.Value.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Test", kvp.Key);
+                Assert.Equal("Value", kvp.Value.Value);
+            });
         Assert.False(telemetrySender.ContextChannel.Reader.TryRead(out _));
 
         // Act & assert dispose
@@ -90,7 +110,7 @@ public class ComponentTelemetryContextTests
     public void ComponentTelemetryContext_DisposeWithoutInitialize_NoThrow()
     {
         // Arrange
-        var telemetryContext = new ComponentTelemetryContext(nameof(ComponentTelemetryContextTests));
+        var telemetryContext = new ComponentTelemetryContext(ComponentType.Page, nameof(ComponentTelemetryContextTests));
 
         // Act
         telemetryContext.Dispose();

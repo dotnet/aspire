@@ -62,7 +62,7 @@ public sealed class DashboardCommandExecutor(
         {
             if (operationId is not null)
             {
-                telemetryService.EndUserTask(operationId, TelemetryResult.Failure, ex.Message);
+                telemetryService.EndOperation(operationId, TelemetryResult.Failure, ex.Message);
             }
         }
         finally
@@ -150,6 +150,15 @@ public sealed class DashboardCommandExecutor(
             toastParameters.Title = string.Format(CultureInfo.InvariantCulture, loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.GetDisplayName(commandsLoc));
             toastParameters.Intent = ToastIntent.Success;
             toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
+        }
+        else if (response.Kind == ResourceCommandResponseKind.Cancelled)
+        {
+            // For cancelled commands, just close the existing toast and don't show any success or error message
+            if (!toastClosed)
+            {
+                toastService.CloseToast(toastParameters.Id);
+            }
+            return;
         }
         else
         {

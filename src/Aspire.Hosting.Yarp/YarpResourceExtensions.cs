@@ -13,10 +13,6 @@ public static class YarpResourceExtensions
 {
     private const int Port = 5000;
 
-    private const string ConfigDirectory = "/etc";
-
-    private const string ConfigFileName = "yarp.config";
-
     /// <summary>
     /// Adds a YARP container to the application model.
     /// </summary>
@@ -30,10 +26,13 @@ public static class YarpResourceExtensions
         var resource = new YarpResource(name);
 
         var yarpBuilder = builder.AddResource(resource)
-                      .WithHttpEndpoint(targetPort: Port)
+                      .WithHttpEndpoint(name: "http", targetPort: Port)
                       .WithImage(YarpContainerImageTags.Image)
                       .WithImageRegistry(YarpContainerImageTags.Registry)
+                      .WithImageTag(YarpContainerImageTags.Tag)
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+                      .WithEntrypoint("dotnet")
+                      .WithArgs("/app/yarp.dll")
                       .WithOtlpExporter();
 
         if (builder.ExecutionContext.IsRunMode)
@@ -44,53 +43,12 @@ public static class YarpResourceExtensions
             yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
         }
 
-        // Map the configuration file
-        yarpBuilder.WithContainerFiles(ConfigDirectory, async (context, ct) =>
+        yarpBuilder.WithEnvironment(ctx =>
         {
-            foreach (var route in yarpBuilder.Resource.Routes)
-            {
-                yarpBuilder.Resource.ConfigurationBuilder.AddRoute(route.RouteConfig);
-            }
-            foreach (var destination in yarpBuilder.Resource.Destinations)
-            {
-                yarpBuilder.Resource.ConfigurationBuilder.AddCluster(destination.ClusterConfig);
-            }
-            var contents = await yarpBuilder.Resource.ConfigurationBuilder.Build(ct).ConfigureAwait(false);
-
-            var configFile = new ContainerFile
-            {
-                Name = ConfigFileName,
-                Contents = contents
-            };
-
-            return [configFile];
+            YarpEnvConfigGenerator.PopulateEnvVariables(ctx.EnvironmentVariables, yarpBuilder.Resource.Routes, yarpBuilder.Resource.Clusters);
         });
 
         return yarpBuilder;
-    }
-
-    /// <summary>
-    /// Set explicitly the config file to use for YARP.
-    /// </summary>
-    /// <param name="builder">The YARP resource to configure.</param>
-    /// <param name="configFilePath">The path to the YARP config file.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<YarpResource> WithConfigFile(this IResourceBuilder<YarpResource> builder, string configFilePath)
-    {
-        builder.Resource.ConfigurationBuilder.WithConfigFile(configFilePath);
-        return builder;
-    }
-
-    /// <summary>
-    /// Configure the YARP resource.
-    /// </summary>
-    /// <param name="builder">The YARP resource to configure.</param>
-    /// <param name="configurationBuilder">The delegate to configure YARP.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    internal static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpJsonConfigurationBuilder> configurationBuilder)
-    {
-        configurationBuilder(builder.Resource.ConfigurationBuilder);
-        return builder;
     }
 
     /// <summary>
@@ -103,5 +61,20 @@ public static class YarpResourceExtensions
         var configBuilder = new YarpConfigurationBuilder(builder);
         configurationBuilder(configBuilder);
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    public static IResourceBuilder<YarpResource> WithHostPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 }

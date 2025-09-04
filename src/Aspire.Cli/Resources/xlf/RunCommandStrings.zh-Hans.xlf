@@ -2,6 +2,26 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="translated">正在连接到应用主机...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">仪表板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Aspire 仪表板启动失败。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">在开发模式下运行 Aspire 应用主机。</target>
@@ -10,6 +30,11 @@
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">终结点</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="translated">要实时查看 AppHost 日志，请切换到 AppHost 调试控制台。</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -22,8 +47,13 @@
         <target state="translated">IsCompatibleAppHost 为 null</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">日志</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
         <target state="translated">按 [bold]Ctrl+C[/] 以停止应用主机并退出。</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
@@ -42,14 +72,19 @@
         <target state="translated">资源</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="translated">是否在运行期间启动调试会话。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
         <target state="translated">正在启动 Aspire 应用主机...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">正在启动 Aspire 仪表板...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">正在启动仪表板...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

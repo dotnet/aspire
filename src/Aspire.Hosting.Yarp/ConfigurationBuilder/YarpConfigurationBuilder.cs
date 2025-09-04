@@ -13,7 +13,8 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     /// <inheritdoc/>
     public YarpRoute AddRoute(string path, YarpCluster cluster)
     {
-        var route = new YarpRoute(cluster);
+        var routeId = $"route{_parent.Resource.Routes.Count}";
+        var route = new YarpRoute(cluster, routeId);
         if (path != null)
         {
             route.WithMatchPath(path);
@@ -26,8 +27,26 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     public YarpCluster AddCluster(EndpointReference endpoint)
     {
         var destination = new YarpCluster(endpoint);
-        _parent.Resource.Destinations.Add(destination);
+        _parent.Resource.Clusters.Add(destination);
         _parent.WithReference(endpoint);
+        return destination;
+    }
+
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource)
+    {
+        var destination = new YarpCluster(resource.Resource);
+        _parent.Resource.Clusters.Add(destination);
+        _parent.WithReference(resource);
+        return destination;
+    }
+
+    /// <inheritdoc/>
+    public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService)
+    {
+        var destination = new YarpCluster(externalService.Resource);
+        _parent.Resource.Clusters.Add(destination);
+        _parent.WithReference(externalService);
         return destination;
     }
 }

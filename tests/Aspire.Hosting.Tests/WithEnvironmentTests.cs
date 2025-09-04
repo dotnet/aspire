@@ -5,7 +5,6 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -161,7 +160,7 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             projectA.Resource,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance
@@ -243,7 +242,7 @@ public class WithEnvironmentTests
 
         Assert.Equal(4, config.Count);
         Assert.Equal($"http://container1:10005/foo", config["URL"]);
-        Assert.Equal("90", config["PORT"]);
+        Assert.Equal("10005", config["PORT"]);
         Assert.Equal("10005", config["TARGET_PORT"]);
         Assert.Equal("connectionString;name=1", config["HOST"]);
 

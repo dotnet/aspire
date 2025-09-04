@@ -19,8 +19,8 @@
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
     <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
 
-    <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.min.win-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
-    <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.6280/Azure.Functions.Cli.linux-x64_net8.4.0.6280.zip</_AzureFunctionsCliUrl>
+    <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7512/Azure.Functions.Cli.min.win-x64.4.0.7512.zip</_AzureFunctionsCliUrl>
+    <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7512/Azure.Functions.Cli.linux-x64.4.0.7512.zip</_AzureFunctionsCliUrl>
 
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
   </PropertyGroup>
@@ -78,12 +78,6 @@
   <ItemGroup>
     <!-- Run this at the start -->
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Azure.Tests/Snapshots" Destination="Snapshots" />
-    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Docker.Tests/Snapshots" Destination="Snapshots" />
-    <HelixCorrelationPayload Include="$(RepoRoot)tests/Aspire.Hosting.Kubernetes.Tests/Snapshots" Destination="Snapshots" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">

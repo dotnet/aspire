@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../NewCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Create a new Aspire sample project.</source>
-        <target state="translated">建立新的 Aspire 範例專案。</target>
+        <source>Create a new Aspire project.</source>
+        <target state="translated">建立新的 Aspire 專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
-        <source>Enter the project name:</source>
-        <target state="translated">輸入專案名稱:</target>
+        <source>Enter the project name</source>
+        <target state="translated">輸入專案名稱</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -45,6 +45,11 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">要用於專案範本的 NuGet 來源。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsePrereleaseTemplates">
+        <source>(use pre-release templates)</source>
+        <target state="translated">(使用發行前版本的範本)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

@@ -16,6 +16,9 @@ parameters:
     type: string
   - name: dotnetScript
     type: string
+  - name: targetRids
+    type: object
+    default: ''
   - name: runHelixTests
     type: boolean
     default: false
@@ -38,14 +41,15 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
               $(_InternalBuildArgs)
+              /p:TargetRids=${{ join(':', parameters.targetRids) }}
               /p:SkipTestProjects=true
-      displayName: Build
+      displayName: 🟣Build
 
     - script: ${{ parameters.dotnetScript }}
               build
               tests/workloads.proj
               /p:SkipPackageCheckForTemplatesTesting=true
-      displayName: Prepare sdks for templates testing
+      displayName: 🟣Prepare sdks for templates testing
 
     - script: ${{ parameters.buildScript }}
               -build
@@ -63,7 +67,7 @@ steps:
         DEV_TEMP: $(Build.SourcesDirectory)\..
         DOTNET_ROOT: $(Build.SourcesDirectory)\.dotnet
         TEST_LOG_PATH: $(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\Aspire.Templates.Tests
-      displayName: Run Template tests
+      displayName: 🟣Run Template tests
 
   # Public pipeline - helix tests
   - ${{ if eq(parameters.runAsPublic, 'true') }}:

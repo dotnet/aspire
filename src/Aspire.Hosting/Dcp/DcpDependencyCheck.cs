@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Properties;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -85,7 +85,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpDependencyCheckFailedMessage,
+                        MessageStrings.DcpDependencyCheckFailedMessage,
                         $"'dcp {arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                     ));
                 }
@@ -113,7 +113,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             {
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
-                    Resources.DcpDependencyCheckFailedMessage,
+                    MessageStrings.DcpDependencyCheckFailedMessage,
                     $"{ex.Message} {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                 ));
             }
@@ -162,7 +162,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooLowMessage,
+                        MessageStrings.DcpVersionCheckTooLowMessage,
                         GetCurrentPackageVersion(typeof(DcpDependencyCheck).Assembly)
                     ));
                 }
@@ -205,6 +205,29 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         return "<unknown>";
     }
 
+    internal static (string message, string? linkUrl) BuildContainerRuntimeUnhealthyMessage(string containerRuntime)
+    {
+        var messageBuilder = new StringBuilder();
+        messageBuilder.AppendFormat(CultureInfo.InvariantCulture, InteractionStrings.ContainerRuntimeUnhealthyMessage, containerRuntime);
+        string? linkUrl = null;
+
+        if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
+        {
+            messageBuilder.Append(InteractionStrings.ContainerRuntimeDockerAdvice);
+            linkUrl = "https://docs.docker.com/desktop/use-desktop/resource-saver/";
+        }
+        else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
+        {
+            messageBuilder.Append(InteractionStrings.ContainerRuntimePodmanAdvice);
+        }
+        else
+        {
+            messageBuilder.Append(InteractionStrings.ContainerRuntimeGenericAdvice);
+        }
+
+        return (messageBuilder.ToString(), linkUrl);
+    }
+
     internal static void CheckDcpInfoAndLogErrors(ILogger logger, DcpOptions options, DcpInfo dcpInfo, bool throwIfUnhealthy = false)
     {
         var containerRuntime = options.ContainerRuntime;
@@ -229,29 +252,21 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         }
         else if (!running)
         {
-            var messageFormat = new StringBuilder();
-            messageFormat.Append("Container runtime '{Runtime}' was found but appears to be unhealthy. ");
+            var (message, linkUrl) = BuildContainerRuntimeUnhealthyMessage(containerRuntime);
 
-            if (string.Equals(containerRuntime, "docker", StringComparison.OrdinalIgnoreCase))
+            // For logging, we want the template format with {Runtime} placeholder
+            var logMessage = message.Replace($"'{containerRuntime}'", "'{Runtime}'");
+            if (linkUrl is not null)
             {
-                messageFormat.Append("Ensure that Docker is running and that the Docker daemon is accessible. ");
-                messageFormat.Append("If Resource Saver mode is enabled, containers may not run. For more information, visit: https://docs.docker.com/desktop/use-desktop/resource-saver/");
-            }
-            else if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
-            {
-                messageFormat.Append("Ensure that Podman is running.");
-            }
-            else
-            {
-                messageFormat.Append("Ensure that the container runtime is running.");
+                logMessage += " For more information, visit: " + linkUrl;
             }
 
-            logger.LogWarning(messageFormat.ToString(), containerRuntime);
+            logger.LogWarning(logMessage, containerRuntime);
 
             logger.LogDebug("The error from the container runtime check was: {Error}", error);
             if (throwIfUnhealthy)
             {
-                throw new DistributedApplicationException(messageFormat.Replace("{Runtime}", containerRuntime).ToString());
+                throw new DistributedApplicationException(message);
             }
         }
     }

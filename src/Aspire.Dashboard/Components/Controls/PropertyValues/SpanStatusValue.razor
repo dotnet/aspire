@@ -1,0 +1,8 @@
+﻿@using Aspire.Dashboard.Utils
+
+@if (Span.Status == Otlp.Model.OtlpSpanStatusCode.Error)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon" />
+}
+
+<FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />

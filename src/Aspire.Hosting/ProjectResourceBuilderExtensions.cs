@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -281,6 +282,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
+                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -395,11 +397,12 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.TargetHost = endpoint.BindingAddress.Host;
+
+                    e.TargetHost = ParseKestrelHost(endpoint.BindingAddress.Host);
 
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
-                    builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
+                    builder.Resource.KestrelEndpointAnnotationHosts[e] = e.TargetHost;
                 },
                 createIfNotExists: true);
             }
@@ -451,7 +454,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(endpointName, e =>
                     {
                         e.Port = bindingAddress.Port;
-                        e.TargetHost = bindingAddress.Host;
+                        e.TargetHost = ParseKestrelHost(bindingAddress.Host);
                         e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
@@ -759,10 +762,7 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
-                var targetHost = e.EndpointAnnotation.IsProxied && builder.Resource.SupportsProxy() ? "localhost" : e.EndpointAnnotation.TargetHost;
-
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 
@@ -846,6 +846,16 @@ public static class ProjectResourceBuilderExtensions
                 }
             }
         });
+    }
+
+    private static string ParseKestrelHost(string host)
+    {
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            // Localhost is used as-is rather than being resolved to a specific loopback IP address.
+            return "localhost";
+        }
+        return host;
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource

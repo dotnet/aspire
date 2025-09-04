@@ -1,7 +1,7 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param userPrincipalId string
+param userPrincipalId string = ''
 
 param tags object = { }
 
@@ -42,6 +42,8 @@ resource infra_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
     tier: 'Premium'
   }
 }
+
+output name string = infra_asplan.name
 
 output planId string = infra_asplan.id
 

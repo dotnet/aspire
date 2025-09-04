@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="MininumSdkVersionMissing" xml:space="preserve">
+    <value>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</value>
+  </data>
   <data name="InvalidLocaleProvided" xml:space="preserve">
     <value>Invalid locale {0} provided will not be used.</value>
   </data>
@@ -138,6 +141,9 @@
   </data>
   <data name="FailedToRetrieveCachedTemplatePackages" xml:space="preserve">
     <value>Failed to retrieve template packages via cache.</value>
+  </data>
+  <data name="FailedToRetrieveCachedAllAspirePackages" xml:space="preserve">
+    <value>Failed to retrieve all Aspire packages via cache.</value>
   </data>
   <data name="FailedToSearchForPackages" xml:space="preserve">
     <value>Failed to search for packages. Exit code: {0}.</value>
@@ -207,5 +213,11 @@
   </data>
   <data name="NoSelectionMade" xml:space="preserve">
     <value>Input was required for prompt '{0}' but not provided.</value>
+  </data>
+  <data name="ProjectFileMayBeUnbuildableAppHost" xml:space="preserve">
+    <value>Could not build: {0}</value>
+  </data>
+  <data name="AppHostsMayNotBeBuildable" xml:space="preserve">
+    <value>No buildable app hosts were found, but there may have been unbuildable app hosts.</value>
   </data>
 </root>

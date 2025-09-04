@@ -17,6 +17,11 @@
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForDefaultTests">
+    <ItemGroup Label="Snapshots directories for Verify.Xunitv3">
+      <_SnapshotsFile Include="$(RepoRoot)tests\**\Snapshots\*" />
+      <HelixCorrelationPayload Include="%(_SnapshotsFile.RelativeDir)" Destination="Snapshots" />
+    </ItemGroup>
+
     <ItemGroup>
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />

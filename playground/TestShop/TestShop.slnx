@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" />
+  <Project Path="ApiGateway/ApiGateway.csproj" />
+  <Project Path="BasketService/BasketService.csproj" />
+  <Project Path="CatalogDb/CatalogDb.csproj" />
+  <Project Path="CatalogModel/CatalogModel.csproj" />
+  <Project Path="CatalogService/CatalogService.csproj" />
+  <Project Path="MyFrontend/MyFrontend.csproj" />
+  <Project Path="OrderProcessor/OrderProcessor.csproj" />
+  <Project Path="TestShop.AppHost/TestShop.AppHost.csproj" />
+  <Project Path="TestShop.ServiceDefaults/TestShop.ServiceDefaults.csproj" />
+</Solution>

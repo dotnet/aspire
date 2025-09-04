@@ -38,5 +38,9 @@
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Aspire.Dashboard.ServiceClient" />
+  </ItemGroup>
+
   <Import Project="..\Shared\Playwright\Playwright.targets" />
 </Project>

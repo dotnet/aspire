@@ -92,6 +92,19 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When adding a <see cref="MySqlDatabaseResource"/> to your application model the resource can then
+    /// be referenced by other resources using the resource name. When the dependent resource is using
+    /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// then the dependent resource will wait until the MySQL database is available.
+    /// </para>
+    /// <para>
+    /// Note that calling <see cref="AddDatabase(IResourceBuilder{MySqlServerResource}, string, string?)"/>
+    /// will result in the database being created on the MySQL server when the server becomes ready.
+    /// The database creation happens automatically as part of the resource lifecycle.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -176,6 +189,21 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
+    /// Configures the password that the MySQL resource uses.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the MySQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithPassword(this IResourceBuilder<MySqlServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
     /// </summary>
     /// <remarks>
@@ -205,14 +233,14 @@ public static class MySqlBuilderExtensions
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .ExcludeFromManifest();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, (e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, async (e, ct) =>
         {
             var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
 
             if (!mySqlInstances.Any())
             {
                 // No-op if there are no MySql resources present.
-                return Task.CompletedTask;
+                return;
             }
 
             if (mySqlInstances.Count() == 1)
@@ -225,12 +253,12 @@ public static class MySqlBuilderExtensions
                     // This will need to be refactored once updated service discovery APIs are available
                     context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter);
                 });
             }
             else
             {
-                var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
+                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -258,8 +286,6 @@ public static class MySqlBuilderExtensions
                     }
                 }
             }
-
-            return Task.CompletedTask;
         });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
@@ -346,7 +372,7 @@ public static class MySqlBuilderExtensions
         return builder.WithContainerFiles(initPath, importFullPath);
     }
 
-    private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)
+    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
@@ -360,6 +386,8 @@ public static class MySqlBuilderExtensions
         foreach (var mySqlInstance in mySqlInstances)
         {
             var endpoint = mySqlInstance.PrimaryEndpoint;
+            var pwd = await mySqlInstance.PasswordParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
             writer.WriteLine("$i++;");
             // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
@@ -367,7 +395,7 @@ public static class MySqlBuilderExtensions
             writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
             writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
             writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{pwd}';");
             writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
             writer.WriteLine();
         }

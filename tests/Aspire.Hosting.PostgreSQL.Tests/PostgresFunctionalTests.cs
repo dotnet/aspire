@@ -16,7 +16,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 

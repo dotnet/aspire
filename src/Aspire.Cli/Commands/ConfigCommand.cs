@@ -5,8 +5,10 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using System.Globalization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
@@ -16,28 +18,33 @@ internal sealed class ConfigCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService)
-        : base("config", ConfigCommandStrings.Description)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _configuration = configuration;
         _configurationService = configurationService;
         _interactionService = interactionService;
+        _sdkInstaller = sdkInstaller;
 
-        var getCommand = new GetCommand(_configuration, _interactionService);
-        var setCommand = new SetCommand(configurationService, _interactionService);
-        var listCommand = new ListCommand(configurationService, _interactionService);
-        var deleteCommand = new DeleteCommand(configurationService, _interactionService);
+        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
     }
+
+    protected override bool UpdateNotificationsEnabled => false;
 
     protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -47,13 +54,13 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class GetCommand : BaseCommand
     {
-        private readonly IConfiguration _configuration;
+        private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public GetCommand(IConfiguration configuration, IInteractionService interactionService)
-            : base("get", ConfigCommandStrings.GetCommand_Description)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, executionContext)
         {
-            _configuration = configuration;
+            _configurationService = configurationService;
             _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
@@ -63,26 +70,28 @@ internal sealed class ConfigCommand : BaseCommand
             Arguments.Add(keyArgument);
         }
 
-        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        protected override bool UpdateNotificationsEnabled => false;
+
+        protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var key = parseResult.GetValue<string>("key");
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return Task.FromResult(1);
+                return ExitCodeConstants.InvalidCommand;
             }
 
-            var value = _configuration[key];
+            var value = await _configurationService.GetConfigurationAsync(key, cancellationToken);
 
             if (value is not null)
             {
-                Console.WriteLine(value);
-                return Task.FromResult(0);
+                _interactionService.DisplayPlainText(value);
+                return ExitCodeConstants.Success;
             }
             else
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                return Task.FromResult(1);
+                return ExitCodeConstants.ConfigNotFound;
             }
         }
     }
@@ -92,8 +101,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("set", ConfigCommandStrings.SetCommand_Description)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -117,6 +126,8 @@ internal sealed class ConfigCommand : BaseCommand
             Options.Add(globalOption);
         }
 
+        protected override bool UpdateNotificationsEnabled => false;
+
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var key = parseResult.GetValue<string>("key");
@@ -126,13 +137,13 @@ internal sealed class ConfigCommand : BaseCommand
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             if (value is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             try
@@ -144,12 +155,12 @@ internal sealed class ConfigCommand : BaseCommand
                     : string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetLocally, key,
                         value));
 
-                return 0;
+                return ExitCodeConstants.Success;
             }
             catch (Exception ex)
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
         }
     }
@@ -159,12 +170,14 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("list", ConfigCommandStrings.ListCommand_Description)
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
         }
+
+        protected override bool UpdateNotificationsEnabled => false;
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
@@ -172,7 +185,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (allConfig.Count == 0)
             {
-                _interactionService.DisplayMessage("ℹ️", ConfigCommandStrings.NoConfigurationValuesFound);
+                _interactionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
@@ -190,8 +203,8 @@ internal sealed class ConfigCommand : BaseCommand
         private readonly IConfigurationService _configurationService;
         private readonly IInteractionService _interactionService;
 
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description)
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, executionContext)
         {
             _configurationService = configurationService;
             _interactionService = interactionService;
@@ -209,6 +222,8 @@ internal sealed class ConfigCommand : BaseCommand
             Options.Add(globalOption);
         }
 
+        protected override bool UpdateNotificationsEnabled => false;
+
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var key = parseResult.GetValue<string>("key");
@@ -217,7 +232,7 @@ internal sealed class ConfigCommand : BaseCommand
             if (key is null)
             {
                 _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
 
             try
@@ -236,18 +251,18 @@ internal sealed class ConfigCommand : BaseCommand
                         _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
                     }
 
-                    return 0;
+                    return ExitCodeConstants.Success;
                 }
                 else
                 {
                     _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
-                    return 1;
+                    return ExitCodeConstants.InvalidCommand;
                 }
             }
             catch (Exception ex)
             {
                 _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
-                return 1;
+                return ExitCodeConstants.InvalidCommand;
             }
         }
     }

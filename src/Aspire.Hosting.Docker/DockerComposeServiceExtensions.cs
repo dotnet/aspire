@@ -44,9 +44,9 @@ public static class DockerComposeServiceExtensions
             return builder;
         }
 
-        builder.WithAnnotation(new DockerComposeServiceCustomizationAnnotation(configure));
+        builder.ApplicationBuilder.AddDockerComposeInfrastructureCore();
 
-        return builder;
+        return builder.WithAnnotation(new DockerComposeServiceCustomizationAnnotation(configure));
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public static class DockerComposeServiceExtensions
         return dockerComposeService.Parent.AddEnvironmentVariable(
             env,
             description: $"Parameter {parameter.Name}",
-            defaultValue: parameter.Secret || parameter.Default is null ? null : parameter.Value,
+            defaultValue: null,
             source: parameter
         );
     }

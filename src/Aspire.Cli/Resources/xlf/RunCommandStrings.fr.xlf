@@ -2,6 +2,26 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to app host...</source>
+        <target state="translated">Connexion à l’hôte de l’application...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Dashboard">
+        <source>Dashboard</source>
+        <target state="translated">Tableau de bord</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardFailedToStart">
+        <source>Aspire Dashboard failed to start.</source>
+        <target state="translated">Nous n’avons pas pu lancer le tableau de bord Aspire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire app host in development mode.</source>
         <target state="translated">Exécuter un hôte d’application Aspire en mode développement.</target>
@@ -10,6 +30,11 @@
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Points de terminaison</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="translated">Pour afficher les journaux AppHost en temps réel, basculez vers la console de débogage AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -22,9 +47,14 @@
         <target state="translated">IsCompatibleAppHost est nul</target>
         <note />
       </trans-unit>
+      <trans-unit id="Logs">
+        <source>Logs</source>
+        <target state="translated">Journaux</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
-        <source>Press [bold]Ctrl+C[/] to stop the app host and exit.</source>
-        <target state="translated">Appuyez sur [bold]Ctrl+C[/] pour arrêter l'hôte de l'application et quitter.</target>
+        <source>Press [bold]CTRL+C[/] to stop the apphost and exit.</source>
+        <target state="translated">Appuyez sur [bold]CTRL+C[/] pour arrêter l’apphost et quitter.</target>
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -42,14 +72,19 @@
         <target state="translated">Ressource</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="translated">Indique s’il faut démarrer une session de débogage pendant l’exécution.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire app host...</source>
         <target state="translated">Démarrage de l’hôte d’application Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
-        <source>Starting Aspire dashboard...</source>
-        <target state="translated">Démarrage du tableau de bord Aspire...</target>
+        <source>Starting dashboard...</source>
+        <target state="translated">Démarrage du tableau de bord...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

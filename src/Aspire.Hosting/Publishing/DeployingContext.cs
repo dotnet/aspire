@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -22,8 +24,10 @@ public sealed class DeployingContext(
     IServiceProvider serviceProvider,
     ILogger logger,
     CancellationToken cancellationToken,
-    string outputPath)
+    string? outputPath)
 {
+    private IPublishingActivityReporter? _activityReporter;
+
     /// <summary>
     /// Gets the distributed application model to be deployed.
     /// </summary>
@@ -40,6 +44,12 @@ public sealed class DeployingContext(
     public IServiceProvider Services { get; } = serviceProvider;
 
     /// <summary>
+    /// Gets the activity reporter for deploying activities.
+    /// </summary>
+    public IPublishingActivityReporter ActivityReporter => _activityReporter ??=
+        Services.GetRequiredService<IPublishingActivityReporter>();
+
+    /// <summary>
     /// Gets the logger for deploying operations.
     /// </summary>
     public ILogger Logger { get; } = logger;
@@ -52,7 +62,7 @@ public sealed class DeployingContext(
     /// <summary>
     /// Gets the output path for deployment artifacts.
     /// </summary>
-    public string OutputPath { get; } = outputPath;
+    public string? OutputPath { get; } = outputPath;
 
     /// <summary>
     /// Invokes deploying callbacks for each resource in the provided distributed application model.

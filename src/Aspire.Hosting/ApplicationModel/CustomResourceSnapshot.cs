@@ -133,6 +133,17 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     internal bool SupportsDetailedTelemetry { get; init; }
 
+    /// <summary>
+    /// The custom icon name for the resource. This should be a valid FluentUI icon name.
+    /// If not specified, the dashboard will use default icons based on the resource type.
+    /// </summary>
+    public string? IconName { get; init; }
+
+    /// <summary>
+    /// The custom icon variant for the resource.
+    /// </summary>
+    public IconVariant? IconVariant { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
@@ -394,6 +405,11 @@ public static class KnownResourceStates
     /// The not started state. Useful for showing the resource was created without being started.
     /// </summary>
     public static readonly string NotStarted = nameof(NotStarted);
+
+    /// <summary>
+    /// The not active state. Useful for resources without a lifetime.
+    /// </summary>
+    public static readonly string Active = nameof(Active);
 
     /// <summary>
     /// List of terminal states.

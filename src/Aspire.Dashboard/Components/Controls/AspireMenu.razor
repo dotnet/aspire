@@ -1,31 +1,53 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Collections.Immutable
-@using Aspire.Dashboard.Model
 @inherits FluentComponentBase
 
-<FluentMenu @ref="_menu" Anchor="@Anchor" Anchored="@Anchored" Open="@Open" OpenChanged="OnOpenChanged" Style="@Style" VerticalThreshold="@VerticalThreshold" HorizontalThreshold="200">
+@* aspire-menu-container is added to the div parent of FluentMenu, not the FluentMenu *@
+<FluentMenu Class="aspire-menu-container" @ref="_menu" Anchor="@Anchor" Anchored="@Anchored" Open="@Open" OpenChanged="OnOpenChanged" Style="@Style" VerticalThreshold="@VerticalThreshold" HorizontalThreshold="200">
     @foreach (var item in Items)
     {
-        @if (item.IsDivider)
+        @RenderMenuItem(item)
+    }
+</FluentMenu>
+
+@code {
+    private RenderFragment RenderMenuItem(MenuButtonItem item)
+    {
+        if (item.IsDivider)
         {
-            <FluentDivider />
+            return @<FluentDivider />;
         }
         else
         {
             var additionalMenuItemAttributes = new Dictionary<string, object>(item.AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
             {
-                { "title", item.Tooltip ?? item.Text ?? string.Empty }
+                { "title", !string.IsNullOrEmpty(item.Tooltip) ? item.Tooltip : item.Text ?? string.Empty }
             };
 
-            <FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes">
-                @item.Text
+            return @<FluentMenuItem Id="@item.Id" Class="@item.Class" OnClick="() => HandleItemClicked(item)" Disabled="@item.IsDisabled" AdditionalAttributes="@additionalMenuItemAttributes" Label="@item.Text" MenuItems="@RenderNestedItems(item)">
                 @if (item.Icon != null)
                 {
                     <span slot="start">
                         <FluentIcon Value="@item.Icon" Style="vertical-align: text-bottom;" Width="16px" />
                     </span>
                 }
-            </FluentMenuItem>
+            </FluentMenuItem>;
         }
     }
-</FluentMenu>
+
+    private RenderFragment? RenderNestedItems(MenuButtonItem item)
+    {
+        if (item.NestedMenuItems is null || item.NestedMenuItems.Count == 0)
+        {
+            return null;
+        }
+
+        // div is required because a single element has to be returned.
+        return @<div>
+            @foreach (var nestedItem in item.NestedMenuItems)
+            {
+                @RenderMenuItem(nestedItem)
+            }
+        </div>;
+    }
+}

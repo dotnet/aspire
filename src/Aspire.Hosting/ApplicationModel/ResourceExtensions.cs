@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext
@@ -379,6 +379,13 @@ public static class ResourceExtensions
             }
         }
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the resource is excluded from being published.
+    /// </summary>
+    /// <param name="resource">The resource to determine if it should be excluded from being published.</param>
+    public static bool IsExcludedFromPublish(this IResource resource) =>
+        resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore;
 
     internal static async ValueTask ProcessContainerRuntimeArgValues(
         this IResource resource,
@@ -572,6 +579,20 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Determines whether the specified resource requires image building and pushing.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build and a push to a container registry if they provide
+    /// their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image push requirements.</param>
+    /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
+    public static bool RequiresImageBuildAndPush(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+    }
+
+    /// <summary>
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
@@ -672,6 +693,25 @@ public static class ResourceExtensions
             IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
             _ => resource
         };
+
+    /// <summary>
+    /// Returns a single DCP resource name for the specified resource.
+    /// Throws <see cref="InvalidOperationException"/> if the resource has no resolved names or multiple resolved names.
+    /// </summary>
+    internal static string GetResolvedResourceName(this IResource resource)
+    {
+        var names = resource.GetResolvedResourceNames();
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has no resolved names.");
+        }
+        if (names.Length > 1)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' has multiple resolved names: {string.Join(", ", names)}.");
+        }
+
+        return names[0];
+    }
 
     /// <summary>
     /// Gets resolved names for the specified resource.

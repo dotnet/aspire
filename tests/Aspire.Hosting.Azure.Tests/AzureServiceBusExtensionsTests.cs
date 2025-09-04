@@ -610,7 +610,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             builder.WithLifetime(lifetime);
         });
 
-        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-sqledge");
+        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-mssql");
 
         Assert.NotNull(sql);
 
@@ -825,5 +825,53 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());
+    }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("servicebus")
+                               .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(serviceBus.Resource.IsEmulator());
+        Assert.Contains(serviceBus.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureServiceBusResource()
+    {
+        // Arrange
+        var serviceBusResource = new AzureServiceBusResource("test-servicebus", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(serviceBusResource, "test-servicebus");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = serviceBusResource.AddAsExistingResource(infrastructure);
+        var secondResult = serviceBusResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureServiceBusResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-sb-name");
+        var existingResourceGroup = builder.AddParameter("existing-sb-rg");
+
+        var serviceBus = builder.AddAzureServiceBus("test-servicebus")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = serviceBus.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

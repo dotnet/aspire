@@ -10,9 +10,14 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestConsoleInteractionService : IInteractionService
 {
     public Action<string>? DisplayErrorCallback { get; set; }
+    public Action<string>? DisplaySubtleMessageCallback { get; set; }
+    public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
+    public Func<string, bool, bool>? ConfirmCallback { get; set; }
+    public Action<string>? ShowStatusCallback { get; set;  }
 
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
+        ShowStatusCallback?.Invoke(statusText);
         return action();
     }
 
@@ -21,7 +26,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         action();
     }
 
-    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, CancellationToken cancellationToken = default)
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(defaultValue ?? string.Empty);
     }
@@ -54,10 +59,6 @@ internal sealed class TestConsoleInteractionService : IInteractionService
     {
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
-    {
-    }
-
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
     {
     }
@@ -68,18 +69,36 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(true);
+        return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
     }
 
     public void DisplaySubtleMessage(string message)
     {
+        DisplaySubtleMessageCallback?.Invoke(message);
     }
 
     public void DisplayEmptyLine()
     {
     }
 
-    public void OpenNewProject(string projectPath)
+    public void DisplayPlainText(string text)
     {
+    }
+
+    public void DisplayMarkdown(string markdown)
+    {
+    }
+
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
+    {
+        var output = $"[{(isErrorMessage ? "Error" : type ?? "Info")}] {message} (Line: {lineNumber})";
+        DisplayConsoleWriteLineMessage?.Invoke(output);
+    }
+
+    public Action<string>? DisplayVersionUpdateNotificationCallback { get; set; }
+
+    public void DisplayVersionUpdateNotification(string newerVersion)
+    {
+        DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 }

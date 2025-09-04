@@ -7,7 +7,6 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -178,7 +177,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
                 // Simulate a successful build
                 runner.BuildAsyncCallback = (projectFile, options, cancellationToken) => 0;
-                
+
                 // Simulate a successful app host information retrieval
                 runner.GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
                 {

@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
@@ -204,7 +203,9 @@ public class ResourcePublisherTests
             Commands = [],
             Relationships = [],
             IsHidden = false,
-            SupportsDetailedTelemetry = false
+            SupportsDetailedTelemetry = false,
+            IconName = null,
+            IconVariant = null
         };
     }
 

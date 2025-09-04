@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Commands.
+        /// </summary>
+        public static string ResourceActionCommandsText {
+            get {
+                return ResourceManager.GetString("ResourceActionCommandsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Console logs.
         /// </summary>
         public static string ResourceActionConsoleLogsText {
@@ -93,6 +102,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceActionTracesText {
             get {
                 return ResourceManager.GetString("ResourceActionTracesText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URLs.
+        /// </summary>
+        public static string ResourceActionUrlsText {
+            get {
+                return ResourceManager.GetString("ResourceActionUrlsText", resourceCulture);
             }
         }
         
@@ -313,11 +331,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Value.
+        /// </summary>
+        public static string ResourcesDetailsParameterValueProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsParameterValueProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Project path.
         /// </summary>
         public static string ResourcesDetailsProjectPathProperty {
             get {
                 return ResourceManager.GetString("ResourcesDetailsProjectPathProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Launch profile.
+        /// </summary>
+        public static string ResourcesDetailsProjectLaunchProfileProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsProjectLaunchProfileProperty", resourceCulture);
             }
         }
         
@@ -498,6 +534,24 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesUrlsColumnHeader {
             get {
                 return ResourceManager.GetString("ResourcesUrlsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Showing &lt;strong&gt;{0} resources&lt;/strong&gt;.
+        /// </summary>
+        public static string TotalItemsFooterPluralText {
+            get {
+                return ResourceManager.GetString("TotalItemsFooterPluralText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Showing &lt;strong&gt;{0} resource&lt;/strong&gt;.
+        /// </summary>
+        public static string TotalItemsFooterSingularText {
+            get {
+                return ResourceManager.GetString("TotalItemsFooterSingularText", resourceCulture);
             }
         }
         

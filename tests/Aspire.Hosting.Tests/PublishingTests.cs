@@ -7,7 +7,6 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -70,7 +69,7 @@ public class PublishingTests
     }
 
     [Fact]
-    public void PublishWithDeployTrueCallsDeployingCallback()
+    public void PublishWithDeployTrueCallsDeployingCallbackOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
 
@@ -83,13 +82,6 @@ public class PublishingTests
         builder.AddContainer("cache", "redis")
                .WithPublishingCallback(context =>
                 {
-                    Assert.NotNull(context);
-                    Assert.NotNull(context.Services);
-                    Assert.True(context.CancellationToken.CanBeCanceled);
-                    Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
-                    Assert.Equal("default", context.ExecutionContext.PublisherName);
-                    Assert.True(Path.IsPathFullyQualified(context.OutputPath));
-                    publishingCalled = true;
                     return Task.CompletedTask;
                 })
                .WithAnnotation(new DeployingCallbackAnnotation(context =>
@@ -99,7 +91,6 @@ public class PublishingTests
                     Assert.True(context.CancellationToken.CanBeCanceled);
                     Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
                     Assert.Equal("default", context.ExecutionContext.PublisherName);
-                    Assert.True(Path.IsPathFullyQualified(context.OutputPath));
                     deployingCalled = true;
                     return Task.CompletedTask;
                 }));
@@ -107,38 +98,8 @@ public class PublishingTests
         using var app = builder.Build();
         app.Run();
 
-        Assert.True(publishingCalled, "Publishing callback was not called.");
+        Assert.False(publishingCalled, "Publishing callback was called.");
         Assert.True(deployingCalled, "Deploying callback was not called when Deploy is true.");
-    }
-
-    [Fact]
-    public void DeployingCallbacksAreCalledAfterPublishingCallbacks()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
-
-        // Explicitly set Deploy to true
-        builder.Configuration["Publishing:Deploy"] = "true";
-
-        var callOrder = new List<string>();
-
-        builder.AddContainer("cache", "redis")
-               .WithPublishingCallback(context =>
-                {
-                    callOrder.Add("publishing");
-                    return Task.CompletedTask;
-                })
-               .WithAnnotation(new DeployingCallbackAnnotation(context =>
-                {
-                    callOrder.Add("deploying");
-                    return Task.CompletedTask;
-                }));
-
-        using var app = builder.Build();
-        app.Run();
-
-        Assert.Equal(2, callOrder.Count);
-        Assert.Equal("publishing", callOrder[0]);
-        Assert.Equal("deploying", callOrder[1]);
     }
 
     [Fact]
@@ -194,7 +155,6 @@ public class PublishingTests
                     Assert.True(context.CancellationToken.CanBeCanceled);
                     Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
                     Assert.Equal("default", context.ExecutionContext.PublisherName);
-                    Assert.True(Path.IsPathFullyQualified(context.OutputPath));
 
                     // Verify the model contains our resource
                     Assert.Single(context.Model.Resources);
@@ -266,5 +226,37 @@ public class PublishingTests
         using var app = builder.Build();
         app.Run();
         Assert.Equal("second", called);
+    }
+
+    [Fact]
+    public void DeployingContextActivityReporterProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+
+        // Explicitly set Deploy to true
+        builder.Configuration["Publishing:Deploy"] = "true";
+
+        var activityReporterAccessed = false;
+
+        builder.AddContainer("cache", "redis")
+               .WithAnnotation(new DeployingCallbackAnnotation(context =>
+                {
+                    // Verify that ActivityReporter property is accessible and not null
+                    Assert.NotNull(context.ActivityReporter);
+                    Assert.IsAssignableFrom<IPublishingActivityReporter>(context.ActivityReporter);
+
+                    // Verify that accessing it multiple times returns the same instance (lazy initialization)
+                    var reporter1 = context.ActivityReporter;
+                    var reporter2 = context.ActivityReporter;
+                    Assert.Same(reporter1, reporter2);
+
+                    activityReporterAccessed = true;
+                    return Task.CompletedTask;
+                }));
+
+        using var app = builder.Build();
+        app.Run();
+
+        Assert.True(activityReporterAccessed, "ActivityReporter property was not tested.");
     }
 }

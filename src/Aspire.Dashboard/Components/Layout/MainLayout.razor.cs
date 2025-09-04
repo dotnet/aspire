@@ -199,7 +199,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
-            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,

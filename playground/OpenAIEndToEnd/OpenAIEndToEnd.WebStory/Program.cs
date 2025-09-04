@@ -7,8 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureOpenAIClient("chat")
-       .AddChatClient();
+builder.AddOpenAIClient("chat").AddChatClient();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

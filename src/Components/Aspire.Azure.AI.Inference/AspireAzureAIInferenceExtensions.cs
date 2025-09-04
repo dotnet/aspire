@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.AI.Inference;
 using Aspire.Azure.Common;
 using Azure;
 using Azure.AI.Inference;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Core.Pipeline;
 using Azure.Identity;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Azure;
@@ -57,7 +59,7 @@ public static class AspireAzureAIInferenceExtensions
             connectionName,
             serviceKey: null);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentName, settings.DisableTracing);
     }
 
     /// <summary>
@@ -94,7 +96,7 @@ public static class AspireAzureAIInferenceExtensions
             name,
             serviceKey: name);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentId, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing);
     }
 
     private sealed class ChatCompletionsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, ChatCompletionsClient, AzureAIInferenceClientOptions>
@@ -113,15 +115,27 @@ public static class AspireAzureAIInferenceExtensions
                 }
                 else
                 {
+                    var endpoint = settings.Endpoint;
+
                     // Connect to Azure AI Foundry using key auth
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
                         var credential = new AzureKeyCredential(settings.Key);
-                        return new ChatCompletionsClient(settings.Endpoint, credential, options);
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                     else
                     {
-                        return new ChatCompletionsClient(settings.Endpoint, settings.TokenCredential ?? new DefaultAzureCredential(), options);
+                        var credential = settings.TokenCredential ?? new DefaultAzureCredential();
+
+                        // Defines the scopes used for authorization when connecting to Azure AI Inference services.
+                        // Use the default one (ml.azure.com) and add the public one required for Azure Foundry AI.
+                        // If users want to use a different scope they can configure the option using the client builder.
+                        // c.f. https://github.com/Azure/azure-sdk-for-net/issues/50872
+
+                        BearerTokenAuthenticationPolicy tokenPolicy = new(credential, ["https://cognitiveservices.azure.com/.default"]);
+                        options.AddPolicy(tokenPolicy, HttpPipelinePosition.PerRetry);
+
+                        return new ChatCompletionsClient(endpoint, credential, options);
                     }
                 }
             });
@@ -157,14 +171,14 @@ public static class AspireAzureAIInferenceExtensions
     /// Creates a <see cref="IChatClient"/> from the <see cref="ChatCompletionsClient"/> registered in the service collection.
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
-    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentId = null)
+    public static ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.HostBuilder.Services.AddChatClient(
-            services => CreateInnerChatClient(builder, services, deploymentId));
+            services => CreateInnerChatClient(builder, services, deploymentName));
     }
 
     /// <summary>
@@ -172,9 +186,9 @@ public static class AspireAzureAIInferenceExtensions
     /// </summary>
     /// <param name="builder">An <see cref="AspireChatCompletionsClientBuilder" />.</param>
     /// <param name="serviceKey">The service key with which the <see cref="IChatClient"/> will be registered.</param>
-    /// <param name="deploymentId">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
+    /// <param name="deploymentName">Optionally specifies which model deployment to use. If not specified, a value will be taken from the connection string.</param>
     /// <returns></returns>
-    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentId = null)
+    public static ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -182,16 +196,16 @@ public static class AspireAzureAIInferenceExtensions
 
         return builder.HostBuilder.Services.AddKeyedChatClient(
             serviceKey,
-            services => CreateInnerChatClient(builder, services, deploymentId));
+            services => CreateInnerChatClient(builder, services, deploymentName));
     }
 
-    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentId)
+    private static IChatClient CreateInnerChatClient(AspireChatCompletionsClientBuilder builder, IServiceProvider services, string? deploymentName)
     {
         var chatCompletionsClient = string.IsNullOrEmpty(builder.ServiceKey) ?
                         services.GetRequiredService<ChatCompletionsClient>() :
                         services.GetRequiredKeyedService<ChatCompletionsClient>(builder.ServiceKey);
 
-        var result = chatCompletionsClient.AsIChatClient(deploymentId ?? builder.DeploymentId);
+        var result = chatCompletionsClient.AsIChatClient(deploymentName ?? builder.DeploymentName);
 
         if (builder.DisableTracing)
         {

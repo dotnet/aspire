@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -15,18 +16,25 @@ namespace Aspire.Cli.Projects;
 internal interface IProjectLocator
 {
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
+    Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, DirectoryInfo currentDirectory, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
+    public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+    {
+        var allCandidates = await FindAppHostProjectFilesAsync(new DirectoryInfo(searchDirectory), cancellationToken);
+        return [..allCandidates.BuildableAppHost, ..allCandidates.UnbuildableSuspectedAppHostProjects];
+    }
 
-    private async Task<List<FileInfo>> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
+    private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
         return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
         {
             var appHostProjects = new List<FileInfo>();
+            var unbuildableSuspectedAppHostProjects = new List<FileInfo>();
             var lockObject = new object();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
@@ -53,12 +61,18 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 if (information.ExitCode == 0 && information.IsAspireHost)
                 {
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
-                    var relativePath = Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName);
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
                     interactionService.DisplaySubtleMessage(relativePath);
                     lock (lockObject)
                     {
                         appHostProjects.Add(projectFile);
                     }
+                }
+                else if (IsPossiblyUnbuildableAppHost(projectFile))
+                {
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
+                    interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                    unbuildableSuspectedAppHostProjects.Add(projectFile);
                 }
                 else
                 {
@@ -70,13 +84,20 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
-            return appHostProjects;
+            return (appHostProjects, unbuildableSuspectedAppHostProjects);
         });
+    }
+
+    private static bool IsPossiblyUnbuildableAppHost(FileInfo projectFile)
+    {
+        var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
+        var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
+        return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
     {
-        var searchDirectory = currentDirectory;
+        var searchDirectory = executionContext.WorkingDirectory;
 
         while (true)
         {
@@ -119,7 +140,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
     public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default)
     {
-        logger.LogDebug("Finding project file in {CurrentDirectory}", currentDirectory);
+        logger.LogDebug("Finding project file in {CurrentDirectory}", executionContext.WorkingDirectory);
 
         if (projectFile is not null)
         {
@@ -141,28 +162,32 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             return projectFile;
         }
 
-        logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", currentDirectory);
-        var appHostProjects = await FindAppHostProjectFilesAsync(currentDirectory, cancellationToken);
+        logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", executionContext.WorkingDirectory);
+        var results = await FindAppHostProjectFilesAsync(executionContext.WorkingDirectory, cancellationToken);
         interactionService.DisplayEmptyLine();
 
-        logger.LogDebug("Found {ProjectFileCount} project files.", appHostProjects.Count);
+        logger.LogDebug("Found {ProjectFileCount} project files.", results.BuildableAppHost.Count);
 
         FileInfo? selectedAppHost = null;
 
-        if (appHostProjects.Count == 0)
+        if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count == 0)
         {
             throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
         }
-        else if (appHostProjects.Count == 1)
+        else if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count > 0)
         {
-            selectedAppHost = appHostProjects[0];
+            throw new ProjectLocatorException(ErrorStrings.AppHostsMayNotBeBuildable);
         }
-        else if (appHostProjects.Count > 1)
+        else if (results.BuildableAppHost.Count == 1)
+        {
+            selectedAppHost = results.BuildableAppHost[0];
+        }
+        else if (results.BuildableAppHost.Count > 1)
         {
             selectedAppHost = await interactionService.PromptForSelectionAsync(
-                InteractionServiceStrings.SelectAppHostToRun,
-                appHostProjects,
-                projectFile => $"{projectFile.Name} ({Path.GetRelativePath(currentDirectory.FullName, projectFile.FullName)})",
+                InteractionServiceStrings.SelectAppHostToUse,
+                results.BuildableAppHost,
+                projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})",
                 cancellationToken
                 );
         }
@@ -173,7 +198,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(currentDirectory.FullName);
+        var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(executionContext.WorkingDirectory.FullName);
         var settingsFile = new FileInfo(settingsFilePath);
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
@@ -183,7 +208,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         // Use the configuration writer to set the appHostPath, which will merge with any existing settings
         await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
 
-        var relativeSettingsFilePath = Path.GetRelativePath(currentDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
+        var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
 }

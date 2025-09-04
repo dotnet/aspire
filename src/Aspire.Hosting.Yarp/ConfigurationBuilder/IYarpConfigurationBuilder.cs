@@ -22,9 +22,23 @@ public interface IYarpConfigurationBuilder
     /// <summary>
     /// Add a new cluster to YARP.
     /// </summary>
-    /// <param name="endpoint">The endpoint used by this cluster.</param>
+    /// <param name="endpoint">The endpoint target for this cluster.</param>
     /// <returns></returns>
     public YarpCluster AddCluster(EndpointReference endpoint);
+
+    /// <summary>
+    /// Add a new cluster to YARP based on a resource that supports service discovery.
+    /// </summary>
+    /// <param name="resource">The resource target for this cluster.</param>
+    /// <returns></returns>
+    public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource);
+
+    /// <summary>
+    /// Add a new cluster to YARP based on an external service resource.
+    /// </summary>
+    /// <param name="externalService">The external service used by this cluster.</param>
+    /// <returns></returns>
+    public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService);
 }
 
 /// <summary>
@@ -46,6 +60,28 @@ public static class YarpConfigurationBuilderExtensions
     }
 
     /// <summary>
+    /// Add a new catch all route to YARP that will target the cluster in parameter.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="endpoint">The target endpoint for this route.</param>
+    /// <returns></returns>
+    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, EndpointReference endpoint)
+    {
+        return builder.AddRoute(CatchAllPath, endpoint);
+    }
+
+    /// <summary>
+    /// Add a new catch all route to YARP that will target the cluster in parameter.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="resource">The target resource for this route.</param>
+    /// <returns></returns>
+    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, IResourceBuilder<IResourceWithServiceDiscovery> resource)
+    {
+        return builder.AddRoute(CatchAllPath, resource);
+    }
+
+    /// <summary>
     /// Add a new route to YARP that will target the cluster in parameter.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
@@ -59,13 +95,39 @@ public static class YarpConfigurationBuilderExtensions
     }
 
     /// <summary>
+    /// Add a new route to YARP that will target the cluster in parameter.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="path">The path to match for this route.</param>
+    /// <param name="resource">The target endpoint for this route.</param>
+    /// <returns></returns>
+    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, IResourceBuilder<IResourceWithServiceDiscovery> resource)
+    {
+        var cluster = builder.AddCluster(resource);
+        return builder.AddRoute(path, cluster);
+    }
+
+    /// <summary>
+    /// Add a new route to YARP that will target the external service in parameter.
+    /// </summary>
+    /// <param name="builder">The builder instance.</param>
+    /// <param name="path">The path to match for this route.</param>
+    /// <param name="externalService">The target external service for this route.</param>
+    /// <returns></returns>
+    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, IResourceBuilder<ExternalServiceResource> externalService)
+    {
+        var cluster = builder.AddCluster(externalService);
+        return builder.AddRoute(path, cluster);
+    }
+
+    /// <summary>
     /// Add a new catch all route to YARP that will target the cluster in parameter.
     /// </summary>
     /// <param name="builder">The builder instance.</param>
-    /// <param name="endpoint">The target endpoint for this route.</param>
+    /// <param name="externalService">The target external service for this route.</param>
     /// <returns></returns>
-    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, EndpointReference endpoint)
+    public static YarpRoute AddRoute(this IYarpConfigurationBuilder builder, IResourceBuilder<ExternalServiceResource> externalService)
     {
-        return builder.AddRoute(CatchAllPath, endpoint);
+        return builder.AddRoute(CatchAllPath, externalService);
     }
 }

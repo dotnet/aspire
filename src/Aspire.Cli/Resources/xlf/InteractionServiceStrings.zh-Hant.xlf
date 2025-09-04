@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">正在建置應用程式主機...</target>
+        <source>Building app host</source>
+        <target state="translated">正在建置應用程式主機</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -62,6 +62,16 @@
         <target state="translated">正在尋找應用程式主機...</target>
         <note />
       </trans-unit>
+      <trans-unit id="MoreInfoNewCliVersion">
+        <source>[dim]For more information, see: [link]{0}[/][/]</source>
+        <target state="translated">[dim]如需詳細資訊，請參閱: [link]{0}[/][/]</target>
+        <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="NewCliVersionAvailable">
+        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
+        <target state="translated">[yellow]有新版的 Aspire CLI 可供使用: {0}[/]</target>
+        <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
+      </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
         <source>No items available for selection: {0}</source>
         <target state="translated">沒有可供選取的項目: {0}</target>
@@ -102,9 +112,9 @@
         <target state="translated">正在搜尋...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">選取要執行的應用程式主機</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select app host to use:</source>
+        <target state="translated">選取要使用的應用程式主機:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -120,6 +130,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">信任憑證...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">找不到應用程式主機 (可能有應用程式主機專案檔案具有語法錯誤/無效的 SDK 版本)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

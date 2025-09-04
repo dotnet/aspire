@@ -58,7 +58,7 @@ internal sealed class AzureResourcePreparer(
         var azureResources = new List<(IResource, IAzureResource)>();
         foreach (var resource in appModel.Resources)
         {
-            if (resource.IsContainer())
+            if (resource.IsExcludedFromPublish() || resource.IsContainer() || resource.IsEmulator())
             {
                 continue;
             }
@@ -129,7 +129,7 @@ internal sealed class AzureResourcePreparer(
             var resourceSnapshot = appModel.Resources.ToArray(); // avoid modifying the collection while iterating
             foreach (var resource in resourceSnapshot)
             {
-                if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var lastAnnotation) && lastAnnotation == ManifestPublishingCallbackAnnotation.Ignore)
+                if (resource.IsExcludedFromPublish())
                 {
                     continue;
                 }
@@ -148,7 +148,7 @@ internal sealed class AzureResourcePreparer(
                         .ToLookup(a => a.Target);
                 foreach (var azureReference in azureReferences.OfType<AzureProvisioningResource>())
                 {
-                    if (azureReference.IsContainer())
+                    if (azureReference.IsContainer() || azureReference.IsEmulator())
                     {
                         // Skip emulators
                         continue;
@@ -380,7 +380,7 @@ internal sealed class AzureResourcePreparer(
 
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext([], resource, cancellationToken: cancellationToken);
 
             foreach (var c in commandLineArgsCallbackAnnotations)
             {
@@ -396,8 +396,20 @@ internal sealed class AzureResourcePreparer(
         return azureReferences;
     }
 
-    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object value)
+    /// <summary>
+    /// Processes a value to extract Azure resource references and adds them to the collection.
+    /// Null values are ignored since they cannot contain Azure resource references.
+    /// </summary>
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value)
     {
+        // Null values can be added by environment variable or command line argument callbacks
+        // and should be ignored since they cannot contain Azure resource references.
+        // See: https://github.com/dotnet/aspire/discussions/11127
+        if (value is null)
+        {
+            return;
+        }
+
         if (value is string or EndpointReference or ParameterResource or EndpointReferenceExpression or HostUrl)
         {
             return;

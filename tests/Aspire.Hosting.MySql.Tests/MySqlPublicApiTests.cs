@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.MySql.Tests;
 
@@ -292,5 +291,30 @@ public class MySqlPublicApiTests
            ? Assert.Throws<ArgumentNullException>(action)
            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithPasswordShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<MySqlServerResource> builder = null!;
+        var password = TestDistributedApplicationBuilder.Create().AddParameter("password");
+
+        var action = () => builder.WithPassword(password);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithPasswordShouldThrowWhenPasswordIsNull()
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddMySql("MySql");
+        IResourceBuilder<ParameterResource> password = null!;
+
+        var action = () => builder.WithPassword(password);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(password), exception.ParamName);
     }
 }

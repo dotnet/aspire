@@ -13,7 +13,9 @@ public class TestDashboardClient : IDashboardClient
 {
     private readonly Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? _consoleLogsChannelProvider;
     private readonly Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? _resourceChannelProvider;
+    private readonly Func<Channel<WatchInteractionsResponseUpdate>>? _interactionChannelProvider;
     private readonly Channel<ResourceCommandResponseViewModel>? _resourceCommandsChannel;
+    private readonly Channel<WatchInteractionsRequestUpdate>? _sendInteractionUpdateChannel;
     private readonly IList<ResourceViewModel>? _initialResources;
 
     public bool IsEnabled { get; }
@@ -22,15 +24,21 @@ public class TestDashboardClient : IDashboardClient
 
     public TestDashboardClient(
         bool? isEnabled = false,
+        string? applicationName = null,
         Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? consoleLogsChannelProvider = null,
         Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? resourceChannelProvider = null,
+        Func<Channel<WatchInteractionsResponseUpdate>>? interactionChannelProvider = null,
         Channel<ResourceCommandResponseViewModel>? resourceCommandsChannel = null,
+        Channel<WatchInteractionsRequestUpdate>? sendInteractionUpdateChannel = null,
         IList<ResourceViewModel>? initialResources = null)
     {
         IsEnabled = isEnabled ?? false;
+        ApplicationName = applicationName ?? "TestApp";
         _consoleLogsChannelProvider = consoleLogsChannelProvider;
         _resourceChannelProvider = resourceChannelProvider;
+        _interactionChannelProvider = interactionChannelProvider;
         _resourceCommandsChannel = resourceCommandsChannel;
+        _sendInteractionUpdateChannel = sendInteractionUpdateChannel;
         _initialResources = initialResources;
     }
 
@@ -91,11 +99,36 @@ public class TestDashboardClient : IDashboardClient
 
     public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (_interactionChannelProvider == null)
+        {
+            throw new InvalidOperationException("No channel provider set.");
+        }
+
+        var channel = _interactionChannelProvider();
+
+        return BuildSubscription(channel, cancellationToken);
+
+        async static IAsyncEnumerable<WatchInteractionsResponseUpdate> BuildSubscription(Channel<WatchInteractionsResponseUpdate> channel, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+            {
+                yield return item;
+            }
+        }
     }
 
-    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    public async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (_sendInteractionUpdateChannel == null)
+        {
+            throw new InvalidOperationException("No resource command channel set.");
+        }
+
+        await _sendInteractionUpdateChannel.Writer.WriteAsync(request, cancellationToken);
+    }
+
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        return null;
     }
 }

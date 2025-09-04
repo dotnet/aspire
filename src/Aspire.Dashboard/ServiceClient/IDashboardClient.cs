@@ -2,9 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Dashboard.Model;
 using Aspire.DashboardService.Proto.V1;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.Dashboard.ServiceClient;
 
 /// <summary>
 /// Provides data about active resources to external components, such as the dashboard.
@@ -39,6 +40,11 @@ public interface IDashboardClient : IAsyncDisposable
     /// using cancellation during enumeration.
     /// </remarks>
     Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets a resource matching the specified name. This resource won't be updated with changes after it is fetched.
+    /// </summary>
+    ResourceViewModel? GetResource(string resourceName);
 
     IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken);
 

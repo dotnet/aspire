@@ -16,7 +16,7 @@ internal sealed class AzureProvisioner(
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
-    BicepProvisioner bicepProvisioner,
+    IBicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
@@ -211,7 +211,7 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        if (bicepResource.IsContainer())
+        if (bicepResource.IsContainer() || bicepResource.IsEmulator())
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);

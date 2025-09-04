@@ -16,6 +16,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
     private readonly List<KnownProperty> _projectProperties;
     private readonly List<KnownProperty> _executableProperties;
     private readonly List<KnownProperty> _containerProperties;
+    private readonly List<KnownProperty> _parameterProperties;
 
     public KnownPropertyLookup()
     {
@@ -23,10 +24,10 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             new(KnownProperties.Resource.DisplayName, loc => loc[nameof(ResourcesDetailsDisplayNameProperty)]),
             new(KnownProperties.Resource.State, loc => loc[nameof(ResourcesDetailsStateProperty)]),
+            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.StartTime, loc => loc[nameof(ResourcesDetailsStartTimeProperty)]),
             new(KnownProperties.Resource.StopTime, loc => loc[nameof(ResourcesDetailsStopTimeProperty)]),
             new(KnownProperties.Resource.ExitCode, loc => loc[nameof(ResourcesDetailsExitCodeProperty)]),
-            new(KnownProperties.Resource.HealthState, loc => loc[nameof(ResourcesDetailsHealthStateProperty)]),
             new(KnownProperties.Resource.ConnectionString, loc => loc[nameof(ResourcesDetailsConnectionStringProperty)])
         ];
 
@@ -34,6 +35,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             .. _resourceProperties,
             new(KnownProperties.Project.Path, loc => loc[nameof(ResourcesDetailsProjectPathProperty)]),
+            new(KnownProperties.Project.LaunchProfile, loc => loc[nameof(ResourcesDetailsProjectLaunchProfileProperty)]),
             new(KnownProperties.Executable.Pid, loc => loc[nameof(ResourcesDetailsExecutableProcessIdProperty)]),
         ];
 
@@ -56,6 +58,11 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
             new(KnownProperties.Container.Ports, loc => loc[nameof(ResourcesDetailsContainerPortsProperty)]),
             new(KnownProperties.Container.Lifetime, loc => loc[nameof(ResourcesDetailsContainerLifetimeProperty)]),
         ];
+
+        _parameterProperties =
+        [
+            new(KnownProperties.Parameter.Value, loc => loc[nameof(ResourcesDetailsParameterValueProperty)])
+        ];
     }
 
     public (int priority, KnownProperty? knownProperty) FindProperty(string resourceType, string uid)
@@ -65,6 +72,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
             KnownResourceTypes.Project => _projectProperties,
             KnownResourceTypes.Executable => _executableProperties,
             KnownResourceTypes.Container => _containerProperties,
+            KnownResourceTypes.Parameter => _parameterProperties,
             _ => _resourceProperties
         };
 
