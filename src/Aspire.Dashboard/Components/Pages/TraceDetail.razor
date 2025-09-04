@@ -21,14 +21,13 @@
         <AspirePageContentLayout
             AddNewlineOnToolbar="true"
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
-            IsSummaryDetailsViewOpen="@(SelectedData is not null)">
+            IsSummaryDetailsViewOpen="@(SelectedData is not null)"
+            @ref="@_layout">
             <PageTitleSection>
-                <div class="page-header">
-                    <h1>
-                        <span>@GetPageTitle()</span>
-                        <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
-                    </h1>
-                </div>
+                <h1 class="page-header">
+                    <span>@GetPageTitle()</span>
+                    <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
+                </h1>
             </PageTitleSection>
             <ToolbarSection>
                 @if (ViewportInformation.IsDesktop)
@@ -42,23 +41,26 @@
                                           ImmediateDelay="@FluentUIExtensions.InputDelay"
                                           Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                                           title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
-                            <FluentAnchor Appearance="Appearance.Lightweight"
-                                          Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+                            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                              Icon="@(new Icons.Regular.Size20.Options())"
+                                              Items="@_traceActionsMenuItems"
+                                              Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsButtonText)]" />
                         </div>
                     </div>
                 }
                 else
                 {
-                    <FluentToolbar>
-                        <FluentSearch @bind-Value="_filter"
-                                      @bind-Value:after="HandleAfterFilterBindAsync"
-                                      Immediate="true"
-                                      ImmediateDelay="@FluentUIExtensions.InputDelay"
-                                      Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                                      title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
-                        <FluentAnchor Appearance="Appearance.Lightweight"
-                                      Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-                    </FluentToolbar>
+                    <FluentSearch @bind-Value="_filter"
+                                  @bind-Value:after="HandleAfterFilterBindAsync"
+                                  Immediate="true"
+                                  ImmediateDelay="@FluentUIExtensions.InputDelay"
+                                  Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                                  title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                    <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                                      Icon="@(new Icons.Regular.Size20.Options())"
+                                      Items="@_traceActionsMenuItems"
+                                      Title="@ControlStringsLoc[nameof(ControlsStrings.ActionsButtonText)]"
+                                      Text="@ControlStringsLoc[nameof(ControlsStrings.ActionsButtonText)]"/>
                 }
             </ToolbarSection>
             <MainSection>
@@ -160,7 +162,7 @@
                                             {
                                                 <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                             }
-                                            <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
+                                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" />
                                             @if (context.HasUninstrumentedPeer)
                                             {
                                                 <span class="uninstrumented-peer">
@@ -187,9 +189,13 @@
                                                     <FluentHighlighter HighlightedText="@_filter" Text="@context.UninstrumentedPeer" />
                                                 </span>
                                             }
-                                            <span class="span-row-name"><FluentHighlighter HighlightedText="@_filter" Text="@context.Span.GetDisplaySummary()" /></span>
                                         </span>
                                     </span>
+                                </AspireTemplateColumn>
+                                <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Tooltip="true" TooltipText="@(c => GetResourceName(c.Span.Source))" Class="expand-col">
+                                    <div class="resource-name">
+                                        <FluentHighlighter HighlightedText="@_filter" Text="@GetResourceName(context.Span.Source)" />
+                                    </div>
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@TicksColumn" ColumnManager="@_manager">
                                     <HeaderCellItemTemplate>
@@ -325,7 +331,7 @@
         return @<FluentOverflow Class="trace-header-details">
             <ChildContent>
                 <FluentOverflowItem>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
                 </FluentOverflowItem>
                 <FluentOverflowItem>
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>

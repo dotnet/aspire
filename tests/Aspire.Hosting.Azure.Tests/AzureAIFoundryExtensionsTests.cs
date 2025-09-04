@@ -113,19 +113,48 @@ public class AzureAIFoundryExtensionsTests
     }
 
     [Fact]
-    public async Task RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
+    public void RunAsFoundryLocal_DeploymentConnectionString_HasModelProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
+        foundry.RunAsFoundryLocal();
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
+        Assert.Single(resource.Deployments);
+
+        // NB: The value of the ModelName property is updated with the downloaded model id when the resource is starting.
+        // We are only testing that the value in the ModelName property is referenced in the connection string.
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=gpt-4", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void RunAsFoundryLocal_DeploymentConnectionString_UsesModelId()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         foundry.RunAsFoundryLocal();
+
+        deployment.Resource.ModelId = "custom-model-id";
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=custom-model-id", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AIFoundry_DeploymentConnectionString_HasDeploymentProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
         Assert.Single(resource.Deployments);
-        var connectionString = await deployment.Resource.ConnectionStringExpression.GetValueAsync(default);
-        Assert.Contains("Model=gpt-4", connectionString);
-        Assert.Contains("DeploymentId=deployment1", connectionString);
-        Assert.Contains("Endpoint=", connectionString);
-        Assert.Contains("Key=", connectionString);
+        Assert.Equal("{myAIFoundry.connectionString};Deployment=deployment1", deployment.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

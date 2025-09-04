@@ -118,9 +118,9 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the AI Foundry account."
                     },
-                    "DeploymentId": {
+                    "DeploymentName": {
                       "type": "string",
-                      "description": "Gets or sets the ID of the AI model deployment to use for chat completions."
+                      "description": "Gets or sets the name of the AI model deployment to use for chat completions."
                     },
                     "DisableMetrics": {
                       "type": "boolean",

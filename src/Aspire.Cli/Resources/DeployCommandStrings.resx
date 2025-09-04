@@ -121,7 +121,7 @@
     <value>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</value>
   </data>
   <data name="OutputPathArgumentDescription" xml:space="preserve">
-    <value>The output path for deployment artifacts.</value>
+    <value>The optional output path for deployment artifacts.</value>
   </data>
   <data name="DeploymentCanceled" xml:space="preserve">
     <value>The deployment was canceled.</value>

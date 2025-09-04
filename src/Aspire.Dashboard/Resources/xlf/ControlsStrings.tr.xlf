@@ -107,6 +107,11 @@
         <target state="translated">Verileri kaldır</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollapseAllSpansText">
+        <source>Collapse all</source>
+        <target state="translated">Tümünü daralt</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Ayrıntılar</target>
@@ -130,6 +135,11 @@
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
         <target state="translated">Özel durum ayrıntıları</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpandAllSpansText">
+        <source>Expand all</source>
+        <target state="translated">Tümünü genişlet</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -575,6 +585,11 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Dikey bölme</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="translated">Yapılandırılmış günlükleri görüntüle</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

@@ -8,7 +8,7 @@
     },
     "chat": {
       "type": "value.v0",
-      "connectionString": "{foundry.connectionString};DeploymentId=chat;Model=Phi-4-mini-reasoning"
+      "connectionString": "{foundry.connectionString};Deployment=chat"
     },
     "webstory": {
       "type": "project.v0",

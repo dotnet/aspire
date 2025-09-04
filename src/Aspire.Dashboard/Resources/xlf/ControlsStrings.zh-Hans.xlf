@@ -107,6 +107,11 @@
         <target state="translated">移除数据</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollapseAllSpansText">
+        <source>Collapse all</source>
+        <target state="translated">全部折叠</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">详细信息</target>
@@ -130,6 +135,11 @@
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
         <target state="translated">异常详细信息</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpandAllSpansText">
+        <source>Expand all</source>
+        <target state="translated">全部展开</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -575,6 +585,11 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">垂直拆分</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="translated">查看结构化日志</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

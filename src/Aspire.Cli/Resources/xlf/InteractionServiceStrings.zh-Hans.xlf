@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">正在生成应用主机...</target>
+        <source>Building app host</source>
+        <target state="translated">正在生成应用主机</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -112,9 +112,9 @@
         <target state="translated">正在搜索...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">选择要运行的应用主机</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select app host to use:</source>
+        <target state="translated">选择要使用的应用主机:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -130,6 +130,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">正在信任证书...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">找不到应用主机(可能存在具有语法错误/SDK 版本无效的应用主机项目文件)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

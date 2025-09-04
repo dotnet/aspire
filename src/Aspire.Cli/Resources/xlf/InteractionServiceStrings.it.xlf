@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">Creazione dell'host delle app in corso...</target>
+        <source>Building app host</source>
+        <target state="translated">Creazione dell'host delle app</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -112,9 +112,9 @@
         <target state="translated">Ricerca in corso...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">Seleziona l'host delle app da eseguire</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select app host to use:</source>
+        <target state="translated">Selezionare l'host delle app da usare:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -130,6 +130,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">Conferma dell'attendibilità dei certificati in corso...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">Non sono stati trovati host per le app (potrebbero esserci file di progetto host per le app con errori di sintassi o versioni SDK non valide).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

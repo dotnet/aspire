@@ -11,7 +11,6 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
-using System.Xml.Linq;
 using Semver;
 
 namespace Aspire.Cli.Templating;
@@ -222,12 +221,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
 
+            var source = parseResult.GetValue<string?>("--source");
+            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+
             // Some templates have additional arguments that need to be applied to the `dotnet new` command
             // when it is executed. This callback will get those arguments and potentially prompt for them.
             var extraArgs = await extraArgsCallback(parseResult, cancellationToken);
-
-            var source = parseResult.GetValue<string?>("--source");
-            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
             using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
             var templateInstallCollector = new OutputCollector();
@@ -308,7 +307,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             // For explicit channels, optionally create or update a NuGet.config. If none exists in the current
             // working directory, create one in the newly created project's output directory.
-            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, temporaryConfig, outputPath, cancellationToken);
+            await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
             interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
 
@@ -392,7 +391,13 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return selectedPackageFromChannel;
     }
 
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, TemporaryNuGetConfig? temporaryConfig, string outputPath, CancellationToken cancellationToken)
+    /// <summary>
+    /// Prompts to create or update a NuGet.config for explicit channels.
+    /// When the output directory differs from the working directory, a NuGet.config is created/updated
+    /// only in the output directory. When they are the same (in-place creation), existing behavior
+    /// is preserved where the working directory NuGet.config is considered for updates.
+    /// </summary>
+    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
     {
         if (channel.Type is not PackageChannelType.Explicit)
         {
@@ -406,11 +411,28 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         }
 
         var workingDir = executionContext.WorkingDirectory;
-        // Locate an existing NuGet.config in the current directory using a case-insensitive search
-        var nugetConfigFile = TryFindNuGetConfigInDirectory(workingDir);
+        var outputDir = new DirectoryInfo(outputPath);
+        
+        // Determine if we're creating the project in-place (output directory same as working directory)
+        var normalizedOutputPath = Path.GetFullPath(outputPath);
+        var normalizedWorkingPath = workingDir.FullName;
+        var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
 
-        // We only act if we need to create or update
-        if (nugetConfigFile is null)
+        if (!isInPlaceCreation)
+        {
+            // For subdirectory creation, always create/update NuGet.config in the output directory only
+            // and ignore any existing NuGet.config in the working directory
+            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+            interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
+            return;
+        }
+
+        // In-place creation: preserve existing behavior
+        // Check if we need to create or update a NuGet.config in the working directory
+        var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
+        var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
+
+        if (!hasConfigInWorkingDir)
         {
             // Ask for confirmation before creating the file
             var choice = await interactionService.PromptForSelectionAsync(
@@ -421,106 +443,35 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                // Use the temporary config we already generated; if it's missing, generate a fresh one
-                if (temporaryConfig is null)
-                {
-                    using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
-                    var outputDir = new DirectoryInfo(outputPath);
-                    Directory.CreateDirectory(outputDir.FullName);
-                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
-                    File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
-                }
-                else
-                {
-                    // Ensure target directory exists
-                    var outputDir = new DirectoryInfo(outputPath);
-                    Directory.CreateDirectory(outputDir.FullName);
-                    var targetPath = Path.Combine(outputDir.FullName, "NuGet.config");
-                    File.Copy(temporaryConfig.ConfigFile.FullName, targetPath, overwrite: true);
-                }
+                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
-
-            return;
         }
-
-        // Update existing NuGet.config if any of the required sources are missing
-        var requiredSources = mappings
-            .Select(m => m.Source)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        XDocument doc;
-    await using (var stream = nugetConfigFile.OpenRead())
+        else if (hasMissingSources)
         {
-            doc = XDocument.Load(stream);
+            var updateChoice = await interactionService.PromptForSelectionAsync(
+                "Update NuGet.config to add missing package sources for the selected channel?",
+                [TemplatingStrings.Yes, TemplatingStrings.No],
+                c => c,
+                cancellationToken);
+
+            if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
+            {
+                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
+                interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
+            }
         }
-
-        var configuration = doc.Root ?? new XElement("configuration");
-        if (doc.Root is null)
-        {
-            doc.Add(configuration);
-        }
-
-        var packageSources = configuration.Element("packageSources");
-        if (packageSources is null)
-        {
-            packageSources = new XElement("packageSources");
-            configuration.Add(packageSources);
-        }
-
-        var existingAdds = packageSources.Elements("add").ToArray();
-        var existingValues = new HashSet<string>(existingAdds
-            .Select(e => (string?)e.Attribute("value") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
-        var existingKeys = new HashSet<string>(existingAdds
-            .Select(e => (string?)e.Attribute("key") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
-
-        var missingSources = requiredSources
-            .Where(s => !existingValues.Contains(s) && !existingKeys.Contains(s))
-            .ToArray();
-
-        if (missingSources.Length == 0)
-        {
-            return;
-        }
-
-        var updateChoice = await interactionService.PromptForSelectionAsync(
-            "Update NuGet.config to add missing package sources for the selected channel?",
-            [TemplatingStrings.Yes, TemplatingStrings.No],
-            c => c,
-            cancellationToken);
-
-        if (!string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-        {
-            return;
-        }
-
-        foreach (var source in missingSources)
-        {
-            // Use the source URL as both key and value for consistency with our temporary config
-            var add = new XElement("add");
-            add.SetAttributeValue("key", source);
-            add.SetAttributeValue("value", source);
-            packageSources.Add(add);
-        }
-
-        // Save back the updated document
-        await using (var writeStream = nugetConfigFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
-        {
-            doc.Save(writeStream);
-        }
-
-        interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
     }
 
-    private static FileInfo? TryFindNuGetConfigInDirectory(DirectoryInfo directory)
+    private static bool TryFindNuGetConfigInDirectory(DirectoryInfo directory, out FileInfo? nugetConfigFile)
     {
         ArgumentNullException.ThrowIfNull(directory);
 
         // Search only the specified directory for a file named "nuget.config", ignoring case
-        return directory
+        nugetConfigFile = directory
             .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
             .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
+        return nugetConfigFile is not null;
     }
 }
 

@@ -107,6 +107,11 @@
         <target state="translated">Eliminar datos</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollapseAllSpansText">
+        <source>Collapse all</source>
+        <target state="translated">Contraer todo</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Detalles</target>
@@ -130,6 +135,11 @@
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
         <target state="translated">Detalles de la excepción</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpandAllSpansText">
+        <source>Expand all</source>
+        <target state="translated">Expandir todo</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -575,6 +585,11 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Dividir verticalmente</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="translated">Ver registros estructurados</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
