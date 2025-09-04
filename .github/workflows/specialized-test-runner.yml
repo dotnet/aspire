@@ -69,6 +69,7 @@ jobs:
     with:
       testShortName: ${{ matrix.tests.project }}
       requiresNugets: ${{ matrix.tests.requiresNugets == true }}
+      requiresTestSdk: ${{ matrix.tests.requiresTestSdk == true }}
       os: ${{ matrix.tests.os }}
       extraTestArgs: '${{ inputs.test_type == ''quarantined'' && ''--filter-trait "quarantined=true"'' || inputs.test_type == ''outerloop'' && ''--filter-trait "outerloop=true"'' || '''' }}'
 
