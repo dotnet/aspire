@@ -44,18 +44,18 @@ public class ConformanceTests : ConformanceTests<IChatClient, ChatCompletionsCli
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new(CreateConfigKey("Aspire:Azure:AI:Inference", key, "Endpoint"), Endpoint),
-            new(CreateConfigKey("Aspire:Azure:AI:Inference", key, "Deployment"), "DEPLOYMENT_NAME")
+            new(CreateConfigKey("Aspire:Azure:AI:Inference", key: null, "Deployment"), "DEPLOYMENT_NAME")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<ChatCompletionsClientSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
-            builder.AddAzureChatCompletionsClient("inference", ConfigureCredentials).AddChatClient();
+            builder.AddAzureChatCompletionsClient("inference", ConfigureCredentials).AddChatClient(deploymentName: "DEPLOYMENT_NAME");
         }
         else
         {
-            builder.AddAzureChatCompletionsClient(key, ConfigureCredentials).AddKeyedChatClient(key);
+            builder.AddAzureChatCompletionsClient(key, ConfigureCredentials).AddKeyedChatClient(key, deploymentName: "DEPLOYMENT_NAME");
         }
 
         void ConfigureCredentials(ChatCompletionsClientSettings settings)
