@@ -1418,7 +1418,7 @@ internal static class MSBuildJsonDocumentExtensions
         return root;
     }
 
-    public static JsonObject WithPackageReference(this JsonObject root, string packageId, string packageVersion)
+    public static JsonObject WithMSBuildOutput(this JsonObject root)
     {
         JsonObject items = new JsonObject();
         items.Add("ProjectReference", new JsonArray());
@@ -1427,13 +1427,26 @@ internal static class MSBuildJsonDocumentExtensions
         if (!root.TryAdd("Items", items))
         {
             items = root["Items"]!.AsObject();
+            
+            // Ensure both arrays exist
+            if (!items.ContainsKey("ProjectReference"))
+            {
+                items.Add("ProjectReference", new JsonArray());
+            }
+            if (!items.ContainsKey("PackageReference"))
+            {
+                items.Add("PackageReference", new JsonArray());
+            }
         }
 
-        JsonArray packageReferences = new JsonArray();
-        if (!items.TryAdd("PackageReference", packageReferences))
-        {
-            packageReferences = items["PackageReference"]!.AsArray();
-        }
+        return root;
+    }
+
+    public static JsonObject WithPackageReference(this JsonObject root, string packageId, string packageVersion)
+    {
+        root.WithMSBuildOutput();
+        var items = root["Items"]!.AsObject();
+        var packageReferences = items["PackageReference"]!.AsArray();
 
         JsonObject newPackageReference = new JsonObject
         {
@@ -1447,20 +1460,9 @@ internal static class MSBuildJsonDocumentExtensions
 
     public static JsonObject WithPackageReferenceWithoutVersion(this JsonObject root, string packageId)
     {
-        JsonObject items = new JsonObject();
-        items.Add("ProjectReference", new JsonArray());
-        items.Add("PackageReference", new JsonArray());
-
-        if (!root.TryAdd("Items", items))
-        {
-            items = root["Items"]!.AsObject();
-        }
-
-        JsonArray packageReferences = new JsonArray();
-        if (!items.TryAdd("PackageReference", packageReferences))
-        {
-            packageReferences = items["PackageReference"]!.AsArray();
-        }
+        root.WithMSBuildOutput();
+        var items = root["Items"]!.AsObject();
+        var packageReferences = items["PackageReference"]!.AsArray();
 
         JsonObject newPackageReference = new JsonObject
         {
@@ -1474,26 +1476,9 @@ internal static class MSBuildJsonDocumentExtensions
 
     public static JsonObject WithProjectReference(this JsonObject root, string fullPath)
     {
-        JsonObject items = new JsonObject();
-        items.Add("ProjectReference", new JsonArray());
-        items.Add("PackageReference", new JsonArray());
-
-        if (!root.TryAdd("Items", items))
-        {
-            items = root["Items"]!.AsObject();
-        }
-
-        JsonArray projectReferences = new JsonArray();
-        if (!items.TryAdd("ProjectReference", projectReferences))
-        {
-            projectReferences = items["ProjectReference"]!.AsArray();
-        }
-
-        // Ensure PackageReference array exists
-        if (!items.ContainsKey("PackageReference"))
-        {
-            items.Add("PackageReference", new JsonArray());
-        }
+        root.WithMSBuildOutput();
+        var items = root["Items"]!.AsObject();
+        var projectReferences = items["ProjectReference"]!.AsArray();
 
         JsonObject newProjectReference = new JsonObject
         {
