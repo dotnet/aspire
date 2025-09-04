@@ -8,6 +8,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
+using Aspire.TestUtilities;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
@@ -30,6 +31,7 @@ namespace Aspire.Dashboard.Tests.Integration;
 public class StartupTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    [OuterloopTest("Full dashboard application startup test")]
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange

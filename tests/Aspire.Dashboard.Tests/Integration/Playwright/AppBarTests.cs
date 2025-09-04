@@ -19,6 +19,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
+    [OuterloopTest("Resource-intensive browser-based UI test")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
@@ -66,6 +67,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9152", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
+    [OuterloopTest("Browser test with page reload functionality")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
         // Arrange

@@ -225,6 +225,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [OuterloopTest("Resource-intensive container lifecycle test")]
     public async Task ExplicitStart_StartContainer()
     {
         const string testName = "explicit-start-container";
@@ -298,6 +299,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [OuterloopTest("Long-running persistent container test")]
     public async Task ExplicitStart_StartPersistentContainer()
     {
         foreach (var firstRun in new[] { true, false })

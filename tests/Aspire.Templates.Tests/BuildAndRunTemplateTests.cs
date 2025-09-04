@@ -30,7 +30,6 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate]
     [Trait("category", "basic-build")]
-    [OuterloopTest("Long-running template build and execution test")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -48,7 +47,6 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Fact]
-    [OuterloopTest("Resource-intensive template test with CPM")]
     public async Task BuildAndRunAspireTemplateWithCentralPackageManagement()
     {
         string id = GetNewProjectId(prefix: "aspire_CPM");
