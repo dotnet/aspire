@@ -104,6 +104,11 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
     /// </summary>
     public bool EnableDescriptionMarkdown { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether all schemes are allowed in Markdown links.
+    /// </summary>
+    public bool AllowAllLinkSchemesInMarkdown { get; set;}
+
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     internal InteractionInput CreateInput()
     {
@@ -120,6 +125,7 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
             Label = Name,
             Description = Description,
             EnableDescriptionMarkdown = EnableDescriptionMarkdown,
+            AllowAllLinkSchemesInMarkdown = AllowAllLinkSchemesInMarkdown,
             Placeholder = string.Format(CultureInfo.CurrentCulture, InteractionStrings.ParametersInputsParameterPlaceholder, Name)
         };
         return input;

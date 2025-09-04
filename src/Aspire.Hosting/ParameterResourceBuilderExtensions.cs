@@ -158,15 +158,17 @@ public static class ParameterResourceBuilderExtensions
     /// A value indicating whether the description should be rendered as Markdown.
     /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
     /// </param>
+    /// <param name="allowAllLinkSchemesInMarkdown">A value indicating whether all link schemes should be allowed in Markdown.</param>
     /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
+    public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false, bool allowAllLinkSchemesInMarkdown = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(description);
 
         builder.Resource.Description = description;
         builder.Resource.EnableDescriptionMarkdown = enableMarkdown;
-
+        builder.Resource.AllowAllLinkSchemesInMarkdown = allowAllLinkSchemesInMarkdown;
+        
         return builder;
     }
 
