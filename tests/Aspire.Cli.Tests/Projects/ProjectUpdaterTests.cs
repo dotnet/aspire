@@ -701,8 +701,10 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Verify Directory.Packages.props was updated
         var updatedContent = await File.ReadAllTextAsync(directoryPackagesPropsFile.FullName);
-        Assert.Contains("Version=\"9.5.0\"", updatedContent); // Should be updated to latest version
-        Assert.DoesNotContain("Version=\"9.4.1\"", updatedContent); // Should not contain old version
+        Assert.Contains("Aspire.StackExchange.Redis.OutputCaching\" Version=\"9.5.0\"", updatedContent); // Redis package should be updated
+        Assert.DoesNotContain("Aspire.StackExchange.Redis.OutputCaching\" Version=\"9.4.1\"", updatedContent); // Redis package should not contain old version
+        // Microsoft.Extensions.ServiceDiscovery should remain unchanged since it's not referenced in any project file
+        Assert.Contains("Microsoft.Extensions.ServiceDiscovery\" Version=\"9.4.1\"", updatedContent);
     }
 
     [Fact]

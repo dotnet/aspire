@@ -303,7 +303,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)
     {
-        // Heuristic 1: Presence of Directory.Packages.props in directory tree.
+        // Look for Directory.Packages.props in directory tree.
         for (var current = projectFile.Directory; current is not null; current = current.Parent)
         {
             var directoryPackagesPropsPath = Path.Combine(current.FullName, "Directory.Packages.props");
@@ -311,22 +311,6 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             {
                 return new CentralPackageManagementInfo(true, new FileInfo(directoryPackagesPropsPath));
             }
-        }
-
-        // Heuristic 2: ManagePackageVersionsCentrally property inside project.
-        try
-        {
-            var doc = new XmlDocument { PreserveWhitespace = true };
-            doc.Load(projectFile.FullName);
-            var manageNode = doc.SelectSingleNode("/Project/PropertyGroup/ManagePackageVersionsCentrally");
-            if (manageNode?.InnerText.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                return new CentralPackageManagementInfo(true, null);
-            }
-        }
-        catch
-        {
-            // Ignore parse errors.
         }
 
         return new CentralPackageManagementInfo(false, null);
