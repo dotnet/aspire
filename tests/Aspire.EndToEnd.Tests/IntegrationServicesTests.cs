@@ -4,7 +4,6 @@
 using Xunit;
 using Aspire.TestProject;
 using Aspire.Templates.Tests;
-using Aspire.TestUtilities;
 
 namespace Aspire.EndToEnd.Tests;
 
