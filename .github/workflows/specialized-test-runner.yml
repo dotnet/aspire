@@ -32,12 +32,12 @@ jobs:
       # and find out whether it contains any tests of the specified type.
       - name: Build the solution
         run: |
-          ./build.cmd -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
+          ./build.sh --restore --build -c Release --ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
         run: |
-          ./build.cmd -test /p:TestRunnerName=${{ inputs.test_runner_name }} /p:${{ inputs.test_property }}=true -c Release -ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
+          ./build.sh --test /p:TestRunnerName=${{ inputs.test_runner_name }} /p:${{ inputs.test_property }}=true -c Release --ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
 
       - name: Upload logs, and test results
         if: ${{ always() }}
