@@ -747,6 +747,20 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.Redis" => new NuGetPackageCli { Id = "Aspire.Hosting.Redis", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
                     GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
                     {
                         var itemsAndProperties = new JsonObject();
@@ -835,10 +849,24 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.Redis" => new NuGetPackageCli { Id = "Aspire.Hosting.Redis", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
                     GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
                     {
                         var itemsAndProperties = new JsonObject();
-                        itemsAndProperties.WithSdkVersion("9.4.1");
+                        itemsAndProperties.WithSdkVersion("9.5.0"); // Already up to date
                         itemsAndProperties.WithPackageReferenceWithoutVersion("Aspire.Hosting.Redis");
 
                         var json = itemsAndProperties.ToJsonString();
@@ -983,6 +1011,9 @@ internal static class MSBuildJsonDocumentExtensions
     public static JsonObject WithProjectReference(this JsonObject root, string fullPath)
     {
         JsonObject items = new JsonObject();
+        items.Add("ProjectReference", new JsonArray());
+        items.Add("PackageReference", new JsonArray());
+
         if (!root.TryAdd("Items", items))
         {
             items = root["Items"]!.AsObject();
@@ -992,6 +1023,12 @@ internal static class MSBuildJsonDocumentExtensions
         if (!items.TryAdd("ProjectReference", projectReferences))
         {
             projectReferences = items["ProjectReference"]!.AsArray();
+        }
+
+        // Ensure PackageReference array exists
+        if (!items.ContainsKey("PackageReference"))
+        {
+            items.Add("PackageReference", new JsonArray());
         }
 
         JsonObject newProjectReference = new JsonObject
