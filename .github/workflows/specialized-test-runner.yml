@@ -21,7 +21,7 @@ jobs:
 
   generate_tests_matrix:
     name: Generate test runsheet
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
