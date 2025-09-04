@@ -11,29 +11,26 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a specified executable process.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
 /// <remarks>
 /// You can run any executable command using its full path.
 /// As a security feature, Aspire doesn't run executable unless the command is located in a path listed in the PATH environment variable.
 /// <para/> 
 /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
 /// </remarks>
-public class ExecutableResource(string name, string command, string workingDirectory)
-    : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
+public class ExecutableResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
     IComputeResource
 {
-    /// <inheritdoc/>
-    public override ResourceAnnotationCollection Annotations { get; } = [
-        new ExecutableAnnotation
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="command">The command to execute.</param>
+    /// <param name="workingDirectory">The working directory of the executable. Can be empty.</param>
+    public ExecutableResource(string name, string command, string workingDirectory) : base(name)
+    {
+        Annotations.Add(new ExecutableAnnotation
         {
             Command = ThrowIfNullOrEmpty(command),
             WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory)),
-        }
-    ];
-
-    //TODO: Should Command & WorkingDirectory be obsoleted in favour of the annotation
+        });
+    }
 
     /// <summary>
     /// Gets the command associated with this executable resource.
