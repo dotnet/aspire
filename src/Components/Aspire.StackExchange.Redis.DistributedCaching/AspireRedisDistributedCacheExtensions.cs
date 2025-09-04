@@ -75,17 +75,25 @@ public static class AspireRedisDistributedCacheExtensions
     }
 
     /// <summary>
-    /// 
+    /// Configures the Redis client to also provide distributed caching services through <see cref="IDistributedCache"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="AspireRedisClientBuilder"/> to configure.</param>
+    /// <returns>The <see cref="AspireRedisClientBuilder"/> for method chaining.</returns>
     public static AspireRedisClientBuilder WithDistributedCache(this AspireRedisClientBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.HostBuilder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>
         {
-            options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>());
+            var key = builder.ServiceKey;
+            if (key is null)
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>());
+            }
+            else
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredKeyedService<IConnectionMultiplexer>(key));
+            }
         });
 
         return builder;
