@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Lifecycle;
 /// <summary>
 /// Defines an interface for hooks that are executed during the lifecycle of a distributed application.
 /// </summary>
+[Obsolete("Use the IDistributedApplicationEventing service and DistributedApplicationEventingExtensions extension methods instead.")]
 public interface IDistributedApplicationLifecycleHook
 {
     /// <summary>

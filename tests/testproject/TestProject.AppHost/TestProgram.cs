@@ -153,12 +153,16 @@ public class TestProgram : IDisposable
     /// Writes the allocated endpoints to the console in JSON format.
     /// This allows for easier consumption by the external test process.
     /// </summary>
-    private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
+    private sealed class EndPointWriterHook(
+        DistributedApplicationModel appModel,
+        DistributedApplicationEventing eventing
+        ) : IHostedService
     {
-        public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        private Dictionary<string, JsonObject> _projectEndpoints = new();
+
+        public async Task OnResourcesCreated(ResourcesCreatedEvent @event, CancellationToken cancellationToken)
         {
-            var root = new JsonObject();
-            foreach (var project in appModel.Resources.OfType<ProjectResource>())
+            foreach (var project in @event.Model.Resources.OfType<ProjectResource>())
             {
                 var projectJson = new JsonObject();
                 root[project.Name] = projectJson;
@@ -185,6 +189,18 @@ public class TestProgram : IDisposable
 
             // write the whole json in a single line so it's easier to parse by the external process
             await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            // We can assume endpoints are allocated before project resources are created
+            eventing.Subscribe<ResourcesCreatedEvent>(OnResourcesCreated);
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
         }
     }
 }

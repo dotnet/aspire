@@ -2,20 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Eventing;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Kubernetes;
 
 /// <summary>
 /// Represents the infrastructure for Kubernetes within the Aspire Hosting environment.
-/// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
+/// Implements <see cref="IHostedService"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Kubernetes resources before publish.
 /// </summary>
 internal sealed class KubernetesInfrastructure(
     ILogger<KubernetesInfrastructure> logger,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+    DistributedApplicationEventing eventing,
+    DistributedApplicationExecutionContext executionContext) : IHostedService
 {
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         if (executionContext.IsRunMode)
         {
@@ -23,11 +25,11 @@ internal sealed class KubernetesInfrastructure(
         }
 
         // Find Kubernetes environment resources
-        var kubernetesEnvironments = appModel.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
+        var kubernetesEnvironments = @event.Model.Resources.OfType<KubernetesEnvironmentResource>().ToArray();
 
         if (kubernetesEnvironments.Length == 0)
         {
-            EnsureNoPublishAsKubernetesServiceAnnotations(appModel);
+            EnsureNoPublishAsKubernetesServiceAnnotations(@event.Model);
             return;
         }
 
@@ -35,7 +37,7 @@ internal sealed class KubernetesInfrastructure(
         {
             var environmentContext = new KubernetesEnvironmentContext(environment, logger);
 
-            foreach (var r in appModel.GetComputeResources())
+            foreach (var r in @event.Model.GetComputeResources())
             {
                 // Create a Kubernetes compute resource for the resource
                 var serviceResource = await environmentContext.CreateKubernetesResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
@@ -60,5 +62,16 @@ internal sealed class KubernetesInfrastructure(
                 throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as a Kubernetes service, but there are no '{nameof(KubernetesEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(KubernetesEnvironmentExtensions.AddKubernetesEnvironment)}'.");
             }
         }
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }

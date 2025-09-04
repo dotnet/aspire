@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Aspire.Hosting.Eventing;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.Services.TryAddLifecycleHook<TestResourceLifecycleHook>();
+builder.Services.AddHostedService<TestResourceLifecycle>();
 
 AddTestResource("healthy", HealthStatus.Healthy, "I'm fine, thanks for asking.");
 AddTestResource("unhealthy", HealthStatus.Unhealthy, "I can't do that, Dave.", exceptionMessage: "Feeling unhealthy.");
@@ -60,11 +59,11 @@ void AddTestResource(string name, HealthStatus status, string? description = nul
 
 internal sealed class TestResource(string name) : Resource(name);
 
-internal sealed class TestResourceLifecycleHook(ResourceNotificationService notificationService) : IDistributedApplicationLifecycleHook
+internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService) : IHostedService
 {
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
-        foreach (var resource in appModel.Resources.OfType<TestResource>())
+        foreach (var resource in @event.Model.Resources.OfType<TestResource>())
         {
             Task.Run(
                 async () =>
@@ -78,6 +77,17 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
                 cancellationToken);
         }
 
+        return Task.CompletedTask;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
         return Task.CompletedTask;
     }
 }

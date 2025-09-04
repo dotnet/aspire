@@ -5,7 +5,8 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
-using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Eventing;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -13,25 +14,20 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents the infrastructure for Azure Container Apps within the Aspire Hosting environment.
-/// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
 /// </summary>
 internal sealed class AzureContainerAppsInfrastructure(
     ILogger<AzureContainerAppsInfrastructure> logger,
-    IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+    DistributedApplicationExecutionContext executionContext,
+    IOptions<AzureProvisioningOptions> options,
+    DistributedApplicationEventing eventing) : IHostedService
 {
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
-        if (executionContext.IsRunMode)
-        {
-            return;
-        }
-
-        var caes = appModel.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
+        var caes = @event.Model.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
         if (caes.Length == 0)
         {
-            EnsureNoPublishAsAcaAnnotations(appModel);
+            EnsureNoPublishAsAcaAnnotations(@event.Model);
             return;
         }
 
@@ -42,9 +38,9 @@ internal sealed class AzureContainerAppsInfrastructure(
                 executionContext,
                 environment);
 
-            foreach (var r in appModel.GetComputeResources())
+            foreach (var r in @event.Model.GetComputeResources())
             {
-                var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, provisioningOptions.Value, cancellationToken).ConfigureAwait(false);
+                var containerApp = await containerAppEnvironmentContext.CreateContainerAppAsync(r, options.Value, cancellationToken).ConfigureAwait(false);
 
                 // Capture information about the container registry used by the
                 // container app environment in the deployment target information
@@ -67,5 +63,16 @@ internal sealed class AzureContainerAppsInfrastructure(
                 throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.");
             }
         }
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }

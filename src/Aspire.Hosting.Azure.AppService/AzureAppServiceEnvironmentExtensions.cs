@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppService;
-using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.ContainerRegistry;
@@ -26,7 +25,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
         builder.Services.Configure<AzureProvisioningOptions>(options => options.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureAppServiceInfrastructure>();
+        builder.Services.AddHostedService<AzureAppServiceInfrastructure>();
 
         return builder;
     }

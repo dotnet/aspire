@@ -482,7 +482,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
             var eventing = _host.Services.GetRequiredService<IDistributedApplicationEventing>();
             await eventing.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
 
+#pragma warning disable CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
             var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+#pragma warning restore CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 
             foreach (var lifecycleHook in lifecycleHooks)

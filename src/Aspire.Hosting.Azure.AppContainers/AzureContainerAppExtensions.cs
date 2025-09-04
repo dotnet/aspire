@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppContainers;
-using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.ContainerRegistry;
@@ -42,7 +41,10 @@ public static class AzureContainerAppExtensions
         // so Azure resources don't need to add the default role assignments themselves
         builder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Services.AddHostedService<AzureContainerAppsInfrastructure>();
+        }
 
         return builder;
     }

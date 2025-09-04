@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
-using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -15,7 +15,7 @@ public static class DockerComposeEnvironmentExtensions
 {
     internal static IDistributedApplicationBuilder AddDockerComposeInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
+        builder.Services.AddHostedService<DockerComposeInfrastructure>();
 
         return builder;
     }
