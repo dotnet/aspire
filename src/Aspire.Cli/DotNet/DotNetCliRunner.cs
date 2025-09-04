@@ -153,7 +153,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         
         if (properties.Length > 0)
         {
-            cliArgsList.Add($"-getProperty:{string.Join(",", properties)}");
+            // HACK: MSBuildVersion here because if you ever invoke `dotnet msbuild -getproperty with just a single
+            //       property it will not be returned as JSON. I've reported this as a problem to MSBuild but obviously
+            //       we need to work around it:
+            //
+            //       https://github.com/dotnet/msbuild/issues/12490
+            //
+            cliArgsList.Add($"-getProperty:MSBuildVersion,{string.Join(",", properties)}");
         }
         
         if (items.Length > 0)
