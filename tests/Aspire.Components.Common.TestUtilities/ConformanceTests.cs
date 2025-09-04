@@ -436,7 +436,6 @@ public abstract class ConformanceTests<TService, TOptions>
     // is here and derived types call it
     protected void ActivitySourceTest(string? key)
     {
-        //Debugger.Launch();
         HostApplicationBuilder builder = CreateHostBuilder(key: key);
         RegisterComponent(builder, options => SetTracing(options, true), key);
 
