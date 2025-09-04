@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var frontend = builder.AddProject<Projects.WebFrontEnd>("frontend");
 
-builder.AddDevTunnel("devtunnel", options: new() { CliFullPath = "D:\\src\\devtunnel.exe" })
+builder.AddDevTunnel("devtunnel")
     .WithReference(frontend);
 
 #if !SKIP_DASHBOARD_REFERENCE
