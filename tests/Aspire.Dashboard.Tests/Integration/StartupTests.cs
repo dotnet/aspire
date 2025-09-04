@@ -31,7 +31,6 @@ namespace Aspire.Dashboard.Tests.Integration;
 public class StartupTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [OuterloopTest("Full dashboard application startup test")]
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
