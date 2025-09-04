@@ -97,7 +97,7 @@ public static class OtlpHttpEndpointsBuilder
     private static void LogUnsupportedContentTypeWarning(HttpContext httpContext)
     {
         var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
-        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported", 
+        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", 
             httpContext.Request.ContentType, ProtobufContentType);
     }
 
