@@ -56,8 +56,6 @@ jobs:
     needs: generate_tests_matrix
     if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.runsheet != '[]' && contains(needs.generate_tests_matrix.outputs.runsheet, '"requiresNugets":true') }}
     uses: ./.github/workflows/build-packages.yml
-    with:
-      uploadArchSpecificNugets: false
 
   run_tests:
     name: Test
