@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using Aspire.Microsoft.Azure.StackExchangeRedis;
 using Aspire.StackExchange.Redis;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 
@@ -36,13 +38,10 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
         {
             Debug.Assert(azureSettings != null);
 
-            // Configure Azure authentication if credential is provided
-            if (azureSettings.Credential != null)
-            {
-                // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
-                // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
-                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, azureSettings.Credential).GetAwaiter().GetResult();
-            }
+            var credential = azureSettings.Credential ?? new DefaultAzureCredential();
+            // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
+            // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
+            AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, credential).GetAwaiter().GetResult();
 
             configureOptions?.Invoke(options);
         });
@@ -71,16 +70,39 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
         {
             Debug.Assert(azureSettings != null);
 
-            // Configure Azure authentication if credential is provided
-            if (azureSettings.Credential != null)
-            {
-                // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
-                // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
-                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, azureSettings.Credential).GetAwaiter().GetResult();
-            }
+            var credential = azureSettings.Credential ?? new DefaultAzureCredential();
+            // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
+            // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
+            AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(options, credential).GetAwaiter().GetResult();
 
             configureOptions?.Invoke(options);
         });
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="credential"></param>
+    /// <returns></returns>
+    public static AspireRedisClientBuilder WithAzureAuthentication(this AspireRedisClientBuilder builder, TokenCredential? credential = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var optionsName = builder.ServiceKey is null ? Options.Options.DefaultName : builder.ServiceKey;
+
+        builder.HostBuilder.Services.Configure<ConfigurationOptions>(
+            optionsName,
+            configurationOptions =>
+            {
+                credential ??= new DefaultAzureCredential();
+
+                // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
+                // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
+                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(configurationOptions, credential).GetAwaiter().GetResult();
+            });
+
+        return builder;
     }
 
     private static AzureStackExchangeRedisSettings ConfigureSettings(Action<AzureStackExchangeRedisSettings>? userConfigureSettings, StackExchangeRedisSettings settings)

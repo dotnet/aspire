@@ -36,6 +36,22 @@ public static class AspireRedisExtensions
         string connectionName,
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
+        => AddRedisClientBuilder(builder, connectionName, configureSettings, configureOptions);
+
+    /// <summary>
+    /// Registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis" section.</remarks>
+    public static AspireRedisClientBuilder AddRedisClientBuilder(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<StackExchangeRedisSettings>? configureSettings = null,
+        Action<ConfigurationOptions>? configureOptions = null)
         => AddRedisClient(builder, configureSettings, configureOptions, connectionName, serviceKey: null);
 
     /// <summary>
@@ -58,12 +74,12 @@ public static class AspireRedisExtensions
         AddRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddRedisClient(
+    private static AspireRedisClientBuilder AddRedisClient(
         IHostApplicationBuilder builder,
         Action<StackExchangeRedisSettings>? configureSettings,
         Action<ConfigurationOptions>? configureOptions,
         string connectionName,
-        object? serviceKey)
+        string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
@@ -138,6 +154,8 @@ public static class AspireRedisExtensions
                     connectionMultiplexerFactory: sp => serviceKey is null ? sp.GetRequiredService<IConnectionMultiplexer>() : sp.GetRequiredKeyedService<IConnectionMultiplexer>(serviceKey),
                     healthCheckName));
         }
+
+        return new AspireRedisClientBuilder(builder, settings, serviceKey);
     }
 
     private static ConnectionMultiplexer CreateConnection(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string optionsName)

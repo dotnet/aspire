@@ -74,6 +74,23 @@ public static class AspireRedisDistributedCacheExtensions
         });
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <returns></returns>
+    public static AspireRedisClientBuilder WithDistributedCache(this AspireRedisClientBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.HostBuilder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>
+        {
+            options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>());
+        });
+
+        return builder;
+    }
+
     private static void AddRedisDistributedCacheCore(this IHostApplicationBuilder builder, Action<RedisCacheOptions, IServiceProvider> configureRedisOptions)
     {
         builder.Services.AddStackExchangeRedisCache(static _ => { });
