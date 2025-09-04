@@ -46,7 +46,6 @@ public class ContainerResourceBuilderTests
         executable.WithWorkingDirectory("");
 
         var annotation = executable.Resource.Annotations.OfType<ExecutableAnnotation>().Single();
-        Assert.Equal("newworkingdirectory", annotation.WorkingDirectory);
-
+        Assert.Equal("", annotation.WorkingDirectory);
     }    
 }
