@@ -50,11 +50,9 @@ jobs:
             ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
           retention-days: 5
 
-  # Build packages only if any test requires nugets
   build_packages:
     name: Build packages
-    needs: generate_tests_matrix
-    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.runsheet != '[]' && contains(needs.generate_tests_matrix.outputs.runsheet, '"requiresNugets":true') }}
+    if: ${{ github.repository_owner == 'dotnet' }}
     uses: ./.github/workflows/build-packages.yml
 
   run_tests:
