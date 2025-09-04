@@ -79,7 +79,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
-        hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name, sqlServerOptionsAction: null);
+        hb.AddSqlServerDbContext<TestDbContext>(newDb.Resource.Name);
         hb.AddSqlServerClient(newDb.Resource.Name);
 
         using var host = hb.Build();

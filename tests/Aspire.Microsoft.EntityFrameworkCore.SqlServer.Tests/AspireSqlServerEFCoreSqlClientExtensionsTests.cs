@@ -25,7 +25,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString)
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -41,7 +41,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", "unused")
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings => settings.ConnectionString = ConnectionString, sqlServerOptionsAction: null);
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings => settings.ConnectionString = ConnectionString);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -61,7 +61,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString)
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -88,7 +88,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             {
                 sqlBuilder.MinBatchSize(123);
             });
-        }, sqlServerOptionsAction: null);
+        });
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -132,7 +132,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             {
                 sqlBuilder.CommandTimeout(123);
             });
-        }, sqlServerOptionsAction: null);
+        });
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -208,8 +208,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseSqlServer(),
-                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null,
-                sqlServerOptionsAction: null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -244,8 +243,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
                 configureDbContextOptions: optionsBuilder =>
                     optionsBuilder.UseSqlServer(builder => builder.CommandTimeout(123)),
-                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null,
-                sqlServerOptionsAction: null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -275,8 +273,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection2", connectionString2),
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
-        builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2", sqlServerOptionsAction: null);
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
+        builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2");
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -308,7 +306,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseSqlServer(ConnectionString));
         }
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null));
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection"));
         Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddSqlServerDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
@@ -331,7 +329,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseSqlServer(ConnectionString));
         }
 
-        var exception = Record.Exception(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null));
+        var exception = Record.Exception(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection"));
 
         Assert.Null(exception);
     }
@@ -354,8 +352,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
         {
             capturedSettings = settings;
-        },
-        sqlServerOptionsAction: null);
+        });
 
         Assert.NotNull(capturedSettings);
         Assert.Equal(60, capturedSettings.CommandTimeout);
@@ -383,8 +380,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
         {
             capturedSettings = settings;
-        },
-        sqlServerOptionsAction: null);
+        });
 
         Assert.NotNull(capturedSettings);
         Assert.Equal(120, capturedSettings.CommandTimeout);
