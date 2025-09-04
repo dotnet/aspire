@@ -149,12 +149,21 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = [
-            "msbuild",
-            $"-getProperty:{string.Join(",", properties)}",
-            $"-getItem:{string.Join(",", items)}",
-            projectFile.FullName
-            ];
+        var cliArgsList = new List<string> { "msbuild" };
+        
+        if (properties.Length > 0)
+        {
+            cliArgsList.Add($"-getProperty:{string.Join(",", properties)}");
+        }
+        
+        if (items.Length > 0)
+        {
+            cliArgsList.Add($"-getItem:{string.Join(",", items)}");
+        }
+        
+        cliArgsList.Add(projectFile.FullName);
+        
+        string[] cliArgs = [.. cliArgsList];
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
