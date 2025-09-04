@@ -24,6 +24,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
 
     [Fact]
     [RequiresPlaywright]
+    [OuterloopTest("Resource-intensive dashboard integration test")]
     public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();

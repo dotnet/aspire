@@ -4,6 +4,7 @@
 using Xunit;
 using Aspire.TestProject;
 using Aspire.Templates.Tests;
+using Aspire.TestUtilities;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -23,6 +24,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.redis)]
+    [OuterloopTest("End-to-end integration test with multiple components")]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {

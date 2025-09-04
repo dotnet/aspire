@@ -23,6 +23,9 @@
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
+    
+    <!-- Include TestUtilities for OuterloopTest attribute -->
+    <IncludeTestUtilities>true</IncludeTestUtilities>
   </PropertyGroup>
 
   <ItemGroup>
