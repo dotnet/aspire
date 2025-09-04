@@ -39,6 +39,18 @@ on:
         required: false
         type: boolean
         default: false
+      # Controls whether to install Playwright browsers during project build
+      # Default is true for outerloop/quarantine workflows, false for main CI
+      installBrowsersForPlaywright:
+        required: false
+        type: boolean
+        default: true
+      # MSBuild properties to pass to build/test commands
+      # e.g., "/p:RunOuterloopTests=true" for outerloop tests
+      msBuildProperties:
+        required: false
+        type: string
+        default: ""
       os:
         required: false
         type: string
@@ -206,7 +218,7 @@ jobs:
         env:
           CI: false
         run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} ${{ inputs.versionOverrideArg }}
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} ${{ inputs.installBrowsersForPlaywright == false && '/p:InstallBrowsersForPlaywright=false' || '' }} ${{ inputs.msBuildProperties }} ${{ inputs.versionOverrideArg }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
@@ -216,6 +228,8 @@ jobs:
           ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
           /p:PrepareForHelix=true
           /bl:${{ github.workspace }}/artifacts/log/Debug/PrepareForHelix.binlog
+          ${{ inputs.installBrowsersForPlaywright == false && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.msBuildProperties }}
           ${{ inputs.versionOverrideArg }}
 
       # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
@@ -300,6 +314,7 @@ jobs:
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
           /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
+          ${{ inputs.msBuildProperties }}
           -bl:${{ github.workspace }}/testresults/test.binlog
           --no-restore
           --no-build

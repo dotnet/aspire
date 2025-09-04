@@ -77,6 +77,7 @@ jobs:
       # Docker tests are run on linux, and Hosting tests take longer to finish
       testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_macos:
@@ -91,6 +92,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_win:
@@ -105,6 +107,7 @@ jobs:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   templates_test_lin:
@@ -121,6 +124,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
@@ -139,6 +143,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
@@ -157,6 +162,7 @@ jobs:
       testSessionTimeout: 20m
       testHangTimeout: 12m
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
@@ -171,6 +177,7 @@ jobs:
       os: ubuntu-latest
       testProjectPath: tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
       requiresNugets: true
+      installBrowsersForPlaywright: false
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   extension_tests_win:
