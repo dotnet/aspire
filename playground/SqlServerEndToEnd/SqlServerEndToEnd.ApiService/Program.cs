@@ -8,8 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddSqlServerDbContext<MyDb1Context>("db1");
-builder.AddSqlServerDbContext<MyDb2Context>("db2");
+builder.AddSqlServerDbContext<MyDb1Context>("db1", sqlServerOptionsAction: null);
+builder.AddSqlServerDbContext<MyDb2Context>("db2", sqlServerOptionsAction: null);
 
 var app = builder.Build();
 

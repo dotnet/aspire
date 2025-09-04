@@ -12,7 +12,7 @@ builder.AddServiceDefaults();
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(ApiDbInitializer.ActivitySourceName));
 
-builder.AddSqlServerDbContext<MyDb1Context>("db1");
+builder.AddSqlServerDbContext<MyDb1Context>("db1", sqlServerOptionsAction: null);
 
 var app = builder.Build();
 

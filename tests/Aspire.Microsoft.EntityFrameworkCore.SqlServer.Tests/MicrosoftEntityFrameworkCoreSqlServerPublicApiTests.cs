@@ -15,7 +15,7 @@ public class MicrosoftEntityFrameworkCoreSqlServerPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "sqldb";
 
-        var action = () => builder.AddSqlServerDbContext<DbContext>(connectionName);
+        var action = () => builder.AddSqlServerDbContext<DbContext>(connectionName, sqlServerOptionsAction: null);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -29,7 +29,7 @@ public class MicrosoftEntityFrameworkCoreSqlServerPublicApiTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddSqlServerDbContext<DbContext>(connectionName);
+        var action = () => builder.AddSqlServerDbContext<DbContext>(connectionName, sqlServerOptionsAction: null);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

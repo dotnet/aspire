@@ -25,7 +25,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString)
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -41,7 +41,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", "unused")
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings => settings.ConnectionString = ConnectionString);
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings => settings.ConnectionString = ConnectionString, sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -61,7 +61,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString)
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -88,7 +88,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             {
                 sqlBuilder.MinBatchSize(123);
             });
-        });
+        }, sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -132,6 +132,41 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             {
                 sqlBuilder.CommandTimeout(123);
             });
+        }, sqlServerOptionsAction: null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+        // ensure the connection string from config was respected
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        // ensure no retry strategy was registered
+        Assert.Null(extension.ExecutionStrategyFactory);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void CanConfigureSqlServerOptions()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "true"),
+        ]);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: sqlBuilder =>
+        {
+            sqlBuilder.CommandTimeout(123);
         });
 
         using var host = builder.Build();
@@ -173,7 +208,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseSqlServer(),
-                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null,
+                sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -208,7 +244,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
                 configureDbContextOptions: optionsBuilder =>
                     optionsBuilder.UseSqlServer(builder => builder.CommandTimeout(123)),
-                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null,
+                sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -238,8 +275,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection2", connectionString2),
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
-        builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2");
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null);
+        builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2", sqlServerOptionsAction: null);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -271,7 +308,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseSqlServer(ConnectionString));
         }
 
-        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection"));
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null));
         Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddSqlServerDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
@@ -294,7 +331,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             builder.Services.AddDbContextPool<TestDbContext>(options => options.UseSqlServer(ConnectionString));
         }
 
-        var exception = Record.Exception(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection"));
+        var exception = Record.Exception(() => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", sqlServerOptionsAction: null));
 
         Assert.Null(exception);
     }
@@ -317,7 +354,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
         {
             capturedSettings = settings;
-        });
+        },
+        sqlServerOptionsAction: null);
 
         Assert.NotNull(capturedSettings);
         Assert.Equal(60, capturedSettings.CommandTimeout);
@@ -345,7 +383,8 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>(connectionName, settings =>
         {
             capturedSettings = settings;
-        });
+        },
+        sqlServerOptionsAction: null);
 
         Assert.NotNull(capturedSettings);
         Assert.Equal(120, capturedSettings.CommandTimeout);

@@ -20,12 +20,9 @@ if (args.Contains("--postgres"))
 }
 else
 {
-    builder.AddSqlServerDbContext<MyDb1Context>("db1", configureDbContextOptions: options =>
+    builder.AddSqlServerDbContext<MyDb1Context>("db1", sqlServerOptionsAction: options =>
     {
-        options.UseSqlServer(sqlServerOptions =>
-        {
-            sqlServerOptions.MigrationsAssembly("DatabaseMigration.ApiModel");
-        });
+        options.MigrationsAssembly("DatabaseMigration.ApiModel");
     });
 }
 

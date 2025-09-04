@@ -9,7 +9,7 @@ int insertionRows = builder.Configuration.GetValue<int>("InsertionRows", 1);
 
 builder.AddServiceDefaults();
 
-builder.AddSqlServerDbContext<MyDbContext>("db");
+builder.AddSqlServerDbContext<MyDbContext>("db", sqlServerOptionsAction: null);
 
 var app = builder.Build();
 

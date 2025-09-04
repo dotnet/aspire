@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.AddAzureBlobServiceClient("blobs");
-builder.AddSqlServerDbContext<SqlContext>("sqldb");
+builder.AddSqlServerDbContext<SqlContext>("sqldb", sqlServerOptionsAction: null);
 builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");

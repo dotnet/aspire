@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using SqlServerEndToEnd.Common;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSqlServerDbContext<MyDb1Context>("db1");
-builder.AddSqlServerDbContext<MyDb2Context>("db2");
+builder.AddSqlServerDbContext<MyDb1Context>("db1", sqlServerOptionsAction: null);
+builder.AddSqlServerDbContext<MyDb2Context>("db2", sqlServerOptionsAction: null);
 using var app = builder.Build();
 using var scope = app.Services.CreateScope();
 using var db1 = scope.ServiceProvider.GetRequiredService<MyDb1Context>();

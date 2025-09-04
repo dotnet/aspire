@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddSqlServerDbContext<MyDbContext>("db");
+builder.AddSqlServerDbContext<MyDbContext>("db", sqlServerOptionsAction: null);
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
 builder.AddAzureCosmosClient("cosmos");
 builder.AddRedisClient("redis");

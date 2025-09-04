@@ -77,7 +77,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
-        => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
+        => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure, sqlServerOptionsAction: null);
 
     protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => options.DisableHealthChecks = !enabled;
