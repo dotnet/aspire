@@ -12,43 +12,8 @@ concurrency:
 
 jobs:
   outerloop_tests:
-    name: Outerloop Tests
-    runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'dotnet' }}
-
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Trust HTTPS development certificate
-        run: ./dotnet.sh dev-certs https --trust
-
-      - name: Build the solution
-        run: |
-          ./build.sh -restore -build -c Release -ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
-
-      - name: Run outerloop tests
-        env:
-          DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
-        run: |
-          ./dotnet.sh test --no-build --filter-trait "outerloop=true" --logger "trx;LogFileName=outerloop-tests.trx" --logger "console;verbosity=normal" --results-directory "${{ github.workspace }}/artifacts/TestResults" -c Release
-
-      - name: Upload logs and test results
-        if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: outerloop-test-logs
-          path: |
-            ${{ github.workspace }}/testresults/**
-            ${{ github.workspace }}/artifacts/log/*/TestLogs/**/*.log
-            ${{ github.workspace }}/artifacts/TestResults/*/*.trx
-          retention-days: 30
-
-      - name: Generate test results summary
-        if: always()
-        env:
-          CI: false
-        run: |
-          if [ -d "${{ github.workspace }}/artifacts/TestResults" ]; then
-            ./dotnet.sh run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/artifacts/TestResults"
-          fi
+    uses: ./.github/workflows/specialized-test-runner.yml
+    with:
+      test_type: "outerloop"
+      test_runner_name: "OuterloopTestRunsheetBuilder"
+      test_property: "RunOuterloopTests"
