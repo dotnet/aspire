@@ -84,30 +84,30 @@
 
 (1) Build from the root with `./build.sh` (~3-5 minutes).
 (2) If that produces errors, fix those errors and build again. Repeat until the build is successful.
-(3) To run tests for a specific project: `dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true"`
+(3) To run tests for a specific project: `dotnet test tests/ProjectName.Tests/ProjectName.Tests.csproj --no-build -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"`
 
 Note that tests for a project can be executed without first building from the root.
 
 (4) To run specific tests, include the filter after `--`:
 ```bash
-dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true"
+dotnet test tests/Aspire.Hosting.Testing.Tests/Aspire.Hosting.Testing.Tests.csproj -- --filter-method "TestingBuilderHasAllPropertiesFromRealBuilder" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
 
 **Important**: Avoid passing `--no-build` unless you have just built in the same session and there have been no code changes since. In automation or while iterating on code, omit `--no-build` so changes are compiled and picked up by the test run.
 
-### CRITICAL: Excluding Quarantined Tests
+### CRITICAL: Excluding Quarantined and Outerloop Tests
 
-When running tests in automated environments (including Copilot agent), **always exclude quarantined tests** to avoid false negatives:
+When running tests in automated environments (including Copilot agent), **always exclude quarantined and outerloop tests** to avoid false negatives and long-running tests:
 
 ```bash
-# Correct - excludes quarantined tests (use this in automation)
-dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true"
+# Correct - excludes quarantined and outerloop tests (use this in automation)
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 
-# For specific test filters, combine with quarantine exclusion
-dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true"
+# For specific test filters, combine with quarantine and outerloop exclusion
+dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestName" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 ```
 
-Never run all tests without the quarantine filter in automated environments, as this will include flaky tests that are known to fail intermittently.
+Never run all tests without the quarantine and outerloop filters in automated environments, as this will include flaky tests that are known to fail intermittently and long-running tests that slow down CI.
 
 Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
 
@@ -140,7 +140,8 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 ### Continuous Integration
 - **`tests.yml`**: Main test workflow running across Windows/Linux/macOS
-- **`tests-outerloop.yml`**: Runs quarantined tests separately every 2 hours
+- **`tests-quarantine.yml`**: Runs quarantined tests separately every 6 hours
+- **`tests-outerloop.yml`**: Runs outerloop tests separately every 6 hours
 - **`ci.yml`**: Main CI workflow triggered on PRs and pushes to main/release branches
 - **Build validation**: Includes package generation, API compatibility checks, template validation
 
@@ -158,12 +159,21 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
 
 - Tests that are flaky and don't fail deterministically are marked with the `QuarantinedTest` attribute.
 - Such tests are not run as part of the regular tests workflow (`tests.yml`).
-    - Instead they are run in the `Outerloop` workflow (`tests-outerloop.yml`).
+    - Instead they are run in the `Quarantine` workflow (`tests-quarantine.yml`).
 - A github issue url is used with the attribute
 
 Example: `[QuarantinedTest("..issue url..")]`
 
 - To quarantine or unquarantine tests, use the tool in `tools/QuarantineTools/QuarantineTools.csproj`.
+
+## Outerloop tests
+
+- Tests that are long-running, resource-intensive, or require special infrastructure are marked with the `OuterloopTest` attribute.
+- Such tests are not run as part of the regular tests workflow (`tests.yml`).
+    - Instead they are run in the `Outerloop` workflow (`tests-outerloop.yml`).
+- An optional reason can be provided with the attribute
+
+Example: `[OuterloopTest("Long running integration test")]`
 
 ## Snapshot Testing with Verify
 
