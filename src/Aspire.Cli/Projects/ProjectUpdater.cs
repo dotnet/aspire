@@ -338,7 +338,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        var currentVersion = GetPackageVersionFromDirectoryPackagesProps(packageId, directoryPackagesPropsFile);
+        var currentVersion = await GetPackageVersionFromDirectoryPackagesPropsAsync(packageId, directoryPackagesPropsFile, projectFile, cancellationToken);
         
         if (currentVersion is null)
         {
@@ -364,19 +364,117 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         context.UpdateSteps.Enqueue(updateStep);
     }
 
-    private static string? GetPackageVersionFromDirectoryPackagesProps(string packageId, FileInfo directoryPackagesPropsFile)
+    private async Task<string?> GetPackageVersionFromDirectoryPackagesPropsAsync(string packageId, FileInfo directoryPackagesPropsFile, FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {
             var doc = new XmlDocument { PreserveWhitespace = true };
             doc.Load(directoryPackagesPropsFile.FullName);
             var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
-            return packageVersionNode?.Attributes?["Version"]?.Value;
+            var versionAttribute = packageVersionNode?.Attributes?["Version"]?.Value;
+            
+            if (versionAttribute is null)
+            {
+                return null;
+            }
+
+            // Check if this is an MSBuild property expression like $(AspireVersion)
+            if (IsMSBuildPropertyExpression(versionAttribute))
+            {
+                var propertyName = ExtractPropertyNameFromExpression(versionAttribute);
+                if (propertyName is not null)
+                {
+                    var resolvedValue = await ResolveMSBuildPropertyAsync(propertyName, projectFile, cancellationToken);
+                    if (resolvedValue is not null && IsValidSemanticVersion(resolvedValue))
+                    {
+                        return resolvedValue;
+                    }
+                    else
+                    {
+                        throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, 
+                            "Unable to resolve MSBuild property '{0}' to a valid semantic version. Expression: '{1}', Resolved value: '{2}'",
+                            propertyName, versionAttribute, resolvedValue ?? "null"));
+                    }
+                }
+                else
+                {
+                    throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "Invalid MSBuild property expression in package version: '{0}'", versionAttribute));
+                }
+            }
+
+            return versionAttribute;
+        }
+        catch (ProjectUpdaterException)
+        {
+            // Re-throw our custom exceptions
+            throw;
         }
         catch
         {
             // Ignore parse errors.
             return null;
+        }
+    }
+
+    private static bool IsMSBuildPropertyExpression(string value)
+    {
+        return value.StartsWith("$(") && value.EndsWith(")") && value.Length > 3;
+    }
+
+    private static string? ExtractPropertyNameFromExpression(string expression)
+    {
+        if (!IsMSBuildPropertyExpression(expression))
+        {
+            return null;
+        }
+
+        // Extract property name from $(PropertyName)
+        return expression.Substring(2, expression.Length - 3);
+    }
+
+    private async Task<string?> ResolveMSBuildPropertyAsync(string propertyName, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (exitCode, document) = await runner.GetProjectItemsAndPropertiesAsync(
+                projectFile, 
+                Array.Empty<string>(), // No items needed
+                [propertyName], // Just the property we want
+                new(), 
+                cancellationToken);
+
+            if (exitCode != 0 || document is null)
+            {
+                logger.LogWarning("Failed to resolve MSBuild property '{PropertyName}' for project '{ProjectFile}'", propertyName, projectFile.FullName);
+                return null;
+            }
+
+            var propertiesElement = document.RootElement.GetProperty("Properties");
+            if (propertiesElement.TryGetProperty(propertyName, out var propertyElement))
+            {
+                return propertyElement.GetString();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Exception while resolving MSBuild property '{PropertyName}' for project '{ProjectFile}'", propertyName, projectFile.FullName);
+            return null;
+        }
+    }
+
+    private static bool IsValidSemanticVersion(string version)
+    {
+        try
+        {
+            SemVersion.Parse(version);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
