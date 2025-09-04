@@ -14,6 +14,10 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ConnectionStrings__testdb": "{testdb.connectionString}"
       }
+    },
+    "InvalidDb": {
+      "type": "value.v0",
+      "connectionString": "{kusto.connectionString};Initial Catalog=__invalid"
     }
   }
 }
