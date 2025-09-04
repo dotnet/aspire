@@ -9,6 +9,11 @@ namespace Aspire.Hosting.DevTunnels;
 public sealed class DevTunnelOptions
 {
     /// <summary>
+    /// Optional full path to the devtunnel CLI executable. If not specified, the devtunnel CLI is expected to be on the system PATH.
+    /// </summary>
+    public string? CliFullPath { get; set; }
+
+    /// <summary>
     /// Optional description for the tunnel.
     /// </summary>
     public string? Description { get; set; }
@@ -42,6 +47,8 @@ public sealed class DevTunnelOptions
     /// Optional labels to attach to the tunnel as a one-dimensional list of strings.
     /// </summary>
     public List<string>? Labels { get; set; }
+
+    internal string GetCliPath() => CliFullPath ?? "devtunnel";
 }
 
 /// <summary>
@@ -50,12 +57,12 @@ public sealed class DevTunnelOptions
 public sealed class DevTunnelPortOptions
 {
     /// <summary>
-    /// Human-friendly name for this port within the tunnel. Defaults to the endpoint's name.
+    /// A description for this port within the tunnel. Defaults to the endpoint's name.
     /// </summary>
-    public string? Name { get; set; }
+    public string? Description { get; set; }
 
     /// <summary>
-    /// Protocol type to expose. "http", "https", or "tcp".
+    /// Protocol type to expose. "http", "https", or "auto".
     /// </summary>
     public string Protocol { get; set; } = "http";
 

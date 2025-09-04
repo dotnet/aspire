@@ -11,12 +11,10 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal sealed class DevTunnelCli
 {
-    //private const int ResourceConflictsWithExistingExitCode = 1;
-    private const int ResourceNotFoundExitCode = 2;
+    public const int ResourceConflictsWithExistingExitCode = 1;
+    public const int ResourceNotFoundExitCode = 2;
 
     private readonly string _cliPath;
-
-    public DevTunnelCli() : this("D:\\src\\devtunnel.exe") { }
 
     public DevTunnelCli(string filePath)
     {
@@ -27,6 +25,8 @@ internal sealed class DevTunnelCli
 
         _cliPath = filePath;
     }
+
+    public string CliPath => _cliPath;
 
     public Task<int> UserLoginMicrosoftAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
         => RunAsync(["user", "login", "--entra", "--json"], outputWriter, errorWriter, cancellationToken);
@@ -47,29 +47,7 @@ internal sealed class DevTunnelCli
         => RunAsync(["user", "show", "--json"], outputWriter, errorWriter, cancellationToken);
 
     public Task<int> CreateTunnelAsync(
-        TextWriter? outputWriter = null,
-        TextWriter? errorWriter = null,
         string? tunnelId = null,
-        string? name = null,
-        DevTunnelOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        options ??= new DevTunnelOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list => list.Add("create"))
-            .AddIfNotNull("--tunnel-id", tunnelId)
-            .AddIfNotNull("--name", name)
-            .AddIfNotNull("--description", options.Description)
-            .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
-            .AddIfNotNull("--domain", options.Domain)
-            .AddIfNotNull("--tenant", options.Tenant)
-            .AddIfNotNull("--organization", options.Organization)
-            .AddLabels(options.Labels)
-            .ToArray(), outputWriter, errorWriter, cancellationToken);
-    }
-
-    public Task<int> UpdateTunnelAsync(
-        string tunnelId,
-        string? name = null,
         DevTunnelOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
@@ -78,42 +56,40 @@ internal sealed class DevTunnelCli
         options ??= new DevTunnelOptions();
         return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
         {
-            list.Add("update");
+            list.Add("create");
         })
-        .Add("--tunnel-id", tunnelId)
-        .AddIfNotNull("--name", name)
+        .AddIfNotNull(tunnelId)
         .AddIfNotNull("--description", options.Description)
         .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
-        .AddIfNotNull("--domain", options.Domain)
-        .AddIfNotNull("--tenant", options.Tenant)
-        .AddIfNotNull("--organization", options.Organization)
-        .AddLabels(options.Labels)
+        .AddLabels("--labels", options.Labels)
+        .AddIfTrue("--json", true)
         .ToArray(), outputWriter, errorWriter, cancellationToken);
     }
 
-    public async Task<int> CreateOrUpdateTunnelAsync(
+    public Task<int> UpdateTunnelAsync(
         string tunnelId,
-        string? name = null,
         DevTunnelOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
-        CancellationToken cancellationToken = default
-    )
+        CancellationToken cancellationToken = default)
     {
-        var exitCode = await UpdateTunnelAsync(tunnelId, name, options, outputWriter, errorWriter, cancellationToken).ConfigureAwait(false);
-        if (exitCode == ResourceNotFoundExitCode)
+        options ??= new DevTunnelOptions();
+        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
         {
-            // Tunnel does not exist, create it
-            return await CreateTunnelAsync(outputWriter, errorWriter, tunnelId, name, options, cancellationToken).ConfigureAwait(false);
-        }
-        return exitCode;
+            list.Add("update");
+            list.Add(tunnelId);
+        })
+        .AddIfNotNull("--description", options.Description)
+        .AddLabels("--add-labels", options.Labels)
+        .AddIfTrue("--json", true)
+        .ToArray(), outputWriter, errorWriter, cancellationToken);
     }
 
     public Task<int> DeleteTunnelAsync(string tunnelId, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["delete", "--tunnel-id", tunnelId], outputWriter, errorWriter, cancellationToken);
+        => RunAsync(["delete", tunnelId, "--json"], outputWriter, errorWriter, cancellationToken);
 
     public Task<int> ShowTunnelAsync(string tunnelId, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["show", "--tunnel-id", tunnelId], outputWriter, errorWriter, cancellationToken);
+        => RunAsync(["show", tunnelId, "--json"], outputWriter, errorWriter, cancellationToken);
 
     public Task<int> CreatePortAsync(
         string tunnelId,
@@ -124,19 +100,16 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
+        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
         {
             list.Add("port");
             list.Add("create");
+            list.Add(tunnelId);
         })
-        .Add("--tunnel-id", tunnelId)
         .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
         .AddIfNotNull("--protocol", options.Protocol)
-        .AddIfNotNull("--name", options.Name)
-        .AddIfTrue("--require-authentication", options.RequireAuthentication)
-        .AddIfNotNull("--host-header", options.ForwardHostHeader)
-        .AddIfNotNull("--path-prefix", options.PathPrefix)
-        .AddLabels(options.Labels)
+        .AddLabels("--labels", options.Labels)
+        .AddIfTrue("--json", true)
         .ToArray(), outputWriter, errorWriter, cancellationToken);
     }
 
@@ -149,19 +122,16 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
+        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
         {
             list.Add("port");
             list.Add("update");
+            list.Add(tunnelId);
         })
-        .Add("--tunnel-id", tunnelId)
         .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
-        .AddIfNotNull("--protocol", options.Protocol)
-        .AddIfNotNull("--name", options.Name)
-        .AddIfTrue("--require-authentication", options.RequireAuthentication)
-        .AddIfNotNull("--host-header", options.ForwardHostHeader)
-        .AddIfNotNull("--path-prefix", options.PathPrefix)
-        .AddLabels(options.Labels)
+        .AddIfNotNull("--description", options.Description)
+        .AddLabels("--add-labels", options.Labels)
+        .AddIfTrue("--json", true)
         .ToArray(), outputWriter, errorWriter, cancellationToken);
     }
 
@@ -314,6 +284,7 @@ internal sealed class DevTunnelCli
             RedirectStandardError = true,
             RedirectStandardInput = false,
             CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
         };
 
         // Prefer ArgumentList to avoid quoting issues.
@@ -380,6 +351,15 @@ internal static class DevTunnelCliArgBuilderExtensions
         return list;
     }
 
+    internal static List<string> AddIfNotNull(this List<string> list, string? name)
+    {
+        if (!string.IsNullOrEmpty(name))
+        {
+            list.Add(name);
+        }
+        return list;
+    }
+
     internal static List<string> AddIfTrue(this List<string> list, string name, bool? condition)
     {
         if (condition == true)
@@ -402,7 +382,7 @@ internal static class DevTunnelCliArgBuilderExtensions
     /// Adds labels using a single option in the form: --labels "label1 label2".
     /// The value is a space-separated list of label strings.
     /// </summary>
-    internal static List<string> AddLabels(this List<string> list, List<string>? labels)
+    internal static List<string> AddLabels(this List<string> list, string name, List<string>? labels)
     {
         if (labels is null || labels.Count == 0)
         {
@@ -415,7 +395,7 @@ internal static class DevTunnelCliArgBuilderExtensions
         var joined = string.Join(' ', tokens);
         if (!string.IsNullOrWhiteSpace(joined))
         {
-            list.Add("--labels");
+            list.Add(name);
             list.Add(joined);
         }
 

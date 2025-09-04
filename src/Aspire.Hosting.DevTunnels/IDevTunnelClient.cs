@@ -11,12 +11,12 @@ internal interface IDevTunnelClient
 
     Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelPort> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, CancellationToken cancellationToken = default);
+    Task<DevTunnelPortStatus> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, CancellationToken cancellationToken = default);
 
     Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, CancellationToken cancellationToken = default);
 }
 
-internal record UserLoginStatus(string Status, LoginProvider Provider, string Username)
+internal sealed record UserLoginStatus(string Status, LoginProvider Provider, string Username)
 {
     public bool IsLoggedIn => string.Equals(Status, "Logged in", StringComparison.OrdinalIgnoreCase);
 }
@@ -27,12 +27,14 @@ internal enum LoginProvider
     GitHub
 }
 
-internal record DevTunnelStatus(string TunnelId, string Name, IReadOnlyList<DevTunnelPort> Ports)
+internal sealed record DevTunnelStatus(string TunnelId, int HostConnections, int ClientConnections, string Description, IReadOnlyList<string> Labels)
 {
-    public int HostConnections { get; init; }
-    public int ClientConnections { get; init; }
-    public string Description { get; init; } = "";
-    public IReadOnlyList<string> Labels { get; init; } = [];
+    public IReadOnlyList<DevTunnelPort> Ports { get; init; } = [];
+
+    public sealed record DevTunnelPort(int PortNumber, string Protocol)
+    {
+        public Uri? PortUri { get; init; }
+    }
 }
 
-internal record DevTunnelPort(int PortNumber, string Protocol, Uri PublicUrl);
+internal sealed record DevTunnelPortStatus(string TunnelId, int PortNumber, string Protocol, int ClientConnections);

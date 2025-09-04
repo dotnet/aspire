@@ -6,55 +6,39 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.DevTunnels;
 
 /// <summary>
-/// Parent resource representing a Dev tunnel instance.
+/// A resource representing a persistent dev tunnel that runs for the life of the AppHost.
 /// </summary>
-public sealed class DevTunnelResource : ExecutableResource
+/// <param name="name"></param>
+/// <param name="tunnelId"></param>
+/// <param name="command"></param>
+/// <param name="workingDirectory"></param>
+/// <param name="options"></param>
+public sealed class DevTunnelResource(string name, string tunnelId, string command, string workingDirectory, DevTunnelOptions? options = null)
+    : ExecutableResource(name, command, workingDirectory)
 {
     /// <summary>
-    /// 
+    /// Options controlling how this tunnel is created and managed.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="tunnelId"></param>
-    /// <param name="command"></param>
-    /// <param name="workingDirectory"></param>
-    /// <param name="options"></param>
-    public DevTunnelResource(string name, string tunnelId, string command, string workingDirectory, DevTunnelOptions? options = null)
-        : base(name, command, workingDirectory)
-    {
-        Options = options ?? new DevTunnelOptions();
-        TunnelId = tunnelId;
-    }
+    public DevTunnelOptions Options { get; } = options ?? new DevTunnelOptions();
 
     /// <summary>
-    /// 
+    /// The unique ID for the dev tunnel.
     /// </summary>
-    public DevTunnelOptions Options { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public string TunnelId { get; init; }
+    public string TunnelId { get; init; } = tunnelId;
 
     internal List<DevTunnelPortResource> Ports { get; } = [];
 }
 
 /// <summary>
-/// Child resource representing a single forwarded endpoint/port on a Dev tunnel.
-/// Contains an endpoint that resolves to the public URL of this port.
+/// Child resource representing a single forwarded endpoint/port on a dev tunnel.
+/// Contains an endpoint that resolves to the public tunnel URL of this port.
 /// </summary>
-public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery, IResourceWithParent
+public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery
 {
     /// <summary>
-    /// 
+    /// The name of the endpoint within this resource that represents the public URL of the tunnel for this port.
     /// </summary>
-    public const string PublicEndpointName = "public";
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public const string InspectionEndpointName = "inspection";
-
-    private EndpointReference? _publicEndpoint;
+    public const string TunnelEndpointName = "tunnel";
 
     /// <summary>
     /// 
@@ -69,15 +53,16 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
         EndpointReference targetEndpoint,
         DevTunnelPortOptions? options = null) : base(name)
     {
-        Parent = tunnel;
+        DevTunnel = tunnel;
         Options = options ?? new DevTunnelPortOptions();
         TargetEndpoint = targetEndpoint;
+        TunnelEndpoint = new(this, TunnelEndpointName);
     }
 
     /// <summary>
-    /// The dev tunnel this port belongs to. Establishes lifecycle containment.
+    /// The dev tunnel this port belongs to.
     /// </summary>
-    public IResource Parent { get; }
+    public DevTunnelResource DevTunnel { get; }
 
     /// <summary>
     /// Options controlling how this port is exposed.
@@ -87,12 +72,10 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// <summary>
     /// The public URL of the tunnel for this port as an Aspire endpoint.
     /// </summary>
-    public EndpointReference PublicEndpoint => _publicEndpoint ??= new EndpointReference(this, PublicEndpointName);
+    public EndpointReference TunnelEndpoint { get; }
 
     /// <summary>
-    /// A non-endpoint inspect URL (if supported), attached as a dashboard link.
+    /// The local resource endpoint that this port forwards to.
     /// </summary>
-    public string? InspectUrl { get; internal set; }
-
     internal EndpointReference TargetEndpoint { get; init; }
 }

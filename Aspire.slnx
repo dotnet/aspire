@@ -169,6 +169,10 @@
   <Folder Name="/playground/deployers/">
     <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/DevTunnels/">
+    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.AppHost.csproj" />
+    <Project Path="playground/DevTunnels/WebFrontEnd/WebFrontEnd.csproj" />
+  </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
@@ -330,6 +334,7 @@
     <File Path="spelling.dic" />
     <File Path="src/Schema/aspire-8.0.json" />
   </Folder>
+  <Folder Name="/src/" />
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
