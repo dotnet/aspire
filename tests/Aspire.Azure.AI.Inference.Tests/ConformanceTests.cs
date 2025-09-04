@@ -80,12 +80,6 @@ public class ConformanceTests : ConformanceTests<IChatClient, ChatCompletionsCli
 
     protected override void TriggerActivity(IChatClient service)
     {
-        try
-        {
-            service.GetResponseAsync(new ChatMessage()).GetAwaiter().GetResult();
-        }
-        catch
-        {
-        }
+        service.GetResponseAsync(new ChatMessage()).GetAwaiter().GetResult();
     }
 }

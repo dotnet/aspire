@@ -104,12 +104,6 @@ public class ConformanceTests : ConformanceTests<IChatClient, AzureOpenAISetting
 
     protected override void TriggerActivity(IChatClient service)
     {
-        try
-        {
-            service.GetResponseAsync(new ChatMessage()).GetAwaiter().GetResult();
-        }
-        catch
-        {
-        }
+        service.GetResponseAsync(new ChatMessage()).GetAwaiter().GetResult();
     }
 }
