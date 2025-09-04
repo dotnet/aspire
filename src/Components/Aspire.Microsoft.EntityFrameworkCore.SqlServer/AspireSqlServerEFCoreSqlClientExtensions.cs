@@ -41,52 +41,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        builder.EnsureDbContextNotRegistered<TContext>();
-
-        var settings = builder.GetDbContextSettings<TContext, MicrosoftEntityFrameworkCoreSqlServerSettings>(
-            DefaultConfigSectionName,
-            connectionName,
-            (settings, section) => section.Bind(settings)
-        );
-
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            settings.ConnectionString = connectionString;
-        }
-
-        configureSettings?.Invoke(settings);
-
-        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
-
-        ConfigureInstrumentation<TContext>(builder, settings);
-
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
-        {
-            // We don't register logger factory, because there is no need to:
-            // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseSqlServer(settings.ConnectionString, builder =>
-            {
-                ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
-
-                // Resiliency:
-                // Connection resiliency automatically retries failed database commands
-                if (!settings.DisableRetry)
-                {
-                    builder.EnableRetryOnFailure();
-                }
-
-                // The time in seconds to wait for the command to execute.
-                if (settings.CommandTimeout.HasValue)
-                {
-                    builder.CommandTimeout(settings.CommandTimeout);
-                }
-            });
-
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
-        }
+        builder.AddSqlServerDbContext<TContext>(connectionName, configureSettings, configureDbContextOptions, null);
     }
 
     /// <summary>
