@@ -83,6 +83,10 @@
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not."
             },
+            "EnableSensitiveTelemetryData": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry."
+            },
             "Endpoint": {
               "type": "string",
               "format": "uri",
