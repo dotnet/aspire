@@ -27,6 +27,11 @@
         <target state="translated">Die zentrale Paketverwaltung wird von „aspire update“ zurzeit nicht unterstützt.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">Das Root-Element &lt;Project&gt; wurde in {0} nicht gefunden.</target>

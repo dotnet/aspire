@@ -154,10 +154,19 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}";
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
+    }
+
+    private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
+    {
+        // Create a cache key that includes the project file and the requested items/properties
+        var itemsKey = string.Join(",", items.OrderBy(x => x));
+        var propertiesKey = string.Join(",", properties.OrderBy(x => x));
+        var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}_{itemsKey}_{propertiesKey}";
+        
         var (exitCode, document) = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
-            return await runner.GetProjectItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], new(), cancellationToken);
+            return await runner.GetProjectItemsAndPropertiesAsync(projectFile, items, properties, new(), cancellationToken);
         });
 
         if (exitCode != 0 || document is null)
@@ -252,6 +261,9 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return;
         }
 
+        // Detect if this project uses Central Package Management
+        var cpmInfo = DetectCentralPackageManagement(projectFile);
+
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -273,23 +285,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 continue;
             }
 
-            var packageVersion = packageReference.GetProperty("Version").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
-            var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
-
-            if (packageVersion == latestPackage?.Version)
+            if (cpmInfo.UsesCentralPackageManagement)
             {
-                logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
-                continue;
+                await AnalyzePackageForCentralPackageManagementAsync(packageId, projectFile, cpmInfo.DirectoryPackagesPropsFile!, context, cancellationToken);
             }
-
-            var updateStep = new PackageUpdateStep(
-                string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
-                () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
-                packageId,
-                packageVersion,
-                latestPackage!.Version,
-                projectFile);
-            context.UpdateSteps.Enqueue(updateStep);
+            else
+            {
+                // Traditional package management - Version should be in PackageReference
+                if (!packageReference.TryGetProperty("Version", out var versionElement) || versionElement.GetString() is null)
+                {
+                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                }
+                
+                var packageVersion = versionElement.GetString()!;
+                await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+            }
         }
     }
 
@@ -298,6 +308,194 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         return packageId.StartsWith("Aspire.")
             || packageId.StartsWith("Microsoft.Extensions.ServiceDiscovery.")
             || packageId.Equals("Microsoft.Extensions.ServiceDiscovery");
+    }
+
+    private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)
+    {
+        // Look for Directory.Packages.props in directory tree.
+        for (var current = projectFile.Directory; current is not null; current = current.Parent)
+        {
+            var directoryPackagesPropsPath = Path.Combine(current.FullName, "Directory.Packages.props");
+            if (File.Exists(directoryPackagesPropsPath))
+            {
+                return new CentralPackageManagementInfo(true, new FileInfo(directoryPackagesPropsPath));
+            }
+        }
+
+        return new CentralPackageManagementInfo(false, null);
+    }
+
+    private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
+
+        if (packageVersion == latestPackage?.Version)
+        {
+            logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
+            return;
+        }
+
+        var updateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
+            () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
+            packageId,
+            packageVersion,
+            latestPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(updateStep);
+    }
+
+    private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        var currentVersion = await GetPackageVersionFromDirectoryPackagesPropsAsync(packageId, directoryPackagesPropsFile, projectFile, cancellationToken);
+        
+        if (currentVersion is null)
+        {
+            logger.LogInformation("Package '{PackageId}' not found in Directory.Packages.props, skipping.", packageId);
+            return;
+        }
+
+        var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
+
+        if (currentVersion == latestPackage?.Version)
+        {
+            logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
+            return;
+        }
+
+        var updateStep = new PackageUpdateStep(
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, currentVersion, latestPackage!.Version),
+            () => UpdatePackageVersionInDirectoryPackagesProps(packageId, latestPackage!.Version, directoryPackagesPropsFile),
+            packageId,
+            currentVersion,
+            latestPackage!.Version,
+            projectFile);
+        context.UpdateSteps.Enqueue(updateStep);
+    }
+
+    private async Task<string?> GetPackageVersionFromDirectoryPackagesPropsAsync(string packageId, FileInfo directoryPackagesPropsFile, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var doc = new XmlDocument { PreserveWhitespace = true };
+            doc.Load(directoryPackagesPropsFile.FullName);
+            var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+            var versionAttribute = packageVersionNode?.Attributes?["Version"]?.Value;
+            
+            if (versionAttribute is null)
+            {
+                return null;
+            }
+
+            // Check if this is an MSBuild property expression like $(AspireVersion)
+            if (IsMSBuildPropertyExpression(versionAttribute))
+            {
+                var propertyName = ExtractPropertyNameFromExpression(versionAttribute);
+                if (propertyName is not null)
+                {
+                    var resolvedValue = await ResolveMSBuildPropertyAsync(propertyName, projectFile, cancellationToken);
+                    if (resolvedValue is not null && IsValidSemanticVersion(resolvedValue))
+                    {
+                        return resolvedValue;
+                    }
+                    else
+                    {
+                        throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, 
+                            "Unable to resolve MSBuild property '{0}' to a valid semantic version. Expression: '{1}', Resolved value: '{2}'",
+                            propertyName, versionAttribute, resolvedValue ?? "null"));
+                    }
+                }
+                else
+                {
+                    throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "Invalid MSBuild property expression in package version: '{0}'", versionAttribute));
+                }
+            }
+
+            return versionAttribute;
+        }
+        catch (ProjectUpdaterException)
+        {
+            // Re-throw our custom exceptions
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Ignore parse errors.
+            logger.LogInformation(ex, "Ignoring parsing error in Directory.Packages.props '{DirectoryPackagesPropsFile}' for project '{ProjectFile}'", directoryPackagesPropsFile.FullName, projectFile.FullName);
+            return null;
+        }
+    }
+
+    private static bool IsMSBuildPropertyExpression(string value)
+    {
+        return value.StartsWith("$(") && value.EndsWith(")") && value.Length > 3;
+    }
+
+    private static string? ExtractPropertyNameFromExpression(string expression)
+    {
+        if (!IsMSBuildPropertyExpression(expression))
+        {
+            return null;
+        }
+
+        // Extract property name from $(PropertyName)
+        return expression.Substring(2, expression.Length - 3);
+    }
+
+    private async Task<string?> ResolveMSBuildPropertyAsync(string propertyName, FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var document = await GetItemsAndPropertiesAsync(
+                projectFile, 
+                Array.Empty<string>(), // No items needed
+                [propertyName], // Just the property we want
+                cancellationToken);
+
+            var propertiesElement = document.RootElement.GetProperty("Properties");
+            if (propertiesElement.TryGetProperty(propertyName, out var propertyElement))
+            {
+                return propertyElement.GetString();
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Exception while resolving MSBuild property '{PropertyName}' for project '{ProjectFile}'", propertyName, projectFile.FullName);
+            return null;
+        }
+    }
+
+    private static bool IsValidSemanticVersion(string version)
+    {
+        try
+        {
+            SemVersion.Parse(version);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
+    {
+        var doc = new XmlDocument { PreserveWhitespace = true };
+        doc.Load(directoryPackagesPropsFile.FullName);
+        
+        var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
+        if (packageVersionNode?.Attributes?["Version"] is null)
+        {
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindPackageVersionInDirectoryPackagesProps, packageId, directoryPackagesPropsFile.FullName));
+        }
+
+        packageVersionNode.Attributes["Version"]!.Value = newVersion;
+        doc.Save(directoryPackagesPropsFile.FullName);
+
+        await Task.CompletedTask;
     }
 
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, CancellationToken cancellationToken)
@@ -363,3 +561,5 @@ internal sealed class ProjectUpdaterException : System.Exception
     public ProjectUpdaterException(string message) : base(message) { }
     public ProjectUpdaterException(string message, System.Exception inner) : base(message, inner) { }
 }
+
+internal record CentralPackageManagementInfo(bool UsesCentralPackageManagement, FileInfo? DirectoryPackagesPropsFile);
