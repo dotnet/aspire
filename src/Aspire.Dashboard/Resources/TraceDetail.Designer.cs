@@ -97,6 +97,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No spans found.
+        /// </summary>
+        public static string TraceDetailNoSpans {
+            get {
+                return ResourceManager.GetString("TraceDetailNoSpans", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} trace.
         /// </summary>
         public static string TraceDetailPageTitle {
