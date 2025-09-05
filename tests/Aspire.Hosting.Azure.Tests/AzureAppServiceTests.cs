@@ -222,7 +222,7 @@ public class AzureAppServiceTests
         builder.AddAzureAppServiceEnvironment("env");
 
         var customProvider = new CustomManifestExpressionProvider();
-        
+
         var apiProject = builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpEndpoint()
             .WithEnvironment(context =>
@@ -359,6 +359,39 @@ public class AzureAppServiceTests
         await VerifyFile(
             Path.Combine(tempDir.Path, "aspire-manifest.json"),
             verifySettings);
+    }
+
+    [Fact]
+    public async Task ResourceWithProbes()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path);
+
+        var env1 = builder.AddAzureAppServiceEnvironment("env");
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60) // This will be ignored
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projectProvisioningResource = project.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectProvisioningResource);
+
+        var (_, projectBicep) = await GetManifestWithBicep(projectProvisioningResource);
+
+        await Verify(projectBicep, "bicep");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

@@ -233,7 +233,8 @@ internal static class ResourceExtensions
             .WithContainerEnvironmentalVariables(context)
             .WithContainerSecrets(context)
             .WithContainerPorts(context)
-            .WithContainerVolumes(context);
+            .WithContainerVolumes(context)
+            .WithContainerProbes(context);
     }
 
     private static ContainerV1 WithContainerVolumes(this ContainerV1 container, KubernetesResource context)
@@ -338,6 +339,34 @@ internal static class ResourceExtensions
                         Name = context.TargetResource.Name.ToSecretName(),
                     },
                 });
+        }
+
+        return container;
+    }
+
+    private static ContainerV1 WithContainerProbes(this ContainerV1 container, KubernetesResource context)
+    {
+        if (context.Probes.Count == 0)
+        {
+            return container;
+        }
+
+        foreach (var (probeType, probe) in context.Probes)
+        {
+            switch (probeType)
+            {
+                case ProbeType.Startup:
+                    container.StartupProbe = probe;
+                    break;
+
+                case ProbeType.Readiness:
+                    container.ReadinessProbe = probe;
+                    break;
+
+                case ProbeType.Liveness:
+                    container.LivenessProbe = probe;
+                    break;
+            }
         }
 
         return container;
