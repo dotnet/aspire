@@ -4,32 +4,24 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Devcontainers;
 
-internal sealed class DevcontainerPortForwardingLifecycleHook : IHostedService
+internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedApplicationEventingSubscriber
 {
-    private readonly ILogger _hostingLogger;
-
-    private readonly IDistributedApplicationEventing _eventing;
     private readonly IOptions<CodespacesOptions> _codespacesOptions;
     private readonly IOptions<DevcontainersOptions> _devcontainersOptions;
     private readonly IOptions<SshRemoteOptions> _sshRemoteOptions;
     private readonly DevcontainerSettingsWriter _settingsWriter;
 
     public DevcontainerPortForwardingLifecycleHook(
-        ILoggerFactory loggerFactory,
-        IDistributedApplicationEventing eventing,
         IOptions<CodespacesOptions> codespacesOptions,
         IOptions<DevcontainersOptions> devcontainersOptions,
         IOptions<SshRemoteOptions> sshRemoteOptions,
         DevcontainerSettingsWriter settingsWriter)
     {
-        _hostingLogger = loggerFactory.CreateLogger("Aspire.Hosting");
-        _eventing = eventing;
         _codespacesOptions = codespacesOptions;
         _devcontainersOptions = devcontainersOptions;
         _sshRemoteOptions = sshRemoteOptions;
@@ -63,7 +55,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IHostedService
         await _settingsWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
         if (!_devcontainersOptions.Value.IsDevcontainer && !_codespacesOptions.Value.IsCodespace && !_sshRemoteOptions.Value.IsSshRemote)
         {
@@ -71,12 +63,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IHostedService
             return Task.CompletedTask;
         }
 
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocatedAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
+        eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocatedAsync);
         return Task.CompletedTask;
     }
 }

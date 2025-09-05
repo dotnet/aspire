@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,10 +11,8 @@ namespace Aspire.Hosting.Azure.AppService;
 
 internal sealed class AzureAppServiceInfrastructure(
     ILogger<AzureAppServiceInfrastructure> logger,
-    DistributedApplicationEventing eventing,
     IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext) :
-    IHostedService
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
     public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
@@ -70,14 +68,9 @@ internal sealed class AzureAppServiceInfrastructure(
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
         return Task.CompletedTask;
     }
 }

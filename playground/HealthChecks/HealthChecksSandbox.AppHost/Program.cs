@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.Services.AddHostedService<TestResourceLifecycle>();
+builder.Services.TryAddEventingSubscriber<TestResourceLifecycle>();
 
 AddTestResource("healthy", HealthStatus.Healthy, "I'm fine, thanks for asking.");
 AddTestResource("unhealthy", HealthStatus.Unhealthy, "I can't do that, Dave.", exceptionMessage: "Feeling unhealthy.");
@@ -59,7 +61,7 @@ void AddTestResource(string name, HealthStatus status, string? description = nul
 
 internal sealed class TestResource(string name) : Resource(name);
 
-internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService) : IHostedService
+internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
 {
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
@@ -80,14 +82,9 @@ internal sealed class TestResourceLifecycle(ResourceNotificationService notifica
         return Task.CompletedTask;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
         return Task.CompletedTask;
     }
 }

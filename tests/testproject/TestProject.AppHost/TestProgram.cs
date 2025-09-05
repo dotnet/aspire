@@ -4,9 +4,10 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Eventing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 public class TestProgram : IDisposable
 {
@@ -88,7 +89,7 @@ public class TestProgram : IDisposable
             }
         }
 
-        AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
+        AppBuilder.Services.AddHostedService<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }
 
@@ -154,14 +155,12 @@ public class TestProgram : IDisposable
     /// This allows for easier consumption by the external test process.
     /// </summary>
     private sealed class EndPointWriterHook(
-        DistributedApplicationModel appModel,
-        DistributedApplicationEventing eventing
+        IDistributedApplicationEventing eventing
         ) : IHostedService
     {
-        private Dictionary<string, JsonObject> _projectEndpoints = new();
-
-        public async Task OnResourcesCreated(ResourcesCreatedEvent @event, CancellationToken cancellationToken)
+        public async Task OnAfterResourcesCreated(AfterResourcesCreatedEvent @event, CancellationToken cancellationToken)
         {
+            var root = new JsonObject();
             foreach (var project in @event.Model.Resources.OfType<ProjectResource>())
             {
                 var projectJson = new JsonObject();
@@ -194,7 +193,7 @@ public class TestProgram : IDisposable
         public Task StartAsync(CancellationToken cancellationToken)
         {
             // We can assume endpoints are allocated before project resources are created
-            eventing.Subscribe<ResourcesCreatedEvent>(OnResourcesCreated);
+            eventing.Subscribe<AfterResourcesCreatedEvent>(OnAfterResourcesCreated);
             return Task.CompletedTask;
         }
 

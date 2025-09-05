@@ -1,15 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Logging;
 
 static class TestResourceExtensions
 {
     public static IResourceBuilder<TestResource> AddTestResource(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.Services.AddHostedService<TestResourceLifecycle>();
+        builder.Services.TryAddEventingSubscriber<TestResourceLifecycle>();
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithInitialState(new()
@@ -45,7 +47,10 @@ static class TestResourceExtensions
     }
 }
 
-internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService, ResourceLoggerService loggerService) : IHostedService
+internal sealed class TestResourceLifecycle(
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService
+    ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
@@ -88,15 +93,15 @@ internal sealed class TestResourceLifecycle(ResourceNotificationService notifica
         return Task.CompletedTask;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
+    public ValueTask DisposeAsync()
     {
         _tokenSource.Cancel();
+        return default;
+    }
+
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         return Task.CompletedTask;
     }
 }

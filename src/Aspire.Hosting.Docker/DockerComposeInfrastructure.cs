@@ -1,9 +1,10 @@
-﻿#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE001
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,8 +16,7 @@ namespace Aspire.Hosting.Docker;
 /// </summary>
 internal sealed class DockerComposeInfrastructure(
     ILogger<DockerComposeInfrastructure> logger,
-    DistributedApplicationEventing eventing,
-    DistributedApplicationExecutionContext executionContext) : IHostedService
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
     public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
@@ -80,17 +80,6 @@ internal sealed class DockerComposeInfrastructure(
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
     private static void ConfigureOtlp(IResource resource, EndpointReference otlpEndpoint)
     {
         // Only configure OTLP for resources that have the OtlpExporterAnnotation and implement IResourceWithEnvironment
@@ -105,5 +94,11 @@ internal sealed class DockerComposeInfrastructure(
                 return Task.CompletedTask;
             }));
         }
+    }
+
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
     }
 }

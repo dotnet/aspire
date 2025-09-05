@@ -15,6 +15,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -25,7 +26,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DashboardLifecycleHook(IConfiguration configuration,
+internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
                                              IDashboardEndpointProvider dashboardEndpointProvider,
@@ -37,7 +38,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
                                              CodespacesUrlRewriter codespaceUrlRewriter
-                                             ) : IHostedService
+                                             ) : IDistributedApplicationEventingSubscriber, IHostedService
 {
     // Internal for testing
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
@@ -761,8 +762,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-
         return Task.CompletedTask;
     }
 
@@ -799,6 +798,16 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
+    }
+
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
+    {
+        if (execContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+
+        return Task.CompletedTask;
     }
 }
 

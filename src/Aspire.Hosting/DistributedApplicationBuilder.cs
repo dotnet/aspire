@@ -17,6 +17,7 @@ using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.VersionChecking;
@@ -344,9 +345,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
                 _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
-                _innerBuilder.Services.AddHostedService<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
+                _innerBuilder.Services.AddEventingSubscriber<DashboardEventHandlers>();
             }
 
             if (options.EnableResourceLogging)
@@ -362,7 +363,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.AddHostedService<DevcontainerPortForwardingLifecycleHook>();
+            _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)

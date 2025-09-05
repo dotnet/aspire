@@ -4,9 +4,9 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.Authorization;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
@@ -17,10 +17,8 @@ namespace Aspire.Hosting.Azure;
 /// This includes preparing role assignment annotations for Azure resources.
 /// </summary>
 internal sealed class AzureResourcePreparer(
-    IDistributedApplicationEventing eventing,
-    DistributedApplicationExecutionContext executionContext,
-    IOptions<AzureProvisioningOptions> options
-) : IHostedService
+    IOptions<AzureProvisioningOptions> options,
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
     public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
@@ -538,14 +536,9 @@ internal sealed class AzureResourcePreparer(
         azureResource.AddRoleAssignments(context);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
         return Task.CompletedTask;
     }
 }

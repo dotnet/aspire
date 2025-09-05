@@ -6,7 +6,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Eventing;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,8 +18,7 @@ namespace Aspire.Hosting.Azure;
 internal sealed class AzureContainerAppsInfrastructure(
     ILogger<AzureContainerAppsInfrastructure> logger,
     DistributedApplicationExecutionContext executionContext,
-    IOptions<AzureProvisioningOptions> options,
-    DistributedApplicationEventing eventing) : IHostedService
+    IOptions<AzureProvisioningOptions> options) : IDistributedApplicationEventingSubscriber
 {
     public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
@@ -65,14 +64,13 @@ internal sealed class AzureContainerAppsInfrastructure(
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
+        if (!executionContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
 
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
         return Task.CompletedTask;
     }
 }

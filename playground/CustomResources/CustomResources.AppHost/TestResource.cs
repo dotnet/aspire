@@ -2,16 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 static class TestResourceExtensions
 {
     public static IResourceBuilder<TestResource> AddTestResource(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.Services.AddHostedService<TestResourceLifecycle>();
+        builder.Services.TryAddEventingSubscriber<TestResourceLifecycle>();
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithInitialState(new()
@@ -29,7 +28,10 @@ static class TestResourceExtensions
     }
 }
 
-internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService, ResourceLoggerService loggerService) : IHostedService
+internal sealed class TestResourceLifecycle(
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService
+    ) : IDistributedApplicationEventingSubscriber
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
@@ -79,15 +81,9 @@ internal sealed class TestResourceLifecycle(ResourceNotificationService notifica
         return default;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _tokenSource.Cancel();
         return Task.CompletedTask;
     }
 }

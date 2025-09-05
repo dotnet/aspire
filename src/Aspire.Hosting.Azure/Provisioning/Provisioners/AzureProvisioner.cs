@@ -5,15 +5,14 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
     IBicepProvisioner bicepProvisioner,
@@ -22,7 +21,7 @@ internal sealed class AzureProvisioner(
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
     IUserSecretsManager userSecretsManager
-    ) : IHostedService
+    ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -30,12 +29,6 @@ internal sealed class AzureProvisioner(
 
     public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
-        // AzureProvisioner only applies to RunMode
-        if (executionContext.IsPublishMode)
-        {
-            return;
-        }
-
         var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(@event.Model);
         if (azureResources.Count == 0)
         {
@@ -289,14 +282,13 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
+        if (executionContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+            
         return Task.CompletedTask;
     }
 }
