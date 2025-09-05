@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.Containers.Tests;
+namespace Aspire.Hosting.Tests;
 
-public class ContainerResourceBuilderTests
+public class ExecutableResourceBuilderExtensionTests
 {
     [Fact]
     public void WithCommandMutatesCommand()
