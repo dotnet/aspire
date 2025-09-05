@@ -27,6 +27,11 @@
         <target state="translated">La administración central de paquetes no es compatible actualmente con "aspire update".</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">No se encontró el elemento raíz &lt;Project&gt; en {0}</target>
@@ -39,7 +44,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
-        <target state="new">Update integrations in the Aspire project. (Preview)</target>
+        <target state="translated">Actualizar las integraciones en el proyecto Aspire. (Versión preliminar)</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">

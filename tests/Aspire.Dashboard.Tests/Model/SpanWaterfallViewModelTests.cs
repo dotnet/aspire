@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -144,10 +145,73 @@ public sealed class SpanWaterfallViewModelTests
             new SpanWaterfallViewModel.TraceDetailState([], [])).First();
 
         // Act
-        var result = vm.MatchesFilter(filter, a => a.Resource.ResourceName, out _);
+        var result = vm.MatchesFilter(filter, typeFilter: null, a => a.Resource.ResourceName, out _);
 
         // Assert
         Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("http", new string[] { }, false)]
+    [InlineData("http", new string[] { "http.request.method" }, true)]
+    [InlineData("database", new string[] { "http.request.method" }, false)]
+    [InlineData("database", new string[] { "db.system.name" }, true)]
+    [InlineData("database", new string[] { "db.system" }, true)]
+    [InlineData("database", new string[] { }, false)]
+    [InlineData("messaging", new string[] { "messaging.system" }, true)]
+    [InlineData("messaging", new string[] { }, false)]
+    [InlineData("rpc", new string[] { "rpc.system" }, true)]
+    [InlineData("rpc", new string[] { }, false)]
+    [InlineData("genai", new string[] { "gen_ai.system" }, true)]
+    [InlineData("genai", new string[] { "gen_ai.provider.name" }, true)]
+    [InlineData("genai", new string[] { }, false)]
+    public void MatchesFilter_SpanType_ReturnsExpected(string spanTypeName, string[] presentAttributeNames, bool expected)
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+        var spanType = SpanType.CreateKnownSpanTypes(new TestStringLocalizer<ControlsStrings>()).Single(t => t.Id?.Name == spanTypeName);
+        var otherSpanType = SpanType.CreateKnownSpanTypes(new TestStringLocalizer<ControlsStrings>()).Single(t => t.Id?.Name == "other");
+
+        // Create a span with an attribute that simulates uninstrumented peer
+        var attributes = presentAttributeNames.Select(n => new KeyValuePair<string, string>(n, Guid.NewGuid().ToString())).ToArray();
+
+        var span = TelemetryTestHelpers.CreateOtlpSpan(
+            app,
+            trace,
+            scope,
+            spanId: "12345",
+            parentSpanId: null,
+            startDate: new DateTime(2001, 1, 1, 1, 1, 2, DateTimeKind.Utc),
+            attributes: attributes,
+            statusCode: OtlpSpanStatusCode.Unset,
+            statusMessage: null,
+            kind: OtlpSpanKind.Client);
+
+        trace.AddSpan(span);
+
+        var vm = SpanWaterfallViewModel.Create(
+            trace,
+            [],
+            new SpanWaterfallViewModel.TraceDetailState([], [])).First();
+
+        // Act 1
+        var result1 = vm.MatchesFilter(string.Empty, typeFilter: spanType.Id?.Filter, a => a.Resource.ResourceName, out _);
+
+        // Assert 1
+        Assert.Equal(expected, result1);
+
+        // If the span type matches then it shouldn't match "Other" type.
+        if (result1)
+        {
+            // Act 2
+            var result2 = vm.MatchesFilter(string.Empty, typeFilter: otherSpanType.Id?.Filter, a => a.Resource.ResourceName, out _);
+
+            // Assert 2
+            Assert.False(result2);
+        }
     }
 
     [Fact]
@@ -168,8 +232,8 @@ public sealed class SpanWaterfallViewModelTests
         var child = vms[1];
 
         // Act and assert
-        Assert.True(parent.MatchesFilter("child", a => a.Resource.ResourceName, out _));
-        Assert.True(child.MatchesFilter("child", a => a.Resource.ResourceName, out _));
+        Assert.True(parent.MatchesFilter("child", typeFilter: null, a => a.Resource.ResourceName, out _));
+        Assert.True(child.MatchesFilter("child", typeFilter: null, a => a.Resource.ResourceName, out _));
     }
 
     [Fact]
@@ -190,9 +254,9 @@ public sealed class SpanWaterfallViewModelTests
         var child = vms[1];
 
         // Act and assert
-        Assert.True(parent.MatchesFilter("parent", a => a.Resource.ResourceName, out var descendents));
+        Assert.True(parent.MatchesFilter("parent", typeFilter: null, a => a.Resource.ResourceName, out var descendents));
         Assert.Equal("child", Assert.Single(descendents).Span.SpanId);
-        Assert.False(child.MatchesFilter("parent", a => a.Resource.ResourceName, out _));
+        Assert.False(child.MatchesFilter("parent", typeFilter: null, a => a.Resource.ResourceName, out _));
     }
 
     private sealed class EmptyDisposable : IDisposable

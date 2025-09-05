@@ -312,7 +312,7 @@ public sealed class GenAIVisualizerDialogViewModel
             Count = int.MaxValue,
             StartIndex = 0,
             Filters = [
-                new TelemetryFilter
+                new FieldTelemetryFilter
                 {
                     Field = KnownStructuredLogFields.SpanIdField,
                     Condition = FilterCondition.Equals,

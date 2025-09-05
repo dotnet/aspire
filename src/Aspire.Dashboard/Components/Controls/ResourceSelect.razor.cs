@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -32,6 +33,9 @@ public partial class ResourceSelect
 
     [Parameter]
     public string? LabelClass { get; set; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Traces> Loc { get; init; }
 
     private Task SelectedResourceChangedCore()
     {

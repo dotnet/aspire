@@ -3,18 +3,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
-namespace Aspire.Hosting.Orchestrator;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Handles processing of parameter resources during application orchestration.
 /// </summary>
-internal sealed class ParameterProcessor(
+[Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class ParameterProcessor(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
@@ -23,7 +25,13 @@ internal sealed class ParameterProcessor(
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
-    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources)
+    /// <summary>
+    /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
+    /// </summary>
+    /// <param name="parameterResources">The parameter resources to initialize.</param>
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
+    /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
+    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = false)
     {
         // Initialize all parameter resources by setting their WaitForValueTcs.
         // This allows them to be processed asynchronously later.
@@ -36,25 +44,25 @@ internal sealed class ParameterProcessor(
 
         // If interaction service is available, we can handle unresolved parameters.
         // This will allow the user to provide values for parameters that could not be initialized.
-        if (interactionService.IsAvailable)
+        if (interactionService.IsAvailable && _unresolvedParameters.Count > 0)
         {
-            // All parameters have been processed, we can now handle unresolved parameters if any.
-            if (_unresolvedParameters.Count > 0)
+            // Start the loop that will allow the user to specify values for unresolved parameters.
+            var parameterResolutionTask = Task.Run(async () =>
             {
-                // Start the loop that will allow the user to specify values for unresolved parameters.
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await HandleUnresolvedParametersAsync().ConfigureAwait(false);
+                    await HandleUnresolvedParametersAsync().ConfigureAwait(false);
+                    logger.LogDebug("All unresolved parameters have been handled successfully.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to handle unresolved parameters.");
+                }
+            });
 
-                        logger.LogDebug("All unresolved parameters have been handled successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to handle unresolved parameters.");
-                    }
-                });
+            if (waitForResolution)
+            {
+                await parameterResolutionTask.ConfigureAwait(false);
             }
         }
     }
@@ -131,10 +139,10 @@ internal sealed class ParameterProcessor(
                 InteractionStrings.ParametersBarTitle,
                 InteractionStrings.ParametersBarMessage,
                  new NotificationInteractionOptions
-                {
-                    Intent = MessageIntent.Warning,
-                    PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                })
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                 })
                 .ConfigureAwait(false);
 
             if (result.Data)

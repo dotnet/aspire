@@ -27,6 +27,11 @@
         <target state="translated">No momento, o gerenciamento central de pacotes por “atualização de atualização” não ´possui suporte.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">Não foi possível localizar o elemento &lt;Project&gt; raiz no {0}</target>

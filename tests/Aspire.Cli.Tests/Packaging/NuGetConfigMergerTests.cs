@@ -473,5 +473,68 @@ public class NuGetConfigMergerTests
         Assert.Contains(customMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
     }
 
+    [Fact]
+    public async Task CreateOrUpdateAsync_AddsSpecificMappings_WhenExistingWildcardMappingPresent()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Scenario: existing config already has a wildcard mapping on nuget.org
+        // When we add explicit mappings for Aspire packages to a new source,
+        // the code should add the new mappings without interfering with the existing wildcard
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """);
+
+        // aspire update adds specific mappings for Aspire packages to a new channel
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily"),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://example.com/aspire-daily")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // Original source should still be present
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget.org");
+
+        // New aspire source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-daily");
+
+        // Debug: Print the XML to understand what's happening
+        _outputHelper.WriteLine("Generated XML:");
+        _outputHelper.WriteLine(xml.ToString());
+
+        // Package source mapping should have both the original wildcard and the new specific mappings
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // Original nuget.org should still have the wildcard pattern
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget.org");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        // The aspire source should have its specific patterns
+        var aspireMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://example.com/aspire-daily");
+        Assert.NotNull(aspireMapping);
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+    }
+
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
 }

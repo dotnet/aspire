@@ -26,6 +26,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.23.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.53.0" />
+    <PackageVersion Include="Microsoft.Azure.Kusto.Data" Version="14.0.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.31.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.31.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.12.0" />
@@ -44,6 +45,7 @@
     <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="1.1.1" />
     <PackageVersion Include="Azure.Provisioning.Redis" Version="1.1.0" />
+    <PackageVersion Include="Azure.Provisioning.RedisEnterprise" Version="1.0.0" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="1.0.0" />
     <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="1.1.0" />
     <PackageVersion Include="Azure.Provisioning.SignalR" Version="1.1.0" />

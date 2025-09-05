@@ -22,6 +22,11 @@
         <target state="translated">名前</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailNoSpans">
+        <source>No spans found</source>
+        <target state="new">No spans found</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">{0} のトレース</target>

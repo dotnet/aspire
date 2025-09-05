@@ -391,6 +391,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return selectedPackageFromChannel;
     }
 
+    /// <summary>
+    /// Prompts to create or update a NuGet.config for explicit channels.
+    /// When the output directory differs from the working directory, a NuGet.config is created/updated
+    /// only in the output directory. When they are the same (in-place creation), existing behavior
+    /// is preserved where the working directory NuGet.config is considered for updates.
+    /// </summary>
     private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
     {
         if (channel.Type is not PackageChannelType.Explicit)
@@ -407,7 +413,22 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var workingDir = executionContext.WorkingDirectory;
         var outputDir = new DirectoryInfo(outputPath);
         
-        // Check if we need to create or update a NuGet.config
+        // Determine if we're creating the project in-place (output directory same as working directory)
+        var normalizedOutputPath = Path.GetFullPath(outputPath);
+        var normalizedWorkingPath = workingDir.FullName;
+        var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
+
+        if (!isInPlaceCreation)
+        {
+            // For subdirectory creation, always create/update NuGet.config in the output directory only
+            // and ignore any existing NuGet.config in the working directory
+            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+            interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
+            return;
+        }
+
+        // In-place creation: preserve existing behavior
+        // Check if we need to create or update a NuGet.config in the working directory
         var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
         var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
 

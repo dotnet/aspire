@@ -81,4 +81,7 @@
   <data name="CentralPackageManagementNotSupported" xml:space="preserve">
     <value>Central package management is currently not supported by 'aspire update'.</value>
   </data>
+  <data name="CouldNotFindPackageVersionInDirectoryPackagesProps" xml:space="preserve">
+    <value>Could not find PackageVersion element for '{0}' in {1}</value>
+  </data>
 </root>
