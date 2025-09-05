@@ -27,13 +27,15 @@ public sealed class DevTunnelResource(string name, string tunnelId, string comma
     public string TunnelId { get; init; } = tunnelId;
 
     internal List<DevTunnelPortResource> Ports { get; } = [];
+
+    internal DevTunnelStatus? LastKnownStatus { get; set; }
 }
 
 /// <summary>
 /// Child resource representing a single forwarded endpoint/port on a dev tunnel.
 /// Contains an endpoint that resolves to the public tunnel URL of this port.
 /// </summary>
-public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery
+public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery, IResourceWithWaitSupport
 {
     /// <summary>
     /// The name of the endpoint within this resource that represents the public URL of the tunnel for this port.
@@ -74,8 +76,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// </summary>
     public EndpointReference TunnelEndpoint { get; }
 
-    /// <summary>
-    /// The local resource endpoint that this port forwards to.
-    /// </summary>
     internal EndpointReference TargetEndpoint { get; init; }
+
+    internal DevTunnelStatus.DevTunnelPort? LastKnownStatus { get; set; }
 }

@@ -64,7 +64,7 @@ public sealed class DevTunnelPortOptions
     /// <summary>
     /// Protocol type to expose. "http", "https", or "auto".
     /// </summary>
-    public string Protocol { get; set; } = "http";
+    public string Protocol { get; set; } = "auto";
 
     /// <summary>
     /// Whether to require authentication to access this port over the public tunnel URL.
@@ -72,22 +72,12 @@ public sealed class DevTunnelPortOptions
     public bool RequireAuthentication { get; set; }
 
     /// <summary>
-    /// If true and protocol is http(s), enable request inspection where supported.
-    /// </summary>
-    public bool EnableInspect { get; set; }
-
-    /// <summary>
     /// Optional host header to use when forwarding HTTP traffic to the target.
     /// </summary>
     public string? ForwardHostHeader { get; set; }
 
     /// <summary>
-    /// Optional path prefix to match and forward for http(s).
-    /// </summary>
-    public string? PathPrefix { get; set; }
-
-    /// <summary>
-    /// Optional labels to attach to this tunnel port as a one-dimensional list of strings.
+    /// Optional labels to attach to this tunnel port.
     /// </summary>
     public List<string>? Labels { get; set; }
 }

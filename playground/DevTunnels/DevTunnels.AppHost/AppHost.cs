@@ -5,8 +5,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var frontend = builder.AddProject<Projects.WebFrontEnd>("frontend");
 
-builder.AddDevTunnel("devtunnel")
-    .WithReference(frontend);
+builder.AddDevTunnel("devtunnel", options: new() { CliFullPath = "D:\\src\\devtunnel.exe" })
+    .WithReference(frontend.GetEndpoint("https"));
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
