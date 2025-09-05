@@ -5,14 +5,13 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
 
 /// <summary>
 /// Represents the infrastructure for Docker Compose within the Aspire Hosting environment.
-/// Implements <see cref="IHostedService"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Docker Compose resources before publish.
+/// Implements <see cref="IDistributedApplicationEventingSubscriber"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Docker Compose resources before publish.
 /// </summary>
 internal sealed class DockerComposeInfrastructure(
     ILogger<DockerComposeInfrastructure> logger,

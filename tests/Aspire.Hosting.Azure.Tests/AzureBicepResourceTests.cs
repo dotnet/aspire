@@ -5,6 +5,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Roles;
@@ -77,8 +78,8 @@ public class AzureBicepResourceTests
         addAzureResource(builder);
 
         var app = builder.Build();
-        var service = app.Services.GetService<AzureProvisioner>();
-        Assert.NotNull(service);
+        var eventingServices = app.Services.GetServices<IDistributedApplicationEventingSubscriber>();
+        Assert.Single(eventingServices.OfType<AzureProvisioner>());
     }
 
     [Theory]

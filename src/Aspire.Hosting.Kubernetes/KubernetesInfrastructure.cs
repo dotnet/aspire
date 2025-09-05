@@ -4,14 +4,13 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Kubernetes;
 
 /// <summary>
 /// Represents the infrastructure for Kubernetes within the Aspire Hosting environment.
-/// Implements <see cref="IHostedService"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Kubernetes resources before publish.
+/// Implements <see cref="IDistributedApplicationEventingSubscriber"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Kubernetes resources before publish.
 /// </summary>
 internal sealed class KubernetesInfrastructure(
     ILogger<KubernetesInfrastructure> logger,
