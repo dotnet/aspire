@@ -279,6 +279,7 @@ jobs:
           DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
           NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          PLAYWRIGHT_INSTALLED: ${{ inputs.disallowPlaywrightInstall == true && 'false' || 'true' }}
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         run: >
@@ -303,6 +304,7 @@ jobs:
           # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          PLAYWRIGHT_INSTALLED: ${{ inputs.disallowPlaywrightInstall == true && 'false' || 'true' }}
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true

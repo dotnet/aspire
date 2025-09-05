@@ -18,7 +18,7 @@ public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITr
     public static bool IsSupported =>
         !PlatformDetection.IsRunningOnCI // Supported on local runs
         || !OperatingSystem.IsLinux() // always supported on !linux on CI
-        || PlatformDetection.IsRunningOnGithubActions; // Else supported on linux/GHA only
+        || (PlatformDetection.IsRunningOnGithubActions && Environment.GetEnvironmentVariable("PLAYWRIGHT_INSTALLED") is not null);
 
     public string? Reason { get; init; } = reason;
 
