@@ -1,5 +1,5 @@
 # Executes quarantined tests
-name: Quarantine Tests
+name: Quarantined Tests
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
   quarantine_tests:
     uses: ./.github/workflows/specialized-test-runner.yml
     with:
-      test_type: "quarantined"
-      test_runner_name: "QuarantinedTestRunsheetBuilder"
-      test_property: "RunQuarantinedTests"
-      disallowPlaywrightInstall: false
+      testRunnerName: "QuarantinedTestRunsheetBuilder"
+      extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
+      extraTestArgs: "--filter-trait quarantined=true"
+      disablePlaywrightInstall: false

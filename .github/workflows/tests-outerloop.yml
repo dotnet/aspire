@@ -14,7 +14,7 @@ jobs:
   outerloop_tests:
     uses: ./.github/workflows/specialized-test-runner.yml
     with:
-      test_type: "outerloop"
-      test_runner_name: "OuterloopTestRunsheetBuilder"
-      test_property: "RunOuterloopTests"
-      disallowPlaywrightInstall: false
+      testRunnerName: "OuterloopTestRunsheetBuilder"
+      extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
+      extraTestArgs: "--filter-trait outerloop=true"
+      disablePlaywrightInstall: false
