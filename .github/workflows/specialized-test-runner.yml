@@ -16,6 +16,11 @@ on:
         required: true
         type: string
         description: 'MSBuild property to enable specific test type'
+      # Controls whether to install Playwright browsers during project build
+      disallowPlaywrightInstall:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
 
@@ -54,8 +59,6 @@ jobs:
     name: Build packages
     if: ${{ github.repository_owner == 'dotnet' }}
     uses: ./.github/workflows/build-packages.yml
-    with:
-      uploadArchSpecificNugets: false
 
   run_tests:
     name: Test
@@ -71,7 +74,7 @@ jobs:
       requiresNugets: ${{ matrix.tests.requiresNugets == true }}
       requiresTestSdk: ${{ matrix.tests.requiresTestSdk == true }}
       os: ${{ matrix.tests.os }}
-      msBuildProperties: '${{ inputs.test_type == ''quarantined'' && ''/p:RunQuarantinedTests=true'' || inputs.test_type == ''outerloop'' && ''/p:RunOuterloopTests=true'' || '''' }}'
+      disallowPlaywrightInstall: ${{ inputs.disallowPlaywrightInstall }}
       extraTestArgs: '${{ inputs.test_type == ''quarantined'' && ''--filter-trait "quarantined=true"'' || inputs.test_type == ''outerloop'' && ''--filter-trait "outerloop=true"'' || '''' }}'
 
   results:

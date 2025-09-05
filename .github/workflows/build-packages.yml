@@ -6,11 +6,6 @@ on:
       versionOverrideArg:
         required: false
         type: string
-      uploadArchSpecificNugets:
-        required: false
-        type: boolean
-        default: true
-        description: 'Whether to upload architecture-specific NuGets (default: true)'
     outputs:
       arch_rids:
         description: JSON array of architecture-specific RIDs discovered during packaging
@@ -102,7 +97,7 @@ jobs:
   upload_arch_specific_nugets:
     name: Upload arch-specific NuGets
     needs: build_packages
-    if: ${{ inputs.uploadArchSpecificNugets == true && needs.build_packages.outputs.arch_rids != '[]' }}
+    if: ${{ needs.build_packages.outputs.arch_rids != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

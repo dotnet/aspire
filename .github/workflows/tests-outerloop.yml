@@ -17,3 +17,4 @@ jobs:
       test_type: "outerloop"
       test_runner_name: "OuterloopTestRunsheetBuilder"
       test_property: "RunOuterloopTests"
+      disallowPlaywrightInstall: false

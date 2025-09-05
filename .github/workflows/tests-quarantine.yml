@@ -17,3 +17,4 @@ jobs:
       test_type: "quarantined"
       test_runner_name: "QuarantinedTestRunsheetBuilder"
       test_property: "RunQuarantinedTests"
+      disallowPlaywrightInstall: false
