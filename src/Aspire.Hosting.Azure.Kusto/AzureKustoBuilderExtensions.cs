@@ -150,12 +150,21 @@ public static class AzureKustoBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
+        // Add HTTP endpoint to the original resource so the connection string logic can detect emulator mode
+        builder.WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http");
+
         var surrogate = new AzureKustoEmulatorResource(builder.Resource);
         var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
 
         surrogateBuilder
-            .WithAnnotation(new EmulatorResourceAnnotation())
-            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = AzureKustoEmulatorContainerImageTags.Registry,

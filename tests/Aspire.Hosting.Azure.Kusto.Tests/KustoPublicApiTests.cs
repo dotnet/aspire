@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
+
 namespace Aspire.Hosting.Azure.Kusto.Tests;
 
 public class KustoPublicApiTests
@@ -137,13 +139,15 @@ public class KustoPublicApiTests
     public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoEmulatorResource(new AzureKustoClusterResource("test-kusto", _ => { }));
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kustoResource = builder.AddAzureKustoCluster("test-kusto").RunAsEmulator();
+        var emulatorResource = new AzureKustoEmulatorResource(kustoResource.Resource);
 
         // Act
-        var connectionStringExpression = resource.ConnectionStringExpression;
+        var connectionStringExpression = emulatorResource.ConnectionStringExpression;
 
         // Assert
-        // Emulator resource delegates to the inner resource, so this should also use the connection string output
-        Assert.Equal("{test-kusto.outputs.connectionString}", connectionStringExpression.ValueExpression);
+        // When using emulator, should use HTTP endpoint format
+        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
     }
 }
