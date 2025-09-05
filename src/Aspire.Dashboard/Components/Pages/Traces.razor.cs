@@ -300,7 +300,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
         TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
-        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Name == SpanTypeText) ?? _allSpanType;
+        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Id?.Name == SpanTypeText) ?? _allSpanType;
         TracesViewModel.SpanType = viewModel.SelectedSpanType.Id;
 
         if (SerializedFilters is not null)
@@ -335,7 +335,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         return new TracesPageState
         {
             SelectedResource = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
-            SelectedSpanType = PageViewModel.SelectedSpanType.Id is not null ? PageViewModel.SelectedSpanType.Name : null,
+            SelectedSpanType = PageViewModel.SelectedSpanType.Id?.Name,
             Filters = TracesViewModel.Filters
         };
     }

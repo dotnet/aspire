@@ -45,6 +45,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private AspirePageContentLayout? _layout;
     private List<SelectViewModel<SpanType>> _spanTypes = default!;
     private SelectViewModel<SpanType> _selectedSpanType = default!;
+    private SelectViewModel<SpanType> _allSpanType = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -119,6 +120,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             new SelectViewModel<SpanType> { Id = SpanType.GenAI, Name = "Gen AI" },
             new SelectViewModel<SpanType> { Id = SpanType.Other, Name = ControlStringsLoc[nameof(ControlsStrings.LabelOther)] },
         };
+
+        _allSpanType = new SelectViewModel<SpanType> { Id = null, Name = ControlStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
+        _selectedSpanType = _allSpanType;
     }
 
     private void UpdateTraceActionsMenu()
@@ -174,7 +178,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 continue;
             }
 
-            if (viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            if (viewModel.MatchesFilter(_filter, _selectedSpanType.Id?.Filter, GetResourceName, out var matchedDescendents))
             {
                 visibleViewModels.Add(viewModel);
                 foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))

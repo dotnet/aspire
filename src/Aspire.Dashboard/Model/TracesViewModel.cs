@@ -81,9 +81,9 @@ public class TracesViewModel
         {
             var filters = Filters.Cast<TelemetryFilter>().ToList();
 
-            if (SpanType?.Filters is { } typeFilters)
+            if (SpanType?.Filter is { } typeFilter)
             {
-                filters.AddRange(typeFilters);
+                filters.Add(typeFilter);
             }
 
             var result = _telemetryRepository.GetTraces(new GetTracesRequest

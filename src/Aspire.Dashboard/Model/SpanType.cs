@@ -78,16 +78,12 @@ public class SpanNoAttributeTelemetryFilter : TelemetryFilter
 public class SpanType
 {
     public string Name { get; }
-    public List<TelemetryFilter> Filters { get; }
+    public TelemetryFilter Filter { get; }
 
-    private SpanType(string name, TelemetryFilter filter) : this(name, [filter])
-    {
-    }
-
-    private SpanType(string name, List<TelemetryFilter> filters)
+    private SpanType(string name, TelemetryFilter filter)
     {
         Name = name;
-        Filters = filters;
+        Filter = filter;
     }
 
     // https://opentelemetry.io/docs/specs/semconv/http/http-spans/
