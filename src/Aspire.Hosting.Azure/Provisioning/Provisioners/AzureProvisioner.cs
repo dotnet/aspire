@@ -288,7 +288,7 @@ internal sealed class AzureProvisioner(
         {
             eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         }
-            
+
         return Task.CompletedTask;
     }
 }
