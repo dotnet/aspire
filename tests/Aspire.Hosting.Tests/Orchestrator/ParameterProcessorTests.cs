@@ -222,7 +222,7 @@ public class ParameterProcessorTests
             },
             input =>
             {
-                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, input.Label);
                 Assert.Equal(InputType.Boolean, input.InputType);
                 Assert.False(input.Required);
             });

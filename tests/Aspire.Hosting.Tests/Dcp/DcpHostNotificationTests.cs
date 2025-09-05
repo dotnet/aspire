@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,7 +84,7 @@ public sealed class DcpHostNotificationTests
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
         Assert.Contains("docker", interaction.Message);
-        Assert.Contains("unhealthy", interaction.Message);
+        Assert.Contains(string.Format(CultureInfo.InvariantCulture, InteractionStrings.ContainerRuntimeUnhealthyMessage, "docker"), interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
     }
@@ -359,7 +360,7 @@ public sealed class DcpHostNotificationTests
         Assert.Contains("https://aka.ms/dotnet/aspire/containers", interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
-        Assert.Equal("Learn more", notificationOptions.LinkText);
+        Assert.Equal(InteractionStrings.ContainerRuntimeLinkText, notificationOptions.LinkText);
         Assert.Equal("https://aka.ms/dotnet/aspire/containers", notificationOptions.LinkUrl);
 
         // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay
