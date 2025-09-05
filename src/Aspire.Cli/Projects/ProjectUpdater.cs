@@ -419,9 +419,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             // Re-throw our custom exceptions
             throw;
         }
-        catch
+        catch (Exception ex)
         {
             // Ignore parse errors.
+            logger.LogInformation(ex);
             return null;
         }
     }
