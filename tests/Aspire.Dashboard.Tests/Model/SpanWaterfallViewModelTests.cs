@@ -144,7 +144,7 @@ public sealed class SpanWaterfallViewModelTests
             new SpanWaterfallViewModel.TraceDetailState([], [])).First();
 
         // Act
-        var result = vm.MatchesFilter(filter, a => a.Resource.ResourceName, out _);
+        var result = vm.MatchesFilter(filter, typeFilter: null, a => a.Resource.ResourceName, out _);
 
         // Assert
         Assert.Equal(expected, result);
@@ -168,8 +168,8 @@ public sealed class SpanWaterfallViewModelTests
         var child = vms[1];
 
         // Act and assert
-        Assert.True(parent.MatchesFilter("child", a => a.Resource.ResourceName, out _));
-        Assert.True(child.MatchesFilter("child", a => a.Resource.ResourceName, out _));
+        Assert.True(parent.MatchesFilter("child", typeFilter: null, a => a.Resource.ResourceName, out _));
+        Assert.True(child.MatchesFilter("child", typeFilter: null, a => a.Resource.ResourceName, out _));
     }
 
     [Fact]
@@ -190,9 +190,9 @@ public sealed class SpanWaterfallViewModelTests
         var child = vms[1];
 
         // Act and assert
-        Assert.True(parent.MatchesFilter("parent", a => a.Resource.ResourceName, out var descendents));
+        Assert.True(parent.MatchesFilter("parent", typeFilter: null, a => a.Resource.ResourceName, out var descendents));
         Assert.Equal("child", Assert.Single(descendents).Span.SpanId);
-        Assert.False(child.MatchesFilter("parent", a => a.Resource.ResourceName, out _));
+        Assert.False(child.MatchesFilter("parent", typeFilter: null, a => a.Resource.ResourceName, out _));
     }
 
     private sealed class EmptyDisposable : IDisposable
