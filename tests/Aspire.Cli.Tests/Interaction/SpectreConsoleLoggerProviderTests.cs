@@ -114,9 +114,13 @@ public class SpectreConsoleLoggerProviderTests
 
         // Assert
         var outputString = output.ToString();
+        // Note: With timestamp format, the log line will be: [HH:mm:ss] [dbug] Test: Test debug message
         Assert.Contains("[dbug] Test: Test debug message", outputString);
         Assert.Contains("[info] Test: Test info message", outputString);
         Assert.Contains("[warn] Test: Test warning message", outputString);
+        
+        // Verify that timestamps are present
+        Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\]", outputString);
     }
 
     [Fact]
@@ -151,7 +155,49 @@ public class SpectreConsoleLoggerProviderTests
 
         // Assert
         var outputString = output.ToString();
+        // Note: With timestamp format, the log line will be: [HH:mm:ss] [dbug] NuGetPackageCache: Getting integrations from NuGet
         Assert.Contains("[dbug] NuGetPackageCache: Getting integrations from NuGet", outputString);
         Assert.DoesNotContain("Aspire.Cli.NuGet.NuGetPackageCache", outputString);
+        
+        // Verify that timestamps are present
+        Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\]", outputString);
+    }
+
+    [Fact]
+    public void SpectreConsoleLogger_Log_IncludesTimestampInHHmmssFormat()
+    {
+        // Arrange
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+        
+        var services = new ServiceCollection();
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        
+        services.AddSingleton<IAnsiConsole>(console);
+        services.AddSingleton(executionContext);
+        services.AddSingleton<IInteractionService>(provider =>
+        {
+            var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+            var context = provider.GetRequiredService<CliExecutionContext>();
+            return new ConsoleInteractionService(ansiConsole, context);
+        });
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = new SpectreConsoleLogger(serviceProvider, "Aspire.Cli.Test");
+
+        // Act
+        logger.LogDebug("Test debug message");
+
+        // Assert
+        var outputString = output.ToString();
+        
+        // Verify timestamp format (HH:mm:ss) is included at the beginning
+        // The format should be: [HH:mm:ss] [dbug] Test: Test debug message
+        Assert.Matches(@"\[\d{2}:\d{2}:\d{2}\] \[dbug\] Test: Test debug message", outputString);
     }
 }
