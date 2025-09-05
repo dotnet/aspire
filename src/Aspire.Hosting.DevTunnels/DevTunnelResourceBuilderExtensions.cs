@@ -221,7 +221,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
             .WithParentRelationship(tunnelBuilder)     // visual grouping beneath the tunnel
             .WithReferenceRelationship(targetResource) // indicate the target resource relationship
             .WaitFor(tunnelBuilder)                    // ensure the tunnel is ready before starting ports
-            .WithHttpsEndpoint(name: DevTunnelPortResource.TunnelEndpointName) // public tunnel URL endpoint
+            .WithHttpsEndpoint(name: DevTunnelPortResource.TunnelEndpointName, isProxied: false) // public tunnel URL endpoint
+            // NOTE: The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
+            //       We might consider updating the central logic that creates endpoint URLs allow setting a target host like *.devtunnels.ms & if the
+            //       host of the allocated endpoint matches that pattern, *don't* try to add a localhost version of the URL too (because it won't work).
+            // .WithEndpoint(DevTunnelPortResource.TunnelEndpointName, e => { e.TargetHost = "*.devtunnels.ms"; }, createIfNotExists: false)
             .WithUrls(static context =>
             {
                 var urls = context.Urls;
@@ -234,6 +238,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }
 
                 // Remove the localhost version of the tunnel URL
+                // HACK: See the NOTE above about potentially handling this more generically in the central endpoint URL logic
                 if (urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
                                              && string.Equals(new UriBuilder(u.Url).Host, "localhost", StringComparison.OrdinalIgnoreCase)) is { } localhostTunnelUrl)
                 {
@@ -306,7 +311,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             if (!string.Equals(portResource.TargetEndpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
                 !portResource.TargetEndpoint.Host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
             {
-                // Target endpoint is not localhost, ignore
+                // Target endpoint is not localhost so can't be tunneled
                 portLogger.LogError("Cannot tunnel endpoint '{Endpoint}' with host '{Host}' on resource '{Resource}' because it is not a localhost endpoint.", portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Host, portResource.TargetEndpoint.Resource.Name);
                 return;
             }
