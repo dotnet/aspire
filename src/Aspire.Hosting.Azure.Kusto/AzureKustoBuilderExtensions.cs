@@ -4,8 +4,6 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
-using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;

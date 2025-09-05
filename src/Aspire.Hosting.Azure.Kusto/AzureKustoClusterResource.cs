@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
-using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.Kusto;
 
