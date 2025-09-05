@@ -6,6 +6,19 @@ namespace Aspire.Hosting.Tests;
 
 public class ExecutableResourceBuilderExtensionTests
 {
+    [Theory]
+    [InlineData("/absolute")]
+    [InlineData("relative")]
+    public void AddExecutableNormalisesWorkingDirectory(string workingDirectory)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexe", "command", workingDirectory);
+
+        var expectedPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
+        var annotation = executable.Resource.Annotations.OfType<ExecutableAnnotation>().Single();
+        Assert.Equal(expectedPath, annotation.WorkingDirectory);
+    }
+
     [Fact]
     public void WithCommandMutatesCommand()
     {
@@ -17,15 +30,19 @@ public class ExecutableResourceBuilderExtensionTests
         Assert.Equal("newcommand", annotation.Command);
     }
 
-    [Fact]
-    public void WithWorkingDirectoryMutatesWorkingDirectory()
+    [Theory]
+    [InlineData("/absolute")]
+    [InlineData("relative")]
+    public void WithWorkingDirectoryMutatesAndNormalisesWorkingDirectory(string workingDirectory)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexe", "command", "workingdirectory");
+        var executable = builder.AddExecutable("myexe", "command", "/whatever/workingdirectory");
 
-        executable.WithWorkingDirectory("newworkingdirectory");
+        executable.WithWorkingDirectory(workingDirectory);
+
+        var expectedPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
         var annotation = executable.Resource.Annotations.OfType<ExecutableAnnotation>().Single();
-        Assert.Equal("newworkingdirectory", annotation.WorkingDirectory);
+        Assert.Equal(expectedPath, annotation.WorkingDirectory);
     }
 
     [Fact]
@@ -46,6 +63,6 @@ public class ExecutableResourceBuilderExtensionTests
         executable.WithWorkingDirectory("");
 
         var annotation = executable.Resource.Annotations.OfType<ExecutableAnnotation>().Single();
-        Assert.Equal("", annotation.WorkingDirectory);
-    }    
+        Assert.Equal(builder.AppHostDirectory, annotation.WorkingDirectory);
+    }
 }

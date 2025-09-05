@@ -190,6 +190,7 @@ public static class ExecutableResourceBuilderExtensions
 
         if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
         {
+            workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, workingDirectory));
             executableAnnotation.WorkingDirectory = workingDirectory;
             return builder;
         }
