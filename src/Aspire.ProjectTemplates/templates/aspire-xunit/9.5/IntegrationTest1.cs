@@ -20,7 +20,7 @@ public class IntegrationTest1
     // {
     //     // Arrange
 #if (XUnitVersion == "v2")
-    //     var cancellationToken = new CancellationTokenSource(DefaultTimeout).Token;
+    //     var cancellationToken = CancellationToken.None;
 #else // XunitVersion v3 or v3mtp
     //     var cancellationToken = TestContext.Current.CancellationToken;
 #endif
@@ -42,9 +42,9 @@ public class IntegrationTest1
     //     await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
     //
     //     // Act
-    //     var httpClient = app.CreateHttpClient("webfrontend");
+    //     using var httpClient = app.CreateHttpClient("webfrontend");
     //     await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-    //     var response = await httpClient.GetAsync("/", cancellationToken);
+    //     using var response = await httpClient.GetAsync("/", cancellationToken);
     //
     //     // Assert
     //     Assert.Equal(HttpStatusCode.OK, response.StatusCode);

@@ -262,8 +262,7 @@
       "path": "cache-roles.module.bicep",
       "params": {
         "cache_outputs_name": "{cache.outputs.name}",
-        "principalId": "",
-        "principalName": ""
+        "principalId": ""
       }
     },
     "pgsql-kv-roles": {

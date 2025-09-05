@@ -16,6 +16,11 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
         <target state="translated">Zřizování Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocationDialogTitle">
+        <source>Azure location and resource group</source>
+        <target state="translated">Umístění a skupina prostředků Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
         <target state="translated">Umístění</target>
@@ -24,6 +29,11 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
         <target state="translated">Vybrat umístění</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationSelectionMessage">
+        <source>Select your Azure location and specify resource group:</source>
+        <target state="translated">Vyberte umístění Azure a zadejte skupinu prostředků:</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
@@ -46,6 +56,11 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
         <target state="translated">Skupina prostředků</target>
         <note />
       </trans-unit>
+      <trans-unit id="SubscriptionDialogTitle">
+        <source>Azure subscription</source>
+        <target state="translated">Předplatné Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
         <target state="translated">ID předplatného</target>
@@ -54,6 +69,16 @@ Zjistěte více v [dokumentaci k nasazení Azure](https://aka.ms/dotnet/aspire/a
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
         <target state="translated">Vybrat ID předplatného</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionManualEntryMessage">
+        <source>Enter your Azure subscription ID:</source>
+        <target state="translated">Zadejte ID vašeho předplatného Azure:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionSelectionMessage">
+        <source>Select your Azure subscription:</source>
+        <target state="translated">Vyberte předplatné Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">

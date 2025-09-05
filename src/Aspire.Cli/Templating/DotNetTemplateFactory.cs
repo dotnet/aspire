@@ -221,12 +221,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
 
+            var source = parseResult.GetValue<string?>("--source");
+            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
+
             // Some templates have additional arguments that need to be applied to the `dotnet new` command
             // when it is executed. This callback will get those arguments and potentially prompt for them.
             var extraArgs = await extraArgsCallback(parseResult, cancellationToken);
-
-            var source = parseResult.GetValue<string?>("--source");
-            var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
             using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
 
             var templateInstallCollector = new OutputCollector();
@@ -391,6 +391,12 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return selectedPackageFromChannel;
     }
 
+    /// <summary>
+    /// Prompts to create or update a NuGet.config for explicit channels.
+    /// When the output directory differs from the working directory, a NuGet.config is created/updated
+    /// only in the output directory. When they are the same (in-place creation), existing behavior
+    /// is preserved where the working directory NuGet.config is considered for updates.
+    /// </summary>
     private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, string outputPath, CancellationToken cancellationToken)
     {
         if (channel.Type is not PackageChannelType.Explicit)
@@ -407,7 +413,22 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var workingDir = executionContext.WorkingDirectory;
         var outputDir = new DirectoryInfo(outputPath);
         
-        // Check if we need to create or update a NuGet.config
+        // Determine if we're creating the project in-place (output directory same as working directory)
+        var normalizedOutputPath = Path.GetFullPath(outputPath);
+        var normalizedWorkingPath = workingDir.FullName;
+        var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
+
+        if (!isInPlaceCreation)
+        {
+            // For subdirectory creation, always create/update NuGet.config in the output directory only
+            // and ignore any existing NuGet.config in the working directory
+            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+            interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
+            return;
+        }
+
+        // In-place creation: preserve existing behavior
+        // Check if we need to create or update a NuGet.config in the working directory
         var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
         var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
 

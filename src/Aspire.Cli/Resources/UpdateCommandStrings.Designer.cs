@@ -60,7 +60,6 @@ namespace Aspire.Cli.Resources {
 
     internal static string SelectChannelPrompt => ResourceManager.GetString("SelectChannelPrompt", resourceCulture);
     internal static string AnalyzingProjectStatus => ResourceManager.GetString("AnalyzingProjectStatus", resourceCulture);
-    internal static string ProjectHasUpdatesMessage => ResourceManager.GetString("ProjectHasUpdatesMessage", resourceCulture);
     internal static string ProjectUpToDateMessage => ResourceManager.GetString("ProjectUpToDateMessage", resourceCulture);
     internal static string PerformUpdatesPrompt => ResourceManager.GetString("PerformUpdatesPrompt", resourceCulture);
     internal static string WhichDirectoryNuGetConfigPrompt => ResourceManager.GetString("WhichDirectoryNuGetConfigPrompt", resourceCulture);
@@ -69,7 +68,6 @@ namespace Aspire.Cli.Resources {
     internal static string AnalyzeAppHost => ResourceManager.GetString("AnalyzeAppHost", resourceCulture);
     internal static string AnalyzeAppHostSdk => ResourceManager.GetString("AnalyzeAppHostSdk", resourceCulture);
     internal static string AnalyzeProjectFormat => ResourceManager.GetString("AnalyzeProjectFormat", resourceCulture);
-    internal static string UpdateAppHostSdkFormat => ResourceManager.GetString("UpdateAppHostSdkFormat", resourceCulture);
     internal static string UpdatePackageFormat => ResourceManager.GetString("UpdatePackageFormat", resourceCulture);
     internal static string FailedDiscoverNuGetConfig => ResourceManager.GetString("FailedDiscoverNuGetConfig", resourceCulture);
     internal static string FailedFetchItemsAndPropertiesFormat => ResourceManager.GetString("FailedFetchItemsAndPropertiesFormat", resourceCulture);
@@ -82,5 +80,6 @@ namespace Aspire.Cli.Resources {
     internal static string FailedUpdatePackageReferenceFormat => ResourceManager.GetString("FailedUpdatePackageReferenceFormat", resourceCulture);
     internal static string UnexpectedCodePath => ResourceManager.GetString("UnexpectedCodePath", resourceCulture);
     internal static string CentralPackageManagementNotSupported => ResourceManager.GetString("CentralPackageManagementNotSupported", resourceCulture);
+    internal static string CouldNotFindPackageVersionInDirectoryPackagesProps => ResourceManager.GetString("CouldNotFindPackageVersionInDirectoryPackagesProps", resourceCulture);
     }
 }
