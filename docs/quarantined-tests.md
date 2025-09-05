@@ -39,7 +39,7 @@ dotnet exec YourTestAssembly.dll --filter-trait "quarantined=true"
 ## Quarantined Test Lifecycle
 
 1. **Mark as Quarantined**: When a test is consistently flaky, mark it with `[QuarantinedTest("reason")]`
-2. **Outerloop Execution**: Quarantined tests run automatically in the quarantine CI (every 6 hours)
+2. **Quarantined Execution**: Quarantined tests run automatically in the quarantine CI (every 6 hours)
 3. **Fix the Issue**: Investigate and fix the underlying issue causing the flakiness
 4. **Remove Quarantine**: Once fixed and stable, remove the `[QuarantinedTest]` attribute
 

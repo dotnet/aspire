@@ -21,22 +21,24 @@ public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITr
     {
         get
         {
-            if (s_isSupported is null)
-            {
-                // Setting PLAYWRIGHT_INSTALLED environment variable takes precedence
-                if (Environment.GetEnvironmentVariable("PLAYWRIGHT_INSTALLED") is var playwrightInstalled && !string.IsNullOrEmpty(playwrightInstalled))
-                {
-                    s_isSupported = bool.Parse(playwrightInstalled);
-                }
-                else
-                {
-                    s_isSupported = !PlatformDetection.IsRunningOnCI // Supported on local runs
-                        || !OperatingSystem.IsLinux() // always supported on !linux on CI
-                        || PlatformDetection.IsRunningOnGithubActions;
-                }
-            }
+            s_isSupported ??= GetIsSupported();
             return s_isSupported.Value;
         }
+    }
+    private static bool GetIsSupported()
+    {
+        // Setting PLAYWRIGHT_INSTALLED environment variable takes precedence
+        if (Environment.GetEnvironmentVariable("PLAYWRIGHT_INSTALLED") is var playwrightInstalled && !string.IsNullOrEmpty(playwrightInstalled))
+        {
+            if (bool.TryParse(playwrightInstalled, out var isInstalled))
+            {
+                return isInstalled;
+            }
+        }
+
+        return !PlatformDetection.IsRunningOnCI // Supported on local runs
+            || !OperatingSystem.IsLinux() // always supported on !linux on CI
+            || PlatformDetection.IsRunningOnGithubActions;
     }
 
     public string? Reason { get; init; } = reason;

@@ -5,7 +5,7 @@
 
          .\build.cmd -test /p:TestRunnerName=QuarantinedTestRunsheetBuilder /p:RunQuarantinedTests=true [/bl /p:GITHUB_ACTIONS=true]
 
-    This file imports the shared base logic for specialized test runsheet generation 
+    This file imports the shared base logic for specialized test runsheet generation
     and configures it specifically for quarantined tests.
 
     -->

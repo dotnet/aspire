@@ -4,9 +4,8 @@
 
 Outerloop tests are tests that are excluded from regular CI runs but run in a separate outerloop CI workflow. These are typically tests that are:
 - Long-running
-- Resource-intensive 
-- Require special infrastructure
-- Need specific conditions to run
+- Resource-intensive
+- Need specific conditions to run like Playwright
 
 They are marked with the `[OuterloopTest]` attribute and are excluded from regular CI runs but run in the outerloop CI workflow.
 
@@ -22,12 +21,6 @@ To run tests excluding outerloop tests (this is what regular CI does):
 dotnet test --filter-not-trait "outerloop=true"
 ```
 
-Or using the direct test runner:
-
-```bash
-dotnet exec YourTestAssembly.dll --filter-not-trait "outerloop=true"
-```
-
 ## Running Only Outerloop Tests
 
 To run only outerloop tests (useful for debugging):
@@ -35,19 +28,6 @@ To run only outerloop tests (useful for debugging):
 ```bash
 dotnet test --filter-trait "outerloop=true"
 ```
-
-Or using the direct test runner:
-
-```bash
-dotnet exec YourTestAssembly.dll --filter-trait "outerloop=true"
-```
-
-## Outerloop Test Lifecycle
-
-1. **Mark as Outerloop**: When a test is long-running or resource-intensive, mark it with `[OuterloopTest("reason")]`
-2. **Outerloop Execution**: Outerloop tests run automatically in the outerloop CI (every 6 hours)
-3. **Regular Exclusion**: These tests are excluded from regular CI to keep it fast
-4. **Monitoring**: Outerloop test results are monitored separately
 
 ## Example
 

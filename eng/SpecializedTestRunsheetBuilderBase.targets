@@ -1,7 +1,7 @@
 <Project>
   <!--
     This file contains the shared logic for generating specialized test runsheets (quarantined and outerloop tests).
-    
+
     It is imported by:
     - OuterloopTestRunsheetBuilder/OuterloopTestRunsheetBuilder.targets
     - QuarantinedTestRunsheetBuilder/QuarantinedTestRunsheetBuilder.targets
@@ -32,7 +32,7 @@
 
     NOTE: The final piece of the puzzle is in eng/AfterSolutionBuild.targets, where we combine the runsheets from all the test projects into a single runsheet.
     -->
-  
+
   <Target Name="RunTests"
           Outputs="%(TestToRun.ResultsStdOutPath)"
           Condition=" '$(SkipTests)' != 'true' and '$(IsGitHubActionsRunner)' == 'true' and '$(RunOnGithubActions)' == 'true' ">

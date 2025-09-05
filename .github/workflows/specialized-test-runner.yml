@@ -34,13 +34,29 @@ jobs:
       # We need to build the whole solution, so that we can interrogate each test project
       # and find out whether it contains any tests of the specified type.
       - name: Build the solution
-        run: |
-          ./build.sh --restore --build -c Release --ci /p:CI=false /p:GeneratePackageOnBuild=false /p:InstallBrowsersForPlaywright=false
+        run: >
+          ./build.sh
+          --restore
+          --build
+          -c Release
+          --ci
+          /p:CI=false
+          /p:GeneratePackageOnBuild=false
+          /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
         run: |
-          ./build.sh --test /p:TestRunnerName=${{ inputs.testRunnerName }} ${{ inputs.extraRunSheetBuilderArgs }} -c Release --ci /p:CI=false /p:Restore=false /p:Build=false /bl:./artifacts/log/Release/runsheet.binlog
+          ./build.sh
+          --test
+          /p:TestRunnerName=${{ inputs.testRunnerName }}
+          ${{ inputs.extraRunSheetBuilderArgs }}
+          -c Release
+          --ci
+          /p:CI=false
+          /p:Restore=false
+          /p:Build=false
+          /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
 
       - name: Upload logs, and test results
         if: ${{ always() }}

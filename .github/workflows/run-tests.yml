@@ -40,7 +40,6 @@ on:
         type: boolean
         default: false
       # Controls whether to install Playwright browsers during project build
-      # Default is true for outerloop/quarantine workflows, false for main CI
       disablePlaywrightInstall:
         required: false
         type: boolean
@@ -211,8 +210,14 @@ jobs:
         if: ${{ ! inputs.requiresNugets }}
         env:
           CI: false
-        run: |
-          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }} ${{ inputs.disablePlaywrightInstall == true && '/p:InstallBrowsersForPlaywright=false' || '' }} ${{ inputs.versionOverrideArg }}
+        run: >
+          ${{ env.BUILD_SCRIPT }}
+          -restore
+          -ci
+          -build
+          -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ inputs.disablePlaywrightInstall == true && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.versionOverrideArg }}
 
       - name: Build and archive test project
         if: ${{ inputs.requiresNugets }}
