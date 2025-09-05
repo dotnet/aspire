@@ -9,7 +9,7 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldThrowWhenNameIsNull()
     {
         // Act
-        var action = () => new AzureKustoClusterResource(null!);
+        var action = () => new AzureKustoClusterResource(null!, _ => { });
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -21,7 +21,7 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Act
-        var action = () => new AzureKustoClusterResource(name);
+        var action = () => new AzureKustoClusterResource(name, _ => { });
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -31,20 +31,21 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoClusterResource("test-kusto");
+        var resource = new AzureKustoClusterResource("test-kusto", _ => { });
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
 
         // Assert
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
+        // For Azure provisioned resources (default when directly constructed), should use connection string output
+        Assert.Equal("{test-kusto.outputs.connectionString}", connectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public void AzureKustoDatabaseResourceShouldThrowWhenNameIsNull()
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
         var action = () => new AzureKustoDatabaseResource(null!, "db", parentResource);
@@ -59,7 +60,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
         var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
@@ -72,7 +73,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
         var action = () => new AzureKustoDatabaseResource("kusto-db", null!, parentResource);
@@ -87,7 +88,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenDatabaseNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
         var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
@@ -113,7 +114,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto"));
+        var resource = new AzureKustoDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto", _ => { }));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
@@ -136,12 +137,13 @@ public class KustoPublicApiTests
     public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoEmulatorResource(new AzureKustoClusterResource("test-kusto"));
+        var resource = new AzureKustoEmulatorResource(new AzureKustoClusterResource("test-kusto", _ => { }));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
 
         // Assert
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
+        // Emulator resource delegates to the inner resource, so this should also use the connection string output
+        Assert.Equal("{test-kusto.outputs.connectionString}", connectionStringExpression.ValueExpression);
     }
 }
