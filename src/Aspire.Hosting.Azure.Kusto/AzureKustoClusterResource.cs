@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
 /// A resource that represents a Kusto cluster.
 /// </summary>
-public class AzureKustoClusterResource : Resource, IResourceWithConnectionString, IResourceWithEndpoints
+public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWithConnectionString, IResourceWithEndpoints
 {
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
@@ -16,8 +18,9 @@ public class AzureKustoClusterResource : Resource, IResourceWithConnectionString
     /// Initializes a new instance of the <see cref="AzureKustoClusterResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    public AzureKustoClusterResource(string name)
-        : base(name)
+    /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+    public AzureKustoClusterResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+        : base(name, configureInfrastructure)
     {
     }
 
@@ -26,13 +29,32 @@ public class AzureKustoClusterResource : Resource, IResourceWithConnectionString
     /// </summary>
     public bool IsEmulator => this.IsEmulator();
 
+    /// <summary>
+    /// Gets the connection string output reference for the Azure Kusto cluster.
+    /// </summary>
+    /// <remarks>
+    /// TODO: Implement proper connection string output for Azure provisioned Kusto clusters.
+    /// This is a placeholder that will need to be refined when full Azure provisioning support is added.
+    /// </remarks>
+    public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
+
     /// <inheritdoc/>
     public ReferenceExpression ConnectionStringExpression
     {
         get
         {
-            var endpoint = this.GetEndpoint("http");
-            return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+            if (IsEmulator)
+            {
+                // For emulator, use the HTTP endpoint pattern
+                var endpoint = this.GetEndpoint("http");
+                return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+            }
+            else
+            {
+                // For Azure provisioned resources, use the connection string output
+                // TODO: Refine this when implementing full Azure provisioning support
+                return ReferenceExpression.Create($"{ConnectionStringOutput}");
+            }
         }
     }
 

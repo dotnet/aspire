@@ -1,7 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning;
+using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Exceptions;
@@ -45,7 +50,9 @@ public static class AzureKustoBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var resource = new AzureKustoClusterResource(name);
+        builder.AddAzureProvisioning();
+
+        var resource = new AzureKustoClusterResource(name, ConfigureKustoInfrastructure);
         var resourceBuilder = builder.AddResource(resource);
 
         // Register a health check that will be used to verify Kusto is available
@@ -234,5 +241,43 @@ public static class AzureKustoBuilderExtensions
                 State = KnownResourceStates.FailedToStart
             }).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Configures the Azure Kusto cluster infrastructure for provisioning.
+    /// </summary>
+    /// <param name="infrastructure">The Azure resource infrastructure.</param>
+    /// <remarks>
+    /// TODO: This is a minimal implementation for first-pass Azure provisioning support.
+    /// Future iterations should include:
+    /// - Support for different Kusto cluster SKUs and configurations
+    /// - Database and table provisioning
+    /// - Managed identity configuration  
+    /// - Key Vault integration for secrets
+    /// - Role assignments and security configurations
+    /// - Proper output references for connection strings
+    /// </remarks>
+    private static void ConfigureKustoInfrastructure(AzureResourceInfrastructure infrastructure)
+    {
+        var azureResource = (AzureKustoClusterResource)infrastructure.AspireResource;
+
+        // Create a basic Kusto cluster using Azure Provisioning
+        // TODO: This is a minimal configuration that needs to be expanded
+        var kustoCluster = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+            (identifier, name) =>
+            {
+                var resource = KustoCluster.FromExisting(identifier);
+                resource.Name = name;
+                return resource;
+            },
+            (infrastructure) => new KustoCluster(infrastructure.AspireResource.GetBicepIdentifier())
+            {
+                // TODO: Configure cluster properties
+                // For now, use minimal configuration
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            });
+
+        // TODO: Add output references for connection strings and other properties
+        // This will need to be implemented as part of the full Azure provisioning support
     }
 }
