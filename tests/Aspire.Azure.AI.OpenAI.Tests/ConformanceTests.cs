@@ -59,7 +59,7 @@ public class ConformanceTests : ConformanceTests<IChatClient, AzureOpenAISetting
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, "Endpoint"), Endpoint),
-            new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key: null, "Deployment"), "DEPLOYMENT_NAME")
+            new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, "Deployment"), "DEPLOYMENT_NAME")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureOpenAISettings>? configure = null, string? key = null)

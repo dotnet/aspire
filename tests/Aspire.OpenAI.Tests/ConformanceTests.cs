@@ -50,7 +50,7 @@ public class ConformanceTests : ConformanceTests<IChatClient, OpenAISettings>
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
             new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key, "Key"), "fake"),
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key: null, "Deployment"), "DEPLOYMENT_NAME")
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key, "Deployment"), "DEPLOYMENT_NAME")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OpenAISettings>? configure = null, string? key = null)
