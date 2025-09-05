@@ -18,5 +18,5 @@ public interface IDistributedApplicationEventingSubscriber
     /// <param name="executionContext">The <see cref="DistributedApplicationExecutionContext"/> instance for the run.</param>
     /// <param name="cancellationToken">Cancellation token from the service collection</param>
     /// <returns>A task indicating event registration is complete</returns>
-    Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken);
+    Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken);
 }

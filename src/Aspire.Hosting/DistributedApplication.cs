@@ -483,7 +483,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
             var execContext = _host.Services.GetRequiredService<DistributedApplicationExecutionContext>();
             foreach (var subscriber in eventSubscribers)
             {
-                await subscriber.Subscribe(eventing, execContext, cancellationToken).ConfigureAwait(false);
+                await subscriber.SubscribeAsync(eventing, execContext, cancellationToken).ConfigureAwait(false);
             }
 
             var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());

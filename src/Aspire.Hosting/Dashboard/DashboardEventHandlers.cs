@@ -38,7 +38,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
                                              CodespacesUrlRewriter codespaceUrlRewriter
-                                             ) : IDistributedApplicationEventingSubscriber, IHostedService
+                                             ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
@@ -760,12 +760,17 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
+        if (execContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+
         return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public async ValueTask DisposeAsync()
     {
         // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
         _dashboardLogsCts?.Cancel();
@@ -798,16 +803,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
-    }
-
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
-    {
-        if (execContext.IsRunMode)
-        {
-            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
-        }
-
-        return Task.CompletedTask;
     }
 }
 

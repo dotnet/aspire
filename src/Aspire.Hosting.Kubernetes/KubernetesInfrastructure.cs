@@ -16,7 +16,7 @@ internal sealed class KubernetesInfrastructure(
     ILogger<KubernetesInfrastructure> logger,
     DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
-    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         if (executionContext.IsRunMode)
         {
@@ -63,7 +63,7 @@ internal sealed class KubernetesInfrastructure(
         }
     }
 
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         return Task.CompletedTask;

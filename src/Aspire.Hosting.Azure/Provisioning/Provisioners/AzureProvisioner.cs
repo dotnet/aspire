@@ -27,7 +27,7 @@ internal sealed class AzureProvisioner(
 
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
-    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(@event.Model);
         if (azureResources.Count == 0)
@@ -282,7 +282,7 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (executionContext.IsRunMode)
         {

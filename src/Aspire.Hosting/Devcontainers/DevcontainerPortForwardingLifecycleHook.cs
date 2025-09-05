@@ -55,7 +55,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
         await _settingsWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
     {
         if (!_devcontainersOptions.Value.IsDevcontainer && !_codespacesOptions.Value.IsCodespace && !_sshRemoteOptions.Value.IsSshRemote)
         {

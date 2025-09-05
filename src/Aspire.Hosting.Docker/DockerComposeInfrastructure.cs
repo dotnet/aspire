@@ -17,7 +17,7 @@ internal sealed class DockerComposeInfrastructure(
     ILogger<DockerComposeInfrastructure> logger,
     DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
-    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         if (executionContext.IsRunMode)
         {
@@ -95,7 +95,7 @@ internal sealed class DockerComposeInfrastructure(
         }
     }
 
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
         return Task.CompletedTask;

@@ -20,7 +20,7 @@ internal sealed class AzureContainerAppsInfrastructure(
     DistributedApplicationExecutionContext executionContext,
     IOptions<AzureProvisioningOptions> options) : IDistributedApplicationEventingSubscriber
 {
-    public async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         var caes = @event.Model.Resources.OfType<AzureContainerAppEnvironmentResource>().ToArray();
 
@@ -64,7 +64,7 @@ internal sealed class AzureContainerAppsInfrastructure(
         }
     }
 
-    public Task Subscribe(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (!executionContext.IsRunMode)
         {
