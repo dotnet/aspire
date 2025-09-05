@@ -154,10 +154,19 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}";
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
+    }
+
+    private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
+    {
+        // Create a cache key that includes the project file and the requested items/properties
+        var itemsKey = string.Join(",", items.OrderBy(x => x));
+        var propertiesKey = string.Join(",", properties.OrderBy(x => x));
+        var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}_{itemsKey}_{propertiesKey}";
+        
         var (exitCode, document) = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
-            return await runner.GetProjectItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], new(), cancellationToken);
+            return await runner.GetProjectItemsAndPropertiesAsync(projectFile, items, properties, new(), cancellationToken);
         });
 
         if (exitCode != 0 || document is null)
@@ -437,18 +446,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         try
         {
-            var (exitCode, document) = await runner.GetProjectItemsAndPropertiesAsync(
+            var document = await GetItemsAndPropertiesAsync(
                 projectFile, 
                 Array.Empty<string>(), // No items needed
                 [propertyName], // Just the property we want
-                new(), 
                 cancellationToken);
-
-            if (exitCode != 0 || document is null)
-            {
-                logger.LogWarning("Failed to resolve MSBuild property '{PropertyName}' for project '{ProjectFile}'", propertyName, projectFile.FullName);
-                return null;
-            }
 
             var propertiesElement = document.RootElement.GetProperty("Properties");
             if (propertiesElement.TryGetProperty(propertyName, out var propertyElement))
