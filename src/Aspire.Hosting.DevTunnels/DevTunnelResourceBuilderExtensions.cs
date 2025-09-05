@@ -79,6 +79,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var devTunnelClient = new DevTunnelCliClient(tunnelResource.Options.GetCliPath());
 
                 // Login to the dev tunnels service if needed
+                // TODO: Need to think about how to not do this per-tunnel if there are multiple tunnels.
+                //       Maybe have a singleton DevTunnelAuthManager service that is called into from here instead.
                 logger.LogDebug("Checking user login status for dev tunnels");
                 var userLoginStatus = await devTunnelClient.GetUserLoginStatusAsync(ct).ConfigureAwait(false);
                 if (userLoginStatus.IsLoggedIn)
@@ -106,8 +108,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     }
                     else
                     {
-                        // TODO: Support login for GitHub auth too
-                        // BUG: This doesn't pop the WAM UI on Windows likely due to interactive shell stuff
+                        // TODO: Support login for GitHub auth too, maybe via the interaction service?
+                        // BUG: This doesn't pop the WAM UI on Windows, possbily due to interactive shell stuff, we might need to do device code flow instead
                         userLoginStatus = await devTunnelClient.UserLoginAsync(LoginProvider.Microsoft, ct).WaitAsync(timeout: TimeSpan.FromMinutes(1), ct).ConfigureAwait(false);
                         if (!userLoginStatus.IsLoggedIn)
                         {
@@ -126,7 +128,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        // TODO: Should we delete tunnels when the AppHost stops?
+        // TODO: Should we delete tunnels when the AppHost stops? Just let them expire?
 
         return rb;
     }
