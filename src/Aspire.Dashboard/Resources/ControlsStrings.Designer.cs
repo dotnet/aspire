@@ -988,6 +988,51 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database.
+        /// </summary>
+        public static string SpanTypeDatabase {
+            get {
+                return ResourceManager.GetString("SpanTypeDatabase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gen AI.
+        /// </summary>
+        public static string SpanTypeGenAI {
+            get {
+                return ResourceManager.GetString("SpanTypeGenAI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTP.
+        /// </summary>
+        public static string SpanTypeHttp {
+            get {
+                return ResourceManager.GetString("SpanTypeHttp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Messaging.
+        /// </summary>
+        public static string SpanTypeMessaging {
+            get {
+                return ResourceManager.GetString("SpanTypeMessaging", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to RPC.
+        /// </summary>
+        public static string SpanTypeRpc {
+            get {
+                return ResourceManager.GetString("SpanTypeRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to State.
         /// </summary>
         public static string StateColumnHeader {

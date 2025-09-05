@@ -29,7 +29,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private const string ActionsColumn = nameof(ActionsColumn);
     private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allResource = null!;
-    private SelectViewModel<SpanType> _allSpanType = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private int _totalItemsCount;
@@ -168,8 +167,8 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         ];
 
         _allResource = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
-        _allSpanType = new SelectViewModel<SpanType> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
-        PageViewModel = new TracesPageViewModel { SelectedResource = _allResource, SelectedSpanType = _allSpanType };
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlsStringsLoc);
+        PageViewModel = new TracesPageViewModel { SelectedResource = _allResource, SelectedSpanType = _spanTypes[0] };
 
         UpdateResources();
         _resourcesSubscription = TelemetryRepository.OnNewResources(callback: () => InvokeAsync(workItem: () =>
@@ -177,17 +176,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
             UpdateResources();
             StateHasChanged();
         }));
-
-        _spanTypes = new List<SelectViewModel<SpanType>>
-        {
-            new SelectViewModel<SpanType> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] },
-            new SelectViewModel<SpanType> { Id = SpanType.Http, Name = "HTTP" },
-            new SelectViewModel<SpanType> { Id = SpanType.Database, Name = "Database" },
-            new SelectViewModel<SpanType> { Id = SpanType.Messaging, Name = "Messaging" },
-            new SelectViewModel<SpanType> { Id = SpanType.Rpc, Name = "RPC" },
-            new SelectViewModel<SpanType> { Id = SpanType.GenAI, Name = "Gen AI" },
-            new SelectViewModel<SpanType> { Id = SpanType.Other, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelOther)] },
-        };
     }
 
     protected override async Task OnParametersSetAsync()
@@ -300,7 +288,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
         TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
-        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Id?.Name == SpanTypeText) ?? _allSpanType;
+        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Id?.Name == SpanTypeText) ?? _spanTypes[0];
         TracesViewModel.SpanType = viewModel.SelectedSpanType.Id;
 
         if (SerializedFilters is not null)

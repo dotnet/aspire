@@ -45,7 +45,6 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private AspirePageContentLayout? _layout;
     private List<SelectViewModel<SpanType>> _spanTypes = default!;
     private SelectViewModel<SpanType> _selectedSpanType = default!;
-    private SelectViewModel<SpanType> _allSpanType = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -110,19 +109,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
         UpdateTraceActionsMenu();
 
-        _spanTypes = new List<SelectViewModel<SpanType>>
-        {
-            new SelectViewModel<SpanType> { Id = null, Name = ControlStringsLoc[nameof(ControlsStrings.LabelAll)] },
-            new SelectViewModel<SpanType> { Id = SpanType.Http, Name = "HTTP" },
-            new SelectViewModel<SpanType> { Id = SpanType.Database, Name = "Database" },
-            new SelectViewModel<SpanType> { Id = SpanType.Messaging, Name = "Messaging" },
-            new SelectViewModel<SpanType> { Id = SpanType.Rpc, Name = "RPC" },
-            new SelectViewModel<SpanType> { Id = SpanType.GenAI, Name = "Gen AI" },
-            new SelectViewModel<SpanType> { Id = SpanType.Other, Name = ControlStringsLoc[nameof(ControlsStrings.LabelOther)] },
-        };
-
-        _allSpanType = new SelectViewModel<SpanType> { Id = null, Name = ControlStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
-        _selectedSpanType = _allSpanType;
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlStringsLoc);
+        _selectedSpanType = _spanTypes[0];
     }
 
     private void UpdateTraceActionsMenu()
