@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="it" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
-        <target state="translated">Genera artefatti della distribuzione per un progetto host delle app Aspire. (Anteprima)</target>
+        <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
+        <target state="needs-review-translation">Genera artefatti della distribuzione per un progetto host delle app Aspire. (Anteprima)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Percorso del file di un progetto host dell'app Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="needs-review-translation">Percorso del file di un progetto host dell'app Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
