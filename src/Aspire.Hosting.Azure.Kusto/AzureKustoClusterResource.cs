@@ -43,17 +43,16 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     {
         get
         {
-            // Check if this resource has an HTTP endpoint (which indicates it's running as an emulator)
-            // We use try/catch because GetEndpoint throws if the endpoint doesn't exist
-            try
+            // Check if this resource is marked as an emulator
+            if (IsEmulator)
             {
+                // For emulator, use the HTTP endpoint pattern
                 var endpoint = this.GetEndpoint("http");
-                // If we got here, we have an HTTP endpoint, so use the emulator connection format
                 return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
             }
-            catch (InvalidOperationException)
+            else
             {
-                // No HTTP endpoint found, so this is an Azure provisioned resource
+                // For Azure provisioned resources, use the connection string output
                 return ReferenceExpression.Create($"{ConnectionStringOutput}");
             }
         }
