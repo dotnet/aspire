@@ -66,6 +66,9 @@
                                   ImmediateDelay="@FluentUIExtensions.InputDelay"
                                   Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                                   title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                    <SpanTypeSelect @bind-SpanType="@_selectedSpanType"
+                                    SpanTypes="@_spanTypes"
+                                    HandleSelectedSpanTypeChangedAsync="@HandleSelectedSpanTypeChangedAsync" />
                     <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                                       Icon="@(new Icons.Regular.Size20.Options())"
                                       Items="@_traceActionsMenuItems"
