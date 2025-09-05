@@ -8,6 +8,8 @@ namespace Aspire.TestUtilities;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITraitAttribute
 {
+    private static bool? s_isSupported;
+
     // This property is `true` when Playwright is expected to be installed on the machine.
     //
     // A hard-coded *expected* value is used here to ensure that CI can skip entire
@@ -15,12 +17,27 @@ public class RequiresPlaywrightAttribute(string? reason = null) : Attribute, ITr
     //
     // Currently this is not supported on Linux agents on helix, and azdo build machines
     // https://github.com/dotnet/aspire/issues/4921
-    public static bool IsSupported =>
-        !PlatformDetection.IsRunningOnCI // Supported on local runs
-        || !OperatingSystem.IsLinux() // always supported on !linux on CI
-        // On GHA this can differ depending on which workflow the tests are running on,
-        // so check PLAYWRIGHT_INSTALLED
-        || (PlatformDetection.IsRunningOnGithubActions && Environment.GetEnvironmentVariable("PLAYWRIGHT_INSTALLED") is "true");
+    public static bool IsSupported
+    {
+        get
+        {
+            if (s_isSupported is null)
+            {
+                // Setting PLAYWRIGHT_INSTALLED environment variable takes precedence
+                if (Environment.GetEnvironmentVariable("PLAYWRIGHT_INSTALLED") is var playwrightInstalled && !string.IsNullOrEmpty(playwrightInstalled))
+                {
+                    s_isSupported = bool.Parse(playwrightInstalled);
+                }
+                else
+                {
+                    s_isSupported = !PlatformDetection.IsRunningOnCI // Supported on local runs
+                        || !OperatingSystem.IsLinux() // always supported on !linux on CI
+                        || PlatformDetection.IsRunningOnGithubActions;
+                }
+            }
+            return s_isSupported.Value;
+        }
+    }
 
     public string? Reason { get; init; } = reason;
 
