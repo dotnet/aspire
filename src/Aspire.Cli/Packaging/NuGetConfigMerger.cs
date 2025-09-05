@@ -179,6 +179,7 @@ internal class NuGetConfigMerger
         
         var patternsToAdd = RemapExistingPatterns(packageSourceMapping, patternToNewSource, context.UrlToExistingKey, sourcesInUse);
         AddRemappedPatterns(packageSourceMapping, patternsToAdd, context.UrlToExistingKey, sourcesInUse);
+        AddNewPatterns(packageSourceMapping, context, sourcesInUse);
         FixUrlBasedPackageSourceKeys(packageSourceMapping, context.UrlToExistingKey, sourcesInUse);
         HandleWildcardMappingForExistingSources(packageSourceMapping, context, sourcesInUse);
         RemoveEmptyPackageSourceElements(packageSourceMapping, context.PackageSources, context.UrlToExistingKey, sourcesInUse);
@@ -284,6 +285,69 @@ internal class NuGetConfigMerger
                     // Add the package pattern to the target source
                     var packageElement = new XElement("package");
                     packageElement.SetAttributeValue("pattern", pattern);
+                    targetSourceElement.Add(packageElement);
+                }
+            }
+            
+            sourcesInUse.Add(keyToUse);
+        }
+    }
+
+    private static void AddNewPatterns(
+        XElement packageSourceMapping,
+        NuGetConfigContext context,
+        HashSet<string> sourcesInUse)
+    {
+        // Find patterns from mappings that don't exist anywhere in the current packageSourceMapping
+        var existingPatterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var packageSourceElement in packageSourceMapping.Elements("packageSource"))
+        {
+            foreach (var packageElement in packageSourceElement.Elements("package"))
+            {
+                var pattern = (string?)packageElement.Attribute("pattern");
+                if (!string.IsNullOrEmpty(pattern))
+                {
+                    existingPatterns.Add(pattern);
+                }
+            }
+        }
+
+        // Group new patterns by their target source
+        var newPatternsBySource = context.Mappings
+            .Where(m => !existingPatterns.Contains(m.PackageFilter))
+            .GroupBy(m => m.Source, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sourceGroup in newPatternsBySource)
+        {
+            var targetSource = sourceGroup.Key;
+            
+            // Use existing key if available, otherwise use the source URL as key
+            var keyToUse = context.UrlToExistingKey.TryGetValue(targetSource, out var existingKey) ? existingKey : targetSource;
+            
+            // Find or create the packageSource element for this source
+            var targetSourceElement = packageSourceMapping.Elements("packageSource")
+                .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), keyToUse, StringComparison.OrdinalIgnoreCase));
+            
+            if (targetSourceElement is null)
+            {
+                // Create new packageSource element for this source
+                targetSourceElement = new XElement("packageSource");
+                targetSourceElement.SetAttributeValue("key", keyToUse);
+                packageSourceMapping.Add(targetSourceElement);
+            }
+
+            // Add all new patterns for this source
+            foreach (var mapping in sourceGroup)
+            {
+                // Check if this pattern already exists in the target source (just in case)
+                var existingPattern = targetSourceElement.Elements("package")
+                    .FirstOrDefault(p => string.Equals((string?)p.Attribute("pattern"), mapping.PackageFilter, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingPattern is null)
+                {
+                    // Add the package pattern to the target source
+                    var packageElement = new XElement("package");
+                    packageElement.SetAttributeValue("pattern", mapping.PackageFilter);
                     targetSourceElement.Add(packageElement);
                 }
             }

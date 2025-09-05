@@ -1182,7 +1182,7 @@ public class TraceTests
             StartIndex = 0,
             Count = 10,
             Filters = [
-                new TelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" }
+                new FieldTelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" }
             ]
         });
         // Assert 1
@@ -1201,7 +1201,7 @@ public class TraceTests
             StartIndex = 0,
             Count = 10,
             Filters = [
-                new TelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
+                new FieldTelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
             ]
         });
         // Assert 2
@@ -1220,8 +1220,8 @@ public class TraceTests
             StartIndex = 0,
             Count = 10,
             Filters = [
-                new TelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" },
-                new TelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
+                new FieldTelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" },
+                new FieldTelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
             ]
         });
         // Assert 3
@@ -1272,7 +1272,7 @@ public class TraceTests
             StartIndex = 0,
             Count = 10,
             Filters = [
-                new TelemetryFilter { Field = name, Condition = FilterCondition.NotEqual, Value = value }
+                new FieldTelemetryFilter { Field = name, Condition = FilterCondition.NotEqual, Value = value }
             ]
         });
 
@@ -1288,7 +1288,7 @@ public class TraceTests
             StartIndex = 0,
             Count = 10,
             Filters = [
-                new TelemetryFilter { Field = name, Condition = FilterCondition.Equals, Value = value }
+                new FieldTelemetryFilter { Field = name, Condition = FilterCondition.Equals, Value = value }
             ]
         });
 
