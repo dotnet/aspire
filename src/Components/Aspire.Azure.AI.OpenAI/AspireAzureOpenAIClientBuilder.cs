@@ -20,5 +20,8 @@ public class AspireAzureOpenAIClientBuilder(IHostApplicationBuilder hostBuilder,
     : AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData)
 {
     /// <inheritdoc />
-    public override string ConfigurationSectionName => AspireAzureOpenAIExtensions.DefaultConfigSectionName;
+    public override string ConfigurationSectionName => ServiceKey is null ?
+        AspireAzureOpenAIExtensions.DefaultConfigSectionName :
+        $"{AspireAzureOpenAIExtensions.DefaultConfigSectionName}:{ServiceKey}";
+
 }

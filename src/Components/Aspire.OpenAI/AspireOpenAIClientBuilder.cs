@@ -52,7 +52,9 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
     /// <summary>
     /// Gets the name of the configuration section for this component type.
     /// </summary>
-    public virtual string ConfigurationSectionName => AspireOpenAIExtensions.DefaultConfigSectionName;
+    public virtual string ConfigurationSectionName => ServiceKey is null ?
+        AspireOpenAIExtensions.DefaultConfigSectionName :
+        $"{AspireOpenAIExtensions.DefaultConfigSectionName}:{ServiceKey}";
 
     internal string GetRequiredDeploymentName()
     {
