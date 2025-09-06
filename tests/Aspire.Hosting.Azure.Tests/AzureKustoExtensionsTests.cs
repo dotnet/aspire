@@ -87,13 +87,11 @@ public class AzureKustoExtensionsTests
         
         await ExecuteBeforeStartHooksAsync(app, default);
         
-        var manifest = await GetManifestWithBicep(model, kusto.Resource);
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-kusto");
+        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles, skipPreparer: true);
 
-        var kustoRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "kusto-roles");
-        var kustoRolesManifest = await GetManifestWithBicep(kustoRoles, skipPreparer: true);
-
-        await Verify(manifest.BicepText, extension: "bicep")
-            .AppendContentAsFile(kustoRolesManifest.BicepText, "bicep");
+        await Verify(rolesManifest.ToString(), "json")
+            .AppendContentAsFile(rolesBicep, "bicep");
     }
 
     [Fact]
@@ -112,13 +110,11 @@ public class AzureKustoExtensionsTests
         
         await ExecuteBeforeStartHooksAsync(app, default);
         
-        var manifest = await GetManifestWithBicep(model, kusto.Resource);
+        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-kusto");
+        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles, skipPreparer: true);
 
-        var kustoRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "kusto-roles");
-        var kustoRolesManifest = await GetManifestWithBicep(kustoRoles, skipPreparer: true);
-
-        await Verify(manifest.BicepText, extension: "bicep")
-            .AppendContentAsFile(kustoRolesManifest.BicepText, "bicep");
+        await Verify(rolesManifest.ToString(), "json")
+            .AppendContentAsFile(rolesBicep, "bicep");
     }
 
     [Fact]
