@@ -63,8 +63,26 @@ public class AzureKustoDatabaseResource : Resource, IResourceWithParent<AzureKus
     /// <returns>A <see cref="KustoDatabase"/> instance.</returns>
     internal KustoDatabase ToProvisioningEntity()
     {
-        var database = new KustoDatabase(Infrastructure.NormalizeBicepIdentifier(Name));
+        var database = new KustoDatabaseWithHacks(Infrastructure.NormalizeBicepIdentifier(Name));
         database.Name = DatabaseName;
+        database.Kind = "ReadWrite";
         return database;
+    }
+}
+
+// Temporary hack until fixes merged to Azure.Provisioning.Kusto.
+internal class KustoDatabaseWithHacks(string bicepIdentifier, string? resourceVersion = default) : KustoDatabase(bicepIdentifier, resourceVersion)
+{
+    public BicepValue<string> Kind
+    {
+        get { Initialize(); return _kind!; }
+        set { Initialize(); _kind!.Assign(value); }
+    }
+    private BicepValue<string>? _kind;
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+        _kind = DefineProperty<string>(nameof(Kind), ["kind"], isRequired: true);
     }
 }
