@@ -128,7 +128,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        // TODO: Should we delete tunnels when the AppHost stops? Just let them expire?
+        // Tunnels will expire after some time not being hosted so we won't foricibly delete them when the resource or AppHost is stopped
 
         return rb;
     }
@@ -178,23 +178,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return tunnelBuilder;
     }
 
-    /// <summary>
-    /// Adds a dev tunnel and tunnels all HTTP endpoints on the provided resource.
-    /// </summary>
-    public static IResourceBuilder<TResource> WithTunneledHttpEndpoints<TResource>(
-        this IResourceBuilder<TResource> resourceBuilder,
-        IResourceBuilder<DevTunnelResource> tunnelBuilder,
-        DevTunnelPortOptions? portOptions = null)
-        where TResource : IResourceWithEndpoints
-    {
-        ArgumentNullException.ThrowIfNull(resourceBuilder);
-        ArgumentNullException.ThrowIfNull(tunnelBuilder);
-
-        tunnelBuilder.WithReference(resourceBuilder, portOptions);
-
-        return resourceBuilder;
-    }
-
     private static void AddDevTunnelPort(
         IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -202,11 +185,25 @@ public static partial class DevTunnelsResourceBuilderExtensions
     {
         var tunnel = tunnelBuilder.Resource;
         var targetResource = targetEndpoint.Resource;
+
+        if (targetEndpoint.Resource.Annotations
+                .OfType<EndpointAnnotation>()
+                .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, targetEndpoint.EndpointName)) is { } targetEndpointAnnotation)
+        {
+            // The target endpoint already exists so let's ensure it's target is localhost
+            if (!string.Equals(targetEndpointAnnotation.TargetHost, "localhost", StringComparison.OrdinalIgnoreCase)
+                && !targetEndpointAnnotation.TargetHost.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                // Target endpoint is not localhost so can't be tunneled
+                throw new ArgumentException($"Cannot tunnel endpoint '{targetEndpointAnnotation.Name}' with host '{targetEndpointAnnotation.TargetHost}' on resource '{targetResource.Name}' because it is not a localhost endpoint.", nameof(targetEndpoint));
+            }
+        }
+
         portOptions ??= new();
         portOptions.Protocol = targetEndpoint.Scheme switch
         {
             "https" or "http" => targetEndpoint.Scheme,
-            _ => "auto"
+            _ => throw new ArgumentException($"Cannot tunnel endpoint '{targetEndpoint.EndpointName}' on resource '{targetResource.Name}' because it uses unsupported scheme '{targetEndpoint.Scheme}'. Only 'http' and 'https' endpoints can be tunneled."),
         };
         portOptions.Description ??= $"{targetResource.Name}/{targetEndpoint.EndpointName}";
 
@@ -220,14 +217,17 @@ public static partial class DevTunnelsResourceBuilderExtensions
         tunnel.Ports.Add(portResource);
 
         var portBuilder = tunnelBuilder.ApplicationBuilder.AddResource(portResource)
-            .WithParentRelationship(tunnelBuilder)     // visual grouping beneath the tunnel
-            .WithReferenceRelationship(targetResource) // indicate the target resource relationship
-            .WaitFor(tunnelBuilder)                    // ensure the tunnel is ready before starting ports
-            .WithHttpsEndpoint(name: DevTunnelPortResource.TunnelEndpointName, isProxied: false) // public tunnel URL endpoint
-            // NOTE: The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
-            //       We might consider updating the central logic that creates endpoint URLs allow setting a target host like *.devtunnels.ms & if the
-            //       host of the allocated endpoint matches that pattern, *don't* try to add a localhost version of the URL too (because it won't work).
-            // .WithEndpoint(DevTunnelPortResource.TunnelEndpointName, e => { e.TargetHost = "*.devtunnels.ms"; }, createIfNotExists: false)
+            // visual grouping beneath the tunnel
+            .WithParentRelationship(tunnelBuilder)
+            // indicate the target resource relationship
+            .WithReferenceRelationship(targetResource)
+            // public tunnel URL endpoint
+            .WithHttpsEndpoint(name: DevTunnelPortResource.TunnelEndpointName, isProxied: false)
+            // NOTE:
+            // The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
+            // We might consider updating the central logic that creates endpoint URLs to allow setting a target host like *.devtunnels.ms & if the
+            // host of the allocated endpoint matches that pattern, *don't* try to add a localhost version of the URL too (because it won't work), e.g.:
+            //  .WithEndpoint(DevTunnelPortResource.TunnelEndpointName, e => { e.TargetHost = "*.devtunnels.ms"; }, createIfNotExists: false)
             .WithUrls(static context =>
             {
                 var urls = context.Urls;
@@ -239,7 +239,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     tunnelUrl.Url = new UriBuilder(tunnelUrl.Url).Uri.ToString();
                 }
 
-                // Remove the localhost version of the tunnel URL
+                // Remove the localhost version of the tunnel URL that's added by the central endpoint URL logic
                 // HACK: See the NOTE above about potentially handling this more generically in the central endpoint URL logic
                 if (urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
                                              && string.Equals(new UriBuilder(u.Url).Host, "localhost", StringComparison.OrdinalIgnoreCase)) is { } localhostTunnelUrl)
@@ -284,18 +284,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     new("Description", portOptions.Description),
                     new("Labels", portOptions.Labels is null ? "" : $"{string.Join(", ", portOptions.Labels)}"),
                 ]
-            })
-            .OnInitializeResource(static (portResource, e, ct) =>
-            {
-                e.Logger.LogDebug("Initializing dev tunnel port resource '{Resource}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'", portResource.Name, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
-                return Task.CompletedTask;
-                // BUG: If I fire this here it hangs on runs AFTER the first run
-                //      OK I think that's because this handler only ever runs once for the lifetime of the AppHost
-                // Fire before started event, this will block until the tunnel is healthy thanks to the WaitFor above
-                //await e.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, e.Services), ct).ConfigureAwait(false);
-
-                // Update myself
-                //await UpdateDevTunnelPortStatus(portResource, e.Services, ct).ConfigureAwait(false);
             });
 
         // When the target endpoint is allocated, create or update the port on the dev tunnel
@@ -310,6 +298,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
             var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
 
+            // We do this check now so that we're verifying the allocated endpoint's address
             if (!string.Equals(portResource.TargetEndpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
                 !portResource.TargetEndpoint.Host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
             {
@@ -352,8 +341,54 @@ public static partial class DevTunnelsResourceBuilderExtensions
             {
                 // Update the port now that the tunnel is ready
                 // We need to do this in this handler so that it runs every time the tunnel is started
-                await UpdateDevTunnelPortStatus(portResource, e.Services, ct).ConfigureAwait(false);
-                //return Task.CompletedTask;
+                var tunnelStatus = portResource.DevTunnel.LastKnownStatus;
+                var tunnelPortStatus = portResource.LastKnownStatus;
+
+                // Ensure the expected state for the port still exists after the ready event was raised
+                if (tunnelStatus?.HostConnections is 0 or null || tunnelPortStatus?.PortUri is null)
+                {
+                    // Tunnel is not ready
+                    return;
+                }
+
+                var services = e.Services;
+                var eventing = services.GetRequiredService<IDistributedApplicationEventing>();
+                var notifications = services.GetRequiredService<ResourceNotificationService>();
+
+                // Mark the port as starting
+                await eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, services), ct).ConfigureAwait(false);
+                await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
+                {
+                    State = KnownResourceStates.Starting,
+                    StartTimeStamp = DateTime.UtcNow
+                }).ConfigureAwait(false);
+
+                // Allocate endpoint to the tunnel port
+                if (!portResource.TryGetEndpoints(out var portEndpoints)
+                    || portEndpoints.FirstOrDefault(ep => ep.Name == DevTunnelPortResource.TunnelEndpointName) is not { } publicEndpoint)
+                {
+                    throw new DistributedApplicationException($"Could not find public tunnel endpoint for port resource '{portResource.Name}'.");
+                }
+                var raiseEndpointsAllocatedEvent = publicEndpoint.AllocatedEndpoint is null;
+                publicEndpoint.AllocatedEndpoint = new(publicEndpoint, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
+
+                // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
+                // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for
+                // the resource every time the tunnel starts, just the first time.
+                if (raiseEndpointsAllocatedEvent)
+                {
+                    await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
+                }
+
+                // Mark the port as running
+                await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
+                {
+                    State = KnownResourceStates.Running,
+                    Urls = [.. snapshot.Urls.Select(u => u with { IsInactive = false /* All URLs active */ })]
+                }).ConfigureAwait(false);
+
+                var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
+                portLogger.LogInformation("Forwarding from {PortUrl} to {TargetUrl} ({TargetResourceName}/{TargetEndpointName})", tunnelPortStatus.PortUri.ToString().TrimEnd('/'), portResource.TargetEndpoint.Url, portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName);
             })
             .OnResourceStopped(async (tunnelResource, e, ct) =>
             {
@@ -363,6 +398,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
+
                 portLogger.LogInformation("Port forwarding stopped");
                 CustomResourceSnapshot? stoppedSnapshot = default;
                 await notifications.PublishUpdateAsync(portResource, snapshot => stoppedSnapshot = snapshot with
@@ -373,61 +409,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }).ConfigureAwait(false);
                 await eventing.PublishAsync<ResourceStoppedEvent>(new(portResource, e.Services, new(portResource, portResource.Name, stoppedSnapshot!)), ct).ConfigureAwait(false);
             });
-    }
-
-    private static async Task<bool> UpdateDevTunnelPortStatus(DevTunnelPortResource portResource, IServiceProvider services, CancellationToken ct)
-    {
-        var tunnelStatus = portResource.DevTunnel.LastKnownStatus;
-        var tunnelPortStatus = portResource.LastKnownStatus;
-
-        if (tunnelStatus is null || tunnelPortStatus is null)
-        {
-            // Tunnel is not ready
-            return false;
-        }
-
-        if (tunnelStatus.HostConnections == 0 || tunnelPortStatus?.PortUri is null)
-        {
-            // The tunnel is not active for this port
-            return false;
-        }
-
-        // Allocate endpoint to the tunnel port
-        if (!portResource.TryGetEndpoints(out var portEndpoints)
-            || portEndpoints.FirstOrDefault(ep => ep.Name == DevTunnelPortResource.TunnelEndpointName) is not { } publicEndpoint)
-        {
-            throw new DistributedApplicationException($"Could not find public tunnel endpoint for port resource '{portResource.Name}'.");
-        }
-        var raiseEndpointsAllocatedEvent = publicEndpoint.AllocatedEndpoint is null;
-        publicEndpoint.AllocatedEndpoint = new(publicEndpoint, tunnelPortStatus.PortUri.Host, 443);
-
-        // Publish events and notifications
-        var eventing = services.GetRequiredService<IDistributedApplicationEventing>();
-        var notifications = services.GetRequiredService<ResourceNotificationService>();
-
-        if (raiseEndpointsAllocatedEvent)
-        {
-            await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
-        }
-
-        // BUG: If I fire this here it hangs on first run
-        //await eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, services), ct).ConfigureAwait(false);
-        await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
-        {
-            State = KnownResourceStates.Starting,
-            StartTimeStamp = DateTime.UtcNow
-        }).ConfigureAwait(false);
-
-        await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
-        {
-            State = KnownResourceStates.Running,
-            Urls = [.. snapshot.Urls.Select(u => u with { IsInactive = false /* All URLs active */ })]
-        }).ConfigureAwait(false);
-
-        var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-        portLogger.LogInformation("Forwarding from {PortUrl} to {TargetUrl} ({TargetResourceName}/{TargetEndpointName})", tunnelPortStatus.PortUri.ToString().TrimEnd('/'), portResource.TargetEndpoint.Url, portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName);
-
-        return true;
     }
 
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$")]
