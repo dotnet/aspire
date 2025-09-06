@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire Test Project (NUnit)",
+  "name": "Testovací projekt Aspire (NUnit)",
   "description": "A project that contains NUnit integration tests of an Aspire AppHost project.",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",

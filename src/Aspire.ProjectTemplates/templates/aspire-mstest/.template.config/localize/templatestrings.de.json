@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire Test Project (MSTest)",
+  "name": "Aspire-Testprojekt (MSTest)",
   "description": "A project that contains MSTest integration tests of an Aspire AppHost project.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
