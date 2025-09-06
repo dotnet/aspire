@@ -25,6 +25,6 @@ internal static class AzureRoleAssignmentUtils
     private static HashSet<RoleDefinition> CreateRoleDefinitions<TBuiltInRole>(IReadOnlyList<TBuiltInRole> roles, Func<TBuiltInRole, string> getName)
         where TBuiltInRole : notnull
     {
-        return [.. roles.Select(r => new RoleDefinition(r.ToString()!, getName(r)))];
+        return [.. roles.Select(r => new RoleDefinition(getName(r), r.ToString()!))];
     }
 }
