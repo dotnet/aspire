@@ -3,13 +3,14 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.DevTunnels;
 
-internal sealed class DevTunnelCliClient(string cliPath) : IDevTunnelClient
+internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTunnelClient
 {
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
-    private readonly DevTunnelCli _cli = new(cliPath);
+    private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
 
     public async Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, CancellationToken cancellationToken = default)
     {
@@ -67,18 +68,20 @@ internal sealed class DevTunnelCliClient(string cliPath) : IDevTunnelClient
 
     public async Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, CancellationToken cancellationToken = default)
     {
-        var (login, exitCode, error) = provider switch
+        var exitCode = provider switch
         {
-            LoginProvider.Microsoft => await CallCliAsJsonAsync<UserLoginStatus>(
-                _cli.UserLoginMicrosoftAsync,
-                cancellationToken).ConfigureAwait(false),
-            LoginProvider.GitHub => await CallCliAsJsonAsync<UserLoginStatus>(
-                _cli.UserLoginGitHubAsync,
-                cancellationToken).ConfigureAwait(false),
+            LoginProvider.Microsoft => await _cli.UserLoginMicrosoftAsync(cancellationToken).ConfigureAwait(false),
+            LoginProvider.GitHub => await _cli.UserLoginGitHubAsync(cancellationToken).ConfigureAwait(false),
             _ => throw new ArgumentException("Unsupported provider. Supported providers are 'microsoft' and 'github'.", nameof(provider)),
         };
 
-        return login ?? throw new DistributedApplicationException($"Failed to perform user login. Exit code {exitCode}: {error}");
+        if (exitCode == 0)
+        {
+            // Login succeeded, get the login status
+            return await GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new DistributedApplicationException($"Failed to perform user login. Process finished with exit code: {exitCode}");
     }
 
     private async Task<(T? Result, int ExitCode, string? Error)> CallCliAsJsonAsync<T>(Func<TextWriter, TextWriter, CancellationToken, Task<int>> cliCall, CancellationToken cancellationToken = default)

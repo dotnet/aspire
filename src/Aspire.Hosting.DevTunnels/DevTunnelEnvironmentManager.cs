@@ -19,6 +19,8 @@ internal sealed class DevTunnelEnvironmentManager(IDevTunnelClient devTunnelClie
 
     public Task EnsureUserLoggedInAsync(CancellationToken cancellationToken = default)
     {
+        // TODO: Accept ILogger here and log from singleton login task to all ILogger instances?
+
         Task? running = null;
 
         lock (_loginLock)
@@ -75,24 +77,29 @@ internal sealed class DevTunnelEnvironmentManager(IDevTunnelClient devTunnelClie
             }
             else
             {
-                // Not logged in, prompt the user to login
-                var result = await _interactionService.PromptNotificationAsync(
-                    "Dev tunnels",
-                    $"Dev tunnels requires authentication to continue:",
-                    new()
-                    {
-                        Intent = MessageIntent.Warning,
-                        PrimaryButtonText = "Login with Microsoft",
-                        SecondaryButtonText = "Login with GitHub",
-                        ShowSecondaryButton = true,
-                        ShowDismiss = false
-                    },
-                    cancellationToken).ConfigureAwait(false);
+                // TODO: Allow setting preferred provider via configuration?
+                var selectedProvider = LoginProvider.Microsoft;
 
-                var selectedProvider = result.Data ? LoginProvider.Microsoft : LoginProvider.GitHub;
-                // Check again in case they logged in from another window while we were prompting
-                loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
+                if (_interactionService.IsAvailable)
+                {
+                    // Not logged in, prompt the user to login
+                    var result = await _interactionService.PromptNotificationAsync(
+                        "Dev tunnels",
+                        $"Dev tunnels requires authentication to continue:",
+                        new()
+                        {
+                            Intent = MessageIntent.Warning,
+                            PrimaryButtonText = "Login with Microsoft",
+                            SecondaryButtonText = "Login with GitHub",
+                            ShowSecondaryButton = true,
+                            ShowDismiss = false
+                        },
+                        cancellationToken).ConfigureAwait(false);
 
+                    selectedProvider = result.Data ? LoginProvider.Microsoft : LoginProvider.GitHub;
+                    // Check again in case they logged in from another window while we were prompting
+                    loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
+                }
                 if (!loginStatus.IsLoggedIn || loginStatus.Provider != selectedProvider)
                 {
                     // Trigger the login flow
@@ -110,7 +117,7 @@ internal sealed class DevTunnelEnvironmentManager(IDevTunnelClient devTunnelClie
                     break;
                 }
 
-                // Still not logged in, loop to prompt again
+                // Still not logged in, loop to try again
             }
         }
     }

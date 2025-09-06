@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.DevTunnels;
 
@@ -15,6 +16,8 @@ internal sealed class DevTunnelCli
     public const int ResourceNotFoundExitCode = 2;
 
     private readonly string _cliPath;
+
+    public static string GetCliPath(IConfiguration configuration) => configuration["ASPIRE_DEVTUNNEL_CLI_PATH"] ?? "devtunnel";
 
     public DevTunnelCli(string filePath)
     {
@@ -28,11 +31,11 @@ internal sealed class DevTunnelCli
 
     public string CliPath => _cliPath;
 
-    public Task<int> UserLoginMicrosoftAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["user", "login", "--entra", "--json"], outputWriter, errorWriter, cancellationToken);
+    public Task<int> UserLoginMicrosoftAsync(CancellationToken cancellationToken = default)
+        => RunAsync(["user", "login", "--entra", "--json"], null, null, useShellExecute: true, cancellationToken);
 
-    public Task<int> UserLoginGitHubAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["user", "login", "--github", "--json"], outputWriter, errorWriter, cancellationToken);
+    public Task<int> UserLoginGitHubAsync(CancellationToken cancellationToken = default)
+        => RunAsync(["user", "login", "--github", "--json"], null, null, useShellExecute: true, cancellationToken);
 
     public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, string? provider = null, CancellationToken cancellationToken = default)
         => RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
@@ -183,8 +186,8 @@ internal sealed class DevTunnelCli
                     errorWriter?.WriteLine(line);
                 }
             },
-            cancellationToken,
-            ["user", "show", "--json"]).ConfigureAwait(false);
+            ["user", "show", "--json"],
+            cancellationToken).ConfigureAwait(false);
 
         var output = outputBuilder.ToString();
 
@@ -206,6 +209,9 @@ internal sealed class DevTunnelCli
     }
 
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
+        => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, cancellationToken);
+
+    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, bool useShellExecute = false, CancellationToken cancellationToken = default)
     {
         return RunAsync((isError, line) =>
         {
@@ -217,14 +223,17 @@ internal sealed class DevTunnelCli
             {
                 outputWriter?.WriteLine(line);
             }
-        }, cancellationToken, args);
+        }, args, useShellExecute, cancellationToken);
     }
 
-    private async Task<int> RunAsync(Action<bool, string> onOutput, CancellationToken cancellationToken, string[] args)
+    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, CancellationToken cancellationToken = default)
+        => await RunAsync(onOutput, args, useShellExecute: false, cancellationToken).ConfigureAwait(false);
+
+    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, bool useShellExecute = false, CancellationToken cancellationToken = default)
     {
         using var process = new Process
         {
-            StartInfo = BuildStartInfo(args),
+            StartInfo = BuildStartInfo(args, useShellExecute),
             EnableRaisingEvents = true
         };
 
@@ -238,8 +247,11 @@ internal sealed class DevTunnelCli
                 throw new InvalidOperationException("Failed to start devtunnel process.");
             }
 
-            stdoutTask = PumpAsync(process.StandardOutput, line => onOutput(false, line), cancellationToken);
-            stderrTask = PumpAsync(process.StandardError, line => onOutput(true, line), cancellationToken);
+            if (!useShellExecute)
+            {
+                stdoutTask = PumpAsync(process.StandardOutput, line => onOutput(false, line), cancellationToken);
+                stderrTask = PumpAsync(process.StandardError, line => onOutput(true, line), cancellationToken);
+            }
 
             using var ctr = cancellationToken.Register(() =>
             {
@@ -257,31 +269,37 @@ internal sealed class DevTunnelCli
             });
 
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+            if (!useShellExecute)
+            {
+                await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+            }
 
             return process.ExitCode;
         }
         finally
         {
-            try
+            if (!useShellExecute)
             {
-                await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignored
+                try
+                {
+                    await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
     }
 
-    private ProcessStartInfo BuildStartInfo(IEnumerable<string> args)
+    private ProcessStartInfo BuildStartInfo(IEnumerable<string> args, bool useShellExecute = false)
     {
         var psi = new ProcessStartInfo
         {
             FileName = _cliPath,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            UseShellExecute = useShellExecute,
+            RedirectStandardOutput = !useShellExecute,
+            RedirectStandardError = !useShellExecute,
             RedirectStandardInput = false,
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
@@ -299,7 +317,7 @@ internal sealed class DevTunnelCli
         }
 
         // Ensure consistent encoding on Windows terminals
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (!useShellExecute && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             psi.StandardOutputEncoding = Encoding.UTF8;
             psi.StandardErrorEncoding = Encoding.UTF8;

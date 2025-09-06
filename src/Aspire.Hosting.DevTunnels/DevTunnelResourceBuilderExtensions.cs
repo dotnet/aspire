@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +31,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         options ??= new DevTunnelOptions();
 
-        var workingDirectory = builder.AppHostDirectory;
         var appHostSha = builder.Configuration["AppHost:Sha256"]?[..8];
         tunnelId ??= $"{name}-{builder.Environment.ApplicationName.Replace(".", "-")}-{appHostSha}".ToLowerInvariant();
 
@@ -45,13 +45,18 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 """, nameof(tunnelId));
         }
 
-        var tunnelResource = new DevTunnelResource(name, tunnelId, options.GetCliPath(), workingDirectory, options);
+        // Add services
+        builder.Services.TryAddSingleton<DevTunnelEnvironmentManager>();
+        builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
+
+        var workingDirectory = builder.AppHostDirectory;
+        var tunnelResource = new DevTunnelResource(name, tunnelId, DevTunnelCli.GetCliPath(builder.Configuration), workingDirectory, options);
 
         // Health check
         var healtCheckKey = $"{name}-check";
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(new DevTunnelCliClient(options.GetCliPath()), tunnelResource),
+            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource),
             failureStatus: default,
             tags: default,
             timeout: default));
@@ -72,52 +77,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
             .OnBeforeResourceStarted(static async (tunnelResource, e, ct) =>
             {
                 var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                var interaction = e.Services.GetRequiredService<IInteractionService>();
-#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-                var devTunnelClient = new DevTunnelCliClient(tunnelResource.Options.GetCliPath());
+                var devTunnelEnvironmentManager = e.Services.GetRequiredService<DevTunnelEnvironmentManager>();
+                var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
 
                 // Login to the dev tunnels service if needed
-                // TODO: Need to think about how to not do this per-tunnel if there are multiple tunnels.
-                //       Maybe have a singleton DevTunnelAuthManager service that is called into from here instead.
-                logger.LogDebug("Checking user login status for dev tunnels");
-                var userLoginStatus = await devTunnelClient.GetUserLoginStatusAsync(ct).ConfigureAwait(false);
-                if (userLoginStatus.IsLoggedIn)
-                {
-                    logger.LogDebug("User is logged in as {Username}", userLoginStatus.Username);
-                }
-                else
-                {
-                    if (interaction.IsAvailable)
-                    {
-                        logger.LogInformation("User is not logged in to the dev tunnels service, waiting for login");
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                        await interaction.PromptNotificationAsync(
-                            "Dev tunnels",
-                            $"The dev tunnel resource '{tunnelResource.Name}' requires authentication to continue.",
-                            new() { Intent = MessageIntent.Warning, PrimaryButtonText = "Login", ShowDismiss = false },
-                            ct).ConfigureAwait(false);
-#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                        // Check again
-                        userLoginStatus = await devTunnelClient.GetUserLoginStatusAsync(ct).ConfigureAwait(false);
-                    }
-                    if (userLoginStatus.IsLoggedIn)
-                    {
-                        logger.LogDebug("User is logged in as {Username}", userLoginStatus.Username);
-                    }
-                    else
-                    {
-                        // TODO: Support login for GitHub auth too, maybe via the interaction service?
-                        // BUG: This doesn't pop the WAM UI on Windows, possbily due to interactive shell stuff, we might need to do device code flow instead
-                        userLoginStatus = await devTunnelClient.UserLoginAsync(LoginProvider.Microsoft, ct).WaitAsync(timeout: TimeSpan.FromMinutes(1), ct).ConfigureAwait(false);
-                        if (!userLoginStatus.IsLoggedIn)
-                        {
-                            throw new DistributedApplicationException($"Failed to login to the dev tunnels service.");
-                        }
-                    }
-                }
-
+                await devTunnelEnvironmentManager.EnsureUserLoggedInAsync(ct).ConfigureAwait(false);
                 // Create the dev tunnel
                 _ = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
             })
@@ -308,7 +272,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             }
 
             // Create/update the port on the tunnel
-            var devTunnelClient = new DevTunnelCliClient(portResource.DevTunnel.Options.GetCliPath());
+            var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
             portResource.Options.Labels ??= [];
             // TODO: Validate and add the labels here
             // Labels: The field Labels must match the regular expression '[\w-=]{1,50}'.
