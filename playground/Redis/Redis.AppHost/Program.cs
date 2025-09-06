@@ -1,9 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var redis = builder.AddRedis("redis");
-redis.WithDataVolume()
-    .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redis))
-    .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis));
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var redis = builder.AddAzureRedisEnterprise("redis");
+#pragma warning restore ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var garnet = builder.AddGarnet("garnet")
     .WithDataVolume();
