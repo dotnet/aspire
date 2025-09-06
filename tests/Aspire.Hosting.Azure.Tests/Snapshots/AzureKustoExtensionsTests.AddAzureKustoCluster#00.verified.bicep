@@ -6,7 +6,8 @@ resource kusto 'Microsoft.Kusto/clusters@2024-04-13' = {
   location: location
   sku: {
     name: 'Standard_D11_v2'
-    capacity: 1
+    capacity: 2
+    tier: 'Standard'
   }
   tags: {
     'aspire-resource-name': 'kusto'
