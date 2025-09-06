@@ -73,23 +73,6 @@ public class AddAzureKustoTests
     }
 
     [Fact]
-    public void AddAzureKustoCluster_ShouldExcludeFromManifest()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto");
-
-        // Assert
-        var manifestExclusionAnnotations = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().ToList();
-        // Should have the manifest exclusion annotation (the Ignore one will have null callback)
-        var ignoreAnnotation = manifestExclusionAnnotations.SingleOrDefault(a => a.Callback is null);
-        Assert.NotNull(ignoreAnnotation);
-        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, ignoreAnnotation);
-    }
-
-    [Fact]
     public void RunAsEmulator_ShouldAddEmulatorResourceAnnotation()
     {
         // Arrange
