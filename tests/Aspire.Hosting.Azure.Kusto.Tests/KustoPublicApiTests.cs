@@ -148,6 +148,6 @@ public class KustoPublicApiTests
 
         // Assert
         // When using emulator, should use HTTP endpoint format
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
+        Assert.Equal("{test-kusto.bindings.http.url}", connectionStringExpression.ValueExpression);
     }
 }

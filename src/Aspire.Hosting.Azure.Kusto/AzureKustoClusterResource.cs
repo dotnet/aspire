@@ -41,15 +41,6 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     /// </summary>
     public BicepOutputReference ClusterUri => new("clusterUri", this);
 
-    /// <summary>
-    /// Gets the connection string output reference for the Azure Kusto cluster.
-    /// </summary>
-    /// <remarks>
-    /// TODO: Implement proper connection string output for Azure provisioned Kusto clusters.
-    /// This is a placeholder that will need to be refined when full Azure provisioning support is added.
-    /// </remarks>
-    public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
-
     /// <inheritdoc/>
     public ReferenceExpression ConnectionStringExpression
     {
@@ -60,7 +51,7 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
             {
                 // For emulator, use the HTTP endpoint pattern
                 var endpoint = this.GetEndpoint("http");
-                return ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Scheme)}://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+                return ReferenceExpression.Create($"{endpoint}");
             }
             else
             {
