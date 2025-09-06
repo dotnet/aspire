@@ -39,8 +39,8 @@ public class KustoPublicApiTests
         var connectionStringExpression = resource.ConnectionStringExpression;
 
         // Assert
-        // For Azure provisioned resources (default when directly constructed), should use connection string output
-        Assert.Equal("{test-kusto.outputs.connectionString}", connectionStringExpression.ValueExpression);
+        // For Azure provisioned resources (default when directly constructed), should use cluster URI output
+        Assert.Equal("{test-kusto.outputs.clusterUri}", connectionStringExpression.ValueExpression);
     }
 
     [Fact]

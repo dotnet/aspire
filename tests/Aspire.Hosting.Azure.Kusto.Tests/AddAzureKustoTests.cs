@@ -82,8 +82,9 @@ public class AddAzureKustoTests
         var resourceBuilder = builder.AddAzureKustoCluster("kusto");
 
         // Assert
-        var manifestExclusionAnnotation = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().SingleOrDefault();
-        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, manifestExclusionAnnotation);
+        var manifestExclusionAnnotations = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().ToList();
+        Assert.Single(manifestExclusionAnnotations);
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, manifestExclusionAnnotations[0]);
     }
 
     [Fact]
