@@ -6,28 +6,19 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-namespace Microsoft.Extensions.Hosting
+namespace Aspire.Azure.AI.Inference
 {
-    public static partial class AspireAzureAIInferenceExtensions
-    {
-        public static AspireChatCompletionsClientBuilder AddAzureChatCompletionsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<ChatCompletionsClientSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.Inference.ChatCompletionsClient, global::Azure.AI.Inference.AzureAIInferenceClientOptions>>? configureClientBuilder = null) { throw null; }
-
-        public static AI.ChatClientBuilder AddChatClient(this AspireChatCompletionsClientBuilder builder, string? deploymentId = null) { throw null; }
-
-        public static AspireChatCompletionsClientBuilder AddKeyedAzureChatCompletionsClient(this IHostApplicationBuilder builder, string name, System.Action<ChatCompletionsClientSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.Inference.ChatCompletionsClient, global::Azure.AI.Inference.AzureAIInferenceClientOptions>>? configureClientBuilder = null) { throw null; }
-
-        public static AI.ChatClientBuilder AddKeyedChatClient(this AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentId = null) { throw null; }
-    }
-
     public partial class AspireChatCompletionsClientBuilder
     {
-        public AspireChatCompletionsClientBuilder(IHostApplicationBuilder hostBuilder, string? serviceKey, string? deploymentId, bool disableTracing) { }
+        public AspireChatCompletionsClientBuilder(Microsoft.Extensions.Hosting.IHostApplicationBuilder hostBuilder, string? serviceKey, string? deploymentName, bool disableTracing, bool enableSensitiveTelemetryData) { }
 
-        public string? DeploymentId { get { throw null; } }
+        public string? DeploymentName { get { throw null; } }
 
         public bool DisableTracing { get { throw null; } }
 
-        public IHostApplicationBuilder HostBuilder { get { throw null; } }
+        public bool EnableSensitiveTelemetryData { get { throw null; } }
+
+        public Microsoft.Extensions.Hosting.IHostApplicationBuilder HostBuilder { get { throw null; } }
 
         public string? ServiceKey { get { throw null; } }
     }
@@ -36,16 +27,32 @@ namespace Microsoft.Extensions.Hosting
     {
         public string? ConnectionString { get { throw null; } set { } }
 
-        public string? DeploymentId { get { throw null; } set { } }
+        public string? DeploymentName { get { throw null; } set { } }
 
         public bool DisableMetrics { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }
+
+        public bool EnableSensitiveTelemetryData { get { throw null; } set { } }
 
         public System.Uri? Endpoint { get { throw null; } set { } }
 
         public string? Key { get { throw null; } set { } }
 
         public global::Azure.Core.TokenCredential? TokenCredential { get { throw null; } set { } }
+    }
+}
+
+namespace Microsoft.Extensions.Hosting
+{
+    public static partial class AspireAzureAIInferenceExtensions
+    {
+        public static Aspire.Azure.AI.Inference.AspireChatCompletionsClientBuilder AddAzureChatCompletionsClient(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.Azure.AI.Inference.ChatCompletionsClientSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.Inference.ChatCompletionsClient, global::Azure.AI.Inference.AzureAIInferenceClientOptions>>? configureClientBuilder = null) { throw null; }
+
+        public static AI.ChatClientBuilder AddChatClient(this Aspire.Azure.AI.Inference.AspireChatCompletionsClientBuilder builder, string? deploymentName = null) { throw null; }
+
+        public static Aspire.Azure.AI.Inference.AspireChatCompletionsClientBuilder AddKeyedAzureChatCompletionsClient(this IHostApplicationBuilder builder, string name, System.Action<Aspire.Azure.AI.Inference.ChatCompletionsClientSettings>? configureSettings = null, System.Action<global::Azure.Core.Extensions.IAzureClientBuilder<global::Azure.AI.Inference.ChatCompletionsClient, global::Azure.AI.Inference.AzureAIInferenceClientOptions>>? configureClientBuilder = null) { throw null; }
+
+        public static AI.ChatClientBuilder AddKeyedChatClient(this Aspire.Azure.AI.Inference.AspireChatCompletionsClientBuilder builder, string serviceKey, string? deploymentName = null) { throw null; }
     }
 }
