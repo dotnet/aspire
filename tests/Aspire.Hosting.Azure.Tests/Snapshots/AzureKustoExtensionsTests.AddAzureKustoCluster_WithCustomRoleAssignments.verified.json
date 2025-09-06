@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-kusto.module.bicep",
+  "params": {
+    "kusto_outputs_name": "{kusto.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

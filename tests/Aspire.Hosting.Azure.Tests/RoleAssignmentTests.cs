@@ -5,11 +5,13 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Kusto;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.EventHubs;
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Kusto;
 using Azure.Provisioning.Search;
 using Azure.Provisioning.ServiceBus;
 using Azure.Provisioning.SignalR;
@@ -44,6 +46,19 @@ public class RoleAssignmentTests()
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithRoleAssignments(config, AppConfigurationBuiltInRole.AppConfigurationDataReader);
+            });
+    }
+
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithRoleAssignments(kusto, KustoBuiltInRole.Reader, KustoBuiltInRole.Contributor);
             });
     }
 

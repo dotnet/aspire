@@ -4,6 +4,8 @@ using Kusto.Data.Net.Client;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("infra");
+
 var kusto = builder.AddAzureKustoCluster("kusto")
     .RunAsEmulator();
 var db = kusto.AddDatabase("testdb");
@@ -45,8 +47,12 @@ db.OnResourceReady(async (dbResource, evt, ct) =>
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
-// Add an invalid database to demonstrate how a "failed to start" resource appears in the dashboard
-kusto.AddDatabase("InvalidDb", "__invalid");
+// Conditional because when we do test deployments to Azure this causes problems.
+if (builder.ExecutionContext.IsRunMode)
+{
+    // Add an invalid database to demonstrate how a "failed to start" resource appears in the dashboard
+    kusto.AddDatabase("InvalidDb", "__invalid");
+}
 
 var app = builder.Build();
 app.Run();

@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Exceptions;
@@ -27,64 +31,77 @@ public static class AzureKustoBuilderExtensions
         .Build();
 
     /// <summary>
-    /// Adds a Kusto resource to the application model.
+    /// Adds an Azure Data Explorer (Kusto) cluster resource to the application model.
     /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// When adding a <see cref="AzureKustoClusterResource"/> to your application model the resource can then
+    /// When adding an <see cref="AzureKustoClusterResource"/> to your application model the resource can then
     /// be referenced by other resources using the resource name. When the dependent resource is using
     /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
     /// then the dependent resource will wait until the Kusto database is available.
     /// </para>
+    /// <para>
+    /// By default references to the Azure Data Explorer cluster resource will be assigned the following roles:
+    /// 
+    /// - <see cref="KustoBuiltInRole.Contributor"/>
+    ///
+    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureKustoClusterResource}, KustoBuiltInRole[])"/>.
+    /// </para>
     /// </remarks>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var resource = new AzureKustoClusterResource(name);
+        builder.AddAzureProvisioning();
+
+        var configureInfrastructure = (Aspire.Hosting.Azure.AzureResourceInfrastructure infrastructure) =>
+        {
+            var cluster = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, name) =>
+                {
+                    var resource = KustoCluster.FromExisting(identifier);
+                    resource.Name = name;
+                    return resource;
+                },
+                (infrastructure) => new KustoCluster(infrastructure.AspireResource.GetBicepIdentifier())
+                {
+                    // Basic cluster configuration - can be enhanced in the future
+                    Sku = new KustoSku()
+                    {
+                        Name = KustoSkuName.StandardD11V2,
+                        Capacity = 1
+                    },
+                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                });
+
+            // Add cluster URI output for connection strings
+            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.Name });
+
+            // We need to output name to externalize role assignments.
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name });
+
+            var azureResource = (AzureKustoClusterResource)infrastructure.AspireResource;
+
+            foreach (var database in azureResource.Databases)
+            {
+                var cdkDatabase = database.ToProvisioningEntity();
+                cdkDatabase.Parent = cluster;
+                infrastructure.Add(cdkDatabase);
+            }
+        };
+
+        var resource = new AzureKustoClusterResource(name, configureInfrastructure);
         var resourceBuilder = builder.AddResource(resource);
 
-        // Register a health check that will be used to verify Kusto is available
-        KustoConnectionStringBuilder? kcsb = null;
-        resourceBuilder.OnConnectionStringAvailable(async (resource, evt, ct) =>
-        {
-            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
-            throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{resource.Name}', but the connection string was null.");
-
-            kcsb = new KustoConnectionStringBuilder(connectionString);
-        });
-
-        var healthCheckKey = $"{resource.Name}_check";
-        resourceBuilder.ApplicationBuilder
-            .Services
-            .AddHealthChecks()
-            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
-
-        // Execute any setup now that Kusto is ready
-        resourceBuilder.OnResourceReady(async (server, evt, ct) =>
-        {
-            if (kcsb is null)
-            {
-                throw new DistributedApplicationException($"Connection string for Kusto resource '{server.Name}' is not set.");
-            }
-
-            using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
-            foreach (var name in server.Databases.Keys)
-            {
-                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is AzureKustoDatabaseResource kustoDatabase)
-                {
-                    await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
-                }
-            }
-        });
+        AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
 
         return resourceBuilder
-            .WithHealthCheck(healthCheckKey)
-            .ExcludeFromManifest();
+            .WithDefaultRoleAssignments(KustoBuiltInRoleExtensions.GetBuiltInRoleName,
+                KustoBuiltInRole.Contributor);
     }
 
     /// <summary>
@@ -102,8 +119,8 @@ public static class AzureKustoBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var kustoDatabase = new AzureKustoDatabaseResource(name, databaseName, builder.Resource);
+        builder.Resource.Databases.Add(kustoDatabase);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
 
         // Register a health check that will be used to verify database is available
@@ -143,12 +160,21 @@ public static class AzureKustoBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
+        // Add HTTP endpoint to the original resource so the connection string logic can detect emulator mode
+        builder.WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http");
+
         var surrogate = new AzureKustoEmulatorResource(builder.Resource);
         var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
 
         surrogateBuilder
-            .WithAnnotation(new EmulatorResourceAnnotation())
-            .WithHttpEndpoint(targetPort: AzureKustoEmulatorContainerDefaults.DefaultTargetPort, name: "http")
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = AzureKustoEmulatorContainerImageTags.Registry,
@@ -185,11 +211,42 @@ public static class AzureKustoBuilderExtensions
     }
 
     /// <summary>
-    /// Modifies the host port that the Kusto emulator listens on for HTTP query requests.
+    /// Assigns the specified roles to the given resource, granting it the necessary permissions
+    /// on the target Azure Data Explorer (Kusto) cluster resource. This replaces the default role assignments for the resource.
+    /// </summary>
+    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
+    /// <param name="target">The target Azure Data Explorer cluster resource.</param>
+    /// <param name="roles">The built-in Kusto roles to be assigned.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
+    /// <example>
+    /// Assigns the Reader role to the 'Projects.Api' project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var kusto = builder.AddAzureKustoCluster("kusto");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithRoleAssignments(kusto, KustoBuiltInRole.Reader)
+    ///   .WithReference(kusto);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithRoleAssignments<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureKustoClusterResource> target,
+        params KustoBuiltInRole[] roles)
+        where T : IResource
+    {
+        return builder.WithRoleAssignments(target, KustoBuiltInRoleExtensions.GetBuiltInRoleName, roles);
+    }
+
+    /// <summary>
+    /// Configures the host port that the Kusto emulator listens on for HTTP query requests.
     /// </summary>
     /// <param name="builder">Kusto emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
-    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureKustoClusterResource"/>.</returns>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureKustoEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureKustoEmulatorResource> WithHttpPort(this IResourceBuilder<AzureKustoEmulatorResource> builder, int port)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -198,6 +255,47 @@ public static class AzureKustoBuilderExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>
+    /// Adds Kusto-specific health checks and lifecycle management.
+    /// </summary>
+    private static void AddKustoHealthChecksAndLifecycleManagement(IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
+    {
+        var resource = resourceBuilder.Resource;
+
+        // Register a health check that will be used to verify Kusto is available
+        KustoConnectionStringBuilder? kcsb = null;
+        resourceBuilder.OnConnectionStringAvailable(async (resource, evt, ct) =>
+        {
+            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
+            throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{resource.Name}', but the connection string was null.");
+
+            kcsb = new KustoConnectionStringBuilder(connectionString);
+        });
+
+        var healthCheckKey = $"{resource.Name}_check";
+        resourceBuilder.ApplicationBuilder
+            .Services
+            .AddHealthChecks()
+            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
+
+        // Execute any setup now that Kusto is ready
+        resourceBuilder.OnResourceReady(async (server, evt, ct) =>
+        {
+            if (kcsb is null)
+            {
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{server.Name}' is not set.");
+            }
+
+            using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
+            foreach (var kustoDatabase in server.Databases)
+            {
+                await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
+            }
+        });
+
+        resourceBuilder.WithHealthCheck(healthCheckKey);
     }
 
     private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, AzureKustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
