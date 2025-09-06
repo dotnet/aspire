@@ -41,10 +41,10 @@ public class DistributedApplicationBuilderTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Empty(appModel.Resources);
 
-        var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+        var eventingSubscribers = app.Services.GetServices<IDistributedApplicationEventingSubscriber>();
         Assert.Collection(
-            lifecycles,
-            s => Assert.IsType<DashboardLifecycleHook>(s),
+            eventingSubscribers,
+            s => Assert.IsType<DashboardEventHandlers>(s),
             s => Assert.IsType<DevcontainerPortForwardingLifecycleHook>(s)
         );
 

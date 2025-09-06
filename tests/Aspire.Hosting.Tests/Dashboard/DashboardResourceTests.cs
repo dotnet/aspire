@@ -448,7 +448,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     [InlineData(LogLevel.Information)]
     [InlineData(LogLevel.Debug)]
     [InlineData(LogLevel.Trace)]
-    public async Task DashboardLifecycleHookWatchesLogs(LogLevel logLevel)
+    public async Task DashboardLifecycleEventsWatchesLogs(LogLevel logLevel)
     {
         using var builder = TestDistributedApplicationBuilder.Create(
             options => options.DisableDashboard = false,
@@ -555,11 +555,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
     {
         foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
         {
-            if (endpoint.Name == DashboardLifecycleHook.OtlpGrpcEndpointName)
+            if (endpoint.Name == DashboardEventHandlers.OtlpGrpcEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
             }
-            else if (endpoint.Name == DashboardLifecycleHook.OtlpHttpEndpointName)
+            else if (endpoint.Name == DashboardEventHandlers.OtlpHttpEndpointName)
             {
                 endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
             }
