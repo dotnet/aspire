@@ -70,6 +70,11 @@ public static class AzureKustoBuilderExtensions
                 (infrastructure) => new KustoCluster(infrastructure.AspireResource.GetBicepIdentifier())
                 {
                     // Basic cluster configuration - can be enhanced in the future
+                    Sku = new KustoSku()
+                    {
+                        Name = KustoSkuName.StandardD11V2,
+                        Capacity = 1
+                    },
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
@@ -87,8 +92,7 @@ public static class AzureKustoBuilderExtensions
 
         return resourceBuilder
             .WithDefaultRoleAssignments(KustoBuiltInRoleExtensions.GetBuiltInRoleName,
-                KustoBuiltInRole.Contributor)
-            .ExcludeFromManifest();
+                KustoBuiltInRole.Contributor);
     }
 
     /// <summary>
