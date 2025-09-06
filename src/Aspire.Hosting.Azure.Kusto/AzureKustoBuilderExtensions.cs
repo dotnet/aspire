@@ -83,12 +83,7 @@ public static class AzureKustoBuilderExtensions
         var resource = new AzureKustoClusterResource(name, configureInfrastructure);
         var resourceBuilder = builder.AddResource(resource);
 
-        // Only add health checks and Kusto-specific logic if we're not in a test environment
-        // This allows tests to work without the full Kusto client library
-        if (IsKustoClientAvailable())
-        {
-            AddKustoHealthChecksAndLifecycleManagement(builder, resourceBuilder);
-        }
+        AddKustoHealthChecksAndLifecycleManagement(builder, resourceBuilder);
 
         return resourceBuilder
             .WithDefaultRoleAssignments(KustoBuiltInRoleExtensions.GetBuiltInRoleName,
@@ -250,30 +245,7 @@ public static class AzureKustoBuilderExtensions
     }
 
     /// <summary>
-    /// Checks if the Kusto client libraries are available at runtime.
-    /// This allows tests to work without the full Kusto client dependencies.
-    /// </summary>
-    private static bool IsKustoClientAvailable()
-    {
-        try
-        {
-            // Try to load the Kusto.Data assembly without loading specific types
-            var assembly = System.Reflection.Assembly.Load("Kusto.Data");
-            return assembly != null;
-        }
-        catch (System.IO.FileNotFoundException)
-        {
-            return false;
-        }
-        catch (System.BadImageFormatException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Adds Kusto-specific health checks and lifecycle management.
-    /// This is separated so it can be conditionally applied when the Kusto client libraries are available.
     /// </summary>
     private static void AddKustoHealthChecksAndLifecycleManagement(IDistributedApplicationBuilder builder, IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
     {
