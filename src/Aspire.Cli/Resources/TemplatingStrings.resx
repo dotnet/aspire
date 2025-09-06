@@ -226,4 +226,10 @@
   <data name="NuGetConfigCreatedConfirmationMessage" xml:space="preserve">
     <value>Created NuGet.config for the selected package channel.</value>
   </data>
+  <data name="PromptForFramework_Prompt" xml:space="preserve">
+    <value>Select a target framework</value>
+  </data>
+  <data name="PromptForFramework_UsingFramework" xml:space="preserve">
+    <value>Using {0} as target framework.</value>
+  </data>
 </root>

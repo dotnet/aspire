@@ -340,7 +340,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         );
 
         // Act
-        var exitCode = await runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", [], options, CancellationToken.None);
+        var exitCode = await runner.NewProjectAsync("aspire", "TestProject", "/tmp/test", null, [], options, CancellationToken.None);
 
         // Assert
         Assert.Equal(73, exitCode);
