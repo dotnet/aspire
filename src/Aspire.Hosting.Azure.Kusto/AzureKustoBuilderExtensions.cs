@@ -73,7 +73,8 @@ public static class AzureKustoBuilderExtensions
                     Sku = new KustoSku()
                     {
                         Name = KustoSkuName.StandardD11V2,
-                        Capacity = 1
+                        Tier = KustoSkuTier.Standard,
+                        Capacity = 2
                     },
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
