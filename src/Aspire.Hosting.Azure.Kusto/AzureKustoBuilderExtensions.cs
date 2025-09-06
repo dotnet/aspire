@@ -97,7 +97,7 @@ public static class AzureKustoBuilderExtensions
         var resource = new AzureKustoClusterResource(name, configureInfrastructure);
         var resourceBuilder = builder.AddResource(resource);
 
-        AddKustoHealthChecksAndLifecycleManagement(builder, resourceBuilder);
+        AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
 
         return resourceBuilder
             .WithDefaultRoleAssignments(KustoBuiltInRoleExtensions.GetBuiltInRoleName,
@@ -260,7 +260,7 @@ public static class AzureKustoBuilderExtensions
     /// <summary>
     /// Adds Kusto-specific health checks and lifecycle management.
     /// </summary>
-    private static void AddKustoHealthChecksAndLifecycleManagement(IDistributedApplicationBuilder builder, IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
+    private static void AddKustoHealthChecksAndLifecycleManagement(IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
     {
         var resource = resourceBuilder.Resource;
 
