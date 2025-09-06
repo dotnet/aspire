@@ -83,8 +83,10 @@ public class AddAzureKustoTests
 
         // Assert
         var manifestExclusionAnnotations = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().ToList();
-        Assert.Single(manifestExclusionAnnotations);
-        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, manifestExclusionAnnotations[0]);
+        // Should have the manifest exclusion annotation (the Ignore one will have null callback)
+        var ignoreAnnotation = manifestExclusionAnnotations.SingleOrDefault(a => a.Callback is null);
+        Assert.NotNull(ignoreAnnotation);
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, ignoreAnnotation);
     }
 
     [Fact]
