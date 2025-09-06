@@ -145,9 +145,8 @@ public class AzureKustoExtensionsTests
         var connectionStringExpr = kusto.Resource.ConnectionStringExpression;
         Assert.NotNull(connectionStringExpr);
         
-        // Verify there's an emulator resource in the resources (might have a different name pattern)
-        var emulatorResources = builder.Resources.OfType<AzureKustoEmulatorResource>().ToList();
-        Assert.Single(emulatorResources);
+        // Verify there's an emulator resource in the resources (check that the resource is running as emulator)
+        Assert.True(kusto.Resource.IsEmulator);
     }
 
     private sealed class Project : IProjectMetadata
