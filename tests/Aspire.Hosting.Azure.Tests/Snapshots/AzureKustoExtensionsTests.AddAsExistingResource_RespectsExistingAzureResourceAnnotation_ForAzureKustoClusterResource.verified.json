@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_kusto_name": "{existing-kusto-name.value}",
+    "existing_kusto_rg": "{existing-kusto-rg.value}"
+  }
+}

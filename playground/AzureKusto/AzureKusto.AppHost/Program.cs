@@ -4,6 +4,8 @@ using Kusto.Data.Net.Client;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("infra");
+
 var kusto = builder.AddAzureKustoCluster("kusto")
     .RunAsEmulator();
 var db = kusto.AddDatabase("testdb");
