@@ -1,0 +1,22 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Metrics = Aspire.Dashboard.Resources.Metrics
+
+<FluentTreeView Class="genai-message-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
+    <ChildContent>
+        <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(PageViewModel.SelectedMessage is null)">
+            <span class="llm-badge">LLM</span> @PageViewModel.Span.Name
+        </FluentTreeItem>
+
+        @foreach (var messageVM in PageViewModel.Messages)
+        {
+            <FluentTreeItem @key="messageVM"
+                            Data="@messageVM.Index"
+                            title="@messageVM.GetTitleBadge(Loc).Text"
+                            InitiallySelected="@(messageVM.Index == PageViewModel.SelectedMessage?.Index)">
+                <div class="message-tree-item-container">
+                    <GenAIMessageTitle Message="messageVM" ResourceName="@messageVM.ResourceName" />
+                </div>
+            </FluentTreeItem>
+        }
+    </ChildContent>
+</FluentTreeView>

@@ -1102,6 +1102,19 @@ public sealed class TelemetryRepository : IDisposable
         }
     }
 
+    public OtlpResource? GetPeerResource(OtlpSpan span)
+    {
+        var peer = ResolveUninstrumentedPeerResource(span, _outgoingPeerResolvers);
+        if (peer == null)
+        {
+            return null;
+        }
+
+        var resourceKey = ResourceKey.Create(name: peer.DisplayName, instanceId: peer.Name);
+        var (resource, _) = GetOrAddResource(resourceKey, uninstrumentedPeer: true);
+        return resource;
+    }
+
     private void CalculateTraceUninstrumentedPeers(OtlpTrace trace)
     {
         foreach (var span in trace.Spans)

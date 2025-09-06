@@ -217,6 +217,11 @@
         <target state="translated">Configurar el ancho de columna</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="new">GenAI details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Copia realizada.</target>

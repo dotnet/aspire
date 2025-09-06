@@ -104,32 +104,5 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Launch settings file does not contain &apos;{0}&apos; profile..
-        /// </summary>
-        internal static string LaunchSettingsFileDoesNotContainProfileExceptionMessage {
-            get {
-                return ResourceManager.GetString("LaunchSettingsFileDoesNotContainProfileExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Project does not contain project metadata..
-        /// </summary>
-        internal static string ProjectDoesNotContainMetadataExceptionMessage {
-            get {
-                return ResourceManager.GetString("ProjectDoesNotContainMetadataExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Project file &apos;{0}&apos; was not found..
-        /// </summary>
-        internal static string ProjectFileNotFoundExceptionMessage {
-            get {
-                return ResourceManager.GetString("ProjectFileNotFoundExceptionMessage", resourceCulture);
-            }
-        }
     }
 }

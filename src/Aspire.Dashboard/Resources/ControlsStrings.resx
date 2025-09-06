@@ -490,6 +490,9 @@
   <data name="PlotlyChartExemplar" xml:space="preserve">
     <value>Exemplar</value>
   </data>
+  <data name="GenAIDetailsTitle" xml:space="preserve">
+    <value>GenAI details</value>
+  </data>
   <data name="LabelOther" xml:space="preserve">
     <value>(Other)</value>
   </data>

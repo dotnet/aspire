@@ -8,31 +8,34 @@
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="span-details-layout">
-    <FluentToolbar Orientation="Orientation.Horizontal">
-        <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Resource.ResourceName))
-        </div>
-        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsDuration, DurationFormatter.FormatDuration(ViewModel.Span.Duration)))
-        </div>
-        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <div>
-            @{
-                // Start time for root span is zero. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from duration.
-                var startTime = ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime;
-                var formattedStartTime = startTime > TimeSpan.Zero ? DurationFormatter.FormatDuration(startTime) : $"0{DurationFormatter.GetUnit(ViewModel.Span.Duration)}";
-            }
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, formattedStartTime))
-        </div>
-        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
-                      Immediate="true"
-                      Autofocus="true"
-                      @bind-Value="_filter"
-                      slot="end" />
-    </FluentToolbar>
+    @if (!HideToolbar)
+    {
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <div>
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Resource.ResourceName))
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsDuration, DurationFormatter.FormatDuration(ViewModel.Span.Duration)))
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                @{
+                    // Start time for root span is zero. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from duration.
+                    var startTime = ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime;
+                    var formattedStartTime = startTime > TimeSpan.Zero ? DurationFormatter.FormatDuration(startTime) : $"0{DurationFormatter.GetUnit(ViewModel.Span.Duration)}";
+                }
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, formattedStartTime))
+            </div>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
+                          Immediate="true"
+                          Autofocus="true"
+                          @bind-Value="_filter"
+                          slot="end" />
+        </FluentToolbar>
+    }
     <div class="property-grid-container">
         <FluentAccordion>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsSpanHeader)]" Expanded="true">
