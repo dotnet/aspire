@@ -139,7 +139,7 @@ public class AzureKustoExtensionsTests
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
         
         // Verify the original resource has the emulator annotation
-        Assert.NotNull(kusto.Resource.TryGetLastAnnotation<EmulatorResourceAnnotation>(out _));
+        Assert.True(kusto.Resource.TryGetLastAnnotation<EmulatorResourceAnnotation>(out _));
         
         // Verify the connection string expression exists
         var connectionStringExpr = kusto.Resource.ConnectionStringExpression;

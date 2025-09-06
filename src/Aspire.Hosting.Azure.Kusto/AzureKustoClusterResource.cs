@@ -14,8 +14,6 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWithConnectionString, IResourceWithEndpoints
 {
-    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
-
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureKustoClusterResource"/> class.
     /// </summary>
@@ -62,14 +60,9 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     }
 
     /// <summary>
-    /// A dictionary where the key is the resource name and the value is the database name.
+    /// The databases for this cluster.
     /// </summary>
-    internal IReadOnlyDictionary<string, string> Databases => _databases;
-
-    internal void AddDatabase(string name, string databaseName)
-    {
-        _databases.TryAdd(name, databaseName);
-    }
+    internal List<AzureKustoDatabaseResource> Databases { get; } = [];
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
