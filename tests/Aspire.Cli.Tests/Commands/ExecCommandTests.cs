@@ -26,12 +26,12 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var commandLineConfiguration = new CommandLineConfiguration(command);
-        commandLineConfiguration.Output = new TestOutputTextWriter(_outputHelper);
+        var invokeConfiguration = new InvocationConfiguration();
+        invokeConfiguration.Output = new TestOutputTextWriter(_outputHelper);
 
-        var result = command.Parse("exec --help", commandLineConfiguration);
+        var result = command.Parse("exec --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
@@ -100,13 +100,13 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var invokeConfiguration = new InvocationConfiguration();
         var testOutputWriter = new TestOutputTextWriter(_outputHelper);
-        commandLineConfiguration.Output = testOutputWriter;
+        invokeConfiguration.Output = testOutputWriter;
 
-        var result = command.Parse("exec --help", commandLineConfiguration);
+        var result = command.Parse("exec --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should succeed because exec command is registered when feature flag is enabled
         Assert.Equal(ExitCodeConstants.Success, exitCode);
@@ -123,13 +123,13 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var invokeConfiguration = new InvocationConfiguration();
         var testOutputWriter = new TestOutputTextWriter(_outputHelper);
-        commandLineConfiguration.Output = testOutputWriter;
+        invokeConfiguration.Output = testOutputWriter;
 
-        var result = command.Parse("exec --project test.csproj echo hello", commandLineConfiguration);
+        var result = command.Parse("exec --project test.csproj echo hello");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
 
         // attempt to find app host should not happen

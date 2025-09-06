@@ -33,7 +33,7 @@ public sealed class QdrantContainerFixture : IAsyncLifetime
             Container = new ContainerBuilder()
               .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{QdrantContainerImageTags.Image}:{QdrantContainerImageTags.Tag}")
               .WithPortBinding(GrpcPort, true)
-              .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(GrpcPort))
+              .WithWaitStrategy(Wait.ForUnixContainer().UntilExternalTcpPortIsAvailable(GrpcPort))
               .Build();
 
             await Container.StartAsync();

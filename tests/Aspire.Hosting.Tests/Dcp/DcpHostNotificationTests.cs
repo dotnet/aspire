@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -80,9 +82,9 @@ public sealed class DcpHostNotificationTests
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        Assert.Equal("Container Runtime Unhealthy", interaction.Title);
+        Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
         Assert.Contains("docker", interaction.Message);
-        Assert.Contains("unhealthy", interaction.Message);
+        Assert.Contains(string.Format(CultureInfo.InvariantCulture, InteractionStrings.ContainerRuntimeUnhealthyMessage, "docker"), interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
     }
@@ -239,9 +241,9 @@ public sealed class DcpHostNotificationTests
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        Assert.Equal("Container Runtime Unhealthy", interaction.Title);
+        Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
         Assert.Contains("podman", interaction.Message);
-        Assert.Contains("Ensure that Podman is running", interaction.Message);
+        Assert.Contains(InteractionStrings.ContainerRuntimePodmanAdvice, interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
         Assert.Null(notificationOptions.LinkUrl); // No specific link for Podman
@@ -290,7 +292,7 @@ public sealed class DcpHostNotificationTests
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
         
         // Assert - Verify notification was shown initially
-        Assert.Equal("Container Runtime Unhealthy", interaction.Title);
+        Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
         Assert.False(interaction.CancellationToken.IsCancellationRequested); // Should not be cancelled yet
 
         // Simulate container runtime becoming healthy
@@ -353,12 +355,12 @@ public sealed class DcpHostNotificationTests
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
-        Assert.Equal("Container Runtime Not Installed", interaction.Title);
-        Assert.Contains("Container runtime could not be found", interaction.Message);
+        Assert.Equal(InteractionStrings.ContainerRuntimeNotInstalledTitle, interaction.Title);
+        Assert.Contains(InteractionStrings.ContainerRuntimeNotInstalledMessage, interaction.Message);
         Assert.Contains("https://aka.ms/dotnet/aspire/containers", interaction.Message);
         var notificationOptions = Assert.IsType<NotificationInteractionOptions>(interaction.Options);
         Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
-        Assert.Equal("Learn more", notificationOptions.LinkText);
+        Assert.Equal(InteractionStrings.ContainerRuntimeLinkText, notificationOptions.LinkText);
         Assert.Equal("https://aka.ms/dotnet/aspire/containers", notificationOptions.LinkUrl);
 
         // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay

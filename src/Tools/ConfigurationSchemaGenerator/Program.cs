@@ -11,4 +11,4 @@ if (!System.Diagnostics.Debugger.IsAttached)
 #endif
 
 var rootCommand = RootGenerateCommand.GetCommand();
-return await rootCommand.Parse(args).InvokeAsync(CancellationToken.None).ConfigureAwait(false);
+return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);

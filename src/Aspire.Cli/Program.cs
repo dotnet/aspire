@@ -217,12 +217,11 @@ public class Program
         await app.StartAsync().ConfigureAwait(false);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
-        var config = new CommandLineConfiguration(rootCommand);
-        config.EnableDefaultExceptionHandler = true;
+        var invokeConfig = new InvocationConfiguration() { EnableDefaultExceptionHandler = true };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await config.InvokeAsync(args);
+        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
 
         await app.StopAsync().ConfigureAwait(false);
 
