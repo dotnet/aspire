@@ -10,6 +10,8 @@ namespace Aspire.Hosting
 {
     public static partial class DockerComposeAspireDashboardResourceBuilderExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithForwardedHeaders(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, bool enabled = true) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> WithHostPort(this ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource> builder, int? port = null) { throw null; }
     }
 
@@ -525,10 +527,8 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class LabelSpecs
+    public sealed partial class LabelSpecs : System.Collections.Generic.Dictionary<string, string>
     {
-        [YamlDotNet.Serialization.YamlMember(Alias = "additional_labels")]
-        public System.Collections.Generic.Dictionary<string, string> AdditionalLabels { get { throw null; } set { } }
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
