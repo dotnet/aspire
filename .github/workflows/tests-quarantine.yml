@@ -1,5 +1,5 @@
-# Executes outerloop tests
-name: Outerloop Tests
+# Executes quarantined tests
+name: Quarantined Tests
 
 on:
   workflow_dispatch:
@@ -11,10 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  outerloop_tests:
+  quarantine_tests:
     uses: ./.github/workflows/specialized-test-runner.yml
     with:
-      testRunnerName: "OuterloopTestRunsheetBuilder"
-      extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
-      extraTestArgs: "--filter-trait outerloop=true"
+      testRunnerName: "QuarantinedTestRunsheetBuilder"
+      extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
+      extraTestArgs: "--filter-trait quarantined=true"
       enablePlaywrightInstall: true
