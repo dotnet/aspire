@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.Kusto;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure.Kusto;
 
@@ -25,7 +29,17 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     /// <summary>
     /// Gets whether the resource is running the local emulator.
     /// </summary>
-    public bool IsEmulator => this.IsEmulator();
+    public bool IsEmulator => this.IsContainer();
+
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the cluster URI output reference for the Azure Kusto cluster.
+    /// </summary>
+    public BicepOutputReference ClusterUri => new("clusterUri", this);
 
     /// <summary>
     /// Gets the connection string output reference for the Azure Kusto cluster.
@@ -50,8 +64,8 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
             }
             else
             {
-                // For Azure provisioned resources, use the connection string output
-                return ReferenceExpression.Create($"{ConnectionStringOutput}");
+                // For Azure provisioned resources, use the cluster URI output
+                return ReferenceExpression.Create($"{ClusterUri}");
             }
         }
     }
@@ -64,5 +78,34 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a KustoCluster with the same identifier already exists
+        var existingCluster = resources.OfType<KustoCluster>().SingleOrDefault(cluster => cluster.BicepIdentifier == bicepIdentifier);
+
+        if (existingCluster is not null)
+        {
+            return existingCluster;
+        }
+
+        // Create and add new resource if it doesn't exist
+        var cluster = KustoCluster.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            cluster))
+        {
+            cluster.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
+        infra.Add(cluster);
+        return cluster;
     }
 }
