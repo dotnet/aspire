@@ -252,4 +252,34 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         AddDisconnectHandlerCalled?.SetResult();
         AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetResourceLogEntriesAsync(string resourceName, int lineCount, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Simple test implementation - return some dummy log entries
+        for (int i = 0; i < Math.Min(lineCount, 5); i++)
+        {
+            yield return new BackchannelLogEntry
+            {
+                EventId = new Microsoft.Extensions.Logging.EventId(i, resourceName),
+                LogLevel = Microsoft.Extensions.Logging.LogLevel.Information,
+                Message = $"Test log entry {i} for resource {resourceName}",
+                Timestamp = DateTimeOffset.UtcNow.AddSeconds(-i),
+                CategoryName = resourceName
+            };
+        }
+
+        if (follow)
+        {
+            // Simulate streaming more logs 
+            await Task.Delay(100, cancellationToken);
+            yield return new BackchannelLogEntry
+            {
+                EventId = new Microsoft.Extensions.Logging.EventId(99, resourceName),
+                LogLevel = Microsoft.Extensions.Logging.LogLevel.Information,
+                Message = $"Streaming log entry for resource {resourceName}",
+                Timestamp = DateTimeOffset.UtcNow,
+                CategoryName = resourceName
+            };
+        }
+    }
 }
