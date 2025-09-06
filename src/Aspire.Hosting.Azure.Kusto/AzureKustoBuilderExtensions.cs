@@ -83,6 +83,15 @@ public static class AzureKustoBuilderExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name });
+
+            var azureResource = (AzureKustoClusterResource)infrastructure.AspireResource;
+
+            foreach (var database in azureResource.Databases)
+            {
+                var cdkDatabase = database.ToProvisioningEntity();
+                cdkDatabase.Parent = cluster;
+                infrastructure.Add(cdkDatabase);
+            }
         };
 
         var resource = new AzureKustoClusterResource(name, configureInfrastructure);
@@ -110,8 +119,8 @@ public static class AzureKustoBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var kustoDatabase = new AzureKustoDatabaseResource(name, databaseName, builder.Resource);
+        builder.Resource.Databases.Add(kustoDatabase);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
 
         // Register a health check that will be used to verify database is available
@@ -280,12 +289,9 @@ public static class AzureKustoBuilderExtensions
             }
 
             using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);
-            foreach (var name in server.Databases.Keys)
+            foreach (var kustoDatabase in server.Databases)
             {
-                if (builder.Resources.FirstOrDefault(n => string.Equals(n.Name, name, StringComparisons.ResourceName)) is AzureKustoDatabaseResource kustoDatabase)
-                {
-                    await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
-                }
+                await CreateDatabaseAsync(adminProvider, kustoDatabase, evt.Services, ct).ConfigureAwait(false);
             }
         });
 

@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Kusto;
 using Kusto.Data;
 
 namespace Aspire.Hosting.Azure.Kusto;
@@ -52,4 +56,15 @@ public class AzureKustoDatabaseResource : Resource, IResourceWithParent<AzureKus
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; }
+
+    /// <summary>
+    /// Converts the current instance to a provisioning entity.
+    /// </summary>
+    /// <returns>A <see cref="KustoDatabase"/> instance.</returns>
+    internal KustoDatabase ToProvisioningEntity()
+    {
+        var database = new KustoDatabase(Infrastructure.NormalizeBicepIdentifier(Name));
+        database.Name = DatabaseName;
+        return database;
+    }
 }
