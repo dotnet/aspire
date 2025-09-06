@@ -8,6 +8,7 @@ Param(
   [ValidateSet("windows","linux","osx")][string]$os,
   [switch]$testnobuild,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
+  [switch]$buildExtension,
 
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -43,6 +44,7 @@ function Get-Help() {
 
   Write-Host "Libraries settings:"
   Write-Host "  -testnobuild            Skip building tests when invoking -test."
+  Write-Host "  -buildExtension         Build the VS Code extension."
   Write-Host ""
 
   Write-Host "Command-line arguments not listed above are passed through to MSBuild."
@@ -97,6 +99,7 @@ foreach ($argument in $PSBoundParameters.Keys)
     "configuration"          { $configuration = (Get-Culture).TextInfo.ToTitleCase($($PSBoundParameters[$argument])); $arguments += " -configuration $configuration" }
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
     "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
+    "buildExtension"         { $arguments += " -buildExtension" }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }

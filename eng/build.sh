@@ -45,6 +45,7 @@ usage()
 
   echo "Libraries settings:"
   echo "  --testnobuild              Skip building tests when invoking -test."
+  echo "  --build-extension          Build the VS Code extension."
   echo ""
 
   echo "Command line arguments starting with '/p:' are passed through to MSBuild."
@@ -56,7 +57,7 @@ arguments=''
 extraargs=''
 
 # Check if an action is passed in
-declare -a actions=("b" "build" "r" "restore" "rebuild" "testnobuild" "sign" "publish" "clean" "t" "test")
+declare -a actions=("b" "build" "r" "restore" "rebuild" "testnobuild" "sign" "publish" "clean" "t" "test" "build-extension")
 actInt=($(comm -12 <(printf '%s\n' "${actions[@]/#/-}" | sort) <(printf '%s\n' "${@/#--/-}" | sort)))
 
 while [[ $# > 0 ]]; do
@@ -133,6 +134,11 @@ while [[ $# > 0 ]]; do
 
      -testnobuild)
       arguments="$arguments /p:VSTestNoBuild=true"
+      shift 1
+      ;;
+
+     -build-extension)
+      arguments="$arguments --build-extension"
       shift 1
       ;;
 
