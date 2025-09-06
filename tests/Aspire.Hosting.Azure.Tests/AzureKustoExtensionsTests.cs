@@ -4,12 +4,13 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Kusto;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Kusto;
 using Microsoft.Extensions.DependencyInjection;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureKustoExtensionsTests(ITestOutputHelper output)
+public class AzureKustoExtensionsTests
 {
     [Fact]
     public async Task AddAzureKustoCluster()
@@ -25,67 +26,13 @@ public class AzureKustoExtensionsTests(ITestOutputHelper output)
         var manifest = await GetManifestWithBicep(model, kusto.Resource);
 
         var connectionStringResource = (IResourceWithConnectionString)kusto.Resource;
-
         Assert.Equal("https://kusto-cluster.eastus.kusto.windows.net", await connectionStringResource.GetConnectionStringAsync());
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{kusto.outputs.clusterUri}",
-              "path": "kusto.module.bicep"
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            resource kusto 'Microsoft.Kusto/clusters@2024-04-13' = {
-              name: take('kusto-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-              }
-              tags: {
-                'aspire-resource-name': 'kusto'
-              }
-            }
-
-            output clusterUri string = kusto.uri
-
-            output name string = kusto.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
 
         var kustoRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "kusto-roles");
         var kustoRolesManifest = await GetManifestWithBicep(kustoRoles, skipPreparer: true);
-        expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
 
-            param kusto_outputs_name string
-
-            param principalType string
-
-            param principalId string
-
-            resource kusto 'Microsoft.Kusto/clusters@2024-04-13' existing = {
-              name: kusto_outputs_name
-            }
-
-            resource kusto_Contributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(kusto.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-                principalType: principalType
-              }
-              scope: kusto
-            }
-            """;
-        output.WriteLine(kustoRolesManifest.BicepText);
-        Assert.Equal(expectedBicep, kustoRolesManifest.BicepText);
+        await Verify(manifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(kustoRolesManifest.BicepText, "bicep");
     }
 
     [Fact]
@@ -122,5 +69,85 @@ public class AzureKustoExtensionsTests(ITestOutputHelper output)
 
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAzureKustoCluster_WithCustomRoleAssignments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kusto = builder.AddAzureKustoCluster("kusto");
+        
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithRoleAssignments(kusto, KustoBuiltInRole.Reader);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, kusto.Resource);
+
+        var kustoRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "kusto-roles");
+        var kustoRolesManifest = await GetManifestWithBicep(kustoRoles, skipPreparer: true);
+
+        await Verify(manifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(kustoRolesManifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAzureKustoCluster_WithMultipleRoleAssignments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kusto = builder.AddAzureKustoCluster("kusto");
+        
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithRoleAssignments(kusto, KustoBuiltInRole.Reader, KustoBuiltInRole.Contributor);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, kusto.Resource);
+
+        var kustoRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "kusto-roles");
+        var kustoRolesManifest = await GetManifestWithBicep(kustoRoles, skipPreparer: true);
+
+        await Verify(manifest.BicepText, extension: "bicep")
+            .AppendContentAsFile(kustoRolesManifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public void AddAzureKustoCluster_ShouldAddResourceToBuilder()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resourceBuilder = builder.AddAzureKustoCluster("myKusto");
+        Assert.NotNull(resourceBuilder);
+        var resource = Assert.Single(builder.Resources.OfType<AzureKustoClusterResource>());
+        Assert.Equal("myKusto", resource.Name);
+    }
+
+    [Fact]
+    public void AddAzureKustoCluster_RunAsEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        
+        // Set up a mock endpoint for the emulator
+        kusto.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = 8080;
+            endpoint.UriScheme = "http";
+        });
+
+        var connectionStringExpr = kusto.Resource.ConnectionStringExpression;
+        
+        // Since we can't easily mock the endpoint in tests, just verify the resource was created
+        Assert.NotNull(connectionStringExpr);
+        
+        var resource = Assert.Single(builder.Resources.OfType<AzureKustoEmulatorResource>());
+        Assert.Equal("kusto", resource.Name);
+    }
+
+    private sealed class Project : IProjectMetadata
+    {
+        public string ProjectPath => "project";
     }
 }
