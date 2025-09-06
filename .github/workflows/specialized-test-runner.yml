@@ -15,10 +15,10 @@ on:
         required: false
         type: string
       # Controls whether to install Playwright browsers during project build
-      disablePlaywrightInstall:
-        required: false
+      enablePlaywrightInstall:
+        required: true
         type: boolean
-        default: true
+        default: false
 
 jobs:
 
@@ -88,7 +88,7 @@ jobs:
       requiresNugets: ${{ matrix.tests.requiresNugets == true }}
       requiresTestSdk: ${{ matrix.tests.requiresTestSdk == true }}
       os: ${{ matrix.tests.os }}
-      disablePlaywrightInstall: ${{ inputs.disablePlaywrightInstall }}
+      enablePlaywrightInstall: ${{ inputs.enablePlaywrightInstall }}
       extraTestArgs: ${{ inputs.extraTestArgs }}
 
   results:

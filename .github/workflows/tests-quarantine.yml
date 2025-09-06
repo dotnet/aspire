@@ -17,4 +17,4 @@ jobs:
       testRunnerName: "QuarantinedTestRunsheetBuilder"
       extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
       extraTestArgs: "--filter-trait quarantined=true"
-      disablePlaywrightInstall: false
+      enablePlaywrightInstall: true
