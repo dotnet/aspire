@@ -94,6 +94,13 @@ public static class OtlpHttpEndpointsBuilder
         return KnownContentType.None;
     }
 
+    private static void LogUnsupportedContentTypeWarning(HttpContext httpContext)
+    {
+        var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
+        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", 
+            httpContext.Request.ContentType, ProtobufContentType);
+    }
+
     private static T AddOtlpHttpMetadata<T>(this T builder) where T : IEndpointConventionBuilder
     {
         builder
@@ -131,6 +138,7 @@ public static class OtlpHttpEndpointsBuilder
                     }
                 case KnownContentType.Json:
                 default:
+                    LogUnsupportedContentTypeWarning(context);
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return Empty;
             }
@@ -159,6 +167,7 @@ public static class OtlpHttpEndpointsBuilder
                     break;
                 case KnownContentType.Json:
                 default:
+                    LogUnsupportedContentTypeWarning(httpContext);
                     httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     break;
             }

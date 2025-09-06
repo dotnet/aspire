@@ -11,6 +11,8 @@ using Aspire.Tests.Shared.Telemetry;
 using Aspire.Hosting;
 using Google.Protobuf;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
@@ -237,6 +239,47 @@ public class OtlpHttpServiceTests
 
         // Assert
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, responseMessage.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("application/json")]
+    [InlineData(null)]
+    public async Task CallService_OtlpHttpEndPoint_UnsupportedContentType_LogsWarning(string? contentType)
+    {
+        // Arrange
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, 
+            dictionary =>
+            {
+                dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
+            }, 
+            testSink: testSink);
+        await app.StartAsync().DefaultTimeout();
+
+        var endpoint = app.OtlpServiceHttpEndPointAccessor();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
+
+        using var content = new ByteArrayContent(Encoding.UTF8.GetBytes("{}"));
+        if (contentType != null)
+        {
+            content.Headers.TryAddWithoutValidation("content-type", contentType);
+        }
+
+        // Act
+        var responseMessage = await client.PostAsync("/v1/logs", content).DefaultTimeout();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, responseMessage.StatusCode);
+        
+        // Verify warning was logged
+        var warningLogs = testSink.Writes.Where(w => 
+            w.LogLevel == LogLevel.Warning && 
+            w.LoggerName == "Aspire.Dashboard.Otlp.Http" &&
+            w.Message!.Contains("OTLP HTTP request with unsupported content type")).ToList();
+        
+        var warningLog = Assert.Single(warningLogs);
+        Assert.Contains("application/x-protobuf", warningLog.Message);
+        Assert.Contains("unsupported content type", warningLog.Message);
     }
 
     [Theory]
