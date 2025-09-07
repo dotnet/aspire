@@ -106,6 +106,8 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         var output = stdout.ToString().Trim();
         try
         {
+            // Skip to opening curly brace, CLI sometimes prints a welcome header
+            output = SkipToFirstChar(output, '{');
             if (!string.IsNullOrEmpty(propertyName))
             {
                 output = JsonDocument.Parse(output).RootElement.GetProperty(propertyName).GetRawText();
@@ -117,5 +119,19 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         {
             throw new DistributedApplicationException($"Failed to parse JSON output into type '{typeof(T).Name}':\n{output}", ex);
         }
+    }
+
+    private static string SkipToFirstChar(string output, char startingChar)
+    {
+        if (output[0] == startingChar)
+        {
+            return output;
+        }
+        var index = output.IndexOf(startingChar);
+        if (index >= 0)
+        {
+            return output[index..];
+        }
+        return "";
     }
 }

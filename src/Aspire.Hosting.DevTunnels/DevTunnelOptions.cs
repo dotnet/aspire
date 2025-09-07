@@ -16,12 +16,7 @@ public sealed class DevTunnelOptions
     /// <summary>
     /// Whether to allow anonymous access. If false, authentication is required.
     /// </summary>
-    public bool AllowAnonymous { get; set; } = true;
-
-    /// <summary>
-    /// Optional domain hint when creating the tunnel (e.g., custom subdomain when supported).
-    /// </summary>
-    public string? Domain { get; set; }
+    public bool AllowAnonymous { get; set; }
 
     /// <summary>
     /// Optional Microsoft Entra tenant ID or domain that should be granted access to the tunnel.
@@ -58,11 +53,6 @@ public sealed class DevTunnelPortOptions
     /// Protocol type to expose. "http", "https", or "auto".
     /// </summary>
     public string Protocol { get; set; } = "auto";
-
-    /// <summary>
-    /// Whether to require authentication to access this port over the public tunnel URL.
-    /// </summary>
-    public bool RequireAuthentication { get; set; }
 
     /// <summary>
     /// Optional host header to use when forwarding HTTP traffic to the target.

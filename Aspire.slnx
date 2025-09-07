@@ -170,7 +170,7 @@
     <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/DevTunnels/">
-    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.AppHost.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/WebFrontEnd/WebFrontEnd.csproj" />
   </Folder>
   <Folder Name="/playground/dockerfile/">

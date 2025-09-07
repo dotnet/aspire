@@ -1,88 +1,58 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.DevTunnels;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-internal sealed class DevTunnelEnvironmentManager(IDevTunnelClient devTunnelClient, IInteractionService interactionService) : IDisposable
+internal sealed class DevTunnelLoginManager(
+    IDevTunnelClient devTunnelClient,
+    IInteractionService interactionService,
+    IConfiguration configuration,
+    ILogger<DevTunnelLoginManager> logger) : CoalescingAsyncOperation
 {
+    private const string PreferredAuthProviderKey = "ASPIRE_DEVTUNNELS_AUTH_PROVIDER";
+
     private readonly IDevTunnelClient _devTunnelClient = devTunnelClient;
     private readonly IInteractionService _interactionService = interactionService;
-    private readonly object _loginLock = new();
-    private Task? _loginTask;
-    private CancellationTokenSource? _loginCts;
+    private readonly IConfiguration _configuration = configuration;
+    private readonly ILogger<DevTunnelLoginManager> _logger = logger;
 
-    // public void EnsureCliInstalledAsync(string? cliPath = "devtunnel")
-    // {
+    public Task EnsureUserLoggedInAsync(CancellationToken cancellationToken = default) => RunAsync(cancellationToken);
 
-    // }
-
-    public Task EnsureUserLoggedInAsync(CancellationToken cancellationToken = default)
-    {
-        // TODO: Accept ILogger here and log from singleton login task to all ILogger instances?
-
-        Task? running = null;
-
-        lock (_loginLock)
-        {
-            if (_loginTask is { IsCompleted: false })
-            {
-                // Already running
-                running = _loginTask;
-            }
-            else
-            {
-                // No current running login task, start a new one
-                _loginCts?.Dispose();
-                _loginCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                running = _loginTask = StartLoginFlowAsync(_loginCts.Token);
-            }
-
-            _ = _loginTask.ContinueWith(t =>
-            {
-                // Clear the task when it completes so a new one can be started if needed
-                lock (_loginLock)
-                {
-                    if (ReferenceEquals(t, _loginTask))
-                    {
-                        _loginTask = null;
-                    }
-                }
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-        }
-
-        return running.WaitAsync(cancellationToken);
-    }
-
-    public void Dispose()
-    {
-        lock (_loginLock)
-        {
-            _loginCts?.Cancel();
-            _loginCts?.Dispose();
-            _loginCts = null;
-            _loginTask = null;
-        }
-    }
-
-    private async Task StartLoginFlowAsync(CancellationToken cancellationToken = default)
+    protected override async Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
+            _logger.LogInformation("Checking dev tunnel login status");
             var loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
             if (loginStatus.IsLoggedIn)
             {
+                _logger.LogInformation("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
                 // Already logged in
                 break;
             }
             else
             {
-                // TODO: Allow setting preferred provider via configuration?
                 var selectedProvider = LoginProvider.Microsoft;
+                if (_configuration[PreferredAuthProviderKey] is string preferredProvider)
+                {
+                    if (Enum.TryParse<LoginProvider>(preferredProvider, ignoreCase: true, out var provider))
+                    {
+                        selectedProvider = provider;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Invalid {PreferredAuthProviderKey} value '{{PreferredProvider}}', defaulting to {{SelectedProvider}}", preferredProvider, selectedProvider);
+                    }
+                }
 
                 if (_interactionService.IsAvailable)
                 {
                     // Not logged in, prompt the user to login
+                    _logger.LogDebug("Prompting user to login to dev tunnel service");
                     var result = await _interactionService.PromptNotificationAsync(
                         "Dev tunnels",
                         $"Dev tunnels requires authentication to continue:",
@@ -97,27 +67,31 @@ internal sealed class DevTunnelEnvironmentManager(IDevTunnelClient devTunnelClie
                         cancellationToken).ConfigureAwait(false);
 
                     selectedProvider = result.Data ? LoginProvider.Microsoft : LoginProvider.GitHub;
+                    _logger.LogDebug("User selected {LoginProvider} for dev tunnel login", selectedProvider);
                     // Check again in case they logged in from another window while we were prompting
                     loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
                 }
                 if (!loginStatus.IsLoggedIn || loginStatus.Provider != selectedProvider)
                 {
                     // Trigger the login flow
+                    _logger.LogInformation("Initiating dev tunnel login via {LoginProvider}", selectedProvider);
                     loginStatus = await _devTunnelClient.UserLoginAsync(selectedProvider, cancellationToken).ConfigureAwait(false);
 
                     if (loginStatus.IsLoggedIn)
                     {
                         // Successfully logged in
+                        _logger.LogInformation("User logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
                         break;
                     }
                 }
                 else
                 {
                     // Logged in from another window while we were prompting
+                    _logger.LogInformation("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
                     break;
                 }
 
-                // Still not logged in, loop to try again
+                _logger.LogDebug("User login to dev tunnel service failed, retrying login prompt");
             }
         }
     }
