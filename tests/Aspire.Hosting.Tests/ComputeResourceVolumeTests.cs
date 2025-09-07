@@ -24,22 +24,6 @@ public class ComputeResourceVolumeTests
     }
 
     [Fact]
-    public void WithVolumeAddsContainerMountAnnotationToExecutableResource()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
-            .WithVolume("logs", "/app/logs", isReadOnly: false);
-
-        var annotations = executable.Resource.Annotations.OfType<ContainerMountAnnotation>();
-        var annotation = Assert.Single(annotations);
-        
-        Assert.Equal("logs", annotation.Source);
-        Assert.Equal("/app/logs", annotation.Target);
-        Assert.Equal(ContainerMountType.Volume, annotation.Type);
-        Assert.False(annotation.IsReadOnly);
-    }
-
-    [Fact]
     public void WithVolumeAnonymousAddsContainerMountAnnotationToProjectResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -56,25 +40,9 @@ public class ComputeResourceVolumeTests
     }
 
     [Fact]
-    public void WithVolumeAnonymousAddsContainerMountAnnotationToExecutableResource()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
-            .WithVolume("/tmp/temp");
-
-        var annotations = executable.Resource.Annotations.OfType<ContainerMountAnnotation>();
-        var annotation = Assert.Single(annotations);
-        
-        Assert.Null(annotation.Source);
-        Assert.Equal("/tmp/temp", annotation.Target);
-        Assert.Equal(ContainerMountType.Volume, annotation.Type);
-        Assert.False(annotation.IsReadOnly);
-    }
-
-    [Fact]
     public void WithVolumeThrowsArgumentNullExceptionForNullBuilder()
     {
-        IResourceBuilder<ExecutableResource>? builder = null;
+        IResourceBuilder<ProjectResource>? builder = null;
         
         var ex = Assert.Throws<ArgumentNullException>(() => builder!.WithVolume("vol", "/data"));
         Assert.Equal("builder", ex.ParamName);
@@ -84,16 +52,16 @@ public class ComputeResourceVolumeTests
     public void WithVolumeThrowsArgumentNullExceptionForNullTarget()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
+        var project = builder.AddProject<TestProject>("myproject");
         
-        var ex = Assert.Throws<ArgumentNullException>(() => executable.WithVolume("vol", null!));
+        var ex = Assert.Throws<ArgumentNullException>(() => project.WithVolume("vol", null!));
         Assert.Equal("target", ex.ParamName);
     }
 
     [Fact]
     public void WithVolumeAnonymousThrowsArgumentNullExceptionForNullBuilder()
     {
-        IResourceBuilder<ExecutableResource>? builder = null;
+        IResourceBuilder<ProjectResource>? builder = null;
         
         var ex = Assert.Throws<ArgumentNullException>(() => builder!.WithVolume("/data"));
         Assert.Equal("builder", ex.ParamName);
@@ -103,32 +71,22 @@ public class ComputeResourceVolumeTests
     public void WithVolumeAnonymousThrowsArgumentNullExceptionForNullTarget()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
+        var project = builder.AddProject<TestProject>("myproject");
         
-        var ex = Assert.Throws<ArgumentNullException>(() => executable.WithVolume(null!));
+        var ex = Assert.Throws<ArgumentNullException>(() => project.WithVolume(null!));
         Assert.Equal("target", ex.ParamName);
-    }
-
-    [Fact]
-    public void WithVolumeThrowsForAnonymousReadOnlyVolume()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll");
-        
-        var ex = Assert.Throws<ArgumentException>(() => executable.WithVolume(null, "/data", isReadOnly: true));
-        Assert.Equal("isReadOnly", ex.ParamName);
     }
 
     [Fact]
     public void MultipleWithVolumeCallsAddMultipleAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var executable = builder.AddExecutable("myexecutable", "dotnet", Environment.CurrentDirectory, "myapp.dll")
+        var project = builder.AddProject<TestProject>("myproject")
             .WithVolume("volume1", "/data1")
             .WithVolume("volume2", "/data2", isReadOnly: true)
             .WithVolume("/anonymous");
 
-        var annotations = executable.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
+        var annotations = project.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Equal(3, annotations.Count);
         
         Assert.Equal("volume1", annotations[0].Source);
