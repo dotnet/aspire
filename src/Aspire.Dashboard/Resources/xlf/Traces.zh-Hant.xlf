@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="SpanTypeLabel">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">類型</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeSelectSpanType">
         <source>Select span type</source>
-        <target state="new">Select span type</target>
+        <target state="translated">選取範圍類型</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
