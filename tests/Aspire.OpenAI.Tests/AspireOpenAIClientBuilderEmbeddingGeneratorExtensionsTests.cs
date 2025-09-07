@@ -40,7 +40,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -217,7 +217,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        var vector = await generator.GenerateVectorAsync("Hello");
         Assert.Equal(1.23f, vector.ToArray().Single());
     }
 
@@ -251,7 +251,7 @@ public class AspireOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
         var loggerFactory = (TestLoggerFactory)host.Services.GetRequiredService<ILoggerFactory>();
 
-        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        var vector = await generator.GenerateVectorAsync("Hello");
         Assert.Equal(1.23f, vector.ToArray().Single());
 
         const string category = "Microsoft.Extensions.AI.OpenTelemetryEmbeddingGenerator";

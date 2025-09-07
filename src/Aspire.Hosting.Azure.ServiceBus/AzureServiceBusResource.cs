@@ -23,7 +23,10 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
@@ -46,8 +49,28 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var sbNamespace = ServiceBusNamespace.FromExisting(this.GetBicepIdentifier());
-        sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a ServiceBusNamespace with the same identifier already exists
+        var existingNamespace = resources.OfType<ServiceBusNamespace>().SingleOrDefault(sbNamespace => sbNamespace.BicepIdentifier == bicepIdentifier);
+        
+        if (existingNamespace is not null)
+        {
+            return existingNamespace;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var sbNamespace = ServiceBusNamespace.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            sbNamespace))
+        {
+            sbNamespace.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(sbNamespace);
         return sbNamespace;
     }

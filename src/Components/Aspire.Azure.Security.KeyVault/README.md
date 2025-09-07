@@ -21,7 +21,7 @@ dotnet add package Aspire.Azure.Security.KeyVault
 
 ### Add secrets to configuration
 
-In the _Program.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
 
 ```csharp
 builder.Configuration.AddAzureKeyVaultSecrets("secrets");
@@ -38,7 +38,7 @@ public ProductsController(IConfiguration configuration)
 
 ### Use SecretClient
 
-Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
+Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _AppHost.cs_ file of your project, call the `AddAzureKeyVaultClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureKeyVaultClient("secrets");
@@ -56,6 +56,41 @@ public ProductsController(SecretClient client)
 ```
 
 See the [Azure.Security.KeyVault.Secrets documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Secrets/README.md) for examples on using the `SecretClient`.
+
+### Optionally include KeyClient and CertificateClient
+
+You can also dependency inject a `KeyClient` and/or `CertificateClient` too:
+
+```csharp
+builder.AddAzureKeyVaultKeyClient("keys");
+builder.AddAzureKeyVaultCertificateClient("certificates");
+```
+
+Which can then be retrieved in the same way the `SecretClient` is. For example , to retrieve a `KeyClient` from a Web API controller:
+
+```csharp
+private readonly KeyClient _client;
+
+public ProductsController(KeyClient client)
+{
+    _client = client;
+}
+```
+
+Or to retrieve a `CertificateClient` from a Web API controller:
+
+```csharp
+private readonly CertificateClient _client;
+
+public ProductsController(CertificateClient client)
+{
+    _client = client;
+}
+```
+
+See the [Azure.Security.KeyVault.Keys documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Keys/README.md) for examples on using the `KeyClient`.
+
+See the [Azure.Security.KeyVault.Certificates documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Certificates/README.md) for examples on using the `CertificateClient`.
 
 ## Configuration
 
@@ -125,7 +160,7 @@ In your AppHost project, install the Aspire Azure KeyVault Hosting library with 
 dotnet add package Aspire.Hosting.Azure.KeyVault
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
 
 ```csharp
 // Service registration

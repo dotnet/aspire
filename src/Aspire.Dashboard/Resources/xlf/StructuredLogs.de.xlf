@@ -17,24 +17,14 @@
         <target state="translated">Grenzwert für strukturiertes Protokoll überschritten</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Filter hinzufügen</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Filter bearbeiten</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Die Erfassung strukturierter Protokolle wurde angehalten um {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Protokolleintragsdetails</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filter</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -67,11 +57,6 @@
         <target state="translated">Mindestprotokolliergradfilter</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Keine Filter</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Keine strukturierten Protokolle gefunden.</target>
@@ -101,6 +86,16 @@
         <source>Trace</source>
         <target state="translated">Ablaufverfolgung</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} structured logs&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} Strukturierte Protokolle&lt;/strong&gt; werden angezeigt</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} structured log&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} Strukturiertes Protokoll&lt;/strong&gt; wird angezeigt</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

@@ -4,7 +4,6 @@
 using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Keycloak.Tests;
@@ -28,7 +27,7 @@ public class KeycloakResourceBuilderTests
 
         const string defaultEndpointName = "http";
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == defaultEndpointName));
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == defaultEndpointName);
         Assert.Equal(8080, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal(defaultEndpointName, endpoint.Name);
@@ -39,7 +38,7 @@ public class KeycloakResourceBuilderTests
 
         const string managementEndpointName = "management";
 
-        var healthEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == managementEndpointName));
+        var healthEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == managementEndpointName);
         Assert.Equal(9000, healthEndpoint.TargetPort);
         Assert.False(healthEndpoint.IsExternal);
         Assert.Equal(managementEndpointName, healthEndpoint.Name);

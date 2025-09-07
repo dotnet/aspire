@@ -7,69 +7,14 @@
         <target state="translated">Este contenedor es persistente y no se detendrá cuando se apague el host de aplicaciones.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceNameDisplayContainerIdText">
-        <source>Container ID: {0}</source>
-        <target state="translated">Id. de contenedor: {0}</target>
-        <note>{0} is an alphanumeric id</note>
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayCopyContainerIdText">
-        <source>Copy container ID to clipboard</source>
-        <target state="translated">Copiar id. de contenedor en el Portapapeles</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceNameDisplayProcessIdText">
-        <source>Process ID: {0}</source>
-        <target state="translated">Id. de proceso: {0}</target>
-        <note>{0} is a numeric id</note>
-      </trans-unit>
       <trans-unit id="RunningAndUnhealthyResourceStateToolTip">
-        <source>Resource is running but not in a healthy state. Click for details.</source>
-        <target state="translated">El recurso se está ejecutando, pero no en un estado correcto. Haga clic aquí para obtener detalles.</target>
+        <source>Resource is running but not in a healthy state.</source>
+        <target state="translated">El recurso se está ejecutando, pero no en un estado correcto.</target>
         <note>Tool tip text explaining that the resource is running but not yet ready to receive requests.</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerArgsTitle">
-        <source>Container args</source>
-        <target state="translated">Argumentos de contenedor</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommand">
-        <source>Command: {0}</source>
-        <target state="translated">Comando: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayContainerCommandTitle">
-        <source>Container command</source>
-        <target state="translated">Comando de contenedor</target>
-        <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
         <target state="translated">Copiar el comando completo en el Portapapeles</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPort">
-        <source>Port: {0}</source>
-        <target state="translated">Puerto: {0}</target>
-        <note>{0} is a port number</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayPorts">
-        <source>Ports: {0}</source>
-        <target state="translated">Puertos: {0}</target>
-        <note>{0} is a list of ports</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnDisplayWorkingDirectory">
-        <source>Working directory: {0}</source>
-        <target state="translated">Directorio de trabajo: {0}</target>
-        <note>{0} is a path</note>
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
-        <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Copiar el nombre y la etiqueta de la imagen en el Portapapeles</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
-        <source>Copy file path to clipboard</source>
-        <target state="translated">Copiar la ruta de acceso del archivo al Portapapeles</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceContainerRuntimeUnhealthy">
@@ -89,6 +34,16 @@ Para obtener más información, consulte https://aka.ms/dotnet/aspire/container-
         <target state="translated">{0} se cerró inesperadamente con el código de salida {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
+      <trans-unit id="StateColumnResourceNotStarted">
+        <source>Resource has not started because it's configured to not automatically start.</source>
+        <target state="translated">El recurso no se ha iniciado porque está configurado para no iniciarse automáticamente.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StateColumnResourceWaiting">
+        <source>Resource is waiting for other resources to be in a running and healthy state.</source>
+        <target state="translated">El recurso está esperando a que otros recursos estén en ejecución y en buen estado.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>
         <target state="translated">Desconocido</target>
@@ -107,11 +62,6 @@ Para obtener más información, consulte https://aka.ms/dotnet/aspire/container-
       <trans-unit id="UrlsColumnDisplayOverflowTitle">
         <source>URLs</source>
         <target state="translated">Direcciones URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UrlsColumnDisplayPlaceholder">
-        <source>Starting...</source>
-        <target state="translated">Iniciando...</target>
         <note />
       </trans-unit>
     </body>

@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -20,6 +21,11 @@ public static class AzureProvisionerExtensions
     /// </summary>
     public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
     {
+        // Always add the Azure environment, even if the user doesn't explicitly add it.
+#pragma warning disable ASPIREAZURE001
+        builder.AddAzureEnvironment();
+#pragma warning restore ASPIREAZURE001
+
         builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
         builder.Services.TryAddLifecycleHook<AzureProvisioner>();
 
@@ -29,17 +35,27 @@ public static class AzureProvisionerExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
+        builder.Services.TryAddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
-        return builder;
-    }
+        // Register BicepProvisioner via interface
+        builder.Services.TryAddSingleton<IBicepProvisioner, BicepProvisioner>();
 
-    internal static IDistributedApplicationBuilder AddAzureProvisioner<TResource, TProvisioner>(this IDistributedApplicationBuilder builder)
-        where TResource : IAzureResource
-        where TProvisioner : AzureResourceProvisioner<TResource>
-    {
-        // This lets us avoid using open generics in the caller, we can use keyed lookup instead
-        builder.Services.AddKeyedSingleton<IAzureResourceProvisioner, TProvisioner>(typeof(TResource));
+        // Register the new internal services for testability
+        builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
+        builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
+        builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
+        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
+        builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<IProvisioningContextProvider, RunModeProvisioningContextProvider>();
+        }
+        builder.Services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();
+
         return builder;
     }
 }

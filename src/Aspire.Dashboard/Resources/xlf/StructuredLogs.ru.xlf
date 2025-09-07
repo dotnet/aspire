@@ -17,24 +17,14 @@
         <target state="translated">Превышено ограничение структурированных журналов</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Добавить фильтр</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Изменить фильтр</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Запись структурированных журналов приостановлена в {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Подробности записи журнала</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Фильтры</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -67,11 +57,6 @@
         <target state="translated">Фильтр минимального уровня ведения журнала</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Нет фильтров</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Структурированные журналы не найдены</target>
@@ -101,6 +86,16 @@
         <source>Trace</source>
         <target state="translated">Трассировка</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} structured logs&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} структурированных журналов&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} structured log&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} структурированного журнала&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

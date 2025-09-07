@@ -1,3 +1,4 @@
+using Aspire.Hosting.Yarp.Transforms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -30,7 +31,7 @@ basketCache.WithRedisCommander(c =>
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
                           .WithReference(catalogDb);
 
-if (builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
 {
     var resetDbKey = Guid.NewGuid().ToString();
     catalogDbApp.WithEnvironment("DatabaseResetKey", resetDbKey)
@@ -62,18 +63,38 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                            .WithReference(basketCache)
                            .WithReference(messaging).WaitFor(messaging);
 
-builder.AddProject<Projects.MyFrontend>("frontend")
+var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
        .WithReference(basketService)
        .WithReference(catalogService)
-       .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"));
+       // Modify the display text of the URLs
+       .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online store ({u.Endpoint?.EndpointName})"))
+       // Don't show the non-HTTPS link on the resources page (details only)
+       .WithUrlForEndpoint("http", url => url.DisplayLocation = UrlDisplayLocation.DetailsOnly)
+       // Add health relative URL (show in details only)
+       .WithUrlForEndpoint("https", ep => new() { Url = "/health", DisplayText = "Health", DisplayLocation = UrlDisplayLocation.DetailsOnly })
+       .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
        .WithReference(messaging).WaitFor(messaging);
 
-builder.AddProject<Projects.ApiGateway>("apigateway")
+#if YARP_USE_CONFIG_FILE
+builder.AddYarp("apigateway")
+       .WithConfigFile("yarp.json")
        .WithReference(basketService)
        .WithReference(catalogService);
+#else
+var yarp = builder.AddYarp("apigateway");
+yarp.WithConfiguration(builder =>
+{
+    // catalog 
+    builder.AddRoute("/catalog/{**catch-all}", catalogService.GetEndpoint("http"))
+           .WithTransformPathRemovePrefix("/catalog");
+    // basket
+    builder.AddRoute("/basket/{**catch-all}", basketService.GetEndpoint("http"))
+           .WithTransformPathRemovePrefix("/basket");
+});
+#endif
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

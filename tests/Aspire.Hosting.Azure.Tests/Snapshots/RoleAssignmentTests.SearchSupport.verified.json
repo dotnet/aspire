@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-search.module.bicep",
+  "params": {
+    "search_outputs_name": "{search.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

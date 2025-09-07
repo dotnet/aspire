@@ -11,8 +11,8 @@ internal static class RabbitMQContainerImageTags
     /// <remarks>library/rabbitmq</remarks>
     public const string Image = "library/rabbitmq";
 
-    /// <remarks>4.0</remarks>
-    public const string Tag = "4.0";
+    /// <remarks>4.1</remarks>
+    public const string Tag = "4.1";
 
     /// <remarks><inheritdoc cref="Tag"/>-management</remarks>
     public const string ManagementTag = $"{Tag}-management";

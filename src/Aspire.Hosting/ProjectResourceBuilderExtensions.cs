@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -47,7 +48,6 @@ public static class ProjectResourceBuilderExtensions
     /// Note that endpoints coming from the Kestrel configuration are automatically added to the project. The Kestrel Url and Protocols are used
     /// to build the equivalent <see cref="EndpointAnnotation"/>.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -58,6 +58,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -80,7 +81,6 @@ public static class ProjectResourceBuilderExtensions
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -91,6 +91,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -127,7 +128,6 @@ public static class ProjectResourceBuilderExtensions
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -138,6 +138,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -165,7 +166,6 @@ public static class ProjectResourceBuilderExtensions
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -176,6 +176,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, string? launchProfileName)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -214,7 +215,6 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
@@ -225,6 +225,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -254,7 +255,6 @@ public static class ProjectResourceBuilderExtensions
     /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
@@ -265,6 +265,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -281,6 +282,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
+                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -395,11 +397,12 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.TargetHost = endpoint.BindingAddress.Host;
+
+                    e.TargetHost = ParseKestrelHost(endpoint.BindingAddress.Host);
 
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
-                    builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
+                    builder.Resource.KestrelEndpointAnnotationHosts[e] = e.TargetHost;
                 },
                 createIfNotExists: true);
             }
@@ -451,7 +454,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(endpointName, e =>
                     {
                         e.Port = bindingAddress.Port;
-                        e.TargetHost = bindingAddress.Host;
+                        e.TargetHost = ParseKestrelHost(bindingAddress.Host);
                         e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
@@ -583,7 +586,6 @@ public static class ProjectResourceBuilderExtensions
     /// This capability can be useful when debugging scale out scenarios to ensure state is appropriately managed
     /// within a cluster of instances.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Start multiple instances of the same service.
     /// <code lang="csharp">
@@ -593,6 +595,7 @@ public static class ProjectResourceBuilderExtensions
     ///        .WithReplicas(3);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -617,7 +620,6 @@ public static class ProjectResourceBuilderExtensions
     /// into the project and set to true. If the <see cref="DisableForwardedHeaders(IResourceBuilder{ProjectResource})"/>
     /// extension is used this environment variable will not be set.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Disable forwarded headers for a project.
     /// <code lang="csharp">
@@ -627,6 +629,7 @@ public static class ProjectResourceBuilderExtensions
     ///        .DisableForwardedHeaders();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -688,7 +691,11 @@ public static class ProjectResourceBuilderExtensions
         var cb = builder.ApplicationBuilder.AddResource(container);
         // WithImage makes this a container resource (adding the annotation)
         cb.WithImage(builder.Resource.Name);
-        cb.WithDockerfile(contextPath: builder.Resource.GetProjectMetadata().ProjectPath);
+
+        var projectFilePath = builder.Resource.GetProjectMetadata().ProjectPath;
+        var projectDirectoryPath = Path.GetDirectoryName(projectFilePath) ?? throw new InvalidOperationException($"Unable to get directory name for {projectFilePath}");
+
+        cb.WithDockerfile(contextPath: projectDirectoryPath);
         // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());
@@ -755,10 +762,7 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
-                var targetHost = e.EndpointAnnotation.IsProxied && builder.Resource.SupportsProxy() ? "localhost" : e.EndpointAnnotation.TargetHost;
-
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 
@@ -842,6 +846,16 @@ public static class ProjectResourceBuilderExtensions
                 }
             }
         });
+    }
+
+    private static string ParseKestrelHost(string host)
+    {
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            // Localhost is used as-is rather than being resolved to a specific loopback IP address.
+            return "localhost";
+        }
+        return host;
     }
 
     // Allows us to mirror annotations from ProjectContainerResource to ContainerResource

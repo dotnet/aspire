@@ -38,4 +38,9 @@ public interface IAddRoleAssignmentsContext
     /// Not all role assignments require/use a principal name.
     /// </remarks>
     public BicepValue<string> PrincipalName { get; }
+
+    /// <summary>
+    /// Gets the execution context for distributed application.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
 }

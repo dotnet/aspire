@@ -12,6 +12,7 @@ using Aspire.Dashboard.Utils;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -47,41 +48,19 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
-    public void InitialLoad_HasSessionState_RedirectUsingState()
+    public async Task InitialLoad_SingleResource_RedirectToResource()
     {
         // Arrange
-        var testSessionStorage = new TestSessionStorage
-        {
-            OnGetAsync = key =>
-            {
-                if (key == BrowserStorageKeys.MetricsPageState)
-                {
-                    var state = new MetricsPageState
-                    {
-                        ApplicationName = "TestApp",
-                        MeterName = "test-meter",
-                        InstrumentName = "test-instrument",
-                        DurationMinutes = 720,
-                        ViewKind = MetricViewKind.Table.ToString()
-                    };
-                    return (true, state);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Unexpected key: " + key);
-                }
-            }
-        };
-        MetricsSetupHelpers.SetupMetricsPage(this, sessionStorage: testSessionStorage);
+        MetricsSetupHelpers.SetupMetricsPage(this);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
-        navigationManager.NavigateTo(DashboardUrls.MetricsUrl());
 
-        Uri? loadRedirect = null;
-        navigationManager.LocationChanged += (s, a) =>
+        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var changeHandler = navigationManager.RegisterLocationChangingHandler(c =>
         {
-            loadRedirect = new Uri(a.Location);
-        };
+            targetLocationTcs.SetResult(c.TargetLocation);
+            return ValueTask.CompletedTask;
+        });
 
         var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
         telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
@@ -110,8 +89,92 @@ public partial class MetricsTests : DashboardTestContext
         });
 
         // Assert
+        Assert.NotNull(targetLocationTcs);
+        Assert.Equal("/metrics/resource/TestApp?duration=5", await targetLocationTcs.Task.DefaultTimeout());
+    }
+
+    [Fact]
+    public void InitialLoad_HasSessionState_RedirectUsingState()
+    {
+        // Arrange
+        var testSessionStorage = new TestSessionStorage
+        {
+            OnGetAsync = key =>
+            {
+                if (key == BrowserStorageKeys.MetricsPageState)
+                {
+                    var state = new MetricsPageState
+                    {
+                        ResourceName = "TestApp2",
+                        MeterName = "test-meter",
+                        InstrumentName = "test-instrument",
+                        DurationMinutes = 720,
+                        ViewKind = MetricViewKind.Table.ToString()
+                    };
+                    return (true, state);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Unexpected key: " + key);
+                }
+            }
+        };
+
+        MetricsSetupHelpers.SetupMetricsPage(this, sessionStorage: testSessionStorage);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.MetricsUrl());
+
+        Uri? loadRedirect = null;
+        navigationManager.LocationChanged += (s, a) =>
+        {
+            loadRedirect = new Uri(a.Location);
+        };
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddMetrics(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            },
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp2"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Act
+        var cut = RenderComponent<Metrics>(builder =>
+        {
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // Assert
         Assert.NotNull(loadRedirect);
-        Assert.Equal("/metrics/resource/TestApp", loadRedirect.AbsolutePath);
+        Assert.Equal("/metrics/resource/TestApp2", loadRedirect.AbsolutePath);
 
         var query = HttpUtility.ParseQueryString(loadRedirect.Query);
         Assert.Equal("test-meter", query["meter"]);
@@ -151,7 +214,7 @@ public partial class MetricsTests : DashboardTestContext
         var cut = RenderComponent<Metrics>(builder =>
         {
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
-            builder.Add(m => m.ApplicationName, "TestApp");
+            builder.Add(m => m.ResourceName, "TestApp");
         });
 
         // Assert 2
@@ -165,8 +228,8 @@ public partial class MetricsTests : DashboardTestContext
 
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
-                Assert.Single(items1.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-                Assert.Single(items1.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+                Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
+                Assert.Single(items1, i => i.Instance.Data as OtlpScope == instrument.Parent);
             }
         });
 
@@ -210,8 +273,8 @@ public partial class MetricsTests : DashboardTestContext
 
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
-                Assert.Single(items2.Where(i => i.Instance.Data as OtlpInstrumentSummary == instrument));
-                Assert.Single(items2.Where(i => i.Instance.Data as OtlpMeter == instrument.Parent));
+                Assert.Single(items2, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
+                Assert.Single(items2, i => i.Instance.Data as OtlpScope == instrument.Parent);
             }
         });
     }
@@ -262,7 +325,7 @@ public partial class MetricsTests : DashboardTestContext
         // Act 1
         var cut = RenderComponent<Metrics>(builder =>
         {
-            builder.Add(m => m.ApplicationName, "TestApp");
+            builder.Add(m => m.ResourceName, "TestApp");
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
@@ -273,14 +336,14 @@ public partial class MetricsTests : DashboardTestContext
 
             cut.SetParametersAndRender(builder =>
             {
-                builder.Add(m => m.ApplicationName, "TestApp2");
+                builder.Add(m => m.ResourceName, "TestApp2");
             });
         };
 
         var viewModel = cut.Instance.PageViewModel;
 
         // Assert 1
-        Assert.Equal("test-meter", viewModel.SelectedMeter!.MeterName);
+        Assert.Equal("test-meter", viewModel.SelectedMeter!.Name);
         Assert.Equal(app1InstrumentName, viewModel.SelectedInstrument!.Name);
 
         // Act 2
@@ -288,10 +351,10 @@ public partial class MetricsTests : DashboardTestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedResource.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
-        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.MeterName);
+        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.Name);
 
         Assert.Equal(MetricViewKind.Table, viewModel.SelectedViewKind);
         Assert.Equal(TimeSpan.FromMinutes(720), viewModel.SelectedDuration.Id);

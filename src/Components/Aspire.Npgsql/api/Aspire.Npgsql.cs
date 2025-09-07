@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Npgsql
 {
-    public sealed partial class NpgsqlSettings
+    public partial class NpgsqlSettings
     {
         public string? ConnectionString { get { throw null; } set { } }
 

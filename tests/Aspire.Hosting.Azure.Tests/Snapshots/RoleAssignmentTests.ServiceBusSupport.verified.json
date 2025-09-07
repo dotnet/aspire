@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-sb.module.bicep",
+  "params": {
+    "sb_outputs_name": "{sb.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

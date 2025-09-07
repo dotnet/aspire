@@ -1,76 +1,136 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+#pragma warning disable ASPIREPUBLISHERS001
+
+using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
 {
-    private async Task<(int ExitCode, string? Output)> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    public string Name => "Podman";
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo
+        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
+
+        // Add platform support if specified
+        if (options?.TargetPlatform is not null)
         {
-            FileName = "podman",
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
+            arguments += $" --platform \"{options.TargetPlatform.Value.ToRuntimePlatformString()}\"";
+        }
+
+        // Add format support if specified
+        if (options?.ImageFormat is not null)
+        {
+            var format = options.ImageFormat.Value switch
+            {
+                ContainerImageFormat.Oci => "oci",
+                ContainerImageFormat.Docker => "docker",
+                _ => throw new ArgumentOutOfRangeException(nameof(options), options.ImageFormat, "Invalid container image format")
+            };
+            arguments += $" --format \"{format}\"";
+        }
+
+        // Add output support if specified
+        if (!string.IsNullOrEmpty(options?.OutputPath))
+        {
+            // Extract resource name from imageName for the file name
+            var resourceName = imageName.Split('/').Last().Split(':').First();
+            arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
+        }
+
+        arguments += $" \"{contextPath}\"";
+
+        var spec = new ProcessSpec("podman")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("podman build (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("podman build (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
         };
 
-        startInfo.ArgumentList.Add("build");
-        startInfo.ArgumentList.Add("--file");
-        startInfo.ArgumentList.Add(dockerfilePath);
-        startInfo.ArgumentList.Add("--tag");
-        startInfo.ArgumentList.Add(imageName);
-        startInfo.ArgumentList.Add("--quiet");
-        startInfo.ArgumentList.Add(contextPath);
+        logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        logger.LogInformation("Running Podman CLI with arguments: {Arguments}", startInfo.ArgumentList);
-
-        using var process = Process.Start(startInfo);
-
-        if (process is null)
+        await using (processDisposable)
         {
-            throw new DistributedApplicationException("Failed to start Podman CLI.");
-        }
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("Podman build for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                return processResult.ExitCode;
+            }
 
-        if (process.ExitCode != 0)
-        {
-            var stderr = process.StandardError.ReadToEnd();
-            var stdout = process.StandardOutput.ReadToEnd();
-
-            logger.LogError(
-                "Podman CLI failed with exit code {ExitCode}. Output: {Stdout}, Error: {Stderr}",
-                process.ExitCode,
-                stdout,
-                stderr);
-
-            return (process.ExitCode, null);
-        }
-        else
-        {
-            var stdout = process.StandardOutput.ReadToEnd();
-            logger.LogInformation("Podman CLI succeeded. Output: {Stdout}", stdout);
-            return (process.ExitCode, stdout);
+            logger.LogInformation("Podman build for {ImageName} succeeded.", imageName);
+            return processResult.ExitCode;
         }
     }
 
-    public async Task<string> BuildImageAsync(string contextPath, string dockerfilePath, string imageName, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        var result = await RunDockerBuildAsync(
+        var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
+            options,
             cancellationToken).ConfigureAwait(false);
 
-        if (result.ExitCode == 0)
+        if (exitCode != 0)
         {
-            return result.Output!;
+            throw new DistributedApplicationException($"Podman build failed with exit code {exitCode}.");
         }
-        else
+    }
+
+    public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
+    {
+        var spec = new ProcessSpec("podman")
         {
-            throw new DistributedApplicationException($"Docker build failed with exit code {result.ExitCode}.");
+            Arguments = "container ls -n 1",
+            OnOutputData = output =>
+            {
+                logger.LogInformation("podman container ls (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("podman container ls (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        return CheckPodmanHealthAsync(pendingProcessResult, processDisposable, cancellationToken);
+
+        async Task<bool> CheckPodmanHealthAsync(Task<ProcessResult> pending, IAsyncDisposable disposable, CancellationToken token)
+        {
+            await using (disposable)
+            {
+                var processResult = await pending.WaitAsync(token).ConfigureAwait(false);
+
+                if (processResult.ExitCode != 0)
+                {
+                    logger.LogError("Podman container ls failed with exit code {ExitCode}.", processResult.ExitCode);
+                    return false;
+                }
+
+                // Optionally, parse processResult.Output for more health checks.
+                logger.LogInformation("Podman is running and healthy.");
+                return true;
+            }
         }
-    }}
+    }
+}

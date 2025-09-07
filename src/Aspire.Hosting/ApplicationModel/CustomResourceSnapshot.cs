@@ -123,6 +123,27 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<RelationshipSnapshot> Relationships { get; init; } = [];
 
+    /// <summary>
+    /// Whether this resource should be hidden in UI.
+    /// </summary>
+    public bool IsHidden { get; init; }
+
+    /// <summary>
+    /// Whether this resource is a built-in resource and supports usage telemetry.
+    /// </summary>
+    internal bool SupportsDetailedTelemetry { get; init; }
+
+    /// <summary>
+    /// The custom icon name for the resource. This should be a valid FluentUI icon name.
+    /// If not specified, the dashboard will use default icons based on the resource type.
+    /// </summary>
+    public string? IconName { get; init; }
+
+    /// <summary>
+    /// The custom icon variant for the resource.
+    /// </summary>
+    public IconVariant? IconVariant { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)
@@ -172,11 +193,11 @@ public sealed record ResourceStateSnapshot(string Text, string? Style)
 public sealed record EnvironmentVariableSnapshot(string Name, string? Value, bool IsFromSpec);
 
 /// <summary>
-/// A snapshot of the url.
+/// A snapshot of the URL.
 /// </summary>
-/// <param name="Name">Name of the endpoint associated with the url.</param>
-/// <param name="Url">The full uri.</param>
-/// <param name="IsInternal">Determines if this url is internal.</param>
+/// <param name="Name">Name of the endpoint associated with the URL.</param>
+/// <param name="Url">The full URL.</param>
+/// <param name="IsInternal">Determines if this URL is internal. Internal URLs are only shown in the details grid for a resource.</param>
 [DebuggerDisplay("{Url}", Name = "{Name}")]
 public sealed record UrlSnapshot(string? Name, string Url, bool IsInternal)
 {
@@ -337,6 +358,7 @@ public static class KnownResourceStates
     /// <summary>
     /// The hidden state. Useful for hiding the resource.
     /// </summary>
+    [Obsolete("Use CustomResourceSnapshot.IsHidden instead.")]
     public static readonly string Hidden = nameof(Hidden);
 
     /// <summary>
@@ -383,6 +405,11 @@ public static class KnownResourceStates
     /// The not started state. Useful for showing the resource was created without being started.
     /// </summary>
     public static readonly string NotStarted = nameof(NotStarted);
+
+    /// <summary>
+    /// The not active state. Useful for resources without a lifetime.
+    /// </summary>
+    public static readonly string Active = nameof(Active);
 
     /// <summary>
     /// List of terminal states.

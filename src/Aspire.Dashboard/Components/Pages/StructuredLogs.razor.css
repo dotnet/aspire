@@ -25,7 +25,6 @@
     grid-template-areas:
         "main"
         "foot";
-    gap: calc(var(--design-unit) * 2px);
 }
 
 ::deep .logs-summary-layout > .logs-grid-container {

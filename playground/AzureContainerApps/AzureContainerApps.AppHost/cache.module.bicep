@@ -1,14 +1,16 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param infra_outputs_volumes_cache_0 string
+param infra_outputs_azure_container_apps_environment_default_domain string
+
+param infra_outputs_azure_container_apps_environment_id string
 
 @secure()
 param cache_password_value string
 
-param infra_outputs_azure_container_apps_environment_id string
+param infra_outputs_volumes_cache_0 string
 
-resource cache 'Microsoft.App/containerApps@2024-03-01' = {
+resource cache 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'cache'
   location: location
   properties: {
@@ -30,7 +32,7 @@ resource cache 'Microsoft.App/containerApps@2024-03-01' = {
     template: {
       containers: [
         {
-          image: 'docker.io/library/redis:7.4'
+          image: 'docker.io/library/redis:8.2'
           name: 'cache'
           command: [
             '/bin/sh'

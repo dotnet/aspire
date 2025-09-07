@@ -10,7 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class RedisBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, string source, bool isReadOnly = false) { throw null; }
 
@@ -20,9 +22,13 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, string? name = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithHostPort(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, int? port) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> WithHostPort(this ApplicationModel.IResourceBuilder<Redis.RedisCommanderResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> WithHostPort(this ApplicationModel.IResourceBuilder<Redis.RedisInsightResource> builder, int? port) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithPassword(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> WithPersistence(this ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource> builder, System.TimeSpan? interval = null, long keysChangedThreshold = 1) { throw null; }
 
@@ -36,9 +42,13 @@ namespace Aspire.Hosting.ApplicationModel
 {
     public partial class RedisResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
+        public RedisResource(string name, ParameterResource password) : base(default!, default) { }
+
         public RedisResource(string name) : base(default!, default) { }
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
+
+        public ParameterResource? PasswordParameter { get { throw null; } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
 

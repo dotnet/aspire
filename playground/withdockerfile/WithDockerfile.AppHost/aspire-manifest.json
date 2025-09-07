@@ -1,6 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "docker-compose": {
+      "error": "This resource does not support generation in the manifest."
+    },
     "goversion": {
       "type": "parameter.v0",
       "value": "{goversion.inputs.value}",

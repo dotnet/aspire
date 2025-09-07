@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+  "path": "appInsights.module.bicep",
+  "params": {
+    "law_outputs_loganalyticsworkspaceid": "{law.outputs.logAnalyticsWorkspaceId}"
+  }
+}

@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Xunit;
+#pragma warning disable CS0612
+
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
@@ -87,6 +88,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/8466")]
     public async Task PythonResourceFinishesSuccessfully()
     {
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
@@ -156,7 +158,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         Assert.Equal(scriptName, commandArguments[0]);
 
@@ -179,7 +181,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var executableResources = appModel.GetExecutableResources();
 
         var pythonProjectResource = Assert.Single(executableResources);
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         if (OperatingSystem.IsWindows())
         {
@@ -231,7 +233,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
         Assert.Equal(scriptName, commandArguments[0]);
         Assert.Equal("test", commandArguments[1]);

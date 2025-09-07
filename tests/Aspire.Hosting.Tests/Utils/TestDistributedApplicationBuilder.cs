@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.TestUtilities;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Utils;
@@ -17,12 +17,12 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public static class TestDistributedApplicationBuilder
 {
-    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation)
+    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string publisher = "manifest", string outputPath = "./", bool isDeploy = false)
     {
         var args = operation switch
         {
             DistributedApplicationOperation.Run => (string[])[],
-            DistributedApplicationOperation.Publish => ["Publishing:Publisher=manifest"],
+            DistributedApplicationOperation.Publish => [$"Publishing:Publisher={publisher}", $"Publishing:OutputPath={outputPath}", $"Publishing:Deploy={isDeploy}"],
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 

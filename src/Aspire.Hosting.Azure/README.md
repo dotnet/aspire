@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a resource based on a Bicep template:
+Then, in the _AppHost.cs_ file of `AppHost`, add a resource based on a Bicep template:
 
 ```csharp
 var bicepResource = builder.AddBicepTemplate("bicep", "template.bicep")

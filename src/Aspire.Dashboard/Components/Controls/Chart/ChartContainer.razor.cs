@@ -23,7 +23,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
-    public required ApplicationKey ApplicationKey { get; set; }
+    public required ResourceKey ResourceKey { get; set; }
 
     [Parameter, EditorRequired]
     public required string MeterName { get; set; }
@@ -34,6 +34,18 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required TimeSpan Duration { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Pages.Metrics.MetricViewKind ActiveView { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Pages.Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required List<OtlpResource> Resources { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string? PauseText { get; set; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -42,6 +54,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required PauseManager PauseManager { get; init; }
 
     public ImmutableList<DimensionFilterViewModel> DimensionFilters { get; set; } = [];
     public string? PreviousMeterName { get; set; }
@@ -79,7 +94,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
-            if (_instrument == null)
+            if (_instrument == null || PauseManager.AreMetricsPaused(out _))
             {
                 continue;
             }
@@ -175,7 +190,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
         var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationKey = ApplicationKey,
+            ResourceKey = ResourceKey,
             MeterName = MeterName,
             InstrumentName = InstrumentName,
             StartTime = startDate,
@@ -185,8 +200,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         if (instrument == null)
         {
             Logger.LogDebug(
-                "Unable to find instrument. ApplicationKey: {ApplicationKey}, MeterName: {MeterName}, InstrumentName: {InstrumentName}",
-                ApplicationKey,
+                "Unable to find instrument. ResourceKey: {ResourceKey}, MeterName: {MeterName}, InstrumentName: {InstrumentName}",
+                ResourceKey,
                 MeterName,
                 InstrumentName);
         }
@@ -210,7 +225,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 {
                     var text = v switch
                     {
-                        null => Loc[nameof(ControlsStrings.LabelUnset)],
+                        null => Loc[nameof(ControlsStrings.LabelValueUnset)],
                         { Length: 0 } => Loc[nameof(ControlsStrings.LabelEmpty)],
                         _ => v
                     };

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
+using Aspire.Hosting;
 using Aspire.TestUtilities;
 using Xunit;
 
@@ -27,7 +28,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
+    [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -36,12 +39,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        if (PlaywrightProvider.HasPlaywrightSupport)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Fact]
@@ -95,7 +95,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
+    [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
@@ -105,11 +107,14 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
+        await using var context = await CreateNewBrowserContextAsync();
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
     [Fact]
+    [RequiresPlaywright]
+    [OuterLoop("playwright test")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()
     {
         string id = GetNewProjectId(prefix: "aspire");
@@ -129,23 +134,21 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
         var res = await buildCmd.ExecuteAsync("run");
         Assert.True(res.ExitCode != 0, $"Expected the app run to fail");
-        Assert.Contains("setting must be an https address unless the 'ASPIRE_ALLOW_UNSECURED_TRANSPORT'", res.Output);
+        Assert.Contains($"setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}'", res.Output);
 
         // Run with the environment variable set
-        testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
+        testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
         await project.StartAppHostAsync();
 
-        if (PlaywrightProvider.HasPlaywrightSupport)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Theory]
     [InlineData("9.*-*")]
     [InlineData("[9.0.0]")]
+    [Trait("category", "basic-build")]
     public async Task CreateAndModifyAspireAppHostTemplate(string version)
     {
         string id = GetNewProjectId(prefix: $"aspire_apphost_{version.Replace("*", "wildcard").Replace("[", "").Replace("]", "")}");

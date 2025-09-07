@@ -24,15 +24,22 @@ public class BrowserDimensionWatcher : ComponentBase
     {
         if (firstRender)
         {
-            var viewportSize = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
-            DimensionManager.InvokeOnViewportSizeChanged(viewportSize)
-                ;
-            ViewportInformation = ViewportInformation.GetViewportInformation(viewportSize);
-            DimensionManager.InvokeOnViewportInformationChanged(ViewportInformation);
+            try
+            {
+                var viewportSize = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
+                DimensionManager.InvokeOnViewportSizeChanged(viewportSize);
+                ViewportInformation = ViewportInformation.GetViewportInformation(viewportSize);
+                DimensionManager.InvokeOnViewportInformationChanged(ViewportInformation);
 
-            await ViewportInformationChanged.InvokeAsync(ViewportInformation);
+                await ViewportInformationChanged.InvokeAsync(ViewportInformation);
 
-            await JS.InvokeVoidAsync("window.listenToWindowResize", DotNetObjectReference.Create(this));
+                await JS.InvokeVoidAsync("window.listenToWindowResize", DotNetObjectReference.Create(this));
+            }
+            catch (JSDisconnectedException)
+            {
+                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+            }
         }
 
         await base.OnAfterRenderAsync(firstRender);

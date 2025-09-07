@@ -22,7 +22,10 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public BicepOutputReference Endpoint => new("endpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for Azure Web PubSub.
@@ -32,8 +35,28 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = WebPubSubService.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a WebPubSubService with the same identifier already exists
+        var existingStore = resources.OfType<WebPubSubService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = WebPubSubService.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

@@ -65,7 +65,7 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= builder.GetRequiredDeploymentName();
-        var result = openAiClient.AsChatClient(deploymentName);
+        var result = openAiClient.GetChatClient(deploymentName).AsIChatClient();
 
         if (builder.DisableTracing)
         {
@@ -73,6 +73,9 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         }
 
         var loggerFactory = services.GetService<ILoggerFactory>();
-        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)))
+        {
+            EnableSensitiveData = builder.EnableSensitiveTelemetryData
+        };
     }
 }

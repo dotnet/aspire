@@ -6,6 +6,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a Redis resource independent of the hosting model.
 /// </summary>
+/// <remarks>
+/// A resource that represents a Redis resource independent of the hosting model.
+/// </remarks>
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
@@ -31,7 +34,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the parameter that contains the Redis server password.
     /// </summary>
-    public ParameterResource? PasswordParameter { get; }
+    public ParameterResource? PasswordParameter { get; private set; }
 
     private ReferenceExpression BuildConnectionString()
     {
@@ -75,5 +78,10 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         }
 
         return BuildConnectionString().GetValueAsync(cancellationToken);
+    }
+
+    internal void SetPassword(ParameterResource? password)
+    {
+        PasswordParameter = password;
     }
 }

@@ -3,7 +3,9 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -16,10 +18,10 @@ public partial class ResourceSelect
     private readonly string _selectId = $"resource-select-{Guid.NewGuid():N}";
 
     [Parameter]
-    public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
+    public IEnumerable<SelectViewModel<ResourceTypeDetails>>? Resources { get; set; }
 
     [Parameter]
-    public SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; } = default!;
+    public SelectViewModel<ResourceTypeDetails>? SelectedResource { get; set; }
 
     [Parameter]
     public EventCallback<SelectViewModel<ResourceTypeDetails>> SelectedResourceChanged { get; set; }
@@ -33,12 +35,15 @@ public partial class ResourceSelect
     [Parameter]
     public string? LabelClass { get; set; }
 
-    private async Task SelectedResourceChangedCore()
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
+
+    private Task SelectedResourceChangedCore()
     {
-        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+        return InvokeAsync(() => SelectedResourceChanged.InvokeAsync(SelectedResource));
     }
 
-    private static void ValuedChanged(string value)
+    private static void ValuedChanged(string? value)
     {
         // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
     }

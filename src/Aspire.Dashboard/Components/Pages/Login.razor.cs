@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -11,7 +12,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Login : IAsyncDisposable
+public partial class Login : IAsyncDisposable, IComponentWithTelemetry
 {
     private IJSObjectReference? _jsModule;
     private FluentTextField? _tokenTextField;
@@ -22,6 +23,9 @@ public partial class Login : IAsyncDisposable
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -38,6 +42,8 @@ public partial class Login : IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        TelemetryContextProvider.Initialize(TelemetryContext);
+
         // Create EditContext before awaiting. This is required to prevent an await in OnInitializedAsync
         // triggering parameters being set on EditForm before EditContext is created.
         // If that happens then EditForm errors that it requires an EditContext.
@@ -108,5 +114,9 @@ public partial class Login : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        TelemetryContext.Dispose();
     }
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Login);
 }

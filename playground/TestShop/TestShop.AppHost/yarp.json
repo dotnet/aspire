@@ -1,0 +1,49 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "ReverseProxy": {
+    "Routes": {
+      "catalog": {
+        "ClusterId": "catalog",
+        "Match": {
+          "Path": "/catalog/{**catch-all}"
+        },
+        "Transforms": [
+          { "PathRemovePrefix": "/catalog" }
+        ]
+      },
+      "basket": {
+        "ClusterId": "basket",
+        "Match": {
+          "Path": "/basket/{**catch-all}"
+        },
+        "Transforms": [
+          { "PathRemovePrefix": "/basket" }
+        ]
+      }
+    },
+    "Clusters": {
+      "catalog": {
+        "Destinations": {
+          "catalog": {
+            "Address": "http://catalogservice",
+            "Health": "http://catalogservice/readiness"
+          }
+        }
+      },
+      "basket": {
+        "Destinations": {
+          "basket": {
+            "Address": "http://basketservice",
+            "Health": "http://basketservice/readiness"
+          }
+        }
+      }
+    }
+  }
+}

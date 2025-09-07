@@ -123,9 +123,6 @@
   <data name="ChartContainerFiltersHeader" xml:space="preserve">
     <value>Filters</value>
   </data>
-  <data name="ChartContainerSelectFilters" xml:space="preserve">
-    <value>Select filters</value>
-  </data>
   <data name="ChartContainerGraphTab" xml:space="preserve">
     <value>Graph</value>
   </data>
@@ -211,12 +208,8 @@
   <data name="SummaryDetailsViewCloseView" xml:space="preserve">
     <value>Close</value>
   </data>
-  <data name="TotalItemsFooterText" xml:space="preserve">
-    <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
-    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
-  </data>
-  <data name="SelectAnApplication" xml:space="preserve">
-    <value>Select an application</value>
+  <data name="SelectAResource" xml:space="preserve">
+    <value>Select a resource</value>
   </data>
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
@@ -241,9 +234,6 @@
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
     <value>Time</value>
-  </data>
-  <data name="MetricTableShowLatestValues" xml:space="preserve">
-    <value>Show latest 10 values</value>
   </data>
   <data name="MetricTableShowOnlyValueChanges" xml:space="preserve">
     <value>Only show value updates</value>
@@ -332,9 +322,6 @@
   <data name="StructuredLogsDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
-  <data name="TraceDetailAttributesHeader" xml:space="preserve">
-    <value>Attributes</value>
-  </data>
   <data name="SpanDetailsContextHeader" xml:space="preserve">
     <value>Context</value>
   </data>
@@ -401,20 +388,12 @@
   <data name="FluentDataGridHeaderCellSubmitAriaLabelText" xml:space="preserve">
     <value>Set column widths</value>
   </data>
-  <data name="StructuredFilteringFilters" xml:space="preserve">
-    <value>Filters</value>
-  </data>
-  <data name="StructuredFilteringNoFilters" xml:space="preserve">
-    <value>No filters</value>
-  </data>
-  <data name="StructuredFilteringAddFilter" xml:space="preserve">
-    <value>Add filter</value>
-  </data>
   <data name="LabelEmpty" xml:space="preserve">
     <value>(Empty)</value>
   </data>
-  <data name="LabelUnset" xml:space="preserve">
+  <data name="LabelValueUnset" xml:space="preserve">
     <value>(Unset)</value>
+    <comment>Unset is a noun, not a verb, to indicate that the value has not been set.</comment>
   </data>
   <data name="ActionsColumnHeader" xml:space="preserve">
     <value>Actions</value>
@@ -466,10 +445,67 @@
   <data name="EndpointNameColumnHeader" xml:space="preserve">
     <value>Endpoint name</value>
   </data>
-  <data name="LinkColumnHeader" xml:space="preserve">
-    <value>Link</value>
+  <data name="LinkAddressColumnHeader" xml:space="preserve">
+    <value>Address</value>
   </data>
   <data name="ResourceGraphNoEndpoints" xml:space="preserve">
     <value>No endpoints</value>
+  </data>
+  <data name="PauseButtonTitle" xml:space="preserve">
+    <value>Pause incoming data</value>
+  </data>
+  <data name="ResumeButtonTitle" xml:space="preserve">
+    <value>Resume incoming data</value>
+  </data>
+  <data name="ClearSignalsButtonTitle" xml:space="preserve">
+    <value>Remove data</value>
+  </data>
+  <data name="PauseWarningTitle" xml:space="preserve">
+    <value>Capture paused</value>
+  </data>
+  <data name="LinkTextColumnHeader" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ToggleNesting" xml:space="preserve">
+    <value>Toggle nesting</value>
+  </data>
+  <data name="CollapseAllSpansText" xml:space="preserve">
+    <value>Collapse all</value>
+  </data>
+  <data name="ExpandAllSpansText" xml:space="preserve">
+    <value>Expand all</value>
+  </data>
+  <data name="ViewStructuredLogsText" xml:space="preserve">
+    <value>View structured logs</value>
+  </data>
+  <data name="ShowHiddenResources" xml:space="preserve">
+    <value>Show hidden resources</value>
+  </data>
+  <data name="HideHiddenResources" xml:space="preserve">
+    <value>Hide hidden resources</value>
+  </data>
+  <data name="ResourceActions" xml:space="preserve">
+    <value>Resource actions</value>
+  </data>
+  <data name="PlotlyChartExemplar" xml:space="preserve">
+    <value>Exemplar</value>
+  </data>
+  <data name="LabelOther" xml:space="preserve">
+    <value>(Other)</value>
+  </data>
+  <data name="SpanTypeHttp" xml:space="preserve">
+    <value>HTTP</value>
+  </data>
+  <data name="SpanTypeDatabase" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="SpanTypeMessaging" xml:space="preserve">
+    <value>Messaging</value>
+  </data>
+  <data name="SpanTypeRpc" xml:space="preserve">
+    <value>RPC</value>
+  </data>
+  <data name="SpanTypeGenAI" xml:space="preserve">
+    <value>Gen AI</value>
   </data>
 </root>

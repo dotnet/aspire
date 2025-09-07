@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -34,10 +34,15 @@
     <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogPauseViewModel.cs" Link="Utils\ConsoleLogs\LogPauseViewModel.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
     <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
     <Compile Include="$(SharedDir)PortAllocator.cs" Link="Publishing\PortAllocator.cs" />
+    <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
+    <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
+    <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
+    <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,26 +52,54 @@
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+    <PackageReference Include="Semver" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
+    <Protobuf Include="Dashboard\proto\dashboard_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
+    <Compile Update="Resources\LaunchProfileStrings.Designer.cs">
+      <DependentUpon>LaunchProfileStrings.resx</DependentUpon>
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\MessageStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MessageStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\CommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CommandStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\InteractionStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InteractionStrings.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
+    <EmbeddedResource Update="Resources\LaunchProfileStrings.resx">
+      <LastGenOutput>LaunchProfileStrings.Designer.cs</LastGenOutput>
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\MessageStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>MessageStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\CommandStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>CommandStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\InteractionStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>InteractionStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

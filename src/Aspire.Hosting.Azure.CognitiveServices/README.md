@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
 
 ```csharp
 var openai = builder.AddAzureOpenAI("openai");

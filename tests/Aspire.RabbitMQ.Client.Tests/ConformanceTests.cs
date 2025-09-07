@@ -3,7 +3,6 @@
 
 using Aspire.TestUtilities;
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -131,6 +130,6 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-        throw new SkipTestException("RabbitMQ connects to localhost by default if the connection information isn't available.");
+        Assert.Skip("RabbitMQ connects to localhost by default if the connection information isn't available.");
     }
 }

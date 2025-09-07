@@ -6,10 +6,10 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -56,11 +56,13 @@ public class ProjectResourceTests
         }
     }
 
-    [Fact]
-    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata(string dashboardOtlpGrpcEndpointUrlKey)
     {
         // Explicitly specify development environment and other config so it is constant.
-        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"],
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", $"{dashboardOtlpGrpcEndpointUrlKey}=http://localhost:18889"],
             DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
@@ -175,7 +177,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"], DistributedApplicationOperation.Run);
+        var appBuilder = CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}={value}"], DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -264,6 +266,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -273,6 +276,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    [UseDefaultXunitCulture]
     public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -576,10 +580,16 @@ public class ProjectResourceTests
             });
 
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+             .WithEndpoint("ep", e =>
+             {
+                 e.UriScheme = "http";
+                 e.AllocatedEndpoint = new(e, "localhost", 8000);
+             })
              .WithArgs(context =>
              {
                  context.Args.Add("arg1");
                  context.Args.Add(c1.GetEndpoint("ep"));
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
              });
 
         using var app = appBuilder.Build();
@@ -588,13 +598,17 @@ public class ProjectResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://localhost:1234", arg));
+            arg => Assert.Equal("http://localhost:1234", arg),
+            arg => Assert.Equal("http://localhost:8000", arg));
+
+        // We don't yet process relationships set via the callbacks
+        Assert.False(project.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
     }
 
     [Theory]
-    [InlineData(true, "localhost")]
-    [InlineData(false, "*")]
-    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied)
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
@@ -627,11 +641,11 @@ public class ProjectResourceTests
         if (isProxied)
         {
             // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
-            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+            Assert.Equal("http://*:p0;https://*:p1", config["ASPNETCORE_URLS"]);
         }
         else
         {
-            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+            Assert.Equal($"http://*:{http.TargetPort};https://*:{https.TargetPort}", config["ASPNETCORE_URLS"]);
         }
 
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);

@@ -1,17 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.ServiceBus;
-using Azure.Messaging.ServiceBus;
 using Azure.Provisioning;
 using Azure.Provisioning.ServiceBus;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AzureProvisioning = Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -21,7 +19,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureServiceBusExtensions
 {
-    private const UnixFileMode FileMode644 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
 
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
@@ -31,7 +29,7 @@ public static class AzureServiceBusExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// By default references to the Azure Service Bus resource will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="ServiceBusBuiltInRole.AzureServiceBusDataOwner"/>
     ///
     /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureServiceBusResource}, ServiceBusBuiltInRole[])"/>.
@@ -315,7 +313,6 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="ServiceBusEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="ServiceBusEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="ServiceBusEmulatorContainerImageTags.Image"/> container image.
-    /// </remarks>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -335,6 +332,7 @@ public static class AzureServiceBusExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -349,6 +347,9 @@ public static class AzureServiceBusExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         // Add emulator container
 
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
@@ -356,18 +357,20 @@ public static class AzureServiceBusExtensions
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
+            .WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 5300)
             .WithAnnotation(new ContainerImageAnnotation
             {
                 Registry = ServiceBusEmulatorContainerImageTags.Registry,
                 Image = ServiceBusEmulatorContainerImageTags.Image,
                 Tag = ServiceBusEmulatorContainerImageTags.Tag
-            });
+            })
+            .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
 
-        var sqlEdgeResource = builder.ApplicationBuilder
-                .AddContainer($"{builder.Resource.Name}-sqledge",
-                    image: ServiceBusEmulatorContainerImageTags.AzureSqlEdgeImage,
-                    tag: ServiceBusEmulatorContainerImageTags.AzureSqlEdgeTag)
-                .WithImageRegistry(ServiceBusEmulatorContainerImageTags.AzureSqlEdgeRegistry)
+        var sqlServerResource = builder.ApplicationBuilder
+                .AddContainer($"{builder.Resource.Name}-mssql",
+                    image: ServiceBusEmulatorContainerImageTags.SqlServerImage,
+                    tag: ServiceBusEmulatorContainerImageTags.SqlServerTag)
+                .WithImageRegistry(ServiceBusEmulatorContainerImageTags.SqlServerRegistry)
                 .WithEndpoint(targetPort: 1433, name: "tcp")
                 .WithEnvironment("ACCEPT_EULA", "Y")
                 .WithEnvironment(context =>
@@ -378,7 +381,7 @@ public static class AzureServiceBusExtensions
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
-            var sqlEndpoint = sqlEdgeResource.Resource.GetEndpoint("tcp");
+            var sqlEndpoint = sqlServerResource.Resource.GetEndpoint("tcp");
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("SQL_SERVER", $"{sqlEndpoint.Resource.Name}:{sqlEndpoint.TargetPort}");
@@ -387,10 +390,11 @@ public static class AzureServiceBusExtensions
 
         var lifetime = ContainerLifetime.Session;
 
+        var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+
         if (configureContainer != null)
         {
-            var surrogate = new AzureServiceBusEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
             configureContainer(surrogateBuilder);
 
             if (surrogate.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
@@ -399,127 +403,68 @@ public static class AzureServiceBusExtensions
             }
         }
 
-        sqlEdgeResource = sqlEdgeResource.WithLifetime(lifetime);
+        sqlServerResource = sqlServerResource.WithLifetime(lifetime);
 
         // RunAsEmulator() can be followed by custom model configuration so we need to delay the creation of the Config.json file
         // until all resources are about to be prepared and annotations can't be updated anymore.
-
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
-        {
-            // Create JSON configuration file
-
-            var hasCustomConfigJson = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().Any(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
-
-            if (hasCustomConfigJson)
+        surrogateBuilder.WithContainerFiles(
+            AzureServiceBusEmulatorResource.EmulatorConfigFilesPath,
+            (_, _) =>
             {
-                return Task.CompletedTask;
-            }
+                var customConfigFile = builder.Resource.Annotations.OfType<ConfigFileAnnotation>().FirstOrDefault();
+                if (customConfigFile != null)
+                {
+                    return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                        new ContainerFile
+                        {
+                            Name = AzureServiceBusEmulatorResource.EmulatorConfigJsonFile,
+                            SourcePath = customConfigFile.SourcePath,
+                        },
+                    ]);
+                }
 
-            // Create Config.json file content and its alterations in a temporary file
-            var tempConfigFile = WriteEmulatorConfigJson(builder.Resource);
+                // Create default Config.json file content
+                var tempConfig = JsonNode.Parse(CreateEmulatorConfigJson(builder.Resource));
 
-            try
-            {
+                if (tempConfig == null)
+                {
+                    throw new InvalidOperationException("The configuration file mount could not be parsed.");
+                }
+
                 // Apply ConfigJsonAnnotation modifications
                 var configJsonAnnotations = builder.Resource.Annotations.OfType<ConfigJsonAnnotation>();
 
                 if (configJsonAnnotations.Any())
                 {
-                    using var readStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Read);
-                    var jsonObject = JsonNode.Parse(readStream);
-                    readStream.Close();
-
-                    if (jsonObject == null)
-                    {
-                        throw new InvalidOperationException("The configuration file mount could not be parsed.");
-                    }
-
                     foreach (var annotation in configJsonAnnotations)
                     {
-                        annotation.Configure(jsonObject);
+                        annotation.Configure(tempConfig);
                     }
-
-                    using var writeStream = new FileStream(tempConfigFile, FileMode.Open, FileAccess.Write);
-                    using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
-                    jsonObject.WriteTo(writer);
                 }
 
-                var aspireStore = @event.Services.GetRequiredService<IAspireStore>();
+                using var writeStream = new MemoryStream();
+                using var writer = new Utf8JsonWriter(writeStream, new JsonWriterOptions { Indented = true });
+                tempConfig.WriteTo(writer);
 
-                // Deterministic file path for the configuration file based on its content
-                var configJsonPath = aspireStore.GetFileNameWithContent($"{builder.Resource.Name}-Config.json", tempConfigFile);
+                writer.Flush();
 
-                // The docker container runs as a non-root user, so we need to grant other user's read/write permission
-                if (!OperatingSystem.IsWindows())
-                {
-                    File.SetUnixFileMode(configJsonPath, FileMode644);
-                }
-
-                builder.WithAnnotation(new ContainerMountAnnotation(
-                    configJsonPath,
-                    AzureServiceBusEmulatorResource.EmulatorConfigJsonPath,
-                    ContainerMountType.BindMount,
-                    isReadOnly: true));
+                return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([
+                    new ContainerFile
+                    {
+                        Name = AzureServiceBusEmulatorResource.EmulatorConfigJsonFile,
+                        Contents = Encoding.UTF8.GetString(writeStream.ToArray()),
+                    },
+                ]);
             }
-            finally
-            {
-                try
-                {
-                    File.Delete(tempConfigFile);
-                }
-                catch
-                {
-                }
-            }
+        );
 
-            return Task.CompletedTask;
-        });
-
-        ServiceBusClient? serviceBusClient = null;
-        string? queueOrTopicName = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
-        {
-            var connectionString = await builder.Resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
-            }
-
-            // Retrieve a queue/topic name to configure the health check
-
-            var noRetryOptions = new ServiceBusClientOptions { RetryOptions = new ServiceBusRetryOptions { MaxRetries = 0 } };
-            serviceBusClient = new ServiceBusClient(connectionString, noRetryOptions);
-
-            queueOrTopicName =
-                builder.Resource.Queues.Select(x => x.QueueName).FirstOrDefault()
-                ?? builder.Resource.Topics.Select(x => x.TopicName).FirstOrDefault();
-        });
-
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-
-        // To use the existing ServiceBus health check we would need to know if there is any queue or topic defined.
-        // We can register a health check for a queue and then no-op if there are no queues. Same for topics.
-        // If no queues or no topics are defined then the health check will be successful.
-
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-          .Add(new HealthCheckRegistration(
-              healthCheckKey,
-              sp => new ServiceBusHealthCheck(
-                  () => serviceBusClient ?? throw new DistributedApplicationException($"{nameof(serviceBusClient)} was not initialized."),
-                  () => queueOrTopicName),
-              failureStatus: default,
-              tags: default,
-              timeout: default));
-
-        builder.WithHealthCheck(healthCheckKey);
+        builder.WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/health");
 
         return builder;
     }
 
     /// <summary>
-    /// Adds a bind mount for the configuration file of an Azure Service Bus emulator resource.
+    /// Copies the configuration file into an Azure Service Bus emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="path">Path to the file on the AppHost where the emulator configuration is located.</param>
@@ -529,14 +474,7 @@ public static class AzureServiceBusExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        // Update the existing mount
-        var configFileMount = builder.Resource.Annotations.OfType<ContainerMountAnnotation>().LastOrDefault(v => v.Target == AzureServiceBusEmulatorResource.EmulatorConfigJsonPath);
-        if (configFileMount != null)
-        {
-            builder.Resource.Annotations.Remove(configFileMount);
-        }
-
-        return builder.WithBindMount(path, AzureServiceBusEmulatorResource.EmulatorConfigJsonPath, isReadOnly: true);
+        return builder.WithAnnotation(new ConfigFileAnnotation(path), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -545,6 +483,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The builder for the <see cref="AzureServiceBusEmulatorResource"/>.</param>
     /// <param name="configJson">A callback to update the JSON object representation of the configuration.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
     /// <example>
     /// Here is an example of how to configure the emulator to use a different logging mechanism:
     /// <code language="csharp">
@@ -559,6 +498,7 @@ public static class AzureServiceBusExtensions
     ///        );
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<AzureServiceBusEmulatorResource> WithConfiguration(this IResourceBuilder<AzureServiceBusEmulatorResource> builder, Action<JsonNode> configJson)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -585,12 +525,9 @@ public static class AzureServiceBusExtensions
         });
     }
 
-    private static string WriteEmulatorConfigJson(AzureServiceBusResource emulatorResource)
+    private static string CreateEmulatorConfigJson(AzureServiceBusResource emulatorResource)
     {
-        // This temporary file is not used by the container, it will be copied and then deleted
-        var filePath = Path.GetTempFileName();
-
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         writer.WriteStartObject();                      // {
@@ -649,7 +586,9 @@ public static class AzureServiceBusExtensions
         writer.WriteEndObject();                        //   } (/UserConfig)
         writer.WriteEndObject();                        // } (/Root)
 
-        return filePath;
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     /// <summary>
@@ -660,18 +599,20 @@ public static class AzureServiceBusExtensions
     /// <param name="target">The target Azure Service Bus namespace.</param>
     /// <param name="roles">The built-in Service Bus roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the AzureServiceBusDataSender role to the 'Projects.Api' project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var sb = builder.AddAzureServiceBus("bus");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(sb, ServiceBusBuiltInRole.AzureServiceBusDataSender)
     ///   .WithReference(sb);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureServiceBusResource> target,

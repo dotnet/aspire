@@ -15,13 +15,21 @@ namespace Aspire.Hosting.Azure;
 public class AzureStorageResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
 {
+    internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
+    internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
+    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Data__Tables";
+
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
-    internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
-    internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
-    internal const string TablesConnectionKeyPrefix = "Aspire__Azure__Storage__Tables";
+    internal IResourceBuilder<AzureBlobStorageResource>? BlobStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureQueueStorageResource>? QueueStorageBuilder { get; set; }
+    internal IResourceBuilder<AzureTableStorageResource>? TableStorageBuilder { get; set; }
+
+    internal List<AzureBlobStorageContainerResource> BlobContainers { get; } = [];
+
+    internal List<AzureQueueStorageQueueResource> Queues { get; } = [];
 
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
@@ -38,7 +46,10 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
@@ -93,8 +104,28 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = StorageAccount.FromExisting(this.GetBicepIdentifier());
-        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a StorageAccount with the same identifier already exists
+        var existingAccount = resources.OfType<StorageAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
+        
+        if (existingAccount is not null)
+        {
+            return existingAccount;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var account = StorageAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            account))
+        {
+            account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(account);
         return account;
     }

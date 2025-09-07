@@ -33,7 +33,10 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
@@ -124,8 +127,28 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var hubs = EventHubsNamespace.FromExisting(this.GetBicepIdentifier());
-        hubs.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if an EventHubsNamespace with the same identifier already exists
+        var existingHubs = resources.OfType<EventHubsNamespace>().SingleOrDefault(hubs => hubs.BicepIdentifier == bicepIdentifier);
+        
+        if (existingHubs is not null)
+        {
+            return existingHubs;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var hubs = EventHubsNamespace.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            hubs))
+        {
+            hubs.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(hubs);
         return hubs;
     }

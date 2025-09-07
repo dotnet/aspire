@@ -35,7 +35,7 @@ internal static class ResourceUrlHelpers
                     Port = url.Url.Port,
                     Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
                     SortOrder = url.DisplayProperties.SortOrder,
-                    DisplayName = url.DisplayProperties.DisplayName,
+                    DisplayName = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? null : url.DisplayProperties.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,
                     Text = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? url.Url.OriginalString : url.DisplayProperties.DisplayName
                 });
@@ -69,12 +69,12 @@ public sealed class DisplayedUrl : IPropertyGridItem
     public int? Port { get; set; }
     public string? Url { get; set; }
     public int SortOrder { get; set; }
-    public required string DisplayName { get; set; }
+    public string? DisplayName { get; set; }
     public required string OriginalUrlString { get; set; }
 
     /// <summary>
     /// Don't display a plain string value here. The URL will be displayed as a hyperlink
-    /// in <see cref="ResourceDetails.RenderUrlValue(DisplayedUrl, string)"/> instead.
+    /// in <see cref="ResourceDetails.RenderAddressValue(DisplayedUrl, string)"/> instead.
     /// </summary>
     string? IPropertyGridItem.Value => null;
 
@@ -83,6 +83,8 @@ public sealed class DisplayedUrl : IPropertyGridItem
     public string? ValueToVisualize => Url ?? Text;
 
     public bool MatchesFilter(string filter)
-        => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-           Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
+        => Url?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+           Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+           Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+           DisplayName?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }

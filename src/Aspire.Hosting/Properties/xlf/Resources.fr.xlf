@@ -17,24 +17,6 @@
         <target state="translated">Les montages de liaison doivent spécifier un chemin d’accès source.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">Le runtime du conteneur « {0} » est introuvable. L’erreur à partir de la vérification du runtime du conteneur était : {1}.
-.
-Pour plus d’informations sur les runtimes de conteneur pris en charge, consultez https://aka.ms/dotnet/aspire/containers.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">Le runtime de conteneur « {0} » a été trouvé, mais il semble qu’il ne soit pas sain. L’erreur à partir de la vérification du runtime du conteneur était {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">Le runtime de conteneur « {0} » a été trouvé, mais il semble qu’il ne réponde pas. La commande « {0} » n’a pas été retournée après {1} secondes.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">La vérification des dépendances de l’orchestrateur d’application a renvoyé une erreur : {0}</target>

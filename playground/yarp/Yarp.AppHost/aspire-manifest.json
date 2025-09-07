@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "backend": {
+      "type": "project.v0",
+      "path": "../Yarp.Backend/Yarp.Backend.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{backend.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "frontend": {
+      "type": "project.v0",
+      "path": "../Yarp.Frontend/Yarp.Frontend.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{frontend.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "gateway": {
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4",
+      "entrypoint": "dotnet",
+      "args": [
+        "/app/yarp.dll"
+      ],
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "services__frontend__http__0": "{frontend.bindings.http.url}",
+        "REVERSEPROXY__ROUTES__route0__MATCH__PATH": "/{**catchall}",
+        "REVERSEPROXY__ROUTES__route0__CLUSTERID": "cluster_frontend",
+        "REVERSEPROXY__ROUTES__route1__MATCH__PATH": "/api/{**catch-all}",
+        "REVERSEPROXY__ROUTES__route1__CLUSTERID": "cluster_backend",
+        "REVERSEPROXY__ROUTES__route1__TRANSFORMS__0__PathRemovePrefix": "/api",
+        "REVERSEPROXY__CLUSTERS__cluster_frontend__DESTINATIONS__destination1__ADDRESS": "https\u002Bhttp://frontend",
+        "REVERSEPROXY__CLUSTERS__cluster_backend__DESTINATIONS__destination1__ADDRESS": "https\u002Bhttp://backend",
+        "services__frontend__https__0": "{frontend.bindings.https.url}",
+        "services__backend__http__0": "{backend.bindings.http.url}",
+        "services__backend__https__0": "{backend.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5000
+        }
+      }
+    }
+  }
+}

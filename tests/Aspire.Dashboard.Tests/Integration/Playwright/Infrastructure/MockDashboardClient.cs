@@ -2,28 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.DashboardService.Proto.V1;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
-public sealed class MockDashboardClientStatus : IDashboardClientStatus
-{
-    public bool IsEnabled => true;
-}
-
 public sealed class MockDashboardClient : IDashboardClient
 {
-    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
-
-    public MockDashboardClient(IDashboardClientStatus dashboardClientStatus)
-    {
-        _dashboardClientStatus = dashboardClientStatus;
-    }
-
     public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
-        appName: "TestResource",
+        resourceName: "TestResource",
         resourceType: KnownResourceTypes.Project,
         properties: new[]
         {
@@ -36,20 +24,18 @@ public sealed class MockDashboardClient : IDashboardClient
                         StringValue = "C:/MyProjectPath/Project.csproj"
                     },
                     isValueSensitive: false,
-                    knownProperty: new(KnownProperties.Project.Path, "Path"),
-                    priority: 0,
-                    timeProvider: s_timeProvider))
+                    knownProperty: new(KnownProperties.Project.Path, loc => "Path"),
+                    priority: 0))
         }.ToDictionary(),
         state: KnownResourceState.Running);
 
-    private readonly IDashboardClientStatus _dashboardClientStatus;
-
-    public bool IsEnabled => _dashboardClientStatus.IsEnabled;
+    public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;
     public string ApplicationName => "IntegrationTestApplication";
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
     public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
 
     public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
@@ -63,5 +49,20 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         await Task.CompletedTask;
         yield return [];
+    }
+
+    public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ResourceViewModel? GetResource(string resourceName)
+    {
+        throw new NotImplementedException();
     }
 }

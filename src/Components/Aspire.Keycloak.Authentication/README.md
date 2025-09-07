@@ -60,7 +60,7 @@ In your AppHost project, install the `Aspire.Hosting.Keycloak` library with [NuG
 dotnet add package Aspire.Hosting.Keycloak
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a Keycloak server and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a Keycloak server and consume the connection using the following methods:
 
 ```csharp
 var keycloak = builder.AddKeycloak("keycloak", 8080);

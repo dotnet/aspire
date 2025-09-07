@@ -3,14 +3,13 @@
 
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
-using Xunit;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
 public class TransportOptionsValidatorTests
 {
     [Fact]
-    public void ValidationFailsWhenHttpUrlSpecifiedWithAllowSecureTransportSetToFalse()
+    public void ValidationFailsWhenHttpUrlSpecifiedWithAllowUnsecureTransportSetToFalse()
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -141,8 +140,10 @@ public class TransportOptionsValidatorTests
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenResourceUrlNotDefined()
+    [Theory]
+    [InlineData(KnownConfigNames.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
+    public void ValidationFailsWhenResourceUrlNotDefined(string resourceServiceEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -151,7 +152,7 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
-        config[KnownConfigNames.ResourceServiceEndpointUrl] = string.Empty;
+        config[resourceServiceEndpointUrlKey] = string.Empty;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
@@ -163,8 +164,10 @@ public class TransportOptionsValidatorTests
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenOtlpUrlNotDefined()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public void ValidationFailsWhenOtlpUrlNotDefined(string dashboardOtlpGrpcEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -174,7 +177,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
-        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = string.Empty;
+        config[dashboardOtlpGrpcEndpointUrlKey] = string.Empty;
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
@@ -185,8 +188,10 @@ public class TransportOptionsValidatorTests
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenResourceServiceUrlMalformed()
+    [Theory]
+    [InlineData(KnownConfigNames.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
+    public void ValidationFailsWhenResourceServiceUrlMalformed(string resourceServiceEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -196,7 +201,7 @@ public class TransportOptionsValidatorTests
         var invalidUrl = "...invalid...url...";
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
-        config[KnownConfigNames.ResourceServiceEndpointUrl] = invalidUrl;
+        config[resourceServiceEndpointUrlKey] = invalidUrl;
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
@@ -209,9 +214,11 @@ public class TransportOptionsValidatorTests
     }
 
     [Theory]
-    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
-    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
-    public void ValidationFailsWhenOtlpUrlMalformed(string otlpEndpointConfigName)
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl, KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
+    public void ValidationFailsWhenOtlpUrlMalformed(string otlpEndpointConfigName, string msgName)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -228,7 +235,7 @@ public class TransportOptionsValidatorTests
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
-            $"The {otlpEndpointConfigName} setting with a value of '{invalidUrl}' could not be parsed as a URI.",
+            $"The {msgName} setting with a value of '{invalidUrl}' could not be parsed as a URI.",
             result.FailureMessage
             );
     }
@@ -257,8 +264,10 @@ public class TransportOptionsValidatorTests
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenResourceServiceUrlIsHttp()
+    [Theory]
+    [InlineData(KnownConfigNames.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
+    public void ValidationFailsWhenResourceServiceUrlIsHttp(string resourceServiceEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -267,7 +276,7 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
-        config[KnownConfigNames.ResourceServiceEndpointUrl] = "http://localhost:1235";
+        config[resourceServiceEndpointUrlKey] = "http://localhost:1235";
         config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
@@ -280,7 +289,7 @@ public class TransportOptionsValidatorTests
     }
 
     [Fact]
-    public void ValidationSucceedsWhenHttpUrlSpecifiedWithAllowSecureTransportSetToTrue()
+    public void ValidationSucceedsWhenHttpUrlSpecifiedWithAllowUnsecureTransportSetToTrue()
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -296,7 +305,7 @@ public class TransportOptionsValidatorTests
     }
 
     [Fact]
-    public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowSecureTransportSetToTrue()
+    public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowUnsecureTransportSetToTrue()
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -311,8 +320,12 @@ public class TransportOptionsValidatorTests
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact]
-    public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowSecureTransportSetToFalse()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl, KnownConfigNames.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.ResourceServiceEndpointUrl)]
+    public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowUnsecureTransportSetToFalse(string dashboardOtlpHttpEndpointUrlKey, string resourceServiceEndpointUrlKey)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -321,11 +334,57 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
-        config[KnownConfigNames.DashboardOtlpHttpEndpointUrl] = "https://localhost:1235";
-        config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1236";
+        config[dashboardOtlpHttpEndpointUrlKey] = "https://localhost:1235";
+        config[resourceServiceEndpointUrlKey] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
+        Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Fact]
+    public void ValidationSucceedsWithValidBindingAddressThatFailsUriParsing()
+    {
+        var distributedApplicationOptions = new DistributedApplicationOptions();
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var options = new TransportOptions();
+        options.AllowUnsecureTransport = false;
+
+        // This is a valid Kestrel binding address but fails Uri.TryCreate validation
+        var bindingAddress = "https://0:0:0:0:17008";
+        var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        config[KnownConfigNames.AspNetCoreUrls] = bindingAddress;
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
+        config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
+
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var result = validator.Validate(null, options);
+        
+        // This should succeed after the fix
+        Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
+    public void ValidationSucceedsWithValidGrpcBindingAddressThatFailsUriParsing(string otlpEndpointConfigName)
+    {
+        var distributedApplicationOptions = new DistributedApplicationOptions();
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var options = new TransportOptions();
+        options.AllowUnsecureTransport = false;
+
+        // This is a valid Kestrel binding address but fails Uri.TryCreate validation
+        var grpcBindingAddress = "https://0:0:0:0:18001";
+        var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
+        config[otlpEndpointConfigName] = grpcBindingAddress;
+        config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1237";
+
+        var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
+        var result = validator.Validate(null, options);
+        
+        // This should succeed after the fix
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 }

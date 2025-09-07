@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{messaging.outputs.serviceBusEndpoint}",
+  "path": "messaging.module.bicep",
+  "scope": {
+    "resourceGroup": "existingResourceGroupName"
+  }
+}

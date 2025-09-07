@@ -18,6 +18,8 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 /// <summary>
 /// Hosts a gRPC service via <see cref="DashboardService"/> (aka the "Resource Service") that a dashboard can connect to.
 /// Configures DI and networking options for the service.
@@ -48,13 +50,14 @@ internal sealed class DashboardServiceHost : IHostedService
     public DashboardServiceHost(
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
-        DashboardCommandExecutor commandExecutor,
         IConfiguration configuration,
         DistributedApplicationExecutionContext executionContext,
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions,
         ResourceNotificationService resourceNotificationService,
-        ResourceLoggerService resourceLoggerService)
+        ResourceLoggerService resourceLoggerService,
+        ResourceCommandService resourceCommandService,
+        InteractionService interactionService)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -108,10 +111,11 @@ internal sealed class DashboardServiceHost : IHostedService
 
             builder.Services.AddGrpc();
             builder.Services.AddSingleton(applicationModel);
-            builder.Services.AddSingleton(commandExecutor);
+            builder.Services.AddSingleton(resourceCommandService);
             builder.Services.AddSingleton<DashboardServiceData>();
             builder.Services.AddSingleton(resourceNotificationService);
             builder.Services.AddSingleton(resourceLoggerService);
+            builder.Services.AddSingleton(interactionService);
 
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
@@ -222,3 +226,5 @@ internal sealed class DashboardServiceHost : IHostedService
         }
     }
 }
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

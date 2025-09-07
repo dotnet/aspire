@@ -1,0 +1,9 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-postgres.module.bicep",
+  "params": {
+    "postgres_outputs_name": "{postgres.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}",
+    "principalName": "{api-identity.outputs.principalName}"
+  }
+}

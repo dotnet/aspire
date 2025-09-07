@@ -20,9 +20,9 @@ public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
         _serverCallContext = serverCallContext;
     }
 
-    public void Complete()
+    public void Complete(Exception? ex = null)
     {
-        _channel.Writer.Complete();
+        _channel.Writer.Complete(ex);
     }
 
     public IAsyncEnumerable<T> ReadAllAsync()

@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "path": "api-roles-redis.module.bicep",
+  "params": {
+    "principalId": "{api-identity.outputs.principalId}",
+    "principalName": "{api-identity.outputs.principalName}"
+  },
+  "scope": {
+    "resourceGroup": "myRG"
+  }
+}

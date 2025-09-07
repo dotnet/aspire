@@ -8,4 +8,9 @@ internal static class KnownResourceCommands
     public const string StartCommand = "resource-start";
     public const string StopCommand = "resource-stop";
     public const string RestartCommand = "resource-restart";
+
+    public static bool IsKnownCommand(string command)
+    {
+        return command is StartCommand or StopCommand or RestartCommand;
+    }
 }

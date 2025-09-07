@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.WebPubSub
 
 ## Usage example
 
-In the _Program.cs_ file of `AppHost`, add a WebPubSub connection and consume the connection using the following methods:
+In the _AppHost.cs_ file of `AppHost`, add a WebPubSub connection and consume the connection using the following methods:
 
 ```csharp
 var wps = builder.AddAzureWebPubSub("wps1");

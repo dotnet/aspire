@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 using static Aspire.Hosting.ApplicationModel.ReferenceExpression;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;

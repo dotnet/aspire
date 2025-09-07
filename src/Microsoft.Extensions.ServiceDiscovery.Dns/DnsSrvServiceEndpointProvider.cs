@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using DnsClient;
-using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Dns.Resolver;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
@@ -15,7 +14,7 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
     string hostName,
     IOptionsMonitor<DnsSrvServiceEndpointProviderOptions> options,
     ILogger<DnsSrvServiceEndpointProvider> logger,
-    IDnsQuery dnsClient,
+    IDnsResolver resolver,
     TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
@@ -35,54 +34,34 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
         var endpoints = new List<ServiceEndpoint>();
         var ttl = DefaultRefreshPeriod;
         Log.SrvQuery(logger, ServiceName, srvQuery);
-        var result = await dnsClient.QueryAsync(srvQuery, QueryType.SRV, cancellationToken: ShutdownToken).ConfigureAwait(false);
-        if (result.HasError)
-        {
-            throw CreateException(srvQuery, result.ErrorMessage);
-        }
 
-        var lookupMapping = new Dictionary<string, DnsResourceRecord>();
-        foreach (var record in result.Additionals.Where(x => x is AddressRecord or CNameRecord))
-        {
-            ttl = MinTtl(record, ttl);
-            lookupMapping[record.DomainName] = record;
-        }
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var result = await resolver.ResolveServiceAsync(srvQuery, cancellationToken: ShutdownToken).ConfigureAwait(false);
 
-        var srvRecords = result.Answers.OfType<SrvRecord>();
-        foreach (var record in srvRecords)
+        foreach (var record in result)
         {
-            if (!lookupMapping.TryGetValue(record.Target, out var targetRecord))
+            ttl = MinTtl(now, record.ExpiresAt, ttl);
+
+            if (record.Addresses.Length > 0)
             {
-                continue;
+                foreach (var address in record.Addresses)
+                {
+                    ttl = MinTtl(now, address.ExpiresAt, ttl);
+                    endpoints.Add(CreateEndpoint(new IPEndPoint(address.Address, record.Port)));
+                }
             }
-
-            ttl = MinTtl(record, ttl);
-            if (targetRecord is AddressRecord addressRecord)
+            else
             {
-                endpoints.Add(CreateEndpoint(new IPEndPoint(addressRecord.Address, record.Port)));
-            }
-            else if (targetRecord is CNameRecord canonicalNameRecord)
-            {
-                endpoints.Add(CreateEndpoint(new DnsEndPoint(canonicalNameRecord.CanonicalName.Value.TrimEnd('.'), record.Port)));
+                endpoints.Add(CreateEndpoint(new DnsEndPoint(record.Target.TrimEnd('.'), record.Port)));
             }
         }
 
         SetResult(endpoints, ttl);
 
-        static TimeSpan MinTtl(DnsResourceRecord record, TimeSpan existing)
+        static TimeSpan MinTtl(DateTime now, DateTime expiresAt, TimeSpan existing)
         {
-            var candidate = TimeSpan.FromSeconds(record.TimeToLive);
+            var candidate = expiresAt - now;
             return candidate < existing ? candidate : existing;
-        }
-
-        InvalidOperationException CreateException(string dnsName, string errorMessage)
-        {
-            var msg = errorMessage switch
-            {
-                { Length: > 0 } => $"No DNS records were found for service '{ServiceName}' (DNS name: '{dnsName}'): {errorMessage}.",
-                _ => $"No DNS records were found for service '{ServiceName}' (DNS name: '{dnsName}')."
-            };
-            return new InvalidOperationException(msg);
         }
 
         ServiceEndpoint CreateEndpoint(EndPoint endPoint)

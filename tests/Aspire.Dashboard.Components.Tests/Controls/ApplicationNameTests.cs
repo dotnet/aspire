@@ -23,7 +23,6 @@ public class ApplicationNameTests : DashboardTestContext
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
-        Services.AddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         Services.AddSingleton<BrowserTimeProvider>();
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
@@ -41,7 +40,6 @@ public class ApplicationNameTests : DashboardTestContext
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
-        Services.AddSingleton<IDashboardClientStatus, DashboardClientStatus>();
         Services.AddSingleton<BrowserTimeProvider>();
         Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
@@ -63,24 +61,13 @@ public class ApplicationNameTests : DashboardTestContext
         // Arrange
         Services.AddSingleton<IConfiguration>(new ConfigurationManager());
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-        Services.AddSingleton<IDashboardClient, MockDashboardClient>();
+        Services.AddSingleton<IDashboardClient>(new TestDashboardClient(applicationName: "<marquee>An HTML title!</marquee>"));
 
         // Act
         var cut = RenderComponent<ApplicationName>();
 
         // Assert
         cut.MarkupMatches("&lt;marquee&gt;An HTML title!&lt;/marquee&gt;");
-    }
-
-    private sealed class MockDashboardClient : IDashboardClient
-    {
-        public bool IsEnabled => true;
-        public Task WhenConnected => Task.CompletedTask;
-        public string ApplicationName => "<marquee>An HTML title!</marquee>";
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-        public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class TestStringLocalizer<T> : IStringLocalizer<T>

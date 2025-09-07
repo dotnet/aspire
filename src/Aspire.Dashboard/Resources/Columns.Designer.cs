@@ -68,69 +68,21 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("PersistentContainerIconTooltip", resourceCulture);
             }
         }
+
+
+
         
         /// <summary>
-        ///   Looks up a localized string similar to Container ID: {0}.
-        /// </summary>
-        public static string ResourceNameDisplayContainerIdText {
-            get {
-                return ResourceManager.GetString("ResourceNameDisplayContainerIdText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Copy container ID to clipboard.
-        /// </summary>
-        public static string ResourceNameDisplayCopyContainerIdText {
-            get {
-                return ResourceManager.GetString("ResourceNameDisplayCopyContainerIdText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Process ID: {0}.
-        /// </summary>
-        public static string ResourceNameDisplayProcessIdText {
-            get {
-                return ResourceManager.GetString("ResourceNameDisplayProcessIdText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Resource is running but not in a healthy state. Click for details..
+        ///   Looks up a localized string similar to Resource is running but not in a healthy state..
         /// </summary>
         public static string RunningAndUnhealthyResourceStateToolTip {
             get {
                 return ResourceManager.GetString("RunningAndUnhealthyResourceStateToolTip", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container args.
-        /// </summary>
-        public static string SourceColumnDisplayContainerArgsTitle {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayContainerArgsTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Command: {0}.
-        /// </summary>
-        public static string SourceColumnDisplayContainerCommand {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayContainerCommand", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container command.
-        /// </summary>
-        public static string SourceColumnDisplayContainerCommandTitle {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayContainerCommandTitle", resourceCulture);
-            }
-        }
+
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to Copy full command to clipboard.
@@ -140,51 +92,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("SourceColumnDisplayCopyCommandToClipboard", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Port: {0}.
-        /// </summary>
-        public static string SourceColumnDisplayPort {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayPort", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Ports: {0}.
-        /// </summary>
-        public static string SourceColumnDisplayPorts {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayPorts", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Working directory: {0}.
-        /// </summary>
-        public static string SourceColumnDisplayWorkingDirectory {
-            get {
-                return ResourceManager.GetString("SourceColumnDisplayWorkingDirectory", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Copy image name and tag to clipboard.
-        /// </summary>
-        public static string SourceColumnSourceCopyContainerToClipboard {
-            get {
-                return ResourceManager.GetString("SourceColumnSourceCopyContainerToClipboard", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Copy file path to clipboard.
-        /// </summary>
-        public static string SourceColumnSourceCopyFullPathToClipboard {
-            get {
-                return ResourceManager.GetString("SourceColumnSourceCopyFullPathToClipboard", resourceCulture);
-            }
-        }
+
+
+
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to Container runtime was found but appears to be unhealthy. Ensure that it is running.
@@ -211,6 +123,24 @@ namespace Aspire.Dashboard.Resources {
         public static string StateColumnResourceExitedUnexpectedly {
             get {
                 return ResourceManager.GetString("StateColumnResourceExitedUnexpectedly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource has not started because it&apos;s configured to not automatically start..
+        /// </summary>
+        public static string StateColumnResourceNotStarted {
+            get {
+                return ResourceManager.GetString("StateColumnResourceNotStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource is waiting for other resources to be in a running and healthy state..
+        /// </summary>
+        public static string StateColumnResourceWaiting {
+            get {
+                return ResourceManager.GetString("StateColumnResourceWaiting", resourceCulture);
             }
         }
         
@@ -249,14 +179,6 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("UrlsColumnDisplayOverflowTitle", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Starting....
-        /// </summary>
-        public static string UrlsColumnDisplayPlaceholder {
-            get {
-                return ResourceManager.GetString("UrlsColumnDisplayPlaceholder", resourceCulture);
-            }
-        }
+
     }
 }

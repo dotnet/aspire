@@ -11,8 +11,10 @@ namespace Aspire.Hosting.Azure;
 /// <param name="innerResource">The inner resource used to store annotations.</param>
 public class AzureServiceBusEmulatorResource(AzureServiceBusResource innerResource) : ContainerResource(innerResource.Name), IResource
 {
+    // The path to the emulator configuration files in the container.
+    internal const string EmulatorConfigFilesPath = "/ServiceBus_Emulator/ConfigFiles";
     // The path to the emulator configuration file in the container.
-    internal const string EmulatorConfigJsonPath = "/ServiceBus_Emulator/ConfigFiles/Config.json";
+    internal const string EmulatorConfigJsonFile = "Config.json";
 
     private readonly AzureServiceBusResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 

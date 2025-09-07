@@ -65,6 +65,13 @@ internal sealed class ContainerSpec
     [JsonPropertyName("networks")]
     public List<ContainerNetworkConnection>? Networks { get; set; }
 
+    /// <summary>
+    /// Should this resource be started? If set to false, we will not attempt
+    /// to start the resource until Start is set to true (or null).
+    /// </summary>
+    [JsonPropertyName("start")]
+    public bool? Start { get; set; }
+
     // Should this resource be stopped?
     [JsonPropertyName("stop")]
     public bool? Stop { get; set; }
@@ -295,11 +302,13 @@ internal sealed class ContainerCreateFileSystem : IEquatable<ContainerCreateFile
 
     // The default owner UID to use for created (or updated) file system entries. Defaults to 0 for root.
     [JsonPropertyName("defaultOwner")]
-    public int DefaultOwner { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultOwner { get; set; }
 
     // The default group GID to use for created (or updated) file system entries. Defaults to 0 for root.
     [JsonPropertyName("defaultGroup")]
-    public int DefaultGroup { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultGroup { get; set; }
 
     // The umask for created files and folders without explicit permissions set (defaults to 022 if null)
     [JsonPropertyName("umask")]
@@ -331,6 +340,7 @@ internal static class ContainerFileSystemItemExtensions
         var type = item switch
         {
             ContainerFile => ContainerFileSystemEntryType.File,
+            ContainerOpenSSLCertificateFile => ContainerFileSystemEntryType.OpenSSL,
             ContainerDirectory => ContainerFileSystemEntryType.Directory,
             _ => throw new ArgumentException("Unknown file system entry type")
         };
@@ -344,9 +354,15 @@ internal static class ContainerFileSystemItemExtensions
             Mode = (int)item.Mode,
         };
 
-        if (item is ContainerFile file)
+        if (item is ContainerFileBase file)
         {
+            entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
+
+            if (file.Contents is not null && file.SourcePath is not null)
+            {
+                throw new ArgumentException("Both SourcePath and Contents are set for a file entry");
+            }
         }
         else if (item is ContainerDirectory directory)
         {
@@ -379,7 +395,11 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
     [JsonPropertyName("mode")]
     public int Mode { get; set; }
 
-    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error.
+    // If the file system entry is a file, this is the optional path to a file on the host to use as the contents of that file.
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
+
+    // If the file system entry is a file, this is the contents of that file. Setting Contents for a directory is an error. Contents and Source are mutually exclusive.
     [JsonPropertyName("contents")]
     public string? Contents { get; set; }
 
@@ -399,6 +419,7 @@ internal sealed class ContainerFileSystemEntry : IEquatable<ContainerFileSystemE
             && Owner == other.Owner
             && Group == other.Group
             && Mode == other.Mode
+            && Source == other.Source
             && Contents == other.Contents
             && (Entries ?? Enumerable.Empty<ContainerFileSystemEntry>()).SequenceEqual(other.Entries ?? Enumerable.Empty<ContainerFileSystemEntry>());
     }
@@ -409,6 +430,8 @@ internal static class ContainerFileSystemEntryType
     public const string Directory = "directory";
 
     public const string File = "file";
+
+    public const string OpenSSL = "openssl";
 }
 
 internal sealed class ContainerStatus : V1Status

@@ -29,6 +29,7 @@ public class BuildAndRunStarterTemplateBuiltInTest : TemplateTestsBase
     [Theory]
     [MemberData(nameof(TestFrameworkTypeWithConfig))]
     [RequiresSSLCertificate]
+    [Trait("category", "basic-build")]
     public async Task BuildAndRunStarterTemplateBuiltInTest_Test(string config, string testType)
     {
         string id = TemplateTestsBase.GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");

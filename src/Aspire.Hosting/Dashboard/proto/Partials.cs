@@ -4,7 +4,7 @@
 using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.ResourceService.Proto.V1;
+namespace Aspire.DashboardService.Proto.V1;
 
 partial class Resource
 {
@@ -18,7 +18,19 @@ partial class Resource
             Uid = snapshot.Uid,
             State = snapshot.State ?? "",
             StateStyle = snapshot.StateStyle ?? "",
+            IsHidden = snapshot.IsHidden,
+            SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry
         };
+
+        if (snapshot.IconName is not null)
+        {
+            resource.IconName = snapshot.IconName;
+        }
+
+        if (snapshot.IconVariant is not null)
+        {
+            resource.IconVariant = MapIconVariant(snapshot.IconVariant);
+        }
 
         if (snapshot.CreationTimeStamp.HasValue)
         {

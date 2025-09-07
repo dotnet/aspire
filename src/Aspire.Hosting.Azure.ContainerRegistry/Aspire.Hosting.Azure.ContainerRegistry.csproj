@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire integration hosting azure container registry</PackageTags>
+    <Description>Azure Container Registry resource types for .NET Aspire.</Description>
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
+  </ItemGroup>
+
+
+</Project>

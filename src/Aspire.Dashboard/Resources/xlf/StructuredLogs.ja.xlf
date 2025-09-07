@@ -17,24 +17,14 @@
         <target state="translated">構造化ログの制限を超えました</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">フィルターの追加</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">フィルターの編集</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">構造化ログ キャプチャが {0} で一時停止されました</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">ログ エントリの詳細</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">フィルター</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -67,11 +57,6 @@
         <target state="translated">最小のログ レベル フィルター</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">フィルターなし</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">構造化ログが見つかりません</target>
@@ -101,6 +86,16 @@
         <source>Trace</source>
         <target state="translated">トレース</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} structured logs&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} 個の構造化ログを表示中&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} structured log&lt;/strong&gt;</source>
+        <target state="translated">&lt;strong&gt;{0} 個の構造化ログを表示中&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

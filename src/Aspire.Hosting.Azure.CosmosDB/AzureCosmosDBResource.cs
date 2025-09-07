@@ -27,6 +27,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the "connectionString" reference from the secret outputs of the Azure Cosmos DB resource.
     /// </summary>
+    [Obsolete("BicepSecretOutputReference is no longer supported. Use ConnectionStringOutput instead.")]
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
@@ -37,13 +38,23 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
+    /// Whether or not to use the default Azure Cosmos DB SKU. By default, this is set to false, and the Cosmos DB
+    /// account is created as a serverless account. If true, it will use the default Azure Cosmos DB SKU, which is
+    /// typically a provisioned throughput account.
+    /// </summary>
+    internal bool UseDefaultAzureSku { get; set; } // Default to false
+
+    /// <summary>
     /// Gets the "connectionString" secret reference from the key vault associated with this resource.
     ///
     /// This is set when access key authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
-    internal IKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
+    internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
@@ -106,8 +117,28 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = CosmosDBAccount.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a CosmosDBAccount with the same identifier already exists
+        var existingStore = resources.OfType<CosmosDBAccount>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = CosmosDBAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }
@@ -134,9 +165,9 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
         var builder = new ReferenceExpressionBuilder();
 
-        if (UseAccessKeyAuthentication)
+        if (UseAccessKeyAuthentication && !IsEmulator)
         {
-            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecretReference(GetKeyValueSecretName(childResourceName)));
+            builder.AppendFormatted(ConnectionStringSecretOutput.Resource.GetSecret(GetKeyValueSecretName(childResourceName)));
         }
         else
         {

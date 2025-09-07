@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.MongoDB
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a MongoDB resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a MongoDB resource and consume the connection using the following methods:
 
 ```csharp
 var db = builder.AddMongoDB("mongodb").AddDatabase("mydb");

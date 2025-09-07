@@ -19,7 +19,7 @@ public class GlobalizationHelpersTests
             .ToList();
 
         // Assert
-        foreach (var localizedCulture in GlobalizationHelpers.LocalizedCultures)
+        foreach (var localizedCulture in GlobalizationHelpers.OrderedLocalizedCultures)
         {
             Assert.Contains(localizedCulture.Name, supportedCultures);
         }

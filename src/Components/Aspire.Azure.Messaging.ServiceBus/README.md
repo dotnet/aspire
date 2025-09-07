@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.Messaging.ServiceBus
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureServiceBusClient` extension method to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureServiceBusClient` extension method to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureServiceBusClient("sb");
@@ -120,7 +120,7 @@ In your AppHost project, install the Aspire Azure Service Bus Hosting library wi
 dotnet add package Aspire.Hosting.Azure.ServiceBus
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Service Bus connection and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Service Bus connection and consume the connection using the following methods:
 
 ```csharp
 var serviceBus = builder.ExecutionContext.IsPublishMode

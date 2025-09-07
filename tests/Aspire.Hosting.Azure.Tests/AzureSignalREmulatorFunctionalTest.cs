@@ -11,7 +11,6 @@ using Microsoft.Azure.SignalR.Management;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests;
 public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelper)
@@ -123,7 +122,7 @@ public class AzureSignalREmulatorFunctionalTest(ITestOutputHelper testOutputHelp
             // Verify that received message is the same as sent message
             Assert.Equal(sentMessage, await messageTcs.Task);
         }, cts.Token);
-        
+
         await app.StopAsync();
     }
 }

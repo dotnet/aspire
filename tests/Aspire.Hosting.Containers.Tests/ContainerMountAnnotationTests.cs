@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Xunit;
 
 namespace Aspire.Hosting.Containers.Tests;
 
@@ -28,5 +27,15 @@ public class ContainerMountAnnotationTests
     public void CtorThrowsArgumentExceptionIfAnonymousVolumeIsReadOnly()
     {
         Assert.Throws<ArgumentException>("isReadOnly", () => new ContainerMountAnnotation(null, "/usr/foo", ContainerMountType.Volume, true));
+    }
+
+    [Fact]
+    public void CtorAllowsDockerSocketAsBindMountSource()
+    {
+        var annotation = new ContainerMountAnnotation("/var/run/docker.sock", "/var/run/docker.sock", ContainerMountType.BindMount, false);
+        Assert.Equal("/var/run/docker.sock", annotation.Source);
+        Assert.Equal("/var/run/docker.sock", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
     }
 }

@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Polly;
-using Xunit;
 
 namespace Aspire.Hosting.Kafka.Tests;
 
@@ -189,9 +188,6 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
-                    //kafka shutdown has delay,so without delay to running instance using same data and second instance failed to start.
-                    await Task.Delay(TimeSpan.FromMinutes(1));
-
                 }
             }
 

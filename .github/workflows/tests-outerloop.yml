@@ -1,0 +1,20 @@
+# Executes outerloop tests
+name: Outerloop Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *' # Every 6 hours
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  outerloop_tests:
+    uses: ./.github/workflows/specialized-test-runner.yml
+    with:
+      testRunnerName: "OuterloopTestRunsheetBuilder"
+      extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
+      extraTestArgs: "--filter-trait outerloop=true"
+      enablePlaywrightInstall: true

@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>

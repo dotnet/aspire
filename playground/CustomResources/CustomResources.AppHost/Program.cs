@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using CustomResources.AppHost;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.AddTalkingClock("talking-clock");
 
 builder.AddTestResource("test");
 

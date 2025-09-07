@@ -16,10 +16,5 @@ public enum DistributedApplicationOperation
     /// <summary>
     /// AppHost is being run for the purpose of publishing a manifest for deployment.
     /// </summary>
-    Publish,
-
-    /// <summary>
-    /// AppHost is being run for the purpose of inspecting the application model from the launcher.
-    /// </summary>
-    Inspect
+    Publish
 }

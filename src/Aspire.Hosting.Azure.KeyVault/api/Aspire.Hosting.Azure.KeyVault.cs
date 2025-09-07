@@ -11,17 +11,61 @@ namespace Aspire.Hosting
     public static partial class AzureKeyVaultResourceExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> parameterResource) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, ApplicationModel.ParameterResource parameterResource) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, ApplicationModel.ReferenceExpression value) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, string secretName, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> parameterResource) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, string secretName, ApplicationModel.ParameterResource parameterResource) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultSecretResource> AddSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string name, string secretName, ApplicationModel.ReferenceExpression value) { throw null; }
+
+        public static Azure.IAzureKeyVaultSecretReference GetSecret(this ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> builder, string secretName) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureKeyVaultResource> target, params global::Azure.Provisioning.KeyVault.KeyVaultBuiltInRole[] roles)
+            where T : ApplicationModel.IResource { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureKeyVaultResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureKeyVaultResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IAzureKeyVaultResource, ApplicationModel.IAzureResource
     {
         public AzureKeyVaultResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        System.Func<IAzureKeyVaultSecretReference, System.Threading.CancellationToken, System.Threading.Tasks.Task<string?>>? IAzureKeyVaultResource.SecretResolver { get { throw null; } set { } }
+
+        BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference { get { throw null; } }
+
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         public BicepOutputReference VaultUri { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public IAzureKeyVaultSecretReference GetSecret(string secretName) { throw null; }
+    }
+
+    public partial class AzureKeyVaultSecretResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureKeyVaultResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, IAzureKeyVaultSecretReference, ApplicationModel.IValueProvider, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueWithReferences
+    {
+        public AzureKeyVaultSecretResource(string name, string secretName, AzureKeyVaultResource parent, object value) : base(default!) { }
+
+        string ApplicationModel.IManifestExpressionProvider.ValueExpression { get { throw null; } }
+
+        IAzureKeyVaultResource IAzureKeyVaultSecretReference.Resource { get { throw null; } }
+
+        public AzureKeyVaultResource Parent { get { throw null; } }
+
+        public string SecretName { get { throw null; } }
+
+        public object Value { get { throw null; } }
+
+        System.Threading.Tasks.ValueTask<string?> ApplicationModel.IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken) { throw null; }
     }
 }

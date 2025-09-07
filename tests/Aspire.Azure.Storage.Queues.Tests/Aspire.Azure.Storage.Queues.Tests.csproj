@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Azure.Storage.Queues\Aspire.Azure.Storage.Queues.csproj" />
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>

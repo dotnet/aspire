@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-keyvault.module.bicep",
+  "params": {
+    "keyvault_outputs_name": "{keyvault.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

@@ -14,20 +14,31 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? userName = null, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresDatabaseResource> builder, string script) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithHostPort(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Postgres.PgAdminContainerResource> WithHostPort(this ApplicationModel.IResourceBuilder<Postgres.PgAdminContainerResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource> WithHostPort(this ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource> builder, int? port) { throw null; }
 
+        [System.Obsolete("Use WithInitFiles instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source, bool isReadOnly = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, string source) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithPassword(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> password) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithPgAdmin<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PgAdminContainerResource>>? configureContainer = null, string? containerName = null)
             where T : ApplicationModel.PostgresServerResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithPgWeb(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, System.Action<ApplicationModel.IResourceBuilder<Postgres.PgWebContainerResource>>? configureContainer = null, string? containerName = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> WithUserName(this ApplicationModel.IResourceBuilder<ApplicationModel.PostgresServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> userName) { throw null; }
     }
 }
 

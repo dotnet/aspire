@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 

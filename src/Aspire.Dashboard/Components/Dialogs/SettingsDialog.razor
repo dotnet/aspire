@@ -26,7 +26,8 @@
                 Position="SelectPosition.Below"
                 Label="@Loc[nameof(Dialogs.SettingsDialogLanguage)]"
                 Items="@_languageOptions"
-                OptionText="@(c => c.NativeName.Humanize())"
+                OptionText="@(c => c!.NativeName.Humanize())"
+                ValueChanged="@ValueChanged"
                 @bind-SelectedOption="@_selectedUiCulture"
                 @bind-SelectedOption:after="@OnLanguageChanged"
                 Class="language-select"/>
@@ -46,6 +47,29 @@
             </div>
         </div>
 
-        <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
+        @if (TelemetryService is { IsTelemetryInitialized: true, IsTelemetryEnabled: true })
+        {
+            <div>
+                <p class="setting-subtext">
+                    @Loc[nameof(Dialogs.SettingsDialogTelemetryEnabledInfo)] <a target="_blank" href="https://aka.ms/dotnet/aspire/microsoft-collected-telemetry" title="@Loc[nameof(Dialogs.SettingsDialogTelemetryInfoLinkTooltip)]">@Loc[nameof(Dialogs.SettingsDialogTelemetryInfoLinkText)]</a>
+                </p>
+            </div>
+        }
+
+        <div class="version">
+            @string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)
+            @RenderRuntimeVersion()
+        </div>
     </FluentStack>
 </FluentDialogBody>
+
+@code {
+    private RenderFragment RenderRuntimeVersion()
+    {
+#if DEBUG
+        return @<text><br />.NET version: @System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription</text>;
+#else
+        return @<text></text>;
+#endif
+    }
+}

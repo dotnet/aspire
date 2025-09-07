@@ -2,17 +2,23 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
+using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -104,8 +110,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains("ASPNETCORE_URLS", s),
-            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s),
+            s => Assert.Contains(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, s));
     }
 
     [Fact]
@@ -124,8 +130,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             s => Assert.Contains("Dashboard:Otlp:AllowedCertificates:0:Thumbprint", s));
     }
 
-    [Fact]
-    public async Task Configuration_ConfigFilePathDoesntExist_Error()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_ConfigFilePathDoesntExist_Error(string dashboardConfigFilePathNameKey)
     {
         // Arrange & Act
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -134,7 +142,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 });
         }).DefaultTimeout();
 
@@ -142,8 +150,10 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(configFilePath, ex.Message);
     }
 
-    [Fact]
-    public async Task Configuration_FileConfigDirectoryDoesExist_Success()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardFileConfigDirectory)]
+    [InlineData(KnownConfigNames.Legacy.DashboardFileConfigDirectory)]
+    public async Task Configuration_FileConfigDirectoryDoesExist_Success(string dashboardFileConfigDirectoryNameKey)
     {
         // Arrange
         const string frontendBrowserToken = "SomeSecretContent";
@@ -152,12 +162,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         try
         {
             var config = new ConfigurationManager()
-                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .AddInMemoryCollection(new Dictionary<string, string?> { [dashboardFileConfigDirectoryNameKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
 
             // Act
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -190,7 +200,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+            await using var dashboardWebResource = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
                 preConfigureBuilder: builder =>
                 {
                     builder.Configuration.AddConfiguration(config);
@@ -256,6 +266,35 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
         Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+    }
+
+    [Fact]
+    public async Task Configuration_OptionsMonitor_DebugSession()
+    {
+        // Arrange
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
+                initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        // Act
+        await app.StartAsync().DefaultTimeout();
+
+        // Assert
+        Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
+
+        var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
+        Assert.NotNull(cert);
+        Assert.Equal(testCert.Thumbprint, cert.Thumbprint);
+
+        Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
+        Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
     }
 
     [Fact]
@@ -495,13 +534,15 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-        Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+        Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+        Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
     }
 
-    [Fact]
-    public async Task Configuration_Logging_FileConfig_OverrideDefaults()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardConfigFilePath)]
+    [InlineData(KnownConfigNames.Legacy.DashboardConfigFilePath)]
+    public async Task Configuration_Logging_FileConfig_OverrideDefaults(string dashboardConfigFilePathNameKey)
     {
         // Arrange
         var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -525,7 +566,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                    data[dashboardConfigFilePathNameKey] = configFilePath;
                 },
                 clearLogFilterRules: false);
 
@@ -534,9 +575,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             var options = app.Services.GetRequiredService<IOptions<LoggerFilterOptions>>();
 
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == null && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace));
-            Assert.Single(options.Value.Rules.Where(r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace));
+            Assert.Single(options.Value.Rules, r => r.CategoryName is null && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Grpc" && r.LogLevel == LogLevel.Trace);
+            Assert.Single(options.Value.Rules, r => r.CategoryName == "Microsoft.Hosting.Lifetime" && r.LogLevel == LogLevel.Trace);
         }
         finally
         {
@@ -715,6 +756,68 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task Configuration_ForwardedHeaders_OverrideDefaults(bool enableForwardedHeaders)
+    {
+        // Forwarded values we try to inject.
+        const string forwardedHost = "example.com";
+        const string forwardedProto = "https";
+
+        var (capturedHost, capturedProto, endpointString) =
+            await ExecuteForwardedHeadersScenarioAsync(enableForwardedHeaders, forwardedHost, forwardedProto);
+
+        if (enableForwardedHeaders)
+        {
+            Assert.Equal(forwardedHost, capturedHost);
+            Assert.Equal(forwardedProto, capturedProto);
+        }
+        else
+        {
+            // Expect original endpoint host:port and original scheme (http) when disabled.
+            Assert.Equal(endpointString, capturedHost);
+            Assert.Equal("http", capturedProto);
+        }
+    }
+
+    private async Task<(string? Host, string? Proto, string EndpointString)> ExecuteForwardedHeadersScenarioAsync(
+        bool enable,
+        string forwardedHost,
+        string forwardedProto)
+    {
+        var filter = new HostAndProtocolLoggerFilter();
+        var value = enable ? bool.TrueString : bool.FalseString;
+        var key = DashboardConfigNames.ForwardedHeaders.ConfigKey;
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                // Explicitly set in config too (mirrors production precedence expectations).
+                data[key] = value;
+            },
+            preConfigureBuilder: builder =>
+            {
+                builder.Services.TryAddEnumerable(
+                    ServiceDescriptor.Transient<IStartupFilter, HostAndProtocolLoggerFilter>(_ => filter));
+            },
+            clearLogFilterRules: false);
+
+        await app.StartAsync().DefaultTimeout();
+
+        var endpoint = app.FrontendSingleEndPointAccessor().EndPoint; // IPEndPoint
+        var endpointString = endpoint.ToString(); // "host:port"
+
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpointString}") };
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Add("X-Forwarded-Host", forwardedHost);
+        request.Headers.Add("X-Forwarded-Proto", forwardedProto);
+
+        var response = await client.SendAsync(request).DefaultTimeout();
+        response.EnsureSuccessStatusCode();
+
+        return (filter.Host, filter.Proto, endpointString);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [InlineData(null)]
     public async Task Configuration_DisableResourceGraph_EnsureValueSetOnOptions(bool? value)
     {
@@ -727,6 +830,20 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.UI.DisableResourceGraph);
+    }
+    [Fact]
+    public async Task ServiceProvider_AppCreated_LoggerProvidersRegistered()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+
+        // Act
+        var loggerProviders = app.Services.GetServices<ILoggerProvider>();
+        var loggerProviderTypes = loggerProviders.Select(p => p.GetType()).ToList();
+
+        // Assert
+        Assert.Contains(typeof(TelemetryLoggerProvider), loggerProviderTypes);
+        Assert.Contains(typeof(ConsoleLoggerProvider), loggerProviderTypes);
     }
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
@@ -749,5 +866,26 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await File.WriteAllTextAsync(browserTokenConfigFile, browserToken);
 
         return browserTokenConfigFile;
+    }
+
+    public sealed class HostAndProtocolLoggerFilter : IStartupFilter
+    {
+        public string? Host { get; private set; }
+        public string? Proto { get; private set; }
+
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                app.Use(async (ctx, nxt) =>
+                {
+                    await nxt();
+                    Host = ctx.Request.Host.Value;
+                    Proto = ctx.Request.Scheme;
+                });
+
+                next(app);
+            };
+        }
     }
 }

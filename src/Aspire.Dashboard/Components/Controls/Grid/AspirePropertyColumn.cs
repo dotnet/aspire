@@ -14,6 +14,11 @@ public class AspirePropertyColumn<TGridItem, TProp> : PropertyColumn<TGridItem, 
     [Parameter]
     public string? ColumnId { get; set; }
 
+    protected override void OnInitialized()
+    {
+        Tooltip = true;
+    }
+
     protected override bool ShouldRender()
     {
         if (ColumnManager is not null && ColumnId is not null && !ColumnManager.IsColumnVisible(ColumnId))

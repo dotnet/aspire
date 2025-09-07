@@ -45,37 +45,6 @@ public static partial class SqlServerBuilderExtensions
 
         string? connectionString = null;
 
-        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServer, async (@event, ct) =>
-        {
-            connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
-            }
-        });
-
-        builder.Eventing.Subscribe<ResourceReadyEvent>(sqlServer, async (@event, ct) =>
-        {
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
-            }
-
-            using var sqlConnection = new SqlConnection(connectionString);
-            await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
-
-            if (sqlConnection.State != System.Data.ConnectionState.Open)
-            {
-                throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
-            }
-
-            foreach (var sqlDatabase in sqlServer.DatabaseResources)
-            {
-                await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
-            }
-        });
-
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
@@ -88,7 +57,36 @@ public static partial class SqlServerBuilderExtensions
                       {
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
                       })
-                      .WithHealthCheck(healthCheckKey);
+                      .WithHealthCheck(healthCheckKey)
+                      .OnConnectionStringAvailable(async (sqlServer, @event, ct) =>
+                      {
+                          connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+                          if (connectionString == null)
+                          {
+                              throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+                          }
+                      })
+                      .OnResourceReady(async (sqlServer, @event, ct) =>
+                      {
+                          if (connectionString is null)
+                          {
+                              throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+                          }
+
+                          using var sqlConnection = new SqlConnection(connectionString);
+                          await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+                          if (sqlConnection.State != System.Data.ConnectionState.Open)
+                          {
+                              throw new InvalidOperationException($"Could not open connection to '{sqlServer.Name}'");
+                          }
+
+                          foreach (var sqlDatabase in sqlServer.DatabaseResources)
+                          {
+                              await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
+                          }
+                      });
     }
 
     /// <summary>
@@ -98,6 +96,19 @@ public static partial class SqlServerBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When adding a <see cref="SqlServerDatabaseResource"/> to your application model the resource can then
+    /// be referenced by other resources using the resource name. When the dependent resource is using
+    /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// then the dependent resource will wait until the SQL Server database is available.
+    /// </para>
+    /// <para>
+    /// Note that calling <see cref="AddDatabase(IResourceBuilder{SqlServerServerResource}, string, string?)"/>
+    /// will result in the database being created on the SQL Server when the server becomes ready.
+    /// The database creation happens automatically as part of the resource lifecycle.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -112,22 +123,21 @@ public static partial class SqlServerBuilderExtensions
 
         string? connectionString = null;
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
-        {
-            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
-            }
-        });
-
         var healthCheckKey = $"{name}_check";
         builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         return builder.ApplicationBuilder
             .AddResource(sqlServerDatabase)
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (sqlServerDatabase, @event, ct) =>
+            {
+                connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+                if (connectionString == null)
+                {
+                    throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+                }
+            });
     }
 
     /// <summary>
@@ -195,16 +205,50 @@ public static partial class SqlServerBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
 
-        builder.WithAnnotation(new CreationScriptAnnotation(script));
+        builder.WithAnnotation(new SqlServerCreateDatabaseScriptAnnotation(script));
 
         return builder;
     }
 
+    /// <summary>
+    /// Configures the password that the SqlServer resource is used.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the SqlServer resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithPassword(this IResourceBuilder<SqlServerServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.SetPassword(password.Resource);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the SqlServer resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithHostPort(this IResourceBuilder<SqlServerServerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithEndpoint(SqlServerServerResource.PrimaryEndpointName, endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
     private static async Task CreateDatabaseAsync(SqlConnection sqlConnection, SqlServerDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
     {
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
+
+        logger.LogDebug("Creating database '{DatabaseName}'", sqlDatabase.DatabaseName);
+
         try
         {
-            var scriptAnnotation = sqlDatabase.Annotations.OfType<CreationScriptAnnotation>().LastOrDefault();
+            var scriptAnnotation = sqlDatabase.Annotations.OfType<SqlServerCreateDatabaseScriptAnnotation>().LastOrDefault();
 
             if (scriptAnnotation?.Script == null)
             {
@@ -256,10 +300,11 @@ public static partial class SqlServerBuilderExtensions
                     await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
                 }
             }
+
+            logger.LogDebug("Database '{DatabaseName}' created successfully", sqlDatabase.DatabaseName);
         }
         catch (Exception e)
         {
-            var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
             logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
         }
     }

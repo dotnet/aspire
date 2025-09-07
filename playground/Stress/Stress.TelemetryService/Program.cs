@@ -6,6 +6,7 @@ using Stress.TelemetryService;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<TelemetryStresser>();
 builder.Services.AddHostedService<GaugeMetrics>();
+builder.Services.AddHostedService<CounterMetrics>();
 
 builder.AddServiceDefaults();
 builder.Logging.SetMinimumLevel(LogLevel.Trace);
@@ -14,6 +15,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics.AddMeter("GaugeMetrics");
+        metrics.AddMeter("CounterMetrics");
     });
 
 var app = builder.Build();

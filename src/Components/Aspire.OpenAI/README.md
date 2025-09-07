@@ -19,7 +19,7 @@ dotnet add package Aspire.OpenAI
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddOpenAIClient("openaiConnectionName");
@@ -97,7 +97,7 @@ builder.AddOpenAIClient("openaiConnectionName", configureOptions: options => opt
 
 There is no specific AppHost extension corresponding to the OpenAI integration. Instead a connection string resource can be registered:
 
-In the _Program.cs_ file of `AppHost`, add an OpenAI REST API connection string name:
+In the _AppHost.cs_ file of `AppHost`, add an OpenAI REST API connection string name:
 
 ```csharp
 var openai = builder.AddConnectionString("openai");

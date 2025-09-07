@@ -15,7 +15,7 @@ public partial class FilterDialog
     private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
     private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = TelemetryFilter.ConditionToString(condition, FilterLoc) };
+        new SelectViewModel<FilterCondition> { Id = condition, Name = FieldTelemetryFilter.ConditionToString(condition, FilterLoc) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
@@ -51,8 +51,8 @@ public partial class FilterDialog
 
     protected override void OnParametersSet()
     {
-        var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
-        var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
+        var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = FieldTelemetryFilter.ResolveFieldName(p) }).ToList();
+        var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = FieldTelemetryFilter.ResolveFieldName(p) }).ToList();
 
         if (customFields.Count > 0)
         {
@@ -143,9 +143,19 @@ public partial class FilterDialog
         Dialog!.CancelAsync();
     }
 
+    private void Enable()
+    {
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Enable = true }));
+    }
+
+    private void Disable()
+    {
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Disable = true }));
+    }
+
     private void Delete()
     {
-        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = Content.Filter, Delete = true }));
+        Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult { Filter = Content.Filter, Delete = true }));
     }
 
     private void Apply()
@@ -160,7 +170,7 @@ public partial class FilterDialog
         }
         else
         {
-            filter = new TelemetryFilter
+            filter = new FieldTelemetryFilter
             {
                 Field = _formModel.Parameter!.Id!,
                 Condition = _formModel.Condition!.Id,

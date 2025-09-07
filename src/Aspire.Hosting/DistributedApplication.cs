@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Shared;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -32,7 +35,6 @@ namespace Aspire.Hosting;
 /// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the .NET Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
 /// allowing unsecured communication between the browser and dashboard, and dashboard and app host (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
 /// </para>
-/// </remarks>
 /// <example>
 /// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
@@ -45,11 +47,14 @@ namespace Aspire.Hosting;
 /// builder.Build().Run();
 /// </code>
 /// </example>
+/// </remarks>
 [DebuggerDisplay("{_host}")]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
     private ResourceNotificationService? _resourceNotifications;
+    private ResourceCommandService? _resourceCommands;
+    private LocaleOverrideContext? _localeOverrideContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -72,7 +77,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// passed to the <see cref="CreateBuilder()"/> method the app host has no
     /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or <see cref="CreateBuilder(DistributedApplicationOptions)"/>
     /// when more control is needed over the behavior of the distributed application at runtime.
-    /// </remarks>
     /// <example>
     /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
@@ -85,6 +89,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IDistributedApplicationBuilder CreateBuilder() => CreateBuilder([]);
 
     /// <summary>
@@ -165,7 +170,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <see cref="DistributedApplicationOptions.Args"/> property to ensure that the app host continues to function
     /// correctly when used with deployment tools that need to enable publish mode.
     /// </para>
-    /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
     /// <code lang="csharp">
@@ -182,6 +186,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// </remarks>
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
         WaitForDebugger();
@@ -194,12 +199,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private static void WaitForDebugger()
     {
-        if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER") == "true")
+        if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebugger) == "true")
         {
             var startedWaiting = DateTimeOffset.UtcNow;
             TimeSpan timeout = TimeSpan.FromSeconds(30);
 
-            if (Environment.GetEnvironmentVariable("ASPIRE_WAIT_FOR_DEBUGGER_TIMEOUT") is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
+            if (Environment.GetEnvironmentVariable(KnownConfigNames.WaitForDebuggerTimeout) is string timeoutString && int.TryParse(timeoutString, out var timeoutSeconds))
             {
                 timeout = TimeSpan.FromSeconds(timeoutSeconds);
             }
@@ -247,7 +252,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <item>Database seeding.</item>
     /// <item>Integration test readiness checks.</item>
     /// </list>
-    /// </remarks>
     /// <example>
     /// Wait for resource readiness:
     /// <code>
@@ -288,7 +292,20 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
+
+    /// <summary>
+    /// Gets the service for executing resource commands.
+    /// </summary>
+    /// <remarks>
+    /// Two common use cases for the <see cref="ResourceCommandService"/> are:
+    /// <list type="bullet">
+    /// <item>Progamatically executing resource commands in a running app host.</item>
+    /// <item>Unit or integration testing resource commands.</item>
+    /// </list>
+    /// </remarks>
+    public ResourceCommandService ResourceCommands => _resourceCommands ??= _host.Services.GetRequiredService<ResourceCommandService>();
 
     /// <summary>
     /// Disposes the distributed application by disposing the <see cref="IHost"/>.
@@ -356,6 +373,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // Apply locale override before starting the host.
+        _localeOverrideContext = _host.Services.GetRequiredService<LocaleOverrideContext>();
+        var configuration = _host.Services.GetRequiredService<IConfiguration>();
+        ApplyLocaleOverride(configuration, _localeOverrideContext);
+
         // We only run the start lifecycle hook if we are in run mode or
         // publish mode. In inspect mode we try to avoid lifecycle hooks
         // kickings. Eventing will still work generally since they are more
@@ -373,6 +395,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public virtual async Task StopAsync(CancellationToken cancellationToken = default)
     {
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+
+        // Reset locale override after stopping the host.
+        if (_localeOverrideContext is not null)
+        {
+            ResetLocaleOverride(_localeOverrideContext);
+        }
     }
 
     /// <summary>
@@ -411,7 +439,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         {
             await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         }
-        
+
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -465,6 +493,42 @@ public class DistributedApplication : IHost, IAsyncDisposable
         finally
         {
             AspireEventSource.Instance.AppBeforeStartHooksStop();
+        }
+    }
+
+    /// <summary>
+    /// Apply locale from configuration early. At this point it is too early to write to the console so
+    /// any error from applying the locale is saved to configuration and written once the host is built.
+    /// </summary>
+    private static void ApplyLocaleOverride(IConfiguration configuration, LocaleOverrideContext context)
+    {
+        context.LocaleOverride = LocaleHelpers.GetLocaleOverride(configuration);
+        if (!string.IsNullOrEmpty(context.LocaleOverride))
+        {
+            context.OriginalCurrentCulture = CultureInfo.CurrentCulture;
+            context.OriginalCurrentUICulture = CultureInfo.CurrentUICulture;
+            context.OriginalDefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentCulture;
+            context.OriginalDefaultThreadCurrentUICulture = CultureInfo.DefaultThreadCurrentUICulture;
+
+            var result = LocaleHelpers.TrySetLocaleOverride(context.LocaleOverride);
+
+            context.OverrideErrorMessage = result switch
+            {
+                SetLocaleResult.InvalidLocale => $"Invalid locale '{context.LocaleOverride}' specified.",
+                SetLocaleResult.UnsupportedLocale => $"Unsupported locale '{context.LocaleOverride}' specified. Supported locales are: {string.Join(", ", LocaleHelpers.SupportedLocales)}.",
+                _ => null
+            };
+        }
+    }
+
+    private static void ResetLocaleOverride(LocaleOverrideContext context)
+    {
+        if (!string.IsNullOrEmpty(context.LocaleOverride))
+        {
+            CultureInfo.CurrentCulture = context.OriginalCurrentCulture!;
+            CultureInfo.CurrentUICulture = context.OriginalCurrentUICulture!;
+            CultureInfo.DefaultThreadCurrentCulture = context.OriginalDefaultThreadCurrentCulture!;
+            CultureInfo.DefaultThreadCurrentUICulture = context.OriginalDefaultThreadCurrentUICulture!;
         }
     }
 

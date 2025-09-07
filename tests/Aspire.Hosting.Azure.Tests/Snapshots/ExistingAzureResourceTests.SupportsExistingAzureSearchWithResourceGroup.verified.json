@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{search.outputs.connectionString}",
+  "path": "search.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

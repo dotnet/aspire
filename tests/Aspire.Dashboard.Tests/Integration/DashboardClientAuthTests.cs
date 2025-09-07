@@ -4,8 +4,7 @@
 using System.Net;
 using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
-using Aspire.ResourceService.Proto.V1;
+using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
@@ -16,10 +15,9 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using DashboardServiceBase = Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase;
+using DashboardServiceBase = Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
@@ -43,7 +41,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.Unsecured).DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
+        var call = await server.Calls.ResourceInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -59,7 +57,7 @@ public sealed class DashboardClientAuthTests
         await using var server = await CreateResourceServiceServerAsync(loggerFactory, useHttps).DefaultTimeout();
         await using var client = await CreateDashboardClientAsync(loggerFactory, server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!").DefaultTimeout();
 
-        var call = await server.Calls.ApplicationInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
+        var call = await server.Calls.ResourceInformationCallsChannel.Reader.ReadAsync().DefaultTimeout();
 
         Assert.NotNull(call.Request);
         Assert.NotNull(call.RequestHeaders);
@@ -130,8 +128,6 @@ public sealed class DashboardClientAuthTests
             loggerFactory: loggerFactory,
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
-            dashboardClientStatus: new TestDashboardClientStatus(),
-            timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
             knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 
@@ -157,12 +153,7 @@ public sealed class DashboardClientAuthTests
 
     private sealed class TestCalls
     {
-        public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ApplicationInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
-    }
-
-    private sealed class TestDashboardClientStatus : IDashboardClientStatus
-    {
-        public bool IsEnabled => true;
+        public Channel<ReceivedCallInfo<ApplicationInformationRequest>> ResourceInformationCallsChannel { get; } = Channel.CreateUnbounded<ReceivedCallInfo<ApplicationInformationRequest>>();
     }
 
     private sealed class MockDashboardService(TestCalls testCalls) : DashboardServiceBase
@@ -171,7 +162,7 @@ public sealed class DashboardClientAuthTests
             ApplicationInformationRequest request,
             ServerCallContext context)
         {
-            testCalls.ApplicationInformationCallsChannel.Writer.TryWrite(new ReceivedCallInfo<ApplicationInformationRequest>(request, context.RequestHeaders));
+            testCalls.ResourceInformationCallsChannel.Writer.TryWrite(new ReceivedCallInfo<ApplicationInformationRequest>(request, context.RequestHeaders));
 
             return Task.FromResult(new ApplicationInformationResponse()
             {

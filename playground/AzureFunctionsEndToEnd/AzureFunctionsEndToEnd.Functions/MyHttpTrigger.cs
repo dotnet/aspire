@@ -22,7 +22,8 @@ public class MyHttpTrigger(
 #endif
     EventHubProducerClient eventHubProducerClient,
     QueueServiceClient queueServiceClient,
-    BlobServiceClient blobServiceClient)
+    BlobServiceClient blobServiceClient,
+    BlobContainerClient blobContainerClient)
 {
     [Function("injected-resources")]
     public IResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
@@ -35,6 +36,7 @@ public class MyHttpTrigger(
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected EventHubProducerClient namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected QueueServiceClient URI: {queueServiceClient.Uri}");
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected BlobServiceClient URI: {blobServiceClient.Uri}");
+        stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected BlobContainerClient URI: {blobContainerClient.Uri}");
         return Results.Text(stringBuilder.ToString());
     }
 }

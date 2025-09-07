@@ -1,0 +1,21 @@
+﻿services:
+  docker-compose-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest"
+    expose:
+      - "18888"
+      - "18889"
+    networks:
+      - "aspire"
+    restart: "always"
+  resource:
+    image: "mcr.microsoft.com/dotnet/aspnet:8.0"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      HTTP_PORT: "8000"
+    expose:
+      - "8000"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"

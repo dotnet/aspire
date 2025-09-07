@@ -17,24 +17,14 @@
         <target state="translated">Limite de journaux structurés dépassée</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Ajouter un filtre</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Modifier le filtre</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">La capture des journaux structurés a été suspendue à {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Détails de l’entrée de journal</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtres</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -67,11 +57,6 @@
         <target state="translated">Filtre de niveau de journalisation minimal</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">Aucun filtre</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Journaux structurés introuvables</target>
@@ -101,6 +86,16 @@
         <source>Trace</source>
         <target state="translated">Trace</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} structured logs&lt;/strong&gt;</source>
+        <target state="translated">Affichage &lt;strong&gt;{0} de journaux structurés&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} structured log&lt;/strong&gt;</source>
+        <target state="translated">Affichage &lt;strong&gt;{0} de journal structuré&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

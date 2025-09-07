@@ -3,11 +3,14 @@
 @using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<StructuredLogs> Loc
 
-<GridValue Value="@LogEntry.Message"
+<GridValue Value="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.ColumnMaximumTextLength)"
+           ValueToVisualize="@LogEntry.Message"
            ValueDescription="@Loc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
+           ToolTip="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.TooltipMaximumTextLength)"
            EnableHighlighting="true"
            HighlightText="@FilterText"
            StopClickPropagation="true">

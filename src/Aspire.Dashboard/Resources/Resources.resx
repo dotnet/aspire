@@ -139,10 +139,6 @@
   <data name="ResourceFilterOptionEmpty" xml:space="preserve">
     <value>(Unset)</value>
   </data>
-  <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
-    <value>Environment variables for {0}</value>
-    <comment>{0} is a resource</comment>
-  </data>
   <data name="ResourcesStateColumnHeader" xml:space="preserve">
     <value>State</value>
   </data>
@@ -161,20 +157,8 @@
   <data name="ResourcesUrlsColumnHeader" xml:space="preserve">
     <value>URLs</value>
   </data>
-  <data name="ResourcesEnvironmentColumnHeader" xml:space="preserve">
-    <value>Environment</value>
-  </data>
-  <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
-    <value>No environment variables</value>
-  </data>
   <data name="ResourcesNoResources" xml:space="preserve">
     <value>No resources found</value>
-  </data>
-  <data name="ResourceDetailsEndpointUrl" xml:space="preserve">
-    <value>Endpoint URL</value>
-  </data>
-  <data name="ResourceDetailsProxyUrl" xml:space="preserve">
-    <value>Proxy URL</value>
   </data>
   <data name="ResourcesDetailsContainerArgumentsProperty" xml:space="preserve">
     <value>Container arguments</value>
@@ -212,6 +196,9 @@
   <data name="ResourcesDetailsProjectPathProperty" xml:space="preserve">
     <value>Project path</value>
   </data>
+  <data name="ResourcesDetailsProjectLaunchProfileProperty" xml:space="preserve">
+    <value>Launch profile</value>
+  </data>
   <data name="ResourcesDetailsStartTimeProperty" xml:space="preserve">
     <value>Start time</value>
   </data>
@@ -241,6 +228,9 @@
   <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
     <value>Health state</value>
   </data>
+  <data name="ResourcesDetailsConnectionStringProperty" xml:space="preserve">
+    <value>Connection string</value>
+  </data>
   <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
     <value>Stop time</value>
   </data>
@@ -265,9 +255,6 @@
     <value>Waiting...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
   </data>
-  <data name="ResourceActionTelemetryTooltip" xml:space="preserve">
-    <value>No telemetry found for this resource.</value>
-  </data>
   <data name="ResourceCollapseAllChildren" xml:space="preserve">
     <value>Collapse child resources</value>
   </data>
@@ -286,5 +273,28 @@
   </data>
   <data name="ResourcesGraphResetButton" xml:space="preserve">
     <value>Reset</value>
+  </data>
+  <data name="ResourcesHideTypes" xml:space="preserve">
+    <value>Hide resource types</value>
+  </data>
+  <data name="ResourcesShowTypes" xml:space="preserve">
+    <value>Show resource types</value>
+  </data>
+  <data name="ResourcesDetailsParameterValueProperty" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="TotalItemsFooterSingularText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="TotalItemsFooterPluralText" xml:space="preserve">
+    <value>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</value>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="ResourceActionCommandsText" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="ResourceActionUrlsText" xml:space="preserve">
+    <value>URLs</value>
   </data>
 </root>

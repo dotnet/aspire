@@ -14,13 +14,18 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? password = null, int? port = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlDatabaseResource> builder, string script) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string source, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<MySql.PhpMyAdminContainerResource> WithHostPort(this ApplicationModel.IResourceBuilder<MySql.PhpMyAdminContainerResource> builder, int? port) { throw null; }
 
+        [System.Obsolete("Use WithInitFiles instead.")]
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithInitBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string source, bool isReadOnly = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string source) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithPhpMyAdmin<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<MySql.PhpMyAdminContainerResource>>? configureContainer = null, string? containerName = null)
             where T : ApplicationModel.MySqlServerResource { throw null; }

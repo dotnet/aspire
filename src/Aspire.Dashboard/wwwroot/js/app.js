@@ -37,13 +37,17 @@ function getFluentMenuItemForTarget(element) {
     return null;
 }
 
-// Register a global click event listener to handle copy button clicks.
+// Register a global click event listener to handle copy/open button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
     // The copy 'button' could either be a button or a menu item.
-    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
-    if (targetElement && targetElement.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(targetElement);
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target);
+    if (targetElement) {
+        if (targetElement.getAttribute("data-copybutton")) {
+            buttonCopyTextToClipboard(targetElement);
+        } else if (targetElement.getAttribute("data-openbutton")) {
+            buttonOpenLink(targetElement);
+        }
         e.stopPropagation();
     }
 });
@@ -58,6 +62,7 @@ window.getIsScrolledToContent = function () {
 window.setIsScrolledToContent = function (value) {
     if (isScrolledToContent != value) {
         isScrolledToContent = value;
+        console.log(`isScrolledToContent=${isScrolledToContent}`);
     }
 }
 
@@ -78,8 +83,11 @@ window.initializeContinuousScroll = function () {
 
     // The scroll event is used to detect when the user scrolls to view content.
     container.addEventListener('scroll', () => {
-        var v = !isScrolledToBottom(container);
-        setIsScrolledToContent(v);
+        var atBottom = isScrolledToBottom(container);
+        if (atBottom === null) {
+            return;
+        }
+        setIsScrolledToContent(!atBottom);
    }, { passive: true });
 
     // The ResizeObserver reports changes in the grid size.
@@ -87,8 +95,18 @@ window.initializeContinuousScroll = function () {
     // unless the user has scrolled to view content.
     const observer = new ResizeObserver(function () {
         lastScrollHeight = container.scrollHeight;
-        if (!getIsScrolledToContent()) {
+
+        if (lastScrollHeight == container.clientHeight) {
+            // There is no scrollbar. This could be because there's no content, or the content might have been cleared.
+            // Reset to default behavior: scroll to bottom
+            setIsScrolledToContent(false);
+            return;
+        }
+
+        var isScrolledToContent = getIsScrolledToContent();
+        if (!isScrolledToContent) {
             container.scrollTop = lastScrollHeight;
+            return;
         }
     });
     for (const child of container.children) {
@@ -104,6 +122,9 @@ function isScrolledToBottom(container) {
     if (!getIsScrolledToContent()) {
         if (lastScrollHeight != container.scrollHeight) {
             console.log(`lastScrollHeight ${lastScrollHeight} doesn't equal container scrollHeight ${container.scrollHeight}.`);
+
+            // Unknown because the container size changed.
+            return null;
         }
     }
 
@@ -111,7 +132,15 @@ function isScrolledToBottom(container) {
     const containerScrollBottom = lastScrollHeight - container.clientHeight;
     const difference = containerScrollBottom - container.scrollTop;
 
-    return difference < marginOfError;
+    var atBottom = difference < marginOfError;
+    return atBottom;
+}
+
+window.buttonOpenLink = function (element) {
+    const url = element.getAttribute("data-url");
+    const target = element.getAttribute("data-target");
+
+    window.open(url, target, "noopener,noreferrer");
 }
 
 window.buttonCopyTextToClipboard = function(element) {
@@ -278,10 +307,13 @@ window.unregisterGlobalKeydownListener = function (obj) {
     window.document.removeEventListener('keydown', obj.keydownListener);
 };
 
-window.getBrowserTimeZone = function () {
+window.getBrowserInfo = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
-    return options.timeZone;
+    return {
+        timeZone: options.timeZone,
+        userAgent: navigator.userAgent
+    };
 };
 
 window.focusElement = function (selector) {

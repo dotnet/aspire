@@ -2,15 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.ServiceBus;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Xunit;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -37,61 +37,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
-
-            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
-              name: 'queueName'
-              properties: {
-                defaultMessageTimeToLive: 'PT1S'
-              }
-              parent: sb
-            }
-
-            resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 'topicName'
-              properties: {
-                defaultMessageTimeToLive: 'PT1S'
-              }
-              parent: sb
-            }
-
-            resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
-              name: 'subscriptionName'
-              parent: topic1
-            }
-
-            resource rule1 'Microsoft.ServiceBus/namespaces/topics/subscriptions/rules@2024-01-01' = {
-              name: 'rule1'
-              properties: {
-                filterType: 'CorrelationFilter'
-              }
-              parent: subscription1
-            }
-
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-
-            output name string = sb.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Theory]
@@ -115,37 +62,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(serviceBus.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param sku string = 'Standard'
-
-            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
-              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
-
-            resource device_connection_state_events1234567890_even_longer 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-              name: 'device-connection-state-events1234567890-even-longer'
-              parent: sb
-            }
-
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-
-            output name string = sb.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.BicepText, extension: "bicep");
+            
     }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
@@ -244,7 +162,8 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
 
         Assert.Collection(
             serviceBus.Resource.Annotations.OfType<EndpointAnnotation>(),
-            e => Assert.Equal(port, e.Port)
+            e => Assert.Equal(port, e.Port),
+            e => Assert.Equal(5300, e.TargetPort)
             );
     }
 
@@ -444,19 +363,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        if (!OperatingSystem.IsWindows())
-        {
-            // Ensure the configuration file has correct attributes
-            var fileInfo = new FileInfo(volumeAnnotation.Source!);
-
-            var expectedUnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
-
-            Assert.True(fileInfo.UnixFileMode.HasFlag(expectedUnixFileMode));
-        }
-
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal(/*json*/"""
         {
@@ -527,7 +439,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             }
           }
         }
-        """, configJsonContent);
+        """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -550,9 +462,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal("""
             {
@@ -576,7 +491,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
                 }
               }
             }
-            """, configJsonContent);
+            """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -603,9 +518,12 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         await app.StartAsync();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
         Assert.Equal("""
             {
@@ -623,7 +541,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
               },
               "Custom": 42
             }
-            """, configJsonContent);
+            """, configFile.Contents);
 
         await app.StopAsync();
     }
@@ -659,28 +577,14 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         using var app = builder.Build();
 
         var serviceBusEmulatorResource = builder.Resources.OfType<AzureServiceBusResource>().Single(x => x is { } serviceBusResource && serviceBusResource.IsEmulator);
-        var volumeAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var configAnnotation = serviceBusEmulatorResource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>().Single();
 
-        var configJsonContent = File.ReadAllText(volumeAnnotation.Source!);
+        Assert.Equal("/ServiceBus_Emulator/ConfigFiles", configAnnotation.DestinationPath);
+        var configFiles = await configAnnotation.Callback(new ContainerFileSystemCallbackContext { Model = serviceBusEmulatorResource, ServiceProvider = app.Services }, CancellationToken.None);
+        var configFile = Assert.IsType<ContainerFile>(Assert.Single(configFiles));
+        Assert.Equal("Config.json", configFile.Name);
 
-        Assert.Equal("/ServiceBus_Emulator/ConfigFiles/Config.json", volumeAnnotation.Target);
-
-        Assert.Equal("""
-            {
-              "UserConfig": {
-                "Namespaces": [
-                  {
-                    "Name": "servicebusns",
-                    "Queues": [ { "Name": "queue456" } ],
-                    "Topics": []
-                  }
-                ],
-                "Logging": {
-                  "Type": "File"
-                }
-              }
-            }
-            """, configJsonContent);
+        Assert.Equal(configJsonPath, configFile.SourcePath);
 
         await app.StopAsync();
 
@@ -706,7 +610,7 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             builder.WithLifetime(lifetime);
         });
 
-        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-sqledge");
+        var sql = builder.Resources.FirstOrDefault(x => x.Name == "sb-mssql");
 
         Assert.NotNull(sql);
 
@@ -781,6 +685,87 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             k => Assert.Equal("Aspire__Azure__Messaging__ServiceBus__sub__SubscriptionName", k),
             k => Assert.Equal("sub__fullyQualifiedNamespace", k));
     }
+    
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureServiceBus(bool useObsoleteMethods)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("sb");
+
+        if (useObsoleteMethods)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            serviceBus
+                .AddQueue("queue1")
+                .AddQueue("queue2")
+                .AddTopic("t1")
+                .AddTopic("t2")
+                .AddSubscription("t1", "s3");
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+        else
+        {
+            serviceBus.AddServiceBusQueue("queue1");
+            serviceBus.AddServiceBusQueue("queue2");
+            serviceBus.AddServiceBusTopic("t1")
+                .AddServiceBusSubscription("s3");
+            serviceBus.AddServiceBusTopic("t2");
+        }
+
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+
+        var connectionStringResource = (IResourceWithConnectionString)serviceBus.Resource;
+
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("mynamespaceEndpoint", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, serviceBus.Resource);
+
+        var expected = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{sb.outputs.serviceBusEndpoint}",
+              "path": "sb.module.bicep"
+            }
+            """;
+        Assert.Equal(expected, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        var sbRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "sb-roles");
+        var sbRolesManifest = await GetManifestWithBicep(sbRoles, skipPreparer: true);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param sb_outputs_name string
+
+            param principalType string
+
+            param principalId string
+
+            resource sb 'Microsoft.ServiceBus/namespaces@2024-01-01' existing = {
+              name: sb_outputs_name
+            }
+
+            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
+            }
+            """;
+        output.WriteLine(sbRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, sbRolesManifest.BicepText);
+    }
 
     [Fact(Skip = "Azure ServiceBus emulator is not reliable in CI - https://github.com/dotnet/aspire/issues/7066")]
     [RequiresDocker]
@@ -840,5 +825,53 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
         var message = await receiver.ReceiveMessageAsync(cancellationToken: cts.Token);
 
         Assert.Equal("Hello, World!", message.Body.ToString());
+    }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var serviceBus = builder.AddAzureServiceBus("servicebus")
+                               .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(serviceBus.Resource.IsEmulator());
+        Assert.Contains(serviceBus.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureServiceBusResource()
+    {
+        // Arrange
+        var serviceBusResource = new AzureServiceBusResource("test-servicebus", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(serviceBusResource, "test-servicebus");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = serviceBusResource.AddAsExistingResource(infrastructure);
+        var secondResult = serviceBusResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureServiceBusResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-sb-name");
+        var existingResourceGroup = builder.AddParameter("existing-sb-rg");
+
+        var serviceBus = builder.AddAzureServiceBus("test-servicebus")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = serviceBus.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
     }
 }

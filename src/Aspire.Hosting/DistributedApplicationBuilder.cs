@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -13,10 +15,12 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.VersionChecking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -53,7 +57,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
     private readonly DistributedApplicationOptions _options;
-
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -119,16 +122,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var operation = _innerBuilder.Configuration["AppHost:Operation"]?.ToLowerInvariant() switch
         {
             "publish" => DistributedApplicationOperation.Publish,
-            "inspect" => DistributedApplicationOperation.Inspect,
             "run" => DistributedApplicationOperation.Run,
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'inspect', or 'run'.")
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
 
         return operation switch
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
-            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
-            _ => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"])
+            DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
         };
     }
 
@@ -167,6 +169,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(TimeProvider.System);
 
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, BackchannelLoggerProvider>();
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
@@ -192,6 +195,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Set configuration
         ConfigurePublishingOptions(options);
+        var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -223,14 +227,31 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Sha256"] = appHostSha
         });
 
+        // exec
+        if (isExecMode)
+        {
+            _innerBuilder.Services.AddSingleton<ExecResourceManager>();
+            Eventing.Subscribe<BeforeStartEvent>(ExecEventingHandlers.InitializeExecResources);
+        }
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
+        _innerBuilder.Services.AddHostedService<VersionCheckService>();
+        _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
+        _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
+        _innerBuilder.Services.AddSingleton<ResourceCommandService>(s => new ResourceCommandService(s.GetRequiredService<ResourceNotificationService>(), s.GetRequiredService<ResourceLoggerService>(), s));
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        _innerBuilder.Services.AddSingleton<InteractionService>();
+        _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
+        _innerBuilder.Services.AddSingleton<ParameterProcessor>();
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
+        _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
@@ -264,7 +285,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigureHealthChecks();
 
-        if (ExecutionContext.IsRunMode)
+        if (ExecutionContext.IsRunMode && !isExecMode)
         {
             // Dashboard
             if (!options.DisableDashboard)
@@ -279,7 +300,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
 
                     // Determine the frontend browser token.
-                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
+                    if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
+                                                              KnownConfigNames.Legacy.DashboardFrontendBrowserToken, fallbackOnEmpty: true) is not { } browserToken)
                     {
                         // No browser token was specified in configuration, so generate one.
                         browserToken = TokenGenerator.GenerateToken();
@@ -293,11 +315,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
 
                     // Determine the resource service API key.
-                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey] is not { Length: > 0 } apiKey)
-                    {
-                        // No API key was specified in configuration, so generate one.
-                        apiKey = TokenGenerator.GenerateToken();
-                    }
+                    var apiKey = _innerBuilder.Configuration.GetString(KnownConfigNames.DashboardResourceServiceClientApiKey,
+                                                                       KnownConfigNames.Legacy.DashboardResourceServiceClientApiKey, fallbackOnEmpty: true);
+
+                    // If no API key was specified in configuration, generate one.
+                    apiKey ??= TokenGenerator.GenerateToken();
 
                     _innerBuilder.Configuration.AddInMemoryCollection(
                         new Dictionary<string, string?>
@@ -318,7 +340,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
                 }
 
-                _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
@@ -335,6 +356,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
+            // Devcontainers & Codespaces & SSH Remote
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
+            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
+            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
+            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
+            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+        }
+
+        if (ExecutionContext.IsRunMode)
+        {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
@@ -350,25 +383,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton(new Locations());
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
-            // Devcontainers & Codespaces
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
-            _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
-            _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
-            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
-            _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
-
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
         }
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
-        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+        this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
+        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityProgressReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityProgressReporter, PublishingActivityProgressReporter>(sp => sp.GetRequiredService<PublishingActivityProgressReporter>());
+        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
@@ -442,7 +468,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private static bool IsDashboardUnsecured(IConfiguration configuration)
     {
-        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
+        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
@@ -452,6 +478,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
+            { "--deploy", "Publishing:Deploy" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
@@ -459,6 +486,42 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+    }
+
+    private bool ConfigureExecOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
+            { "--operation", "AppHost:Operation" },
+            { "--resource", "Exec:ResourceName" },
+            { "--start-resource", "Exec:ResourceName" },
+            { "--command", "Exec:Command" },
+            { "--workdir", "Exec:WorkingDirectory" }
+        };
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
+
+        var execOptionsSection = _innerBuilder.Configuration.GetSection(ExecOptions.SectionName);
+        _innerBuilder.Services
+            .Configure<ExecOptions>(execOptionsSection)
+            .PostConfigure<ExecOptions>(execOptions =>
+        {
+            if (options.Args is null || !options.Args.Any())
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(execOptions.Command))
+            {
+                execOptions.Enabled = true;
+            }
+
+            if (options.Args.Contains("--start-resource"))
+            {
+                execOptions.StartResource = true;
+            }
+        });
+
+        return options.Args?.Any(arg => arg == "--command") ?? false;
     }
 
     /// <inheritdoc />

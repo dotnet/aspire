@@ -10,16 +10,16 @@ public class ServiceEndpointTests
 {
     public static TheoryData<EndPoint> ZeroPortEndPoints => new()
     {
-        IPEndPoint.Parse("127.0.0.1:0"),
-        new DnsEndPoint("microsoft.com", 0),
-        new UriEndPoint(new Uri("https://microsoft.com"))
+        (EndPoint)IPEndPoint.Parse("127.0.0.1:0"),
+        (EndPoint)new DnsEndPoint("microsoft.com", 0),
+        (EndPoint)new UriEndPoint(new Uri("https://microsoft.com"))
     };
 
     public static TheoryData<EndPoint> NonZeroPortEndPoints => new()
     {
-        IPEndPoint.Parse("127.0.0.1:8443"),
-        new DnsEndPoint("microsoft.com", 8443),
-        new UriEndPoint(new Uri("https://microsoft.com:8443"))
+        (EndPoint)IPEndPoint.Parse("127.0.0.1:8443"),
+        (EndPoint)new DnsEndPoint("microsoft.com", 8443),
+        (EndPoint)new UriEndPoint(new Uri("https://microsoft.com:8443"))
     };
 
     [Theory]

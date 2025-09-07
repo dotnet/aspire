@@ -2,22 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
-using Aspire.ResourceService.Proto.V1;
+using Grpc.Core;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class DashboardClientTests
 {
-    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
-
     private readonly IConfiguration _configuration;
     private readonly IOptions<DashboardOptions> _dashboardOptions;
 
@@ -150,13 +148,165 @@ public sealed class DashboardClientTests
         Assert.Single(initialData);
     }
 
-    private DashboardClient CreateResourceServiceClient()
+    [Fact]
+    public async Task SubscribeInteractions_OnCancel_ChannelRemoved()
     {
-        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, new TestDashboardClientStatus(), s_timeProvider, new MockKnownPropertyLookup());
+        await using var instance = CreateResourceServiceClient();
+
+        IDashboardClient client = instance;
+
+        var cts = new CancellationTokenSource();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        var subscription = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var item in subscription.WithCancellation(cts.Token))
+            {
+            }
+        });
+
+        cts.Cancel();
+
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
     }
 
-    private sealed class TestDashboardClientStatus : IDashboardClientStatus
+    [Fact]
+    public async Task SubscribeInteractions_OnDispose_ChannelRemoved()
     {
-        public bool IsEnabled => true;
+        await using var instance = CreateResourceServiceClient();
+
+        IDashboardClient client = instance;
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        var subscription = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var item in subscription)
+            {
+            }
+        });
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task SubscribeInteractions_ThrowsIfDisposed()
+    {
+        await using IDashboardClient client = CreateResourceServiceClient();
+
+        await client.DisposeAsync().DefaultTimeout();
+
+        Assert.Throws<ObjectDisposedException>(() => client.SubscribeInteractionsAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SubscribeInteractions_IncreasesSubscriberCount()
+    {
+        await using var instance = CreateResourceServiceClient();
+
+        IDashboardClient client = instance;
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+
+        _ = client.SubscribeInteractionsAsync(CancellationToken.None);
+
+        Assert.Equal(1, instance.OutgoingInteractionSubscriberCount);
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        Assert.Equal(0, instance.OutgoingInteractionSubscriberCount);
+    }
+
+    [Fact]
+    public async Task WhenConnected_InteractionMethodUnimplemented_InteractionWatchCompleted()
+    {
+        await using var instance = CreateResourceServiceClient();
+        instance.SetDashboardServiceClient(new MockDashboardServiceClient());
+
+        await instance.WhenConnected.DefaultTimeout();
+
+        await instance.InteractionWatchCompleteTask.DefaultTimeout();
+    }
+
+    private sealed class MockDashboardServiceClient : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceClient
+    {
+        public override AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate> WatchInteractions(CallOptions options)
+        {
+            return new AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate>(
+                new ClientStreamWriter<WatchInteractionsRequestUpdate>(),
+                new AsyncStreamReader<WatchInteractionsResponseUpdate>(),
+                Task.FromResult(new Metadata()),
+                () => new Status(StatusCode.Unimplemented, "Unimplemented!"),
+                () => new Metadata(),
+                () => { });
+        }
+
+        public override AsyncUnaryCall<ApplicationInformationResponse> GetApplicationInformationAsync(ApplicationInformationRequest request, CallOptions options)
+        {
+            return new AsyncUnaryCall<ApplicationInformationResponse>(
+                Task.FromResult(new ApplicationInformationResponse
+                {
+                    ApplicationName = "TestApplication"
+                }),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { });
+        }
+
+        public override AsyncServerStreamingCall<WatchResourcesUpdate> WatchResources(WatchResourcesRequest request, CallOptions options)
+        {
+            return new AsyncServerStreamingCall<WatchResourcesUpdate>(
+                new AsyncStreamReader<WatchResourcesUpdate>(),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { });
+        }
+    }
+
+    private sealed class AsyncStreamReader<T> : IAsyncStreamReader<T>
+    {
+        public T Current { get; } = default!;
+
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+    }
+
+    private sealed class ClientStreamWriter<T> : IClientStreamWriter<T>
+    {
+        public WriteOptions? WriteOptions { get; set; }
+
+        public Task CompleteAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task WriteAsync(T message)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private DashboardClient CreateResourceServiceClient()
+    {
+        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions, new MockKnownPropertyLookup());
     }
 }

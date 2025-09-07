@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Garnet.Tests;
 
@@ -101,7 +100,7 @@ public class AddGarnetTests
                                    "entrypoint": "/bin/sh",
                                    "args": [
                                      "-c",
-                                     "/app/GarnetServer --auth Password --password $GARNET_PASSWORD"
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD"
                                    ],
                                    "env": {
                                      "GARNET_PASSWORD": "{myGarnet-password.value}"
@@ -141,7 +140,7 @@ public class AddGarnetTests
                                    "entrypoint": "/bin/sh",
                                    "args": [
                                      "-c",
-                                     "/app/GarnetServer --auth Password --password $GARNET_PASSWORD"
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD"
                                    ],
                                    "env": {
                                      "GARNET_PASSWORD": "{pass.value}"
@@ -177,7 +176,7 @@ public class AddGarnetTests
                                    "entrypoint": "/bin/sh",
                                    "args": [
                                      "-c",
-                                     "/app/GarnetServer --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
+                                     "/app/GarnetServer --protected-mode no --auth Password --password $GARNET_PASSWORD --checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000"
                                    ],
                                    "env": {
                                      "GARNET_PASSWORD": "{myGarnet-password.value}"

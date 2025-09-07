@@ -22,7 +22,7 @@ namespace Aspire.Hosting.Kubernetes.Resources;
 /// for use with Kubernetes manifests.
 /// </example>
 [YamlSerializable]
-public sealed class StatefulSet() : BaseKubernetesResource("apps/v1", "StatefulSet")
+public sealed class StatefulSet() : Workload("apps/v1", "StatefulSet")
 {
     /// <summary>
     /// Gets or sets the specification of the Kubernetes StatefulSet resource.
@@ -36,4 +36,9 @@ public sealed class StatefulSet() : BaseKubernetesResource("apps/v1", "StatefulS
     /// </remarks>
     [YamlMember(Alias = "spec")]
     public StatefulSetSpecV1 Spec { get; set; } = new();
+
+    /// <summary>
+    /// Gets the pod template specification for the StatefulSet.
+    /// </summary>
+    public override PodTemplateSpecV1 PodTemplate => Spec.Template;
 }

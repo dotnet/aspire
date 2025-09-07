@@ -8,15 +8,15 @@ internal static class UnixSocketHelper
     public static string GetBackchannelSocketPath()
     {
         var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var dotnetCliPath = Path.Combine(homeDirectory, ".dotnet", "aspire", "cli", "backchannels");
+        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
 
-        if (!Directory.Exists(dotnetCliPath))
+        if (!Directory.Exists(aspireCliPath))
         {
-            Directory.CreateDirectory(dotnetCliPath);
+            Directory.CreateDirectory(aspireCliPath);
         }
 
         var uniqueSocketPathSegment = Guid.NewGuid().ToString("N");
-        var socketPath = Path.Combine(dotnetCliPath, $"cli.sock.{uniqueSocketPathSegment}");
+        var socketPath = Path.Combine(aspireCliPath, $"cli.sock.{uniqueSocketPathSegment}");
         return socketPath;
     }
 

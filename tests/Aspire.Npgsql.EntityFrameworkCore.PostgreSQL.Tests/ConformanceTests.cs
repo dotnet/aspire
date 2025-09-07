@@ -23,6 +23,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
     protected override string ActivitySourceName => "Npgsql";
 
+    // Sub-classed in Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
+    protected override bool CheckOptionClassSealed => false;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Microsoft.EntityFrameworkCore.Infrastructure",

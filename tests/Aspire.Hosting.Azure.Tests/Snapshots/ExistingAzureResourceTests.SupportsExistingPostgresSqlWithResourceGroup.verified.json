@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{postgresSql.outputs.connectionString}",
+  "path": "postgresSql.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

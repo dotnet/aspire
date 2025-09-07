@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Properties;
+using Aspire.Hosting.Resources;
 
 namespace Aspire.Hosting;
 
@@ -15,7 +15,7 @@ internal static class LaunchProfileExtensions
     {
         if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
         {
-            throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
+            throw new DistributedApplicationException(LaunchProfileStrings.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
         // ExcludeLaunchProfileAnnotation disables getting launch settings. This ensures consumers of launch settings
@@ -56,7 +56,7 @@ internal static class LaunchProfileExtensions
         var found = profiles.TryGetValue(launchProfileName, out var launchProfile);
         if (!found && throwIfNotFound)
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
+            var message = string.Format(CultureInfo.InvariantCulture, LaunchProfileStrings.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
         }
 
@@ -73,7 +73,7 @@ internal static class LaunchProfileExtensions
 
         if (!File.Exists(projectMetadata.ProjectPath))
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
+            var message = string.Format(CultureInfo.InvariantCulture, LaunchProfileStrings.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
             throw new DistributedApplicationException(message);
         }
 

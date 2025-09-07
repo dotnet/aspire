@@ -7,7 +7,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.MySql.Tests;
 
@@ -226,7 +225,7 @@ public class AddMySqlTests
         builder.AddMySql("mySql").WithPhpMyAdmin();
         builder.AddMySql("mySql2").WithPhpMyAdmin();
 
-        Assert.Single(builder.Resources.OfType<ContainerResource>().Where(resource => resource.Name is "mySql-phpmyadmin"));
+        Assert.Single(builder.Resources.OfType<ContainerResource>(), resource => resource.Name == "phpmyadmin");
     }
 
     [Fact]
@@ -239,13 +238,13 @@ public class AddMySqlTests
         // Add fake allocated endpoints.
         mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var myAdmin = builder.Resources.Single(r => r.Name.Equals("phpmyadmin"));
 
-        var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(myAdmin, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
-        var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
+        var container = builder.Resources.Single(r => r.Name == "phpmyadmin");
         Assert.Empty(container.Annotations.OfType<ContainerMountAnnotation>());
 
         Assert.Equal($"{mysql.Resource.Name}:{mysql.Resource.PrimaryEndpoint.TargetPort}", config["PMA_HOST"]);
@@ -258,8 +257,8 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var tempStorePath = Directory.CreateTempSubdirectory().FullName;
-        builder.Configuration["Aspire:Store:Path"] = tempStorePath;
+        using var tempStore = new TempDirectory();
+        builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(c => c.WithHostPort(8081));
@@ -271,9 +270,9 @@ public class AddMySqlTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var myAdmin = builder.Resources.Single(r => r.Name.Equals("phpmyadmin"));
+        builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(myAdmin, app.Services));
 
-        var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         using var stream = File.OpenRead(volume.Source!);
@@ -286,15 +285,6 @@ public class AddMySqlTests
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);
         Assert.True(match2.Success);
-
-        try
-        {
-            Directory.Delete(tempStorePath, true);
-        }
-        catch
-        {
-            // Ignore.
-        }
     }
 
     [Fact]
@@ -356,5 +346,23 @@ public class AddMySqlTests
 
         Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task VerifyMySqlServerResourceWithPassword()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        var pass = builder.AddParameter("pass", password);
+        var mysql = builder.AddMySql("mysql")
+                               .WithPassword(pass)
+                               .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
+        var connectionString = await connectionStringResource.ConnectionStringExpression.GetValueAsync(default);
+        Assert.Equal("Server=localhost;Port=2000;User ID=root;Password=p@ssw0rd1", connectionString);
     }
 }

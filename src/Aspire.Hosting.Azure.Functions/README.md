@@ -25,7 +25,7 @@ Add a reference to the .NET-based Azure Functions project in your `AppHost` proj
 dotnet add reference ..\Company.FunctionApp\Company.FunctionApp.csproj
 ```
 
-In the _Program.cs_ file of `AppHost`, use the `AddAzureFunctionsProject` to configure the Functions project resource.
+In the _AppHost.cs_ file of `AppHost`, use the `AddAzureFunctionsProject` to configure the Functions project resource.
 
 ```csharp
 using Aspire.Hosting;

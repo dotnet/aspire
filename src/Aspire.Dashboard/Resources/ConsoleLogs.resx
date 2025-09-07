@@ -127,17 +127,11 @@
     <value>{0} console logs</value>
     <comment>{0} is an application name</comment>
   </data>
-  <data name="ConsoleLogsInitializingLogViewer" xml:space="preserve">
-    <value>Initializing log viewer...</value>
-  </data>
   <data name="ConsoleLogsLogsNotYetAvailable" xml:space="preserve">
     <value>Logs not yet available</value>
   </data>
   <data name="ConsoleLogsWatchingLogs" xml:space="preserve">
     <value>Watching logs...</value>
-  </data>
-  <data name="ConsoleLogsFailedToInitialize" xml:space="preserve">
-    <value>Failed to initialize</value>
   </data>
   <data name="ConsoleLogsFinishedWatchingLogs" xml:space="preserve">
     <value>Finished watching logs</value>
@@ -158,10 +152,7 @@
     <value>Download logs</value>
   </data>
   <data name="ConsoleLogsSettings" xml:space="preserve">
-    <value>Console logs settings</value>
-  </data>
-  <data name="ConsoleLogsResourceCommands" xml:space="preserve">
-    <value>Resource commands</value>
+    <value>Settings</value>
   </data>
   <data name="ConsoleLogsTimestampShow" xml:space="preserve">
     <value>Show timestamps</value>
@@ -171,5 +162,22 @@
   </data>
   <data name="ConsoleLogsTimestampShowUtc" xml:space="preserve">
     <value>UTC timestamps</value>
+  </data>
+  <data name="ConsoleLogsPauseActive" xml:space="preserve">
+    <value>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</value>
+    <comment>{0} is a date, {1} is a number</comment>
+  </data>
+  <data name="ConsoleLogsPauseDetails" xml:space="preserve">
+    <value>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</value>
+    <comment>{0} is a date, {1} is a date, {2} is a number.</comment>
+  </data>
+  <data name="ConsoleLogsErrorWatchingLogs" xml:space="preserve">
+    <value>Error watching logs</value>
+  </data>
+  <data name="ConsoleLogsWrapLogs" xml:space="preserve">
+    <value>Wrap log lines</value>
+  </data>
+  <data name="ConsoleLogsNoWrapLogs" xml:space="preserve">
+    <value>Don't wrap log lines</value>
   </data>
 </root>

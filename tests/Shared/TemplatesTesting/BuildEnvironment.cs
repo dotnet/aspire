@@ -35,25 +35,28 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnGithubActions => Environment.GetEnvironmentVariable("GITHUB_JOB") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine || IsRunningOnGithubActions;
+    public static bool ShouldRunPlaywrightTests => PlaywrightProvider.HasPlaywrightSupport && !EnvironmentVariables.RunOnlyBasicBuildTemplatesTests;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
-        new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
-            sdkDirName: "dotnet-8"));
+        new BuildEnvironment(sdkDirName: "dotnet-8"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
-        new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
-            sdkDirName: "dotnet-9"));
+        new BuildEnvironment(sdkDirName: "dotnet-9"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_100 = new(() =>
+        new BuildEnvironment(sdkDirName: "dotnet-10"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
-        new BuildEnvironment(
-            templatesCustomHive: TemplatesCustomHive.TemplatesHive,
-            sdkDirName: "dotnet-tests"));
+        new BuildEnvironment(sdkDirName: "dotnet-tests"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_100_90 = new(() =>
+        new BuildEnvironment(sdkDirName: "dotnet-tests"));
 
     public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
     public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
+    public static BuildEnvironment ForNextSdkOnly => s_instance_100.Value;
     public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
+    public static BuildEnvironment ForNextSdkAndCurrentRuntime => s_instance_100_90.Value;
 
     public static BuildEnvironment ForDefaultFramework =>
         DefaultTargetFramework switch
@@ -67,7 +70,7 @@ public class BuildEnvironment
             _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
         };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-tests")
+    public BuildEnvironment(bool useSystemDotNet = false, string sdkDirName = "dotnet-tests")
     {
         UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
@@ -88,9 +91,9 @@ public class BuildEnvironment
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new XunitException(
-                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
+                        $"Could not find a SDK with the necessary components installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
                         $" Build all the packages with '{buildCmd} -pack'." +
-                        $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
+                        $" Then install the SDK with 'dotnet build {workloadsProjString}'." +
                         " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Templates.Tests#readme for more details.");
                 }
             }
@@ -107,25 +110,44 @@ public class BuildEnvironment
                 sdkForTemplatePath = Path.GetDirectoryName(dotnetPath)!;
             }
 
-            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+#if RELEASE
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Release", "Shipping");
+#else
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", "Debug", "Shipping");
+#endif
 
             PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }
         else
         {
-            // CI - helix
-            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForTemplateTestingPath))
+            if (useSystemDotNet)
             {
-                throw new ArgumentException($"Environment variable SDK_FOR_TEMPLATES_TESTING_PATH is unset");
+                string? dotnetPath = Environment.GetEnvironmentVariable("PATH")!
+                    .Split(Path.PathSeparator)
+                    .Select(path => Path.Combine(path, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"))
+                    .FirstOrDefault(File.Exists);
+                if (dotnetPath is null)
+                {
+                    throw new ArgumentException($"Could not find dotnet.exe in PATH={Environment.GetEnvironmentVariable("PATH")}");
+                }
+                sdkForTemplatePath = Path.GetDirectoryName(dotnetPath)!;
             }
-
-            string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForTemplateTestingPath);
-            if (baseDir is null)
+            else
             {
-                throw new ArgumentException($"Cannot find base directory for SDK_FOR_TEMPLATES_TESTING_PATH - {baseDir}");
-            }
+                // CI - helix
+                if (string.IsNullOrEmpty(EnvironmentVariables.SdkForTemplateTestingPath))
+                {
+                    throw new ArgumentException($"Environment variable SDK_FOR_TEMPLATES_TESTING_PATH is unset");
+                }
 
-            sdkForTemplatePath = Path.Combine(baseDir, sdkDirName);
+                string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForTemplateTestingPath);
+                if (baseDir is null)
+                {
+                    throw new ArgumentException($"Cannot find base directory for SDK_FOR_TEMPLATES_TESTING_PATH - {baseDir}");
+                }
+
+                sdkForTemplatePath = Path.Combine(baseDir, sdkDirName);
+            }
 
             if (string.IsNullOrEmpty(EnvironmentVariables.BuiltNuGetsPath) || !Directory.Exists(EnvironmentVariables.BuiltNuGetsPath))
             {
@@ -160,8 +182,6 @@ public class BuildEnvironment
         // Avoid using the msbuild terminal logger, so the output can be read
         // in the tests
         EnvVars["_MSBUILDTLENABLED"] = "0";
-        // .. and disable new output style for vstest
-        EnvVars["VsTestUseMSBuildOutput"] = "false";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = Path.Combine(sdkForTemplatePath!, "dotnet");
@@ -208,7 +228,7 @@ public class BuildEnvironment
             }
         }
 
-        TemplatesCustomHive = templatesCustomHive;
+        TemplatesCustomHive = TemplatesCustomHive.TemplatesHive;
         TemplatesCustomHive?.EnsureInstalledAsync(this).Wait();
 
         static void CleanupTestRootPath()
@@ -266,6 +286,7 @@ public class BuildEnvironment
         {
             null or "" or "net9.0" => TestTargetFramework.Current,
             "net8.0" => TestTargetFramework.Previous,
+            "net10.0" => TestTargetFramework.Next,
             _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
         };
 
@@ -275,7 +296,8 @@ public enum TestTargetFramework
 {
     // Current is default
     Current,
-    Previous
+    Previous,
+    Next
 }
 
 public static class TestTargetFrameworkExtensions
@@ -284,6 +306,7 @@ public static class TestTargetFrameworkExtensions
     {
         TestTargetFramework.Previous => "net8.0",
         TestTargetFramework.Current => "net9.0",
+        TestTargetFramework.Next => "net10.0",
         _ => throw new ArgumentOutOfRangeException(nameof(tfm))
     };
 }

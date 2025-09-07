@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -18,7 +19,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.StartCommand,
-            displayName: "Start",
+            displayName: CommandStrings.StartName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -29,7 +30,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsRuntimeUnhealthy(state))
+                if (IsStarting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -42,7 +43,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Start resource",
+            displayDescription: CommandStrings.StartDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "Play",
@@ -51,7 +52,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.StopCommand,
-            displayName: "Stop",
+            displayName: CommandStrings.StopName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -66,7 +67,7 @@ internal static class CommandsConfigurationExtensions
                 {
                     return ResourceCommandState.Disabled;
                 }
-                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && context.ResourceSnapshot.State is not null)
+                else if (!IsStopped(state) && !IsStarting(state) && !IsWaiting(state) && !IsRuntimeUnhealthy(state) && !HasNoState(state))
                 {
                     return ResourceCommandState.Enabled;
                 }
@@ -75,7 +76,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Stop resource",
+            displayDescription: CommandStrings.StopDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "Stop",
@@ -84,7 +85,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.RestartCommand,
-            displayName: "Restart",
+            displayName: CommandStrings.RestartName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -96,7 +97,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || context.ResourceSnapshot.State is null)
+                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -105,7 +106,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
-            displayDescription: "Restart resource",
+            displayDescription: CommandStrings.RestartDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
@@ -119,5 +120,6 @@ internal static class CommandsConfigurationExtensions
         static bool IsStarting(string? state) => state == KnownResourceStates.Starting;
         static bool IsWaiting(string? state) => state == KnownResourceStates.Waiting;
         static bool IsRuntimeUnhealthy(string? state) => state == KnownResourceStates.RuntimeUnhealthy;
+        static bool HasNoState(string? state) => string.IsNullOrEmpty(state);
     }
 }

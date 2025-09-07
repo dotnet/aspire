@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
@@ -45,19 +46,19 @@ public partial class ResourcesTests : DashboardTestContext
         });
 
         // Assert 1
-        Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Type1", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Running", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Unhealthy", kvp.Key);
@@ -78,7 +79,7 @@ public partial class ResourcesTests : DashboardTestContext
         cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
 
         // Assert 2
-        Assert.Collection(cut.Instance.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Type1", kvp.Key);
@@ -89,13 +90,13 @@ public partial class ResourcesTests : DashboardTestContext
                 Assert.Equal("Type2", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Running", kvp.Key);
                 Assert.True(kvp.Value);
             });
-        Assert.Collection(cut.Instance.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
+        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
             kvp =>
             {
                 Assert.Equal("Healthy", kvp.Key);
@@ -207,6 +208,83 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Single(initializeGraphInvocationHandler.Invocations);
     }
 
+    [Fact]
+    public void ResourceFilters_ApplyExistingFiltersOnInitialRender()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type2", "Finished", null),
+        };
+
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources,
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var sessionStorage = (TestSessionStorage)Services.GetRequiredService<ISessionStorage>();
+        // Simulate existing filters in session storage
+        sessionStorage.OnGetAsync = key =>
+        {
+            if (key is BrowserStorageKeys.ResourcesPageState)
+            {
+                return (true,
+                    new Components.Pages.Resources.ResourcesPageState
+                    {
+                        ResourceTypesToVisibility =
+                            new Dictionary<string, bool> { { "Type1", true }, { "Type2", false } },
+                        ResourceStatesToVisibility =
+                            new Dictionary<string, bool> { { "Running", true }, { "Finished", false } },
+                        ResourceHealthStatusesToVisibility =
+                            new Dictionary<string, bool> { { "Healthy", true }, { "Unhealthy", false } },
+                        ViewKind = null,
+                    });
+            }
+
+            return (false, null);
+        };
+
+        // Act and assert
+        var cut = RenderComponent<Components.Pages.Resources>(builder => { builder.AddCascadingValue(viewport); });
+
+        Assert.Collection(cut.Instance.PageViewModel.ResourceTypesToVisibility.OrderBy(kvp => kvp.Key),
+            kvp =>
+            {
+                Assert.Equal("Type1", kvp.Key);
+                Assert.True(kvp.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Type2", kvp.Key);
+                Assert.False(kvp.Value);
+            });
+        Assert.Collection(cut.Instance.PageViewModel.ResourceStatesToVisibility.OrderBy(kvp => kvp.Key),
+            kvp =>
+            {
+                Assert.Equal("Finished", kvp.Key);
+                Assert.False(kvp.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Running", kvp.Key);
+                Assert.True(kvp.Value);
+            });
+
+        // Unhealthy not included because it's not present in any resource
+        Assert.Collection(cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility.OrderBy(kvp => kvp.Key),
+            kvp =>
+            {
+                Assert.Equal(string.Empty, kvp.Key);
+                Assert.True(kvp.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("Healthy", kvp.Key);
+                Assert.True(kvp.Value);
+            });
+    }
+
     private static void AssertResourceFilterListEquals(IRenderedComponent<Components.Pages.Resources> cut, IEnumerable<KeyValuePair<string, bool>> types, IEnumerable<KeyValuePair<string, bool>> states, IEnumerable<KeyValuePair<string, bool>> healthStates)
     {
         IReadOnlyList<IRenderedComponent<SelectResourceOptions<string>>> filterComponents = null!;
@@ -225,6 +303,53 @@ public partial class ResourcesTests : DashboardTestContext
 
         var healthSelect = filterComponents.First(f => f.Instance.Id == "resource-health-states");
         Assert.Equal(healthStates, healthSelect.Instance.Values.ToImmutableSortedDictionary() /* sort for equality comparison */);
+    }
+
+    [Fact]
+    public void ResourcesShouldRemainUnchangedWhenFilterDoesNotMatchUpdatedResource()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type2", "Stopping", null),
+        };
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: () => channel);
+
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Open the resource filter and apply a filter
+        cut.Find("#resourceFilterButton").Click();
+        cut.FindComponents<SelectResourceOptions<string>>()
+            .First(f => f.Instance.Id == "resource-types")
+            .FindComponents<FluentCheckbox>()
+            .First(checkbox => checkbox.Instance.Label == "Type1")
+            .Find("fluent-checkbox")
+            .TriggerEvent("oncheckedchange", new CheckboxChangeEventArgs { Checked = false });
+
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 1);
+
+        // Act
+        channel.Writer.TryWrite(new[]
+        {
+            new ResourceViewModelChange(
+                ResourceViewModelChangeType.Upsert,
+                CreateResource("Resource3", "Type3", "Running", null))
+        });
+
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Count() == 2);
+
+        // Assert
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Contains(filteredResources, r => r.Name == "Resource2");
+        Assert.Contains(filteredResources, r => r.Name == "Resource3");
     }
 
     private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports)
@@ -250,6 +375,7 @@ public partial class ResourcesTests : DashboardTestContext
             Relationships = default,
             Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
             Commands = [],
+            IsHidden = false,
         };
     }
 }

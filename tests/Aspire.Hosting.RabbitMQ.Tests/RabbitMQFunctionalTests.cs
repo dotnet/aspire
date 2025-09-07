@@ -12,7 +12,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using Xunit;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
 
@@ -105,7 +104,9 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var rabbitMQ1 = builder1.AddRabbitMQ("rabbitMQ");
+#pragma warning disable CS0618 // Type or member is obsolete
             var password = rabbitMQ1.Resource.PasswordParameter.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (useVolume)
             {
@@ -136,7 +137,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -193,7 +194,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 

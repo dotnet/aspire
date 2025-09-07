@@ -3,9 +3,12 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.DashboardService.Proto.V1;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 /// <summary>
 /// Models the state for <see cref="DashboardService"/>, as that service is constructed
@@ -15,19 +18,21 @@ internal sealed class DashboardServiceData : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
-    private readonly DashboardCommandExecutor _commandExecutor;
+    private readonly ResourceCommandService _resourceCommandService;
+    private readonly InteractionService _interactionService;
     private readonly ResourceLoggerService _resourceLoggerService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
-        DashboardCommandExecutor commandExecutor)
+        ResourceCommandService resourceCommandService,
+        InteractionService interactionService)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
-        _commandExecutor = commandExecutor;
-
+        _resourceCommandService = resourceCommandService;
+        _interactionService = interactionService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -50,7 +55,11 @@ internal sealed class DashboardServiceData : IDisposable
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
                     HealthReports = snapshot.HealthReports,
-                    Commands = snapshot.Commands
+                    Commands = snapshot.Commands,
+                    IsHidden = snapshot.IsHidden,
+                    SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
+                    IconName = snapshot.IconName,
+                    IconVariant = snapshot.IconVariant
                 };
             }
 
@@ -85,47 +94,27 @@ internal sealed class DashboardServiceData : IDisposable
         _cts.Dispose();
     }
 
-    internal async Task<(ExecuteCommandResult result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
+    internal async Task<(ExecuteCommandResultType result, string? errorMessage)> ExecuteCommandAsync(string resourceId, string type, CancellationToken cancellationToken)
     {
-        var logger = _resourceLoggerService.GetLogger(resourceId);
-
-        logger.LogInformation("Executing command '{Type}'.", type);
-        if (_resourcePublisher.TryGetResource(resourceId, out _, out var resource))
+        try
         {
-            var annotation = resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Name == type);
-            if (annotation != null)
+            var result = await _resourceCommandService.ExecuteCommandAsync(resourceId, type, cancellationToken).ConfigureAwait(false);
+            if (result.Canceled)
             {
-                try
-                {
-                    var result = await _commandExecutor.ExecuteCommandAsync(resourceId, annotation, cancellationToken).ConfigureAwait(false);
-                    if (result.Success)
-                    {
-                        logger.LogInformation("Successfully executed command '{Type}'.", type);
-                        return (ExecuteCommandResult.Success, null);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Failure executed command '{Type}'. Error message: {ErrorMessage}", type, result.ErrorMessage);
-                        return (ExecuteCommandResult.Failure, result.ErrorMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
-                }
+                return (ExecuteCommandResultType.Canceled, result.ErrorMessage);
             }
+            return (result.Success ? ExecuteCommandResultType.Success : ExecuteCommandResultType.Failure, result.ErrorMessage);
         }
-
-        logger.LogInformation("Command '{Type}' not available.", type);
-        return (ExecuteCommandResult.Canceled, null);
+        catch
+        {
+            // Note: Exception is already logged in the command executor.
+            return (ExecuteCommandResultType.Failure, "Unhandled exception thrown while executing command.");
+        }
     }
 
-    internal enum ExecuteCommandResult
+    internal IAsyncEnumerable<Interaction> SubscribeInteractionUpdates()
     {
-        Success,
-        Failure,
-        Canceled
+        return _interactionService.SubscribeInteractionUpdates();
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()
@@ -149,4 +138,70 @@ internal sealed class DashboardServiceData : IDisposable
             }
         }
     }
+
+    internal IAsyncEnumerable<IReadOnlyList<LogLine>>? GetConsoleLogs(string resourceName)
+    {
+        var sequence = _resourceLoggerService.GetAllAsync(resourceName);
+
+        return sequence is null ? null : Enumerate();
+
+        async IAsyncEnumerable<IReadOnlyList<LogLine>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+
+            await foreach (var item in sequence.WithCancellation(linked.Token).ConfigureAwait(false))
+            {
+                yield return item;
+            }
+        }
+    }
+
+    internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    {
+        await _interactionService.CompleteInteractionAsync(
+            request.InteractionId,
+            (interaction, serviceProvider) =>
+            {
+                switch (request.KindCase)
+                {
+                    case WatchInteractionsRequestUpdate.KindOneofCase.MessageBox:
+                        return new InteractionCompletionState { Complete = true, State = request.MessageBox.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.Notification:
+                        return new InteractionCompletionState { Complete = true, State = request.Notification.Result };
+                    case WatchInteractionsRequestUpdate.KindOneofCase.InputsDialog:
+                        var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+                        var options = (InputsDialogInteractionOptions)interaction.Options;
+
+                        for (var i = 0; i < inputsInfo.Inputs.Count; i++)
+                        {
+                            var modelInput = inputsInfo.Inputs[i];
+                            var requestInput = request.InputsDialog.InputItems[i];
+
+                            var incomingValue = requestInput.Value;
+
+                            // Ensure checkbox value is either true or false.
+                            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
+                            {
+                                incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
+                            }
+
+                            modelInput.Value = incomingValue;
+                        }
+
+                        return new InteractionCompletionState { Complete = true, State = inputsInfo.Inputs };
+                    default:
+                        return new InteractionCompletionState { Complete = true };
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
 }
+
+internal enum ExecuteCommandResultType
+{
+    Success,
+    Failure,
+    Canceled
+}
+
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

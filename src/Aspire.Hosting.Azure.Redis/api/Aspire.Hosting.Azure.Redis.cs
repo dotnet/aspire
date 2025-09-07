@@ -20,6 +20,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> RunAsContainer(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder, System.Action<ApplicationModel.IResourceBuilder<ApplicationModel.RedisResource>>? configureContainer = null) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<Azure.AzureRedisCacheResource> builder) { throw null; }
     }
 }
@@ -34,8 +36,14 @@ namespace Aspire.Hosting.Azure
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzureRedis instead to add an Azure Cache for Redis resource.")]

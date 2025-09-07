@@ -62,6 +62,21 @@
         <target state="translated">Condizione</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">Disabilita tutto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">Disabilita filtro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">Abilita tutto</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Campo</target>
@@ -167,20 +182,35 @@
         <target state="translated">Attiva/Disattiva orientamento del pannello</target>
         <note />
       </trans-unit>
+      <trans-unit id="InteractionButtonCancel">
+        <source>Cancel</source>
+        <target state="translated">Annulla</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionButtonClose">
+        <source>Close</source>
+        <target state="translated">Chiudi</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionButtonOk">
+        <source>OK</source>
+        <target state="translated">OK</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
         <target state="translated">Apri nel visualizzatore di testo</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">Annulla</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">In attesa del caricamento della traccia {0}...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">In attesa del caricamento della durata {0}...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -188,8 +218,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">Log e telemetria del dashboard</target>
+        <source>Resource logs and telemetry</source>
+        <target state="translated">Log delle risorse e telemetria</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -210,6 +240,21 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">Sistema</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">La telemetria del dashboard è abilitata. Aspire raccoglierà i dati di utilizzo e li invierà a Microsoft.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">Perché?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="translated">Vai alla documentazione sull'utilizzo della telemetria</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -33,12 +34,14 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required DashboardTelemetryService TelemetryService { get; init; }
+
     protected override void OnInitialized()
     {
-        // Order cultures in the dropdown with invariant culture. This prevents the order of languages changing when the culture changes.
-        _languageOptions = [.. GlobalizationHelpers.LocalizedCultures.OrderBy(c => c.NativeName, StringComparer.InvariantCultureIgnoreCase)];
+        _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
 
-        _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(_languageOptions, CultureInfo.CurrentUICulture, out var matchedCulture)
+        _selectedUiCulture = GlobalizationHelpers.TryGetKnownParentCulture(CultureInfo.CurrentUICulture, out var matchedCulture)
             ? matchedCulture :
             // Otherwise, Blazor has fallen back to a supported language
             CultureInfo.CurrentUICulture;
@@ -83,6 +86,11 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         NavigationManager.NavigateTo(
             DashboardUrls.SetLanguageUrl(_selectedUiCulture.Name, uri),
             forceLoad: true);
+    }
+
+    private static void ValueChanged(string? value)
+    {
+        // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
     }
 
     private async Task ClearAllSignals()

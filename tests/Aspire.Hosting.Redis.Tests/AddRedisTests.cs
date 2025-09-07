@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -128,7 +127,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyWithoutPasswordManifest()
+    public async Task VerifyDefaultManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
@@ -148,6 +147,37 @@ public class AddRedisTests
               "env": {
                 "REDIS_PASSWORD": "{redis-password.value}"
               },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithoutPasswordManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis").WithPassword(null);
+
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "entrypoint": "/bin/sh",
+              "args": [
+                "-c",
+                "redis-server"
+              ],
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -251,7 +281,88 @@ public class AddRedisTests
         builder.AddRedis("myredis1").WithRedisInsight();
         builder.AddRedis("myredis2").WithRedisInsight();
 
-        Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+        var redisinsight = builder.Resources.Single(r => r.Name.Equals("redisinsight"));
+
+        Assert.NotNull(redisinsight);
+    }
+
+    [Fact]
+    public async Task WithRedisInsightProducesCorrectEnvironmentVariables()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis1 = builder.AddRedis("myredis1").WithRedisInsight();
+        var redis2 = builder.AddRedis("myredis2").WithRedisInsight();
+        var redis3 = builder.AddRedis("myredis3").WithRedisInsight().WithPassword(null);
+        using var app = builder.Build();
+
+        // Add fake allocated endpoints.
+        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
+
+        var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+        var envs = await redisInsight.GetEnvironmentVariableValuesAsync();
+
+        Assert.Collection(envs,
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_HOST1", item.Key);
+                Assert.Equal(redis1.Resource.Name, item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_PORT1", item.Key);
+                Assert.Equal($"{redis1.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_ALIAS1", item.Key);
+                Assert.Equal(redis1.Resource.Name, item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_PASSWORD1", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
+                Assert.Equal(redis1.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_HOST2", item.Key);
+                Assert.Equal(redis2.Resource.Name, item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_PORT2", item.Key);
+                Assert.Equal($"{redis2.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_ALIAS2", item.Key);
+                Assert.Equal(redis2.Resource.Name, item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_PASSWORD2", item.Key);
+#pragma warning disable CS0618 // Type or member is obsolete
+                Assert.Equal(redis2.Resource.PasswordParameter!.Value, item.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_HOST3", item.Key);
+                Assert.Equal(redis3.Resource.Name, item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_PORT3", item.Key);
+                Assert.Equal($"{redis3.Resource.PrimaryEndpoint.TargetPort!.Value}", item.Value);
+            },
+            (item) =>
+            {
+                Assert.Equal("RI_REDIS_ALIAS3", item.Key);
+                Assert.Equal(redis3.Resource.Name, item.Value);
+            });
+
     }
 
     [Fact]
@@ -319,6 +430,58 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void VerifyRedisResourceWithHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis")
+            .WithHostPort(1000);
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task VerifyRedisResourceWithPassword(bool withPassword)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var redis = builder
+            .AddRedis("myRedis")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+
+        var password = "p@ssw0rd1";
+        if (withPassword)
+        {
+            var pass = builder.AddParameter("pass", password);
+            redis.WithPassword(pass);
+        }
+        else
+        {
+            redis.WithPassword(null);
+        }
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        if (withPassword)
+        {
+            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+            Assert.Equal($"localhost:5001,password={password}", connectionString);
+        }
+        else
+        {
+            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+            Assert.Equal($"localhost:5001", connectionString);
+        }
+    }
+
+    [Fact]
     public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariable()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -328,16 +491,18 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -352,9 +517,9 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
@@ -373,16 +538,18 @@ public class AddRedisTests
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
-        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new (app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var commander = builder.Resources.Single(r => r.Name.Equals("rediscommander"));
 
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+        await builder.Eventing.PublishAsync<BeforeResourceStartedEvent>(new(commander, app.Services));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             commander,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0:{redis1.Resource.PasswordParameter?.Value},myredis2:myredis2:6379:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Theory]

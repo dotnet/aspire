@@ -9,9 +9,37 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
-    "queues": {
+    "storage-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "mycontainer1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-1"
+    },
+    "mycontainer2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-2"
+    },
+    "storage-queues": {
       "type": "value.v0",
       "connectionString": "{storage.outputs.queueEndpoint}"
+    },
+    "myqueue": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.queueEndpoint};QueueName=my-queue"
+    },
+    "storage2": {
+      "type": "azure.bicep.v0",
+      "path": "storage2.module.bicep"
+    },
+    "storage2-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage2.outputs.blobEndpoint}"
+    },
+    "foocontainer": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage2.outputs.blobEndpoint};ContainerName=foo-container"
     },
     "api": {
       "type": "project.v0",
@@ -23,7 +51,8 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
-        "ConnectionStrings__queues": "{queues.connectionString}"
+        "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
+        "ConnectionStrings__myqueue": "{myqueue.connectionString}"
       },
       "bindings": {
         "http": {
@@ -45,6 +74,15 @@
       "path": "storage-roles.module.bicep",
       "params": {
         "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "storage2-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage2-roles.module.bicep",
+      "params": {
+        "storage2_outputs_name": "{storage2.outputs.name}",
         "principalType": "",
         "principalId": ""
       }

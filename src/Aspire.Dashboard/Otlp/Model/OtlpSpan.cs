@@ -23,7 +23,7 @@ public class OtlpSpan
 
     public string TraceId => Trace.TraceId;
     public OtlpTrace Trace { get; }
-    public OtlpApplicationView Source { get; }
+    public OtlpResourceView Source { get; }
 
     public required string SpanId { get; init; }
     public required string? ParentSpanId { get; init; }
@@ -42,10 +42,18 @@ public class OtlpSpan
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
+    public OtlpResource? UninstrumentedPeer { get => _uninstrumentedPeer; init => _uninstrumentedPeer = value; }
+
     public IEnumerable<OtlpSpan> GetChildSpans() => GetChildSpans(this, Trace.Spans);
     public static IEnumerable<OtlpSpan> GetChildSpans(OtlpSpan parentSpan, OtlpSpanCollection spans) => spans.Where(s => s.ParentSpanId == parentSpan.SpanId);
 
     private string? _cachedDisplaySummary;
+    private OtlpResource? _uninstrumentedPeer;
+
+    public void SetUninstrumentedPeer(OtlpResource? peer)
+    {
+        _uninstrumentedPeer = peer;
+    }
 
     public OtlpSpan? GetParentSpan()
     {
@@ -62,9 +70,9 @@ public class OtlpSpan
         return null;
     }
 
-    public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
+    public OtlpSpan(OtlpResourceView resourceView, OtlpTrace trace, OtlpScope scope)
     {
-        Source = applicationView;
+        Source = resourceView;
         Trace = trace;
         Scope = scope;
     }
@@ -86,6 +94,7 @@ public class OtlpSpan
             Events = item.Events,
             Links = item.Links,
             BackLinks = item.BackLinks,
+            UninstrumentedPeer = item.UninstrumentedPeer
         };
     }
 
@@ -118,7 +127,7 @@ public class OtlpSpan
 
     private string DebuggerToString()
     {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, Resource = {Source.ResourceKey}, UninstrumentedPeerResource = {UninstrumentedPeer?.ResourceKey}, TraceId = {Trace.TraceId}";
     }
 
     public string GetDisplaySummary()
@@ -180,18 +189,25 @@ public class OtlpSpan
         }
     }
 
-    public static string? GetFieldValue(OtlpSpan span, string field)
+    public static FieldValues GetFieldValue(OtlpSpan span, string field)
     {
+        // FieldValues is a hack to support two values in a single field.
+        // Find a better way to do this if more than two values are needed.
         return field switch
         {
-            KnownResourceFields.ServiceNameField => span.Source.Application.ApplicationName,
+            KnownResourceFields.ServiceNameField => new FieldValues(span.Source.Resource.ResourceName, span.UninstrumentedPeer?.ResourceName),
             KnownTraceFields.TraceIdField => span.TraceId,
             KnownTraceFields.SpanIdField => span.SpanId,
             KnownTraceFields.KindField => span.Kind.ToString(),
             KnownTraceFields.StatusField => span.Status.ToString(),
-            KnownSourceFields.NameField => span.Scope.ScopeName,
+            KnownSourceFields.NameField => span.Scope.Name,
             KnownTraceFields.NameField => span.Name,
             _ => span.Attributes.GetValue(field)
         };
+    }
+
+    public record struct FieldValues(string? Value1, string? Value2 = null)
+    {
+        public static implicit operator FieldValues(string? value) => new FieldValues(value);
     }
 }

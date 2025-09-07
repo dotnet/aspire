@@ -17,24 +17,6 @@
         <target state="translated">Bağlama işlemlerinde bir kaynak yolu belirtilmelidir.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
-See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulunamadı. Kapsayıcı çalışma zamanı denetiminden gelen hata: {1}.
-.
-Desteklenen konteyner çalışma zamanları hakkında daha fazla ayrıntı için https://aka.ms/dotnet/aspire/containers adresine bakın.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulundu, ancak iyi durumda değil. Kapsayıcı çalışma zamanı denetiminden gelen hata: {1}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
-        <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">'{0}' Kapsayıcı çalışma zamanı bulundu ancak yanıt vermiyor. '{0}' komutu {1} saniye sonra döndürülemedi.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
         <target state="translated">Uygulama düzenleyicisi bağımlılık denetimi bir hata döndürdü: {0}</target>

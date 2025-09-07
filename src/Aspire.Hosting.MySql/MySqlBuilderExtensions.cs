@@ -5,6 +5,8 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using MySqlConnector;
 
 namespace Aspire.Hosting;
 
@@ -48,6 +50,27 @@ public static class MySqlBuilderExtensions
             }
         });
 
+        builder.Eventing.Subscribe<ResourceReadyEvent>(resource, async (@event, ct) =>
+        {
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ResourceReadyEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+
+            using var sqlConnection = new MySqlConnection(connectionString);
+            await sqlConnection.OpenAsync(ct).ConfigureAwait(false);
+
+            if (sqlConnection.State != System.Data.ConnectionState.Open)
+            {
+                throw new InvalidOperationException($"Could not open connection to '{resource.Name}'");
+            }
+
+            foreach (var sqlDatabase in resource.DatabaseResources)
+            {
+                await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
+            }
+        });
+
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddMySql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
@@ -69,6 +92,19 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When adding a <see cref="MySqlDatabaseResource"/> to your application model the resource can then
+    /// be referenced by other resources using the resource name. When the dependent resource is using
+    /// the extension method <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// then the dependent resource will wait until the MySQL database is available.
+    /// </para>
+    /// <para>
+    /// Note that calling <see cref="AddDatabase(IResourceBuilder{MySqlServerResource}, string, string?)"/>
+    /// will result in the database being created on the MySQL server when the server becomes ready.
+    /// The database creation happens automatically as part of the resource lifecycle.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -77,9 +113,94 @@ public static class MySqlBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        builder.Resource.AddDatabase(name, databaseName);
         var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(mySqlDatabase);
+
+        builder.Resource.AddDatabase(mySqlDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(mySqlDatabase, async (@event, ct) =>
+        {
+            connectionString = await mySqlDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddMySql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
+        return builder.ApplicationBuilder
+            .AddResource(mySqlDatabase)
+            .WithHealthCheck(healthCheckKey);
+    }
+
+    private static async Task CreateDatabaseAsync(MySqlConnection sqlConnection, MySqlDatabaseResource sqlDatabase, IServiceProvider serviceProvider, CancellationToken ct)
+    {
+        var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(sqlDatabase.Parent);
+
+        logger.LogDebug("Creating database '{DatabaseName}'", sqlDatabase.DatabaseName);
+
+        try
+        {
+            var scriptAnnotation = sqlDatabase.Annotations.OfType<MySqlCreateDatabaseScriptAnnotation>().LastOrDefault();
+
+            if (scriptAnnotation?.Script is null)
+            {
+                var quotedDatabaseIdentifier = new MySqlCommandBuilder().QuoteIdentifier(sqlDatabase.DatabaseName);
+                using var command = sqlConnection.CreateCommand();
+                command.CommandText = $"CREATE DATABASE IF NOT EXISTS {quotedDatabaseIdentifier};";
+                await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                using var command = sqlConnection.CreateCommand();
+                command.CommandText = scriptAnnotation.Script;
+                await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+
+            logger.LogDebug("Database '{DatabaseName}' created successfully", sqlDatabase.DatabaseName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to create database '{DatabaseName}'", sqlDatabase.DatabaseName);
+        }
+    }
+
+    /// <summary>
+    /// Defines the SQL script used to create the database.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="MySqlDatabaseResource"/>.</param>
+    /// <param name="script">The SQL script used to create the database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <value>Default script is <code>CREATE DATABASE IF NOT EXISTS `QUOTED_DATABASE_NAME`;</code></value>
+    /// </remarks>
+    public static IResourceBuilder<MySqlDatabaseResource> WithCreationScript(this IResourceBuilder<MySqlDatabaseResource> builder, string script)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(script);
+
+        builder.WithAnnotation(new MySqlCreateDatabaseScriptAnnotation(script));
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the password that the MySQL resource uses.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="password">The parameter used to provide the password for the MySQL resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithPassword(this IResourceBuilder<MySqlServerResource> builder, IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+
+        builder.Resource.PasswordParameter = password.Resource;
+        return builder;
     }
 
     /// <summary>
@@ -96,12 +217,14 @@ public static class MySqlBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
+        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().SingleOrDefault() is { } existinghpMyAdminResource)
         {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existinghpMyAdminResource);
+            configureContainer?.Invoke(builderForExistingResource);
             return builder;
         }
 
-        containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+        containerName ??= "phpmyadmin";
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
@@ -110,14 +233,14 @@ public static class MySqlBuilderExtensions
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .ExcludeFromManifest();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(phpMyAdminContainer, async (e, ct) =>
         {
             var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
 
             if (!mySqlInstances.Any())
             {
                 // No-op if there are no MySql resources present.
-                return Task.CompletedTask;
+                return;
             }
 
             if (mySqlInstances.Count() == 1)
@@ -130,12 +253,12 @@ public static class MySqlBuilderExtensions
                     // This will need to be refactored once updated service discovery APIs are available
                     context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter);
                 });
             }
             else
             {
-                var tempConfigFile = WritePhpMyAdminConfiguration(mySqlInstances);
+                var tempConfigFile = await WritePhpMyAdminConfiguration(mySqlInstances, ct).ConfigureAwait(false);
 
                 try
                 {
@@ -163,8 +286,6 @@ public static class MySqlBuilderExtensions
                     }
                 }
             }
-
-            return Task.CompletedTask;
         });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
@@ -224,6 +345,7 @@ public static class MySqlBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use WithInitFiles instead.")]
     public static IResourceBuilder<MySqlServerResource> WithInitBindMount(this IResourceBuilder<MySqlServerResource> builder, string source, bool isReadOnly = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -232,7 +354,25 @@ public static class MySqlBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
-    private static string WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances)
+    /// <summary>
+    /// Copies init files into a MySql container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source file or directory on the host to copy into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> WithInitFiles(this IResourceBuilder<MySqlServerResource> builder, string source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        const string initPath = "/docker-entrypoint-initdb.d";
+
+        var importFullPath = Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+
+        return builder.WithContainerFiles(initPath, importFullPath);
+    }
+
+    private static async Task<string> WritePhpMyAdminConfiguration(IEnumerable<MySqlServerResource> mySqlInstances, CancellationToken cancellationToken)
     {
         // This temporary file is not used by the container, it will be copied and then deleted
         var filePath = Path.GetTempFileName();
@@ -246,6 +386,8 @@ public static class MySqlBuilderExtensions
         foreach (var mySqlInstance in mySqlInstances)
         {
             var endpoint = mySqlInstance.PrimaryEndpoint;
+            var pwd = await mySqlInstance.PasswordParameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
             writer.WriteLine("$i++;");
             // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
             // This will need to be refactored once updated service discovery APIs are available
@@ -253,7 +395,7 @@ public static class MySqlBuilderExtensions
             writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
             writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
             writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+            writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{pwd}';");
             writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
             writer.WriteLine();
         }

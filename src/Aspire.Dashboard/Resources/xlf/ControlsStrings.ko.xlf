@@ -72,11 +72,6 @@
         <target state="translated">카디널리티 상한이 감지되었습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerSelectFilters">
-        <source>Select filters</source>
-        <target state="translated">필터 선택</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">개수 표시</target>
@@ -107,6 +102,16 @@
         <target state="translated">{0} 제거</target>
         <note />
       </trans-unit>
+      <trans-unit id="ClearSignalsButtonTitle">
+        <source>Remove data</source>
+        <target state="translated">데이터 제거</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CollapseAllSpansText">
+        <source>Collapse all</source>
+        <target state="translated">모두 축소</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">세부 정보</target>
@@ -130,6 +135,11 @@
       <trans-unit id="ExceptionDetailsTitle">
         <source>Exception details</source>
         <target state="translated">예외 세부 정보</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpandAllSpansText">
+        <source>Expand all</source>
+        <target state="translated">모두 확장</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -227,6 +237,11 @@
         <target state="translated">값 표시</target>
         <note />
       </trans-unit>
+      <trans-unit id="HideHiddenResources">
+        <source>Hide hidden resources</source>
+        <target state="translated">숨겨진 리소스 숨기기</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
         <target state="translated">(모두)</target>
@@ -242,14 +257,24 @@
         <target state="translated">(없음)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LabelUnset">
-        <source>(Unset)</source>
-        <target state="translated">(설정 해제)</target>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="new">(Other)</target>
         <note />
       </trans-unit>
-      <trans-unit id="LinkColumnHeader">
-        <source>Link</source>
-        <target state="translated">링크</target>
+      <trans-unit id="LabelValueUnset">
+        <source>(Unset)</source>
+        <target state="translated">(설정 해제)</target>
+        <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
+      </trans-unit>
+      <trans-unit id="LinkAddressColumnHeader">
+        <source>Address</source>
+        <target state="translated">주소</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LinkTextColumnHeader">
+        <source>Text</source>
+        <target state="translated">텍스트</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -265,11 +290,6 @@
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
         <target state="translated">메트릭 데이터를 찾을 수 없음</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableShowLatestValues">
-        <source>Show latest 10 values</source>
-        <target state="translated">최신 10개의 값 표시</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
@@ -312,10 +332,25 @@
         <target state="translated">페이지 도구 모음</target>
         <note />
       </trans-unit>
+      <trans-unit id="PauseButtonTitle">
+        <source>Pause incoming data</source>
+        <target state="translated">들어오는 데이터 일시 중지</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PauseWarningTitle">
+        <source>Capture paused</source>
+        <target state="translated">캡처 일시 중지됨</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">개수</target>
         <note>Count is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartExemplar">
+        <source>Exemplar</source>
+        <target state="translated">모범</target>
+        <note />
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
@@ -345,6 +380,11 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">값</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActions">
+        <source>Resource actions</source>
+        <target state="translated">리소스 작업</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsBackReferences">
@@ -402,9 +442,19 @@
         <target state="translated">리소스</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAnApplication">
-        <source>Select an application</source>
-        <target state="translated">애플리케이션 선택</target>
+      <trans-unit id="ResumeButtonTitle">
+        <source>Resume incoming data</source>
+        <target state="translated">들어오는 데이터 다시 시작</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="translated">리소스 선택</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShowHiddenResources">
+        <source>Show hidden resources</source>
+        <target state="translated">숨겨진 리소스 표시</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
@@ -467,24 +517,34 @@
         <target state="translated">시작 시간 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeDatabase">
+        <source>Database</source>
+        <target state="new">Database</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeGenAI">
+        <source>Gen AI</source>
+        <target state="new">Gen AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeHttp">
+        <source>HTTP</source>
+        <target state="new">HTTP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeMessaging">
+        <source>Messaging</source>
+        <target state="new">Messaging</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeRpc">
+        <source>RPC</source>
+        <target state="new">RPC</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
         <target state="translated">상태</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringAddFilter">
-        <source>Add filter</source>
-        <target state="translated">필터 추가</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringFilters">
-        <source>Filters</source>
-        <target state="translated">필터</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredFilteringNoFilters">
-        <source>No filters</source>
-        <target state="translated">필터 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
@@ -527,9 +587,9 @@
         <target state="translated">타임스탬프</target>
         <note />
       </trans-unit>
-      <trans-unit id="TraceDetailAttributesHeader">
-        <source>Attributes</source>
-        <target state="translated">특성</target>
+      <trans-unit id="ToggleNesting">
+        <source>Toggle nesting</source>
+        <target state="translated">중첩 토글</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
@@ -557,10 +617,10 @@
         <target state="translated">세로 분할</target>
         <note />
       </trans-unit>
-      <trans-unit id="TotalItemsFooterText">
-        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">합계: &lt;strong&gt;{0}개 검색 결과를 찾음&lt;/strong&gt;</target>
-        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      <trans-unit id="ViewStructuredLogsText">
+        <source>View structured logs</source>
+        <target state="translated">구조화된 로그 보기</target>
+        <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>

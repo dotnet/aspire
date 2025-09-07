@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using Aspire.Components.Common.Tests;
+using Aspire.Components.Common.TestUtilities;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.DotNet.RemoteExecutor;

@@ -8,6 +8,8 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,6 +30,9 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        context.Services.AddSingleton<DashboardTelemetryService>();
+        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -93,6 +98,7 @@ internal static class ResourceSetupHelpers
 
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IMessageService, MessageService>();
         context.Services.AddSingleton(Options.Create(new DashboardOptions()));
@@ -108,6 +114,9 @@ internal static class ResourceSetupHelpers
         context.Services.AddFluentUIComponents();
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        context.Services.AddSingleton<DashboardTelemetryService>();
+        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);

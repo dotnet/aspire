@@ -4,36 +4,20 @@
     "sql1": {
       "type": "azure.bicep.v0",
       "connectionString": "Server=tcp:{sql1.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-      "path": "sql1.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalName": ""
-      }
+      "path": "sql1.module.bicep"
     },
     "db1": {
       "type": "value.v0",
       "connectionString": "{sql1.connectionString};Database=db1"
     },
     "sql2": {
-      "type": "container.v0",
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2-password.value};TrustServerCertificate=true",
-      "image": "mcr.microsoft.com/mssql/server:2022-latest",
-      "env": {
-        "ACCEPT_EULA": "Y",
-        "MSSQL_SA_PASSWORD": "{sql2-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 1433
-        }
-      }
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql2.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql2.module.bicep"
     },
     "db2": {
       "type": "value.v0",
-      "connectionString": "{sql2.connectionString};Initial Catalog=db2"
+      "connectionString": "{sql2.connectionString};Database=db2"
     },
     "dbsetup": {
       "type": "project.v0",
@@ -92,26 +76,21 @@
       "path": "sql1-roles.module.bicep",
       "params": {
         "sql1_outputs_name": "{sql1.outputs.name}",
+        "sql1_outputs_sqlserveradminname": "{sql1.outputs.sqlServerAdminName}",
         "principalId": "",
-        "principalName": ""
+        "principalName": "",
+        "principalType": ""
       }
     },
-    "sql2-password": {
-      "type": "parameter.v0",
-      "value": "{sql2-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "minLower": 1,
-              "minUpper": 1,
-              "minNumeric": 1
-            }
-          }
-        }
+    "sql2-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql2-roles.module.bicep",
+      "params": {
+        "sql2_outputs_name": "{sql2.outputs.name}",
+        "sql2_outputs_sqlserveradminname": "{sql2.outputs.sqlServerAdminName}",
+        "principalId": "",
+        "principalName": "",
+        "principalType": ""
       }
     }
   }

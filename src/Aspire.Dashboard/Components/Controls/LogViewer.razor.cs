@@ -15,6 +15,8 @@ namespace Aspire.Dashboard.Components;
 /// </summary>
 public sealed partial class LogViewer
 {
+    private static readonly MarkupString s_spaceMarkup = new MarkupString("&#32;");
+
     private LogEntries? _logEntries;
     private bool _logsChanged;
 
@@ -34,7 +36,13 @@ public sealed partial class LogViewer
     public bool ShowTimestamp { get; set; }
 
     [Parameter]
+    public bool ShowResourcePrefix { get; set; }
+
+    [Parameter]
     public bool IsTimestampUtc { get; set; }
+
+    [Parameter]
+    public bool NoWrapLogs { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -79,6 +87,11 @@ public sealed partial class LogViewer
         return IsTimestampUtc
             ? timestamp.UtcDateTime.ToString(KnownFormats.ConsoleLogsUITimestampUtcFormat, CultureInfo.InvariantCulture)
             : TimeProvider.ToLocal(timestamp).ToString(KnownFormats.ConsoleLogsUITimestampLocalFormat, CultureInfo.InvariantCulture);
+    }
+
+    private string GetLogContainerClass()
+    {
+        return $"log-container console-container {(NoWrapLogs ? "wrap-log-container" : null)}";
     }
 
     public ValueTask DisposeAsync()

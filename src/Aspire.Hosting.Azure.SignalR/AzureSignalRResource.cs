@@ -27,7 +27,10 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
@@ -40,8 +43,28 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = SignalRService.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a SignalRService with the same identifier already exists
+        var existingStore = resources.OfType<SignalRService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = SignalRService.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

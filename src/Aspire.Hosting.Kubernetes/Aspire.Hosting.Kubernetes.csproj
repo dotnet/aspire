@@ -15,7 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)Yaml\*.cs" Link="Shared\Yaml\*.cs" />
+    <Compile Include="$(SharedDir)PublishingContextUtils.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
   </ItemGroup>
 
   <ItemGroup>

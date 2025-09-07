@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.NodeJs
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add a Or resource and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Or resource and consume the connection using the following methods:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);

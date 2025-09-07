@@ -5,7 +5,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Tests.Shared.Telemetry;
-using OpenTelemetry.Proto.Common.V1;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -29,7 +28,7 @@ public sealed class DefaultInstrumentUnitResolverTests
         {
             Description = "Description!",
             Name = name,
-            Parent = new OtlpMeter(new InstrumentationScope { Name = "meter_name" }, TelemetryTestHelpers.CreateContext()),
+            Parent = TelemetryTestHelpers.CreateOtlpScope(TelemetryTestHelpers.CreateContext(), name: "meter_name"),
             Type = OtlpInstrumentType.Gauge,
             Unit = unit
         };

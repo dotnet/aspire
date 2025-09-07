@@ -11,6 +11,11 @@ resource cosmosdb 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
         failoverPriority: 0
       }
     ]
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
@@ -44,6 +49,7 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
         paths: [
           '/id'
         ]
+        kind: 'Hash'
       }
     }
   }

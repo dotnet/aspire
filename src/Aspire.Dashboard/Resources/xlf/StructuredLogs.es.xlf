@@ -17,24 +17,14 @@
         <target state="translated">Se superó el límite de registro estructurado</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAddFilter">
-        <source>Add filter</source>
-        <target state="translated">Agregar filtro</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit filter</source>
-        <target state="translated">Editar filtro</target>
+      <trans-unit id="PauseInProgressText">
+        <source>Structured logs capture paused at {0}</source>
+        <target state="translated">Captura de registros estructurados en pausa en {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
         <target state="translated">Detalles de la entrada de registro</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsFilters">
-        <source>Filters</source>
-        <target state="translated">Filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -67,11 +57,6 @@
         <target state="translated">Filtro de nivel de registro mínimo</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsNoFilters">
-        <source>No filters</source>
-        <target state="translated">No hay ningún filtro.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">No se encontraron registros estructurados</target>
@@ -101,6 +86,16 @@
         <source>Trace</source>
         <target state="translated">Seguimiento</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} structured logs&lt;/strong&gt;</source>
+        <target state="translated">Mostrando &lt;strong&gt;{0} registros estructurados&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} structured log&lt;/strong&gt;</source>
+        <target state="translated">Mostrando &lt;strong&gt;{0} registro estructurado&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

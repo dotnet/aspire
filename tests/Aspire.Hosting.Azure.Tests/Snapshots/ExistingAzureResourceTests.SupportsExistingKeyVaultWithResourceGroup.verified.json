@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{keyVault.outputs.vaultUri}",
+  "path": "keyVault.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

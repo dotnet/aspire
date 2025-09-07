@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.CosmosDB;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -106,16 +107,26 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
-    [Fact]
-    public void AzureCosmosDBHasCorrectConnectionStrings()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureCosmosDBHasCorrectConnectionStrings(bool useAccessKeyAuth)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos.WithAccessKeyAuthentication();
+        }
         var db1 = cosmos.AddCosmosDatabase("db1");
         var container1 = db1.AddContainer("container1", "id");
 
         var cosmos1 = builder.AddAzureCosmosDB("cosmos1").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos1.WithAccessKeyAuthentication();
+        }
         var db2 = cosmos1.AddCosmosDatabase("db2", "db");
         var container2 = db2.AddContainer("container2", "id", "container");
 
@@ -179,7 +190,7 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         if (useAcaInfrastructure)
         {
-            builder.AddAzureContainerAppsInfrastructure();
+            builder.AddAzureContainerAppEnvironment("env");
         }
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
@@ -191,42 +202,12 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var manifest = await GetManifestWithBicep(model, cosmos.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+        await Verify(manifest.BicepText, extension: "bicep");
+            
 
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: true
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            output connectionString string = cosmos.properties.documentEndpoint
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-
-        var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>().Where(r => r.Name == $"cosmos-roles"));
+        var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
         var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
-        expectedBicep = """
+        var expectedBicep = """
             @description('The location for the resource(s) to be deployed.')
             param location string = resourceGroup().location
 
@@ -276,92 +257,335 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
 
         var manifest = await GetManifestWithBicep(cosmos.Resource);
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
-
-            param keyVaultName string
-
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' = {
-              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
-              location: location
-              properties: {
-                locations: [
-                  {
-                    locationName: location
-                    failoverPriority: 0
-                  }
-                ]
-                consistencyPolicy: {
-                  defaultConsistencyLevel: 'Session'
-                }
-                databaseAccountOfferType: 'Standard'
-                disableLocalAuth: false
-              }
-              kind: 'GlobalDocumentDB'
-              tags: {
-                'aspire-resource-name': 'cosmos'
-              }
-            }
-
-            resource db1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-08-15' = {
-              name: 'db1'
-              location: location
-              properties: {
-                resource: {
-                  id: 'db1'
-                }
-              }
-              parent: cosmos
-            }
-
-            resource container1 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-08-15' = {
-              name: 'container1'
-              location: location
-              properties: {
-                resource: {
-                  id: 'container1'
-                  partitionKey: {
-                    paths: [
-                      'id'
-                    ]
-                  }
-                }
-              }
-              parent: db1
-            }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-              name: keyVaultName
-            }
-
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--cosmos'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
-              }
-              parent: keyVault
-            }
-
-            resource db1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--db1'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1'
-              }
-              parent: keyVault
-            }
-
-            resource container1_connectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-              name: 'connectionstrings--container1'
-              properties: {
-                value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey};Database=db1;Container=container1'
-              }
-              parent: keyVault
-            }
-
-            output name string = cosmos.name
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
+        await Verify(manifest.BicepText, extension: "bicep");
     }
+    
+    [Fact]
+    public async Task AddAzureCosmosDBEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+        });
+
+        Assert.True(cosmos.Resource.IsContainer());
+
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        var cs = await csExpr.GetValueAsync(CancellationToken.None);
+
+        var prefix = "AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=";
+        Assert.Equal(prefix + "https://{cosmos.bindings.emulator.host}:{cosmos.bindings.emulator.port};DisableServerCertificateValidation=True;", csExpr.ValueExpression);
+        Assert.Equal(prefix + "https://127.0.0.1:10001;DisableServerCertificateValidation=True;", cs);
+        Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
+
+#pragma warning disable ASPIRECOSMOSDB001
+        builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication(string? kvName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
+        db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kv = model.Resources.OfType<AzureKeyVaultResource>().Single();
+
+        Assert.Equal(kvName, kv.Name);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.SecretResolver = (secretRef, _) =>
+        {
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaRunMode_NoAccessKeyAuthentication()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
+                                 "path": "cosmos.module.bicep"
+                               }
+                               """;
+
+        output.WriteLine(manifest.ManifestNode.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Theory]
+    [InlineData("mykeyvault")]
+    [InlineData(null)]
+    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication(string? kvName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (secretRef, _) =>
+        {
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaPublishMode_NoAccessKeyAuthentication()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
+                                 "path": "cosmos.module.bicep"
+                               }
+                               """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaPublishMode_WithDefaultAzureSku()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .WithDefaultAzureSku();
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void RunAsPreviewEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+#pragma warning disable ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsPreviewEmulator();
+#pragma warning restore ASPIRECOSMOSDB001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureCosmosDBResource()
+    {
+        // Arrange
+        var cosmosDBResource = new AzureCosmosDBResource("test-cosmosdb", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(cosmosDBResource, "test-cosmosdb");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+        var secondResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureCosmosDBResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-cosmosdb-name");
+        var existingResourceGroup = builder.AddParameter("existing-cosmosdb-rg");
+
+        var cosmosdb = builder.AddAzureCosmosDB("test-cosmosdb")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = cosmosdb.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

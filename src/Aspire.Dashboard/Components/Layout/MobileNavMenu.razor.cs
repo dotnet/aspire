@@ -3,12 +3,11 @@
 
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Components.CustomIcons;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Layout;
 
@@ -40,7 +39,7 @@ public partial class MobileNavMenu : ComponentBase
                 Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
                 () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
                 DesktopNavMenu.ResourcesIcon(),
-                LinkMatchRegex: new Regex($"^{DashboardUrls.ResourcesUrl()}$")
+                LinkMatchRegex: new Regex($"^{DashboardUrls.ResourcesUrl()}(\\?.*)?$")
             );
 
             yield return new MobileNavMenuEntry(

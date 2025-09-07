@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
-using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Exec;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,31 +20,53 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    IDistributedApplicationEventing eventing,
-    PublishingActivityProgressReporter activityReporter) 
+    PublishingActivityReporter activityReporter,
+    IHostApplicationLifetime lifetime,
+    DistributedApplicationOptions options)
 {
-    public async IAsyncEnumerable<(string Id, string StatusText, bool IsComplete, bool IsError)> GetPublishingActivitiesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
-    {
-        while (cancellationToken.IsCancellationRequested == false)
-        {
-            var publishingActivity = await activityReporter.ActivitiyUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            yield return (
-                publishingActivity.Id,
-                publishingActivity.StatusMessage,
-                publishingActivity.IsComplete,
-                publishingActivity.IsError
-            );
+    private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
 
-            if ( publishingActivity.IsPrimary &&(publishingActivity.IsComplete || publishingActivity.IsError))
+    public void RegisterLogChannel(Channel<BackchannelLogEntry> channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+        _logChannelTcs.TrySetResult(channel);
+    }
+
+    public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = await _logChannelTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        var logEntries = channel.Reader.ReadAllAsync(cancellationToken);
+
+        await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
+        {
+            // If the log entry is null, terminate the stream
+            if (logEntry == null)
             {
-                // If the activity is complete or an error and it is the primary activity,
-                // we can stop listening for updates.
-                break;
+                yield break;
             }
+
+            yield return logEntry;
         }
     }
 
-    public async IAsyncEnumerable<(string Resource, string Type, string State, string[] Endpoints)> GetResourceStatesAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (cancellationToken.IsCancellationRequested == false)
+        {
+            var publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+            // Terminate the stream if the publishing activity is null
+            if (publishingActivity == null)
+            {
+                yield break;
+            }
+
+            yield return publishingActivity;
+        }
+    }
+
+    public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
 
@@ -56,33 +80,66 @@ internal class AppHostRpcTarget(
 
             if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
             {
-                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                logger.LogTrace("Resource {ResourceName} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
-    
+
             var endpointUris = endpoints
                 .Where(e => e.AllocatedEndpoint != null)
                 .Select(e => e.AllocatedEndpoint!.UriString)
                 .ToArray();
-            // TODO: Decide on whether we want to define a type and share it between codebases for this.
-            yield return (
-                resourceEvent.Resource.Name,
-                resourceEvent.Snapshot.ResourceType,
-                resourceEvent.Snapshot.State?.Text ?? "Unknown",
-                endpointUris
-                );
+
+            // Compute health status
+            var healthStatus = CustomResourceSnapshot.ComputeHealthStatus(resourceEvent.Snapshot.HealthReports, resourceEvent.Snapshot.State?.Text);
+
+            yield return new RpcResourceState
+            {
+                Resource = resourceEvent.Resource.Name,
+                Type = resourceEvent.Snapshot.ResourceType,
+                State = resourceEvent.Snapshot.State?.Text ?? "Unknown",
+                Endpoints = endpointUris,
+                Health = healthStatus?.ToString()
+            };
         }
     }
 
-    public Task<long> PingAsync(long timestamp, CancellationToken cancellationToken)
+    public Task RequestStopAsync(CancellationToken cancellationToken)
     {
         _ = cancellationToken;
-        logger.LogTrace("Received ping from CLI with timestamp: {Timestamp}", timestamp);
-        return Task.FromResult(timestamp);
+        lifetime.StopApplication();
+        return Task.CompletedTask;
     }
 
-    public Task<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken)> GetDashboardUrlsAsync()
+    public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
+        if (!options.DashboardEnabled)
+        {
+            logger.LogError("Dashboard URL requested but dashboard is disabled.");
+            throw new InvalidOperationException("Dashboard URL requested but dashboard is disabled.");
+        }
+
+        // Wait for the dashboard to be healthy before returning the URL. This is to ensure that the
+        // endpoint for the resource is available and the dashboard is ready to be used. This helps
+        // avoid some issues with port forwarding in devcontainer/codespaces scenarios.
+        try
+        {
+            await resourceNotificationService.WaitForResourceHealthyAsync(
+                KnownResourceNames.AspireDashboard,
+                WaitBehavior.StopOnResourceUnavailable,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (DistributedApplicationException ex)
+        {
+            logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
+            
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = false,
+                BaseUrlWithLoginToken = null,
+                CodespacesUrlWithLoginToken = null
+            };
+        }
+
         var dashboardOptions = serviceProvider.GetService<IOptions<DashboardOptions>>();
 
         if (dashboardOptions is null)
@@ -94,7 +151,7 @@ internal class AppHostRpcTarget(
         if (!StringUtils.TryGetUriFromDelimitedString(dashboardOptions.Value.DashboardUrl, ";", out var dashboardUri))
         {
             logger.LogWarning("Dashboard URL could not be parsed from dashboard options.");
-            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");            
+            throw new InvalidOperationException("Dashboard URL could not be parsed from dashboard options.");
         }
 
         var codespacesUrlRewriter = serviceProvider.GetService<CodespacesUrlRewriter>();
@@ -104,20 +161,63 @@ internal class AppHostRpcTarget(
 
         if (baseUrlWithLoginToken == codespacesUrlWithLoginToken)
         {
-            return Task.FromResult<(string, string?)>((baseUrlWithLoginToken, null));
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = null
+            };
         }
         else
         {
-            return Task.FromResult((baseUrlWithLoginToken, codespacesUrlWithLoginToken));
+            return new DashboardUrlsState
+            {
+                DashboardHealthy = true,
+                BaseUrlWithLoginToken = baseUrlWithLoginToken,
+                CodespacesUrlWithLoginToken = codespacesUrlWithLoginToken
+            };
         }
     }
 
-    public async Task<string[]> GetPublishersAsync(CancellationToken cancellationToken)
+    public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var e = new PublisherAdvertisementEvent();
-        await eventing.PublishAsync(e, cancellationToken).ConfigureAwait(false);
+        var execResourceManager = serviceProvider.GetRequiredService<ExecResourceManager>();
+        var logsStream = execResourceManager.StreamExecResourceLogs(cancellationToken);
+        await foreach (var commandOutput in logsStream.ConfigureAwait(false))
+        {
+            yield return commandOutput;
+        }
+    }
 
-        var publishers = e.Advertisements.Select(x => x.Name);
-        return [..publishers];
+#pragma warning disable CA1822
+    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        // The purpose of this API is to allow the CLI to determine what API surfaces
+        // the AppHost supports. In 9.2 we'll be saying that you need a 9.2 apphost,
+        // but the 9.3 CLI might actually support working with 9.2 apphosts. The idea
+        // is that when the backchannel is established the CLI will call this API
+        // and store the results. The "baseline.v0" capability is the bare minimum
+        // that we need as of CLI version 9.2-preview*.
+        //
+        // Some capabilties will be opt in. For example in 9.3 we might refine the
+        // publishing activities API to return more information, or add log streaming
+        // features. So that would add a new capability that the apphsot can report
+        // on initial backchannel negotiation and the CLI can adapt its behavior around
+        // that. There may be scenarios where we need to break compataiblity at which
+        // point we might increase the baseline version that the apphost reports.
+        //
+        // The ability to support a back channel at all is determined by the CLI by
+        // making sure that the apphost version is at least > 9.2.
+
+        _ = cancellationToken;
+        return Task.FromResult(new string[] {
+            "baseline.v2"
+            });
+    }
+#pragma warning restore CA1822
+
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
+    {
+        await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -27,13 +28,15 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
-    private const string MessageBarSection = "MessagesTop";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -98,8 +101,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             });
         }
 
-        var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
-        TimeProvider.SetBrowserTimeZone(result);
+        var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
+        TimeProvider.SetBrowserTimeZone(result.TimeZone);
+        TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
         {
@@ -121,7 +125,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                         Target = "_blank"
                     };
                     options.Intent = MessageIntent.Warning;
-                    options.Section = MessageBarSection;
+                    options.Section = DashboardUIHelpers.MessageBarSection;
                     options.AllowDismiss = true;
                     options.OnClose = async m =>
                     {
@@ -195,7 +199,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
-            PrimaryAction =  Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,

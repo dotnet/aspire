@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+  "path": "appConfig.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

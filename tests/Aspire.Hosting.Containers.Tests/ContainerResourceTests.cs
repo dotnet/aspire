@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Containers.Tests;
 
@@ -104,11 +103,17 @@ public class ContainerResourceTests
             });
 
         var c2 = appBuilder.AddContainer("container", "none")
+             .WithEndpoint("ep", e =>
+             {
+                 e.UriScheme = "http";
+                 e.AllocatedEndpoint = new(e, "localhost", 5678, targetPortExpression: "5678");
+             })
              .WithArgs(context =>
              {
                  context.Args.Add("arg1");
                  context.Args.Add(c1.GetEndpoint("ep"));
                  context.Args.Add(testResource);
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
              });
 
         using var app = appBuilder.Build();
@@ -118,7 +123,12 @@ public class ContainerResourceTests
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://c1:1234", arg), // this is the container hostname
-            arg => Assert.Equal("connectionString", arg));
+            arg => Assert.Equal("connectionString", arg),
+            arg => Assert.Equal("http://container:5678", arg));
+
+        // We don't yet process relationships set via the callbacks
+        // so we don't see the testResource2 nor exe1
+        Assert.False(c2.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
 
         var manifest = await ManifestUtils.GetManifest(c2.Resource);
 
@@ -130,8 +140,17 @@ public class ContainerResourceTests
           "args": [
             "arg1",
             "{c1.bindings.ep.url}",
-            "{test.connectionString}"
-          ]
+            "{test.connectionString}",
+            "{container.bindings.ep.url}"
+          ],
+          "bindings": {
+            "ep": {
+              "scheme": "http",
+              "protocol": "tcp",
+              "transport": "http",
+              "targetPort": 8000
+            }
+          }
         }
         """;
 
@@ -313,6 +332,26 @@ public class ContainerResourceTests
 
         Assert.Equal("containerwithbindmounts", containerResource.Name);
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void WithBindMountHandlesDockerSocketPath()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal("/var/run/docker.sock", mountAnnotation.Source);
+        Assert.Equal("/var/run/docker.sock", mountAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
+        Assert.False(mountAnnotation.IsReadOnly);
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

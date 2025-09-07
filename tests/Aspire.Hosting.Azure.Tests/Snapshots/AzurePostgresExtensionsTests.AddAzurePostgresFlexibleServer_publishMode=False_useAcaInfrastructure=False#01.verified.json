@@ -1,0 +1,10 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "postgres-data-roles.module.bicep",
+  "params": {
+    "postgres_data_outputs_name": "{postgres-data.outputs.name}",
+    "principalType": "",
+    "principalId": "",
+    "principalName": ""
+  }
+}

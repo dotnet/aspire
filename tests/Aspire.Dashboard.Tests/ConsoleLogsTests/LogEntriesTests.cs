@@ -18,9 +18,68 @@ public class LogEntriesTests
 
     private static void AddLogLine(LogEntries logEntries, string content, bool isError)
     {
-        var logParser = new LogParser();
-        var logEntry = logParser.CreateLogEntry(content, isError);
+        var logParser = new LogParser(ConsoleColor.Black);
+        var logEntry = logParser.CreateLogEntry(content, isError, resourcePrefix: null);
         logEntries.InsertSorted(logEntry);
+    }
+
+    [Fact]
+    public void Clear_AfterEarliestTimestampIndex_Success()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+
+        // Act
+        var logParser = new LogParser(ConsoleColor.Black);
+
+        // Insert log with no timestamp.
+        var logEntry1 = logParser.CreateLogEntry("Test", isErrorOutput: false, resourcePrefix: null);
+        logEntries.InsertSorted(logEntry1);
+
+        // Insert log with timestamp that ensures collections timestamp value is not zero.
+        var logEntry2 = logParser.CreateLogEntry("2024-08-19T06:12:01.000Z Test", isErrorOutput: false, resourcePrefix: null);
+        logEntries.InsertSorted(logEntry2);
+
+        logEntries.Clear(keepActivePauseEntries: true);
+        logEntries.BaseLineNumber = 0;
+
+        // Insert another log entry after clearing.
+        var logEntry3 = logParser.CreateLogEntry("2024-08-19T06:12:02.000Z Test", isErrorOutput: false, resourcePrefix: null);
+        logEntries.InsertSorted(logEntry3);
+
+        // Assert
+        Assert.Single(logEntries.GetEntries());
+    }
+
+    [Fact]
+    public void Add_PauseAndThenRemove_ActivePauseKept()
+    {
+        // Arrange
+        var logEntries = CreateLogEntries();
+
+        // Act
+        AddLogLine(logEntries, "Hello world", isError: false);
+
+        // Completed pause
+        logEntries.InsertSorted(LogEntry.CreatePause(
+            "resource-name",
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+
+        // Active pause
+        var pauseEntry = LogEntry.CreatePause("resource-name", new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        logEntries.InsertSorted(pauseEntry);
+
+        var pauseVM = pauseEntry.Pause;
+        Assert.NotNull(pauseVM);
+        pauseVM.FilteredCount++;
+
+        logEntries.Clear(keepActivePauseEntries: true);
+
+        // Assert
+        var entry = Assert.Single(logEntries.GetEntries());
+        Assert.Equal(pauseEntry, entry);
+        Assert.Equal(0, pauseVM.FilteredCount);
     }
 
     [Fact]
@@ -238,12 +297,27 @@ public class LogEntriesTests
     public void CreateLogEntry_AnsiAndUrl_HasUrlAnchor()
     {
         // Arrange
-        var parser = new LogParser();
+        var parser = new LogParser(ConsoleColor.Black);
 
         // Act
-        var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false);
+        var entry = parser.CreateLogEntry("\x1b[36mhttps://www.example.com\u001b[0m", isErrorOutput: false, resourcePrefix: null);
 
         // Assert
         Assert.Equal("<span class=\"ansi-fg-cyan\"></span><a target=\"_blank\" href=\"https://www.example.com\" rel=\"noopener noreferrer nofollow\">https://www.example.com</a>", entry.Content);
+    }
+
+    [Theory]
+    [InlineData(ConsoleColor.Black, @"<span class=""ansi-fg-green"">info</span>: LoggerName")]
+    [InlineData(ConsoleColor.Blue, @"<span class=""ansi-fg-green ansi-bg-black"">info</span>: LoggerName")]
+    public void CreateLogEntry_DefaultBackgroundColor_SkipMatchingColor(ConsoleColor defaultBackgroundColor, string output)
+    {
+        // Arrange
+        var parser = new LogParser(defaultBackgroundColor);
+
+        // Act
+        var entry = parser.CreateLogEntry("\u001b[40m\u001b[32minfo\u001b[39m\u001b[22m\u001b[49m: LoggerName", isErrorOutput: false, resourcePrefix: null);
+
+        // Assert
+        Assert.Equal(output, entry.Content);
     }
 }

@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
@@ -39,6 +42,12 @@ internal static class TelemetryTestHelpers
     {
         var id = Encoding.UTF8.GetBytes(text);
         return OtlpHelpers.ToHexString(id);
+    }
+
+    public static OtlpScope CreateOtlpScope(OtlpContext context, string? name = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    {
+        var scope = CreateScope(name, attributes);
+        return new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context));
     }
 
     public static InstrumentationScope CreateScope(string? name = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
@@ -144,7 +153,7 @@ internal static class TelemetryTestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, Span.Types.SpanKind? kind = null)
     {
         var span = new Span
         {
@@ -153,7 +162,8 @@ internal static class TelemetryTestHelpers
             ParentSpanId = parentSpanId is null ? ByteString.Empty : ByteString.CopyFrom(Encoding.UTF8.GetBytes(parentSpanId)),
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
-            Name = $"Test span. Id: {spanId}"
+            Name = $"Test span. Id: {spanId}",
+            Kind = kind ?? Span.Types.SpanKind.Internal
         };
         if (events != null)
         {
@@ -174,15 +184,16 @@ internal static class TelemetryTestHelpers
         return span;
     }
 
-    public static LogRecord CreateLogRecord(DateTime? time = null, DateTime? observedTime = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, bool? skipBody = null)
+    public static LogRecord CreateLogRecord(DateTime? time = null, DateTime? observedTime = null, string? message = null, SeverityNumber? severity = null, IEnumerable<KeyValuePair<string, string>>? attributes = null,
+        bool? skipBody = null, string? traceId = null, string? spanId = null)
     {
         attributes ??= [new KeyValuePair<string, string>("{OriginalFormat}", "Test {Log}"), new KeyValuePair<string, string>("Log", "Value!")];
 
         var logRecord = new LogRecord
         {
             Body = (skipBody ?? false) ? null : new AnyValue { StringValue = message ?? "Test Value!" },
-            TraceId = ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
-            SpanId = ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
+            TraceId = (traceId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(traceId)) : ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
+            SpanId = (spanId != null) ? ByteString.CopyFrom(Encoding.UTF8.GetBytes(spanId)) : ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
             TimeUnixNano = time != null ? DateTimeToUnixNanoseconds(time.Value) : 1000,
             ObservedTimeUnixNano = observedTime != null ? DateTimeToUnixNanoseconds(observedTime.Value) : 1000,
             SeverityNumber = severity ?? SeverityNumber.Info
@@ -225,7 +236,9 @@ internal static class TelemetryTestHelpers
         int? maxSpanEventCount = null,
         int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        PauseManager? pauseManager = null,
+        IOutgoingPeerResolver[]? outgoingPeerResolvers = null)
     {
         var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
@@ -251,7 +264,9 @@ internal static class TelemetryTestHelpers
 
         var repository = new TelemetryRepository(
             loggerFactory ?? NullLoggerFactory.Instance,
-            Options.Create(new DashboardOptions { TelemetryLimits = options }));
+            Options.Create(new DashboardOptions { TelemetryLimits = options }),
+            pauseManager ?? new PauseManager(),
+            outgoingPeerResolvers ?? []);
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;
@@ -287,14 +302,15 @@ internal static class TelemetryTestHelpers
         };
     }
 
-    public static OtlpSpan CreateOtlpSpan(OtlpApplication app, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
-        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified)
+    public static OtlpSpan CreateOtlpSpan(OtlpResource resource, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
+        KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified,
+        OtlpResource? uninstrumentedPeer = null, DateTime? endDate = null)
     {
-        return new OtlpSpan(app.GetView([]), trace, scope)
+        return new OtlpSpan(resource.GetView([]), trace, scope)
         {
             Attributes = attributes ?? [],
             BackLinks = [],
-            EndTime = DateTime.MaxValue,
+            EndTime = endDate ?? DateTime.MaxValue,
             Events = [],
             Kind = kind,
             Links = [],
@@ -304,7 +320,24 @@ internal static class TelemetryTestHelpers
             StartTime = startDate,
             State = null,
             Status = statusCode ?? OtlpSpanStatusCode.Unset,
-            StatusMessage = statusMessage
+            StatusMessage = statusMessage,
+            UninstrumentedPeer = uninstrumentedPeer
         };
+    }
+
+    public static X509Certificate2 GenerateDummyCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=DummyCertificate",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+
+        var certificate = request.CreateSelfSigned(
+            DateTimeOffset.Now,
+            DateTimeOffset.Now.AddYears(1));
+
+        return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
     }
 }

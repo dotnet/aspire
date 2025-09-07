@@ -14,21 +14,23 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
     private readonly ILogger _hostingLogger;
     private readonly IOptions<CodespacesOptions> _codespacesOptions;
     private readonly IOptions<DevcontainersOptions> _devcontainersOptions;
+    private readonly IOptions<SshRemoteOptions> _sshRemoteOptions;
     private readonly DevcontainerSettingsWriter _settingsWriter;
 
-    public DevcontainerPortForwardingLifecycleHook(ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions, DevcontainerSettingsWriter settingsWriter)
+    public DevcontainerPortForwardingLifecycleHook(ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions, IOptions<SshRemoteOptions> sshRemoteOptions, DevcontainerSettingsWriter settingsWriter)
     {
         _hostingLogger = loggerFactory.CreateLogger("Aspire.Hosting");
         _codespacesOptions = codespacesOptions;
         _devcontainersOptions = devcontainersOptions;
+        _sshRemoteOptions = sshRemoteOptions;
         _settingsWriter = settingsWriter;
     }
 
     public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
-        if (!_devcontainersOptions.Value.IsDevcontainer && !_codespacesOptions.Value.IsCodespace)
+        if (!_devcontainersOptions.Value.IsDevcontainer && !_codespacesOptions.Value.IsCodespace && !_sshRemoteOptions.Value.IsSshRemote)
         {
-            // We aren't a codespace so there is nothing to do here.
+            // We aren't a codespace, devcontainer, or SSH remote so there is nothing to do here.
             return;
         }
 

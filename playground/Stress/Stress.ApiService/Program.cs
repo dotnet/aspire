@@ -8,6 +8,8 @@ using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using Stress.ApiService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,8 +17,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName))
-    .WithMetrics(metrics => metrics.AddMeter(TestMetrics.MeterName));
+    .ConfigureResource(b =>
+    {
+        b.AddService(builder.Environment.ApplicationName);
+    })
+    .WithTracing(tracing => tracing
+        .AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName)
+        .AddSource("Services.Api"))
+    .WithMetrics(metrics =>
+    {
+        metrics.AddMeter(TestMetrics.MeterName);
+        metrics.SetExemplarFilter(ExemplarFilterType.AlwaysOn);
+
+    });
 builder.Services.AddSingleton<TestMetrics>();
 
 var app = builder.Build();
@@ -54,6 +67,18 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
     metrics.IncrementCounter(3, default);
 
     return "Counter incremented";
+});
+
+app.MapGet("/exemplars-no-span", (TestMetrics metrics) =>
+{
+    var activity = Activity.Current;
+    Activity.Current = null;
+
+    metrics.RecordHistogram(Random.Shared.NextDouble(), new TagList());
+
+    Activity.Current = activity;
+
+    return "Exemplar recorded";
 });
 
 app.MapGet("/overflow-counter", (TestMetrics metrics) =>
@@ -285,4 +310,68 @@ app.MapGet("/multiple-traces-linked", async () =>
     return $"Created {TraceCount} traces.";
 });
 
+app.MapGet("/nested-trace-spans", async () =>
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    Random.Shared.Next(-20, 55),
+                    "Sample Text"
+                ))
+            .ToArray();
+        ActivitySource source = new("Services.Api", "1.0.0");
+        ActivitySource.AddActivityListener(new ActivityListener
+        {
+            ShouldListenTo = _ => true,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+        });
+        using var activity = source.StartActivity("ValidateAndUpdateCacheService.ExecuteAsync");
+        await Task.Delay(100);
+        Debug.Assert(activity is not null);
+        using var innerActivity = source.StartActivity("ValidateAndUpdateCacheService.activeUser",
+            ActivityKind.Internal, parentContext: activity.Context);
+        await Task.Delay(100);
+        Debug.Assert(innerActivity is not null);
+        using (source.StartActivity("Perform1", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(10);
+        }
+
+        using (source.StartActivity("Perform2", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(20);
+        }
+
+        using (source.StartActivity("Perform3", ActivityKind.Internal, parentContext: innerActivity.Context))
+        {
+            await Task.Delay(30);
+        }
+
+        using var innerActivity2 = source.StartActivity("ValidateAndUpdateCacheService.activeUser",
+            ActivityKind.Internal, parentContext: activity.Context);
+        await Task.Delay(100);
+        Debug.Assert(innerActivity2 is not null);
+
+        using (source.StartActivity("Perform1", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(30);
+        }
+
+        using (source.StartActivity("Perform2", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(20);
+        }
+
+        using (source.StartActivity("Perform3", ActivityKind.Internal, parentContext: innerActivity2.Context))
+        {
+            await Task.Delay(10);
+        }
+
+        return forecast;
+    })
+    .WithName("GetWeatherForecast");
+
 app.Run();
+
+public record WeatherForecast(DateOnly Date, int TemperatureC, string Summary);

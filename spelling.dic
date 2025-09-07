@@ -28,6 +28,7 @@ grpc
 kubeconfig
 Kubelet
 kubernetes
+kusto
 libc
 microsoft
 mongodb
@@ -65,3 +66,4 @@ urls
 kubernetes
 Pgweb
 elasticsearch
+Yarp

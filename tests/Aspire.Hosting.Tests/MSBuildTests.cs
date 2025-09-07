@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -16,117 +15,229 @@ public class MSBuildTests
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        var tempDirectory = Directory.CreateTempSubdirectory("AspireHostingTests");
-        try
+        using var tempDirectory = new TempDirectory();
+
+        CreateLibraryProject(tempDirectory.Path, "Library");
+
+        var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
+        Directory.CreateDirectory(appHostDirectory);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <IsAspireHost>true</IsAspireHost>
+
+                <!--
+                  Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+                  the Aspire.AppHost.SDK targets that will automatically add these references to projects.
+                -->
+                <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+                <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+
+                <ProjectReference Include="..\Library\Library.csproj" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"),
+            """
+            var builder = DistributedApplication.CreateBuilder();
+            builder.Build().Run();
+            """);
+
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
+
+        var output = BuildProject(appHostDirectory);
+
+        // Ensure a warning is emitted when an AppHost references a Library project
+        Assert.Contains("warning ASPIRE004", output);
+    }
+
+    /// <summary>
+    /// Tests that the metadata sources are emitted correctly.
+    /// </summary>
+    [Fact]
+    public async Task ValidateMetadataSources()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TempDirectory();
+
+        CreateAppProject(tempDirectory.Path, "App");
+
+        var appHostDirectory = Path.Combine(tempDirectory.Path, "AppHost");
+        Directory.CreateDirectory(appHostDirectory);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <IsAspireHost>true</IsAspireHost>
+
+                <!--
+                  Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
+                  the Aspire.AppHost.SDK targets that will automatically add these references to projects.
+                -->
+                <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
+                <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+                <ProjectReference Include="..\App\App.csproj" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.cs"),
+            """
+            var builder = DistributedApplication.CreateBuilder();
+            builder.Build().Run();
+            """);
+
+        CreateDirectoryBuildFiles(appHostDirectory, repoRoot);
+
+        var output = BuildProject(appHostDirectory);
+
+        var metadataDirectory = Path.Combine(appHostDirectory, "obj", "Debug", "net8.0", "Aspire", "references");
+        var appHostMetadata = await File.ReadAllTextAsync(Path.Combine(metadataDirectory, "_AppHost.ProjectMetadata.g.cs"));
+        var appMetadata = await File.ReadAllTextAsync(Path.Combine(metadataDirectory, "App.ProjectMetadata.g.cs"));
+
+        await Verify(new
         {
-            var libraryDirectory = Path.Combine(tempDirectory.FullName, "Library");
-            Directory.CreateDirectory(libraryDirectory);
-
-            File.WriteAllText(Path.Combine(libraryDirectory, "Library.csproj"), """
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-</Project>
-""");
-            File.WriteAllText(Path.Combine(libraryDirectory, "Class1.cs"), """
-namespace Library;
-
-public class Class1
-{
-}
-""");
-
-            var appHostDirectory = Path.Combine(tempDirectory.FullName, "AppHost");
-            Directory.CreateDirectory(appHostDirectory);
-
-            File.WriteAllText(Path.Combine(appHostDirectory, "AppHost.csproj"), $"""
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsAspireHost>true</IsAspireHost>
-
-    <!-- 
-      Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
-      the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
-    -->
-    <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
-    <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-
-    <ProjectReference Include="..\Library\Library.csproj" />
-  </ItemGroup>
-
-</Project>
-""");
-            File.WriteAllText(Path.Combine(appHostDirectory, "Program.cs"), """
-var builder = DistributedApplication.CreateBuilder();
-builder.Build().Run();
-""");
-
-            File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.props"), $"""
-<Project>
-  <PropertyGroup>
-    <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
-  </PropertyGroup>
-
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
-</Project>
-""");
-            File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
-<Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
-  <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
-</Project>
-""");
-
-            var output = new StringBuilder();
-            var outputDone = new ManualResetEvent(false);
-            using var process = new Process();
-            // set '-nodereuse:false -p:UseSharedCompilation=false' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
-            process.StartInfo = new ProcessStartInfo("dotnet", $"build -nodereuse:false -p:UseSharedCompilation=false")
+            AppHost = appHostMetadata,
+            App = appMetadata
+        }).ScrubLinesWithReplace(line =>
             {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WorkingDirectory = appHostDirectory
-            };
-            process.OutputDataReceived += (sender, e) =>
+                var temp = tempDirectory?.Path;
+                if (temp is not null)
+                {
+                    line = line.Replace($"/private{temp}", "{AspirePath}") // Handle macOS temp symlinks
+                               .Replace(temp, "{AspirePath}")
+                               .Replace(Path.DirectorySeparatorChar, '/');
+                }
+                return line;
+            });
+    }
+
+    private static void CreateDirectoryBuildFiles(string basePath, string repoRoot)
+    {
+        File.WriteAllText(Path.Combine(basePath, "Directory.Build.props"),
+        $"""
+        <Project>
+          <PropertyGroup>
+            <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
+          </PropertyGroup>
+
+          <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
+        </Project>
+        """);
+        File.WriteAllText(Path.Combine(basePath, "Directory.Build.targets"),
+        $"""
+        <Project>
+          <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
+          <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
+        </Project>
+        """);
+    }
+
+    private static void CreateLibraryProject(string basePath, string name)
+    {
+        var libraryDirectory = Path.Combine(basePath,  name);
+        Directory.CreateDirectory(libraryDirectory);
+
+        File.WriteAllText(Path.Combine(libraryDirectory, $"{name}.csproj"),
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(libraryDirectory, "Class1.cs"),
+            """
+            namespace Library;
+
+            public class Class1
             {
-                if (e.Data == null)
-                {
-                    outputDone.Set();
-                }
-                else
-                {
-                    output.AppendLine(e.Data);
-                }
-            };
-            process.Start();
-            process.BeginOutputReadLine();
+            }
+            """);
+    }
 
-            Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
-            Assert.True(process.ExitCode == 0, $"Build failed: {Environment.NewLine}{output}");
+    private static void CreateAppProject(string basePath, string name)
+    {
+        var appDirectory = Path.Combine(basePath, name);
+        Directory.CreateDirectory(appDirectory);
 
-            Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+        File.WriteAllText(Path.Combine(appDirectory, $"{name}.csproj"),
+            """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
 
-            // Ensure a warning is emitted when an AppHost references a Library project
-            Assert.Contains("warning ASPIRE004", output.ToString());
-        }
-        finally
+        File.WriteAllText(Path.Combine(appDirectory, "Program.cs"),
+            """
+            Console.WriteLine("Hello, Aspire!");
+            """);
+    }
+
+    private static string BuildProject(string workingDirectory)
+    {
+        var output = new StringBuilder();
+        var outputDone = new ManualResetEvent(false);
+        using var process = new Process();
+        // set '--disable-build-servers' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
+        process.StartInfo = new ProcessStartInfo("dotnet", "build --disable-build-servers")
         {
-            tempDirectory.Delete(true);
-        }
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workingDirectory
+        };
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data == null)
+            {
+                outputDone.Set();
+            }
+            else
+            {
+                output.AppendLine(e.Data);
+            }
+        };
+        process.Start();
+        process.BeginOutputReadLine();
+
+        Assert.True(process.WaitForExit(milliseconds: 180_000), "dotnet build command timed out after 3 minutes.");
+        Assert.True(process.ExitCode == 0, $"Build failed: {Environment.NewLine}{output}");
+
+        Assert.True(outputDone.WaitOne(millisecondsTimeout: 60_000), "Timed out waiting for output to complete.");
+
+        return output.ToString();
     }
 }

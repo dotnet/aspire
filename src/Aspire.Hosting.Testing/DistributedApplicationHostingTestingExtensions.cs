@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Testing.Properties;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -49,7 +48,7 @@ public static class DistributedApplicationHostingTestingExtensions
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
         {
-            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceDoesNotExposeConnectionStringExceptionMessage, resourceName), nameof(resourceName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ResourceDoesNotExposeConnectionStringExceptionMessage, resourceName), nameof(resourceName));
         }
 
         return resourceWithConnectionString.GetConnectionStringAsync(cancellationToken);
@@ -82,7 +81,7 @@ public static class DistributedApplicationHostingTestingExtensions
 
         if (resource is null)
         {
-            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceNotFoundExceptionMessage, resourceName), nameof(resourceName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ResourceNotFoundExceptionMessage, resourceName), nameof(resourceName));
         }
 
         return resource;
@@ -93,7 +92,7 @@ public static class DistributedApplicationHostingTestingExtensions
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithEndpoints resourceWithEndpoints)
         {
-            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceHasNoAllocatedEndpointsExceptionMessage, resourceName), nameof(resourceName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Properties.Resources.ResourceHasNoAllocatedEndpointsExceptionMessage, resourceName), nameof(resourceName));
         }
 
         EndpointReference? endpoint;
@@ -108,7 +107,7 @@ public static class DistributedApplicationHostingTestingExtensions
 
         if (endpoint is null)
         {
-            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.EndpointForResourceNotFoundExceptionMessage, endpointName, resourceName), nameof(endpointName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Properties.Resources.EndpointForResourceNotFoundExceptionMessage, endpointName, resourceName), nameof(endpointName));
         }
 
         return endpoint.Url;
@@ -119,7 +118,7 @@ public static class DistributedApplicationHostingTestingExtensions
         var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         if (!lifetime.ApplicationStarted.IsCancellationRequested)
         {
-            throw new InvalidOperationException(Resources.ApplicationNotStartedExceptionMessage);
+            throw new InvalidOperationException(Properties.Resources.ApplicationNotStartedExceptionMessage);
         }
     }
 

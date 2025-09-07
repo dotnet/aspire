@@ -6,7 +6,6 @@ using System.Text.Json;
 using Aspire.TestUtilities;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.Seq.Tests;
 
@@ -31,6 +30,9 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(seqUrl);
 
         var client = CreateClient(seqUrl);
+
+        // Wait for the Seq resource to be healthy
+        await app.ResourceNotifications.WaitForResourceHealthyAsync(seq.Resource.Name, default);
 
         await CreateTestDataAsync(client, default);
     }
@@ -109,6 +111,9 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     var client = CreateClient(seqUrl);
 
+                    // Wait for the Seq resource to be healthy
+                    await app.ResourceNotifications.WaitForResourceHealthyAsync(seq1.Resource.Name, default);
+
                     await CreateTestDataAsync(client, default);
                 }
                 finally
@@ -144,6 +149,9 @@ public class SeqFunctionalTests(ITestOutputHelper testOutputHelper)
                     Assert.NotNull(seqUrl);
 
                     var client = CreateClient(seqUrl);
+
+                    // Wait for the Seq resource to be healthy
+                    await app.ResourceNotifications.WaitForResourceHealthyAsync(seq2.Resource.Name, default);
 
                     await CreateTestDataAsync(client, default);
                 }

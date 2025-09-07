@@ -12,6 +12,7 @@ namespace Aspire.Hosting
     {
         public AzureCosmosDBResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        [System.Obsolete("BicepSecretOutputReference is no longer supported. Use ConnectionStringOutput instead.")]
         public Azure.BicepSecretOutputReference ConnectionString { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
@@ -20,8 +21,14 @@ namespace Aspire.Hosting
 
         public bool IsEmulator { get { throw null; } }
 
+        public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
+
+        public override void AddRoleAssignments(Azure.IAddRoleAssignmentsContext roleAssignmentContext) { }
 
         void Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -29,6 +36,8 @@ namespace Aspire.Hosting
     public static partial class AzureCosmosExtensions
     {
         public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBContainerResource> AddContainer(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBDatabaseResource> builder, string name, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, string? containerName = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBContainerResource> AddContainer(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBDatabaseResource> builder, string name, string partitionKeyPath, string? containerName = null) { throw null; }
 
@@ -39,15 +48,19 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<AzureCosmosDBResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource>>? configureContainer = null) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> RunAsPreviewEmulator(this ApplicationModel.IResourceBuilder<AzureCosmosDBResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource>>? configureContainer = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<AzureCosmosDBResource> builder, ApplicationModel.IResourceBuilder<Azure.IAzureKeyVaultResource> keyVaultBuilder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> WithAccessKeyAuthentication(this ApplicationModel.IResourceBuilder<AzureCosmosDBResource> builder) { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> WithDataExplorer(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> builder, int? port = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> builder, string? name = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<AzureCosmosDBResource> WithDefaultAzureSku(this ApplicationModel.IResourceBuilder<AzureCosmosDBResource> builder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> WithGatewayPort(this ApplicationModel.IResourceBuilder<Azure.AzureCosmosDBEmulatorResource> builder, int? port) { throw null; }
 
@@ -59,15 +72,21 @@ namespace Aspire.Hosting.Azure
 {
     public partial class AzureCosmosDBContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBDatabaseResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
+        public AzureCosmosDBContainerResource(string name, string containerName, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(default!) { }
+
         public AzureCosmosDBContainerResource(string name, string containerName, string partitionKeyPath, AzureCosmosDBDatabaseResource parent) : base(default!) { }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public string ContainerName { get { throw null; } set { } }
 
+        public Microsoft.Azure.Cosmos.ContainerProperties ContainerProperties { get { throw null; } }
+
         public AzureCosmosDBDatabaseResource Parent { get { throw null; } }
 
         public string PartitionKeyPath { get { throw null; } set { } }
+
+        public System.Collections.Generic.IReadOnlyList<string> PartitionKeyPaths { get { throw null; } set { } }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }

@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Utils;
@@ -23,7 +22,7 @@ public sealed class AzureManifestUtils
         if (!skipPreparer)
         {
             var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-            var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext, ResourceNotificationServiceTestHelpers.Create());
+            var azurePreparer = new AzureResourcePreparer(Options.Create(new AzureProvisioningOptions()), executionContext);
             await azurePreparer.BeforeStartAsync(appModel, cancellationToken: default);
         }
 

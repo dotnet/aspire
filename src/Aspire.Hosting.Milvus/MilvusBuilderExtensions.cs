@@ -31,7 +31,7 @@ public static class MilvusBuilderExtensions
     ///
     /// builder.Build().Run();
     /// </code>
-    /// </example>   
+    /// </example>
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -180,14 +180,35 @@ public static class MilvusBuilderExtensions
     /// Adds a bind mount for the configuration of a Milvus container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="configurationFilePath">The source directory on the host to mount into the container.</param>
+    /// <param name="configurationFilePath">The configuration file on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use WithConfigurationFile instead.")]
     public static IResourceBuilder<MilvusServerResource> WithConfigurationBindMount(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(configurationFilePath);
 
         return builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
+    }
+
+    /// <summary>
+    /// Copies a configuration file into a Milvus container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configurationFilePath">The configuration file on the host to copy into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MilvusServerResource> WithConfigurationFile(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(configurationFilePath);
+
+        return builder.WithContainerFiles("/milvus/configs", [
+            new ContainerFile
+            {
+                Name = "milvus.yaml",
+                SourcePath = configurationFilePath,
+            },
+        ]);
     }
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)

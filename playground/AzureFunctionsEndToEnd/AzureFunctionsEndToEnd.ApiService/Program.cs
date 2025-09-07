@@ -14,8 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
-builder.AddAzureQueueClient("queue");
-builder.AddAzureBlobClient("blob");
+builder.AddAzureQueueServiceClient("queue");
+builder.AddAzureBlobServiceClient("blob");
 builder.AddAzureEventHubProducerClient("myhub");
 #if !SKIP_UNSTABLE_EMULATORS
 builder.AddAzureServiceBusClient("messaging");
@@ -41,7 +41,7 @@ static string RandomString(int length)
 
 app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken cancellationToken, int length = 20) =>
 {
-    var container = client.GetBlobContainerClient("blobs");
+    var container = client.GetBlobContainerClient("myblobcontainer");
     await container.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
     var entry = new { Id = Guid.NewGuid(), Text = RandomString(length) };

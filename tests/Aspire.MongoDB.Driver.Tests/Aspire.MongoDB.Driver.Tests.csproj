@@ -14,7 +14,7 @@
     <PackageReference Include="MongoDB.Driver" VersionOverride="[2.30.0,3.0.0)" />
     <PackageReference Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" VersionOverride="[1.5.0,2.0.0)" />
 
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
 
     <PackageReference Include="TestContainers.MongoDb" />
   </ItemGroup>

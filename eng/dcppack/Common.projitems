@@ -40,6 +40,7 @@
     <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-arm64" Version="[$(MicrosoftDeveloperControlPlanedarwinarm64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxamd64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(MicrosoftDeveloperControlPlanelinuxarm64Version)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-musl-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxmuslamd64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(MicrosoftDeveloperControlPlanewindows386Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(MicrosoftDeveloperControlPlanewindowsamd64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(MicrosoftDeveloperControlPlanewindowsarm64Version)]" />

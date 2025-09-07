@@ -1,0 +1,5 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "connectionString": "{messaging.outputs.serviceBusEndpoint}",
+  "path": "messaging.module.bicep"
+}

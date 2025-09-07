@@ -23,7 +23,12 @@
             else
             {
                 @ContentBeforeValue
-                if (ValueTemplate is not null)
+                if (ComponentMetadata is not null)
+                {
+                    <DynamicComponent Type="@ComponentMetadata.Type"
+                                      Parameters="@BuildComponentParameters()" />
+                }
+                else if (ValueTemplate is not null)
                 {
                     @ValueTemplate(Value)
                 }
@@ -47,7 +52,8 @@
         <span class="defaultHidden">
             <FluentButton Appearance="Appearance.Lightweight"
                           Disabled="@(ValueToVisualize is null && Value is null)"
-                          OnClick="OpenTextVisualizerAsync">
+                          OnClick="OpenTextVisualizerAsync"
+                          aria-label="@DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]">
                 <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
             </FluentButton>
         </span>

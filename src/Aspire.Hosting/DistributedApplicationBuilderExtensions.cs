@@ -28,7 +28,6 @@ public static class DistributedApplicationBuilderExtensions
     /// referenced directly. Using the <see cref="CreateResourceBuilder{T}(IDistributedApplicationBuilder, string)"/> method allows for easier mutation
     /// of resources within the test scenario.
     /// </para>
-    /// </remarks>
     /// <example>
     /// In this example, the MyAspireApp.AppHost project has previously added a Redis resource named "cache" to the application host. The test project,
     /// MyAspireApp.AppHost.Tests, modifies that resource so that it sleeps instead of starting the Redis container. This allows the test case to verify
@@ -57,6 +56,7 @@ public static class DistributedApplicationBuilderExtensions
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> CreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));

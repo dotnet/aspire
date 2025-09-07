@@ -18,18 +18,32 @@ for (var i = 0; i < 5; i++)
     var rb = builder.AddTestResource(name);
     IResource parent = rb.Resource;
 
-    for (int j = 0; j < 3; j++)
+    for (var j = 0; j < 3; j++)
     {
-        name = name + $"-n{j}";
+        name += $"-n{j}";
         var nestedRb = builder.AddNestedResource(name, parent);
         parent = nestedRb.Resource;
     }
 }
 
+builder.AddParameter("testParameterResource", () => "value", secret: true);
+builder.AddContainer("hiddenContainer", "alpine")
+    .WithInitialState(new CustomResourceSnapshot
+    {
+        ResourceType = "CustomHiddenContainerType",
+        Properties = [],
+        IsHidden = true
+    });
+
 // TODO: OTEL env var can be removed when OTEL libraries are updated to 1.9.0
 // See https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/RELEASENOTES.md#1100
 var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apiservice", launchProfileName: null)
-    .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_METRICS_EMIT_OVERFLOW_ATTRIBUTE", "true");
+    .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_METRICS_EMIT_OVERFLOW_ATTRIBUTE", "true")
+    .WithIconName("Server");
+serviceBuilder
+    .WithEnvironment("HOST", $"{serviceBuilder.GetEndpoint("http").Property(EndpointProperty.Host)}")
+    .WithEnvironment("PORT", $"{serviceBuilder.GetEndpoint("http").Property(EndpointProperty.Port)}")
+    .WithEnvironment("URL", $"{serviceBuilder.GetEndpoint("http").Property(EndpointProperty.Url)}");
 serviceBuilder.WithCommand(
     name: "icon-test",
     displayName: "Icon test",
@@ -69,10 +83,40 @@ serviceBuilder.WithHttpCommand("/log-message", "Log message", commandOptions: ne
 serviceBuilder.WithHttpCommand("/log-message-limit", "Log message limit", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/multiple-traces-linked", "Multiple traces linked", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
+serviceBuilder.WithHttpCommand("/nested-trace-spans", "Out of order nested spans", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
+serviceBuilder.WithHttpCommand("/exemplars-no-span", "Examplars with no span", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
-       .WithUrl("https://someotherplace.com/some-path", "Some other place");
+       .WithUrl("https://someotherplace.com/some-path", "Some other place")
+       .WithUrl("https://extremely-long-url.com/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz//abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmnopqrstuvwxyz/abcdefghijklmno")
+       .AddInteractionCommands()
+       .WithCommand(
+           name: "long-command",
+           displayName: "This is a custom command with a very long command display name",
+           executeCommand: (c) =>
+           {
+               return Task.FromResult(CommandResults.Success());
+           },
+           commandOptions: new() { IconName = "CloudDatabase" })
+       .WithCommand(
+           name: "resource-stop-all",
+           displayName: "Stop all resources",
+           executeCommand: async (c) =>
+           {
+               await ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-stop", c.CancellationToken);
+               return CommandResults.Success();
+           },
+           commandOptions: new() { IconName = "Stop", IconVariant = IconVariant.Filled })
+       .WithCommand(
+           name: "resource-start-all",
+           displayName: "Start all resources",
+           executeCommand: async (c) =>
+           {
+               await ExecuteCommandForAllResourcesAsync(c.ServiceProvider, "resource-start", c.CancellationToken);
+               return CommandResults.Success();
+           },
+           commandOptions: new() { IconName = "Play", IconVariant = IconVariant.Filled });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -84,11 +128,16 @@ builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
 
+builder.AddExecutable("executableWithSingleArg", "dotnet", Environment.CurrentDirectory, "--version");
+builder.AddExecutable("executableWithSingleEscapedArg", "dotnet", Environment.CurrentDirectory, "one two");
+builder.AddExecutable("executableWithMultipleArgs", "dotnet", Environment.CurrentDirectory, "--version", "one two");
+
 IResourceBuilder<IResource>? previousResourceBuilder = null;
 
 for (var i = 0; i < 3; i++)
 {
-    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}");
+    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}")
+                                .WithIconName("Document");
     if (previousResourceBuilder != null)
     {
         resourceBuilder.WaitFor(previousResourceBuilder);
@@ -99,3 +148,21 @@ for (var i = 0; i < 3; i++)
 }
 
 builder.Build().Run();
+
+static async Task ExecuteCommandForAllResourcesAsync(IServiceProvider serviceProvider, string commandName, CancellationToken cancellationToken)
+{
+    var commandService = serviceProvider.GetRequiredService<ResourceCommandService>();
+    var model = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+
+    var resources = model.Resources
+        .Where(r => r.IsContainer() || r is ProjectResource || r is ExecutableResource)
+        .Where(r => r.Name != KnownResourceNames.AspireDashboard)
+        .ToList();
+
+    var commandTasks = new List<Task>();
+    foreach (var r in resources)
+    {
+        commandTasks.Add(commandService.ExecuteCommandAsync(r, commandName, cancellationToken));
+    }
+    await Task.WhenAll(commandTasks).ConfigureAwait(false);
+}

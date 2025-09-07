@@ -1,0 +1,9 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mykv-roles.module.bicep",
+  "params": {
+    "mykv_outputs_name": "{mykv.outputs.name}",
+    "principalType": "",
+    "principalId": ""
+  }
+}

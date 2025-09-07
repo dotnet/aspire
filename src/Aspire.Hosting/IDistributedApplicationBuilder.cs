@@ -26,7 +26,6 @@ namespace Aspire.Hosting;
 /// method. Once the builder is created extension methods which target the <see cref="IDistributedApplicationBuilder"/>
 /// interface can be used to add resources to the distributed application.
 /// </para>
-/// </remarks>
 /// <example>
 /// <para>
 /// This example shows a distributed application that contains a .NET project (InventoryService) that uses
@@ -50,6 +49,7 @@ namespace Aspire.Hosting;
 /// builder.Build().Run();
 /// </code>
 /// </example>
+/// </remarks>
 public interface IDistributedApplicationBuilder
 {
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
@@ -88,7 +88,6 @@ public interface IDistributedApplicationBuilder
     /// properties. Developers building .NET Aspire based applications may whish to change the application
     /// model depending on whether they are running locally, or whether they are publishing to the cloud.
     /// </para>
-    /// </remarks>
     /// <example>
     /// <para>
     /// An example of using the <see cref="DistributedApplicationExecutionContext.IsRunMode"/> property on the <see cref="IDistributedApplicationBuilder"/> via
@@ -112,6 +111,7 @@ public interface IDistributedApplicationBuilder
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 
     /// <summary>
@@ -135,7 +135,6 @@ public interface IDistributedApplicationBuilder
     /// Aspire-based applications. It is typically used by developers building extensions to Aspire and is
     /// called from within an extension method to add a custom resource to the application model.
     /// </para>
-    /// </remarks>
     /// <example>
     /// This example shows the implementation of the <see cref="ContainerResourceBuilderExtensions.AddContainer(IDistributedApplicationBuilder, string, string)"/>
     /// method which makes use of the <see cref="AddResource{T}(T)"/> method to add a container resource to the application. In .NET Aspire
@@ -152,6 +151,7 @@ public interface IDistributedApplicationBuilder
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
 
     /// <summary>
@@ -176,7 +176,6 @@ public interface IDistributedApplicationBuilder
     /// collection. Not all changes to annotations will be effective depending on what stage of the lifecycle the app host is in. See <see cref="IDistributedApplicationLifecycleHook"/>
     /// for more details.
     /// </para>
-    /// </remarks>
     /// <example>
     /// <para>
     /// The following example shows the implementation of the <see cref="ParameterResourceBuilderExtensions.AddConnectionString(IDistributedApplicationBuilder, string, string?)"/>
@@ -208,6 +207,7 @@ public interface IDistributedApplicationBuilder
     /// }
     /// </code>
     /// </example>
+    /// </remarks>
     IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource;
 
     /// <summary>

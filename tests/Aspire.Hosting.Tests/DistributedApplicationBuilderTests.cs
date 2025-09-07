@@ -9,7 +9,6 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -112,10 +111,12 @@ public class DistributedApplicationBuilderTests
         Assert.False(string.IsNullOrEmpty(config["AppHost:ResourceService:ApiKey"]));
     }
 
-    [Fact]
-    public void ResourceServiceConfig_Unsecured()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardUnsecuredAllowAnonymous)]
+    [InlineData(KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous)]
+    public void ResourceServiceConfig_Unsecured(string dashboardUnsecuredAllowAnonymousKey)
     {
-        var appBuilder = DistributedApplication.CreateBuilder(args: [$"{KnownConfigNames.DashboardUnsecuredAllowAnonymous}=true"]);
+        var appBuilder = DistributedApplication.CreateBuilder(args: [$"{dashboardUnsecuredAllowAnonymousKey}=true"]);
         using var app = appBuilder.Build();
 
         var config = app.Services.GetRequiredService<IConfiguration>();

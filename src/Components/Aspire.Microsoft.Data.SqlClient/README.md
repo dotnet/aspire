@@ -18,7 +18,7 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddSqlServerClient("sqldata");
@@ -93,7 +93,7 @@ In your AppHost project, install the `Aspire.Hosting.SqlServer` library with [Nu
 dotnet add package Aspire.Hosting.SqlServer
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
 
 ```csharp
 var sql = builder.AddSqlServer("sql").AddDatabase("sqldata");

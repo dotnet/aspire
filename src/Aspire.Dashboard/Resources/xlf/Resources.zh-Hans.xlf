@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceActionCommandsText">
+        <source>Commands</source>
+        <target state="translated">命令</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
         <target state="translated">控制台日志</target>
@@ -17,14 +22,14 @@
         <target state="translated">结构化日志</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceActionTelemetryTooltip">
-        <source>No telemetry found for this resource.</source>
-        <target state="translated">找不到此资源的遥测数据。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceActionTracesText">
         <source>Traces</source>
         <target state="translated">跟踪</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionUrlsText">
+        <source>URLs</source>
+        <target state="translated">URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
@@ -52,16 +57,6 @@
         <target state="translated">查看控制台日志</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsEndpointUrl">
-        <source>Endpoint URL</source>
-        <target state="translated">终结点 URL</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceDetailsProxyUrl">
-        <source>Proxy URL</source>
-        <target state="translated">代理 URL</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
         <target state="translated">查看控制台日志</target>
@@ -86,6 +81,11 @@
         <source>View options</source>
         <target state="translated">查看选项</target>
         <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">连接字符串</target>
+        <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
@@ -152,9 +152,19 @@
         <target state="translated">运行状况状态</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="translated">值</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">项目路径</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="translated">启动配置文件</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
@@ -170,11 +180,6 @@
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
         <target state="translated">停止时间</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesEnvironmentColumnHeader">
-        <source>Environment</source>
-        <target state="translated">环境</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
@@ -197,6 +202,11 @@
         <target state="translated">缩小</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">隐藏资源类型</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesNotFiltered">
         <source>No filters</source>
         <target state="translated">无筛选器</target>
@@ -205,6 +215,11 @@
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">状态</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">显示资源类型</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
@@ -222,19 +237,9 @@
         <target state="translated">状态</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment variables for {0}</source>
-        <target state="translated">{0} 的环境变量</target>
-        <note>{0} is a resource</note>
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="translated">资源</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No environment variables</source>
-        <target state="translated">无环境变量</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">
@@ -261,6 +266,16 @@
         <source>URLs</source>
         <target state="translated">URL</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</source>
+        <target state="translated">显示 {0} 个资源&lt;strong&gt;&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</source>
+        <target state="translated">显示 {0} 个资源&lt;strong&gt;&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="WaitingForHealthDataMessage">
         <source>Waiting for health data...</source>

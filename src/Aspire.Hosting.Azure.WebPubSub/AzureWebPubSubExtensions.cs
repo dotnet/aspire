@@ -63,6 +63,7 @@ public static class AzureWebPubSubExtensions
 
                     var service = new WebPubSubService(infrastructure.AspireResource.GetBicepIdentifier())
                     {
+                        IsLocalAuthDisabled = true,
                         Sku = new BillingInfoSku()
                         {
                             Name = skuParameter,
@@ -247,6 +248,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="target">The target Azure Web PubSub resource.</param>
     /// <param name="roles">The built-in Web PubSub roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the WebPubSubServiceReader role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -259,6 +261,7 @@ public static class AzureWebPubSubExtensions
     ///   .WithReference(webPubSub);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureWebPubSubResource> target,

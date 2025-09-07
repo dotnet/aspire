@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "env.module.bicep",
+  "params": {
+    "customregistry_outputs_name": "{customregistry.outputs.name}",
+    "userPrincipalId": ""
+  }
+}

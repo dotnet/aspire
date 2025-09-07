@@ -1,0 +1,12 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "project2.module.bicep",
+  "params": {
+    "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+    "env_outputs_planid": "{env.outputs.planId}",
+    "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+    "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
+    "project2_containerimage": "{project2.containerImage}",
+    "project2_containerport": "{project2.containerPort}"
+  }
+}

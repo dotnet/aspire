@@ -21,6 +21,19 @@ public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext 
     public IResource Resource { get; } = resource;
 
     /// <summary>
+    /// Gets an endpoint reference from <see cref="Resource"/> for the specified endpoint name.<br/>
+    /// If <see cref="Resource"/> does not implement <see cref="IResourceWithEndpoints"/> then returns <c>null</c>.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public EndpointReference? GetEndpoint(string name) =>
+        Resource switch
+        {
+            IResourceWithEndpoints resourceWithEndpoints => resourceWithEndpoints.GetEndpoint(name),
+            _ => null
+        };
+
+    /// <summary>
     /// Gets the URLs associated with the callback context.
     /// </summary>
     public List<ResourceUrlAnnotation> Urls { get; } = urls ?? [];

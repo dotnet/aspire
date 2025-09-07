@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RootCommandStrings.resx">
+    <body>
+      <trans-unit id="CliWaitForDebuggerArgumentDescription">
+        <source>Wait for a debugger to attach before executing the command.</source>
+        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugArgumentDescription">
+        <source>Enable debug logging to the console.</source>
+        <target state="translated">啟用控制台的偵錯記錄。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
+        <target state="translated">Aspire CLI 可用來建立、執行及發佈以 Aspire 為基礎的應用程式。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WaitForDebuggerArgumentDescription">
+        <source>Wait for a debugger to attach before executing the command.</source>
+        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WaitingForDebugger">
+        <source>Waiting for debugger to attach to CLI process ID: {0}</source>
+        <target state="translated">正在等候偵錯工具連結到 CLI 流程識別碼: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
-using Xunit;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 
@@ -189,7 +188,21 @@ public class PostgresPublicApiTests
         IResourceBuilder<PostgresServerResource> builder = null!;
         const string source = "/docker-entrypoint-initdb.d";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithInitFilesShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<PostgresServerResource> builder = null!;
+        const string source = "/docker-entrypoint-initdb.d";
+
+        var action = () => builder.WithInitFiles(source);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -204,7 +217,26 @@ public class PostgresPublicApiTests
             .AddPostgres("Postgres");
         var source = isNull ? null! : string.Empty;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var action = () => builder.WithInitBindMount(source);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithInitFilesShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create()
+            .AddPostgres("Postgres");
+        var source = isNull ? null! : string.Empty;
+
+        var action = () => builder.WithInitFiles(source);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)

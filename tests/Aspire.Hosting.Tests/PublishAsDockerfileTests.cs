@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Xunit;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 
@@ -16,7 +15,7 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
 
-        var path = tempDir.Directory.FullName;
+        var path = tempDir.Path;
 
         var frontend = builder.AddNpmApp("frontend", path, "watch")
             .PublishAsDockerFile();
@@ -54,7 +53,7 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
 
-        var path = tempDir.Directory.FullName;
+        var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var frontend = builder.AddNpmApp("frontend", path, "watch")
@@ -107,7 +106,7 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
 
-        var path = tempDir.Directory.FullName;
+        var path = tempDir.Path;
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var frontend = builder.AddNpmApp("frontend", path, "watch")
@@ -152,7 +151,7 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
 
-        var path = tempDir.Directory.FullName;
+        var path = tempDir.Path;
 
         var secret = builder.AddParameter("secret", secret: true);
 
@@ -214,9 +213,10 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
 
-        var path = tempDir.Directory.FullName;
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
 
-        var project = builder.AddProject("project", path, o => o.ExcludeLaunchProfile = true)
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
                             .WithArgs("/usr/foo")
                             .PublishAsDockerFile(c =>
                              {
@@ -264,21 +264,11 @@ public class PublishAsDockerfileTests
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 
-    private static DisposableTempDirectory CreateDirectoryWithDockerFile()
+    private static TempDirectory CreateDirectoryWithDockerFile()
     {
-        var tempDir = Directory.CreateTempSubdirectory("aspire-docker-test");
-        File.WriteAllText(Path.Join(tempDir.FullName, "Dockerfile"), "this does not matter");
-        return new DisposableTempDirectory(tempDir);
-    }
-
-    readonly struct DisposableTempDirectory(DirectoryInfo directory) : IDisposable
-    {
-        public DirectoryInfo Directory { get; } = directory;
-
-        public void Dispose()
-        {
-            Directory.Delete(recursive: true);
-        }
+        var tempDir = new TempDirectory();
+        File.WriteAllText(Path.Join(tempDir.Path, "Dockerfile"), "this does not matter");
+        return tempDir;
     }
 
     private sealed class TestProject : IProjectMetadata

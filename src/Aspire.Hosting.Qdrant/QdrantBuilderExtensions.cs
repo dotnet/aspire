@@ -86,7 +86,15 @@ public static class QdrantBuilderExtensions
                     context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
             })
-            .WithHealthCheck(healthCheckKey);
+            .WithHealthCheck(healthCheckKey)
+            .WithUrlForEndpoint(QdrantServerResource.PrimaryEndpointName, c =>
+            {
+                c.DisplayText = "Qdrant (GRPC)";
+                // https://github.com/dotnet/aspire/issues/8809
+                c.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+            })
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, c => c.DisplayText = "Qdrant (HTTP)")
+            .WithUrlForEndpoint(QdrantServerResource.HttpEndpointName, e => new ResourceUrlAnnotation() { Url = "/dashboard", DisplayText = "Qdrant Dashboard" });
     }
 
     /// <summary>
@@ -179,7 +187,7 @@ public static class QdrantBuilderExtensions
         {
             throw new InvalidOperationException("Endpoint is unavailable");
         }
-        
+
         var client = new QdrantClient(endpoint, key);
         return client;
     }

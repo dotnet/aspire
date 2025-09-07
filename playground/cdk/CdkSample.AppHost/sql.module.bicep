@@ -1,18 +1,19 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param principalId string
+resource sqlServerAdminManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
+  name: take('sql-admin-${uniqueString(resourceGroup().id)}', 63)
+  location: location
+}
 
-param principalName string
-
-resource sql 'Microsoft.Sql/servers@2021-11-01' = {
+resource sql 'Microsoft.Sql/servers@2023-08-01' = {
   name: take('sql-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administrators: {
       administratorType: 'ActiveDirectory'
-      login: principalName
-      sid: principalId
+      login: sqlServerAdminManagedIdentity.name
+      sid: sqlServerAdminManagedIdentity.properties.principalId
       tenantId: subscription().tenantId
       azureADOnlyAuthentication: true
     }
@@ -25,7 +26,7 @@ resource sql 'Microsoft.Sql/servers@2021-11-01' = {
   }
 }
 
-resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
   name: 'AllowAllAzureIps'
   properties: {
     endIpAddress: '0.0.0.0'
@@ -34,12 +35,21 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
   parent: sql
 }
 
-resource sqldb 'Microsoft.Sql/servers/databases@2021-11-01' = {
+resource sqldb 'Microsoft.Sql/servers/databases@2023-08-01' = {
   name: 'sqldb'
   location: location
+  properties: {
+    freeLimitExhaustionBehavior: 'AutoPause'
+    useFreeLimit: true
+  }
+  sku: {
+    name: 'GP_S_Gen5_2'
+  }
   parent: sql
 }
 
 output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName
 
 output name string = sql.name
+
+output sqlServerAdminName string = sqlServerAdminManagedIdentity.name

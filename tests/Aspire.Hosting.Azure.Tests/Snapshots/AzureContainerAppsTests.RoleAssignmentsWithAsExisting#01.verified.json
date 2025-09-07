@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "path": "api-roles-storage.module.bicep",
+  "params": {
+    "storageName": "{storageName.value}",
+    "principalId": "{api-identity.outputs.principalId}"
+  },
+  "scope": {
+    "resourceGroup": "{storageRG.value}"
+  }
+}

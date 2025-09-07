@@ -4,7 +4,6 @@
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -29,6 +28,14 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -101,6 +108,14 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -122,6 +137,14 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(projectA.Resource, r.Resource);
+            });
     }
 
     [Fact]
@@ -167,7 +190,7 @@ public class WithReferenceTests
                               .WithReference(missingResource);
 
         // Call environment variable callbacks.
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
         {
             var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         }).DefaultTimeout();
@@ -268,6 +291,37 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
+
+        Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
+        Assert.Collection(relationships,
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(resource.Resource, r.Resource);
+            });
+
+        Assert.True(resource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var csRelationships));
+        Assert.Collection(csRelationships,
+            r =>
+            {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(endpoint.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(key.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(endpoint.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("Reference", r.Type);
+                Assert.Same(key.Resource, r.Resource);
+            });
     }
 
     [Fact]

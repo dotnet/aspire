@@ -6,7 +6,7 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
 /// <summary>
 /// Provides the client configuration settings for connecting to a PostgreSQL database using EntityFrameworkCore.
 /// </summary>
-public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
+public class NpgsqlEntityFrameworkCorePostgreSQLSettings
 {
     /// <summary>
     /// Gets or sets the connection string of the PostgreSQL database to connect to.

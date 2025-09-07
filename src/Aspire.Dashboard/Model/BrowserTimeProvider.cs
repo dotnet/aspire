@@ -25,9 +25,9 @@ public class BrowserTimeProvider : TimeProvider
         get => _browserLocalTimeZone ?? base.LocalTimeZone;
     }
 
-    public void SetBrowserTimeZone(string timeZone)
+    public void SetBrowserTimeZone(string? timeZone)
     {
-        if (!TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out var timeZoneInfo))
+        if (string.IsNullOrEmpty(timeZone) || !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out var timeZoneInfo))
         {
             _logger.LogWarning("Couldn't find time zone '{TimeZone}'. Defaulting to UTC.", timeZone);
             timeZoneInfo = TimeZoneInfo.Utc;

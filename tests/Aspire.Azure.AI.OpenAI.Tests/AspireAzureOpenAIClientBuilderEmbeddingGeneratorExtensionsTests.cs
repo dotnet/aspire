@@ -37,7 +37,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
         Assert.NotNull(generator);
-        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.ModelId);
+        Assert.Equal("testdeployment1", generator.GetService<EmbeddingGeneratorMetadata>()?.DefaultModelId);
     }
 
     [Theory]
@@ -214,7 +214,7 @@ public class AspireAzureOpenAIClientBuilderEmbeddingGeneratorExtensionsTests
             host.Services.GetRequiredKeyedService<IEmbeddingGenerator<string, Embedding<float>>>("openai_embeddinggenerator") :
             host.Services.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-        var vector = await generator.GenerateEmbeddingVectorAsync("Hello");
+        var vector = await generator.GenerateVectorAsync("Hello");
         Assert.Equal(1.23f, vector.ToArray().Single());
     }
 

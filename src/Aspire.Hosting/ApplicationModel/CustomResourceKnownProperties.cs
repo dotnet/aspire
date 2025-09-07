@@ -14,4 +14,9 @@ public static class CustomResourceKnownProperties
     /// The source of the resource
     /// </summary>
     public static string Source { get; } = KnownProperties.Resource.Source;
+
+    /// <summary>
+    /// The connection string of the resource
+    /// </summary>
+    public static string ConnectionString { get; } = KnownProperties.Resource.ConnectionString;
 }

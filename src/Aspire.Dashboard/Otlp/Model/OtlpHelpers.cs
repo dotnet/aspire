@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,7 +24,9 @@ public static class OtlpHelpers
         WriteIndented = false
     };
 
-    public static ApplicationKey GetApplicationKey(this Resource resource)
+    public const int ShortenedIdLength = 7;
+
+    public static ResourceKey GetResourceKey(this Resource resource)
     {
         string? serviceName = null;
         string? serviceInstanceId = null;
@@ -32,15 +35,15 @@ public static class OtlpHelpers
         for (var i = 0; i < resource.Attributes.Count; i++)
         {
             var attribute = resource.Attributes[i];
-            if (attribute.Key == OtlpApplication.SERVICE_INSTANCE_ID)
+            if (attribute.Key == OtlpResource.SERVICE_INSTANCE_ID)
             {
                 serviceInstanceId = attribute.Value.GetString();
             }
-            if (attribute.Key == OtlpApplication.SERVICE_NAME)
+            if (attribute.Key == OtlpResource.SERVICE_NAME)
             {
                 serviceName = attribute.Value.GetString();
             }
-            if (attribute.Key == OtlpApplication.PROCESS_EXECUTABLE_NAME)
+            if (attribute.Key == OtlpResource.PROCESS_EXECUTABLE_NAME)
             {
                 processExecutableName = attribute.Value.GetString();
             }
@@ -58,10 +61,10 @@ public static class OtlpHelpers
         }
 
         // service.instance.id is recommended but not required.
-        return new ApplicationKey(serviceName, serviceInstanceId ?? serviceName);
+        return new ResourceKey(serviceName, serviceInstanceId ?? serviceName);
     }
 
-    public static string ToShortenedId(string id) => TruncateString(id, maxLength: 7);
+    public static string ToShortenedId(string id) => TruncateString(id, maxLength: ShortenedIdLength);
 
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
     {
@@ -427,4 +430,55 @@ public static class OtlpHelpers
             IsFull = isFull
         };
     }
+
+    public static bool MatchTelemetryId(string incomingId, string existingId)
+    {
+        // This method uses StartsWith to find a match.
+        // We only want to use that logic if the traceId is at least the length of a shortened id.
+        if (incomingId.Length >= ShortenedIdLength)
+        {
+            return existingId.StartsWith(incomingId, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            return existingId.Equals(incomingId, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    public static bool TryGetOrAddScope(Dictionary<string, OtlpScope> scopes, InstrumentationScope? scope, OtlpContext context, TelemetryType telemetryType, [NotNullWhen(true)] out OtlpScope? s)
+    {
+        try
+        {
+            // The instrumentation scope information for the spans in this message.
+            // Semantically when InstrumentationScope isn't set, it is equivalent with
+            // an empty instrumentation scope name (unknown).
+            var name = scope?.Name ?? string.Empty;
+            ref var scopeRef = ref CollectionsMarshal.GetValueRefOrAddDefault(scopes, name, out _);
+            // Adds to dictionary if not present.
+            if (scopeRef == null)
+            {
+                scopeRef = (scope != null)
+                    ? new OtlpScope(scope.Name, scope.Version, scope.Attributes.ToKeyValuePairs(context))
+                    : OtlpScope.Empty;
+
+                context.Logger.LogTrace("Added scope '{ScopeName}' to {TelemetryType}.", scopeRef.Name, telemetryType);
+            }
+
+            s = scopeRef;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogInformation(ex, "Error adding scope to {TelemetryType}.", telemetryType);
+            s = null;
+            return false;
+        }
+    }
+}
+
+public enum TelemetryType
+{
+    Traces,
+    Metrics,
+    Logs
 }

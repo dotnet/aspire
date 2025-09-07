@@ -1,0 +1,9 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "signalr-roles.module.bicep",
+  "params": {
+    "signalr_outputs_name": "{signalr.outputs.name}",
+    "principalType": "",
+    "principalId": ""
+  }
+}

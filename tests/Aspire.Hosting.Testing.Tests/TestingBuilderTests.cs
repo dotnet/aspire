@@ -210,7 +210,6 @@ public class TestingBuilderTests(ITestOutputHelper output)
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/7930", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnGithubActions), nameof(PlatformDetection.IsWindows))]
     public async Task ArgsPropagateToAppHostConfiguration(bool genericEntryPoint, bool directArgs)
     {
         string[] args = directArgs ? ["APP_HOST_ARG=42"] : [];
@@ -339,6 +338,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [RequiresDocker]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9712")]
     [InlineData("http", false)]
     [InlineData("http", true)]
     [InlineData("https", false)]

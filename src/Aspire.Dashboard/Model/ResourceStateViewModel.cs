@@ -42,7 +42,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 icon = new Icons.Filled.Size16.ErrorCircle();
                 color = Color.Error;
             }
-            else if (resource.IsFinishedState())
+            else if (resource.IsFinishedState() || resource.IsExitedState())
             {
                 // Process completed successfully.
                 icon = new Icons.Regular.Size16.RecordStop();
@@ -70,11 +70,6 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
             icon = new Icons.Filled.Size16.Circle();
             color = Color.Info;
         }
-        else if (resource.HealthStatus is not HealthStatus.Healthy)
-        {
-            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
-            color = Color.Warning;
-        }
         else if (!string.IsNullOrEmpty(resource.StateStyle))
         {
             (icon, color) = resource.StateStyle switch
@@ -85,6 +80,11 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
                 "info" => (new Icons.Filled.Size16.Info(), Color.Info),
                 _ => (new Icons.Filled.Size16.Circle(), Color.Neutral)
             };
+        }
+        else if (resource.HealthStatus is not HealthStatus.Healthy)
+        {
+            icon = new Icons.Filled.Size16.CheckmarkCircleWarning();
+            color = Color.Warning;
         }
         else
         {
@@ -125,6 +125,14 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         {
             // DCP reports the container runtime is unhealthy. Most likely the container runtime (e.g. Docker) isn't running.
             return loc[nameof(Columns.StateColumnResourceContainerRuntimeUnhealthy)];
+        }
+        else if (resource.IsWaiting())
+        {
+            return loc[nameof(Columns.StateColumnResourceWaiting)];
+        }
+        else if (resource.IsNotStarted())
+        {
+            return loc[nameof(Columns.StateColumnResourceNotStarted)];
         }
 
         // Fallback to text displayed in column.

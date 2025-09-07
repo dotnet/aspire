@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "api-roles-eventhubs.module.bicep",
+  "params": {
+    "eventhubs_outputs_name": "{eventhubs.outputs.name}",
+    "principalId": "{api-identity.outputs.principalId}"
+  }
+}

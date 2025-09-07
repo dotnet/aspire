@@ -14,6 +14,11 @@ public class AspireTemplateColumn<TGridItem> : TemplateColumn<TGridItem>, IAspir
     [Parameter]
     public string? ColumnId { get; set; }
 
+    protected override void OnInitialized()
+    {
+        Tooltip = true;
+    }
+
     protected override bool ShouldRender()
     {
         if (ColumnManager is not null && ColumnId is not null && !ColumnManager.IsColumnVisible(ColumnId))

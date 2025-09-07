@@ -1,6 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "talking-clock-tick-hand": {
+      "error": "This resource does not support generation in the manifest."
+    },
+    "talking-clock-tock-hand": {
+      "error": "This resource does not support generation in the manifest."
+    },
     "p0": {
       "type": "parameter.v0",
       "value": "{p0.inputs.value}",

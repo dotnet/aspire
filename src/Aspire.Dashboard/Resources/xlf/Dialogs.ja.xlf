@@ -62,6 +62,21 @@
         <target state="translated">条件</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogDisableAll">
+        <source>Disable all</source>
+        <target state="translated">すべて無効にする</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogDisableFilterButtonText">
+        <source>Disable filter</source>
+        <target state="translated">フィルターを無効にする</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogEnableAll">
+        <source>Enable all</source>
+        <target state="translated">すべて有効にする</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">フィールド</target>
@@ -167,20 +182,35 @@
         <target state="translated">パネルの向きを切り替える</target>
         <note />
       </trans-unit>
+      <trans-unit id="InteractionButtonCancel">
+        <source>Cancel</source>
+        <target state="translated">キャンセル</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionButtonClose">
+        <source>Close</source>
+        <target state="translated">閉じる</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InteractionButtonOk">
+        <source>OK</source>
+        <target state="translated">OK</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OpenInTextVisualizer">
         <source>Open in text visualizer</source>
         <target state="translated">テキスト ビジュアライザーで開く</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogCancelButtonText">
+      <trans-unit id="OpenSpanDialogCancelButtonText">
         <source>Cancel</source>
         <target state="translated">キャンセル</target>
         <note />
       </trans-unit>
-      <trans-unit id="OpenTraceDialogMessage">
-        <source>Waiting for trace {0} to load...</source>
-        <target state="translated">トレース {0} の読み込みを待機しています...</target>
-        <note>{0} is a trace ID</note>
+      <trans-unit id="OpenSpanDialogMessage">
+        <source>Waiting for span {0} to load...</source>
+        <target state="translated">スパン {0} の読み込みを待機しています...</target>
+        <note>{0} is a span ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
@@ -188,8 +218,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDashboardLogsAndTelemetry">
-        <source>Dashboard logs and telemetry</source>
-        <target state="translated">ダッシュボードのログとテレメトリ</target>
+        <source>Resource logs and telemetry</source>
+        <target state="translated">リソース ログとテレメトリ</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
@@ -210,6 +240,21 @@
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
         <target state="translated">システム</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryEnabledInfo">
+        <source>Dashboard telemetry is enabled. Aspire will collect usage data and send it to Microsoft.</source>
+        <target state="translated">ダッシュボード テレメトリが有効になっています。Aspire は使用データを収集し、Microsoft に送信します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkText">
+        <source>Why?</source>
+        <target state="translated">理由</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
+        <source>Go to usage telemetry documentation</source>
+        <target state="translated">使用状況テレメトリのドキュメントに移動する</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

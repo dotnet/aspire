@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure.AppContainers;
 
@@ -11,81 +13,106 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <param name="name">The name of the Container App Environment.</param>
 /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-    AzureProvisioningResource(name, configureInfrastructure), IAzureContainerAppEnvironment
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    AzureProvisioningResource(name, configureInfrastructure), IAzureComputeEnvironmentResource, IAzureContainerRegistry
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
+    internal bool UseAzdNamingConvention { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableDashboard { get; set; } = true;
+
     /// <summary>
     /// Gets the unique identifier of the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);
+    internal BicepOutputReference ContainerAppEnvironmentId => new("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", this);
 
     /// <summary>
     /// Gets the default domain associated with the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
-
-    /// <summary>
-    /// Gets the managed identity ID associated with the Container App Environment.
-    /// </summary>
-    public BicepOutputReference ManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
+    internal BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
-    public BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
+    internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
 
     /// <summary>
     /// Gets the managed identity ID associated with the Azure Container Registry.
     /// </summary>
-    public BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
-
-    /// <summary>
-    /// Gets the unique identifier of the Log Analytics workspace.
-    /// </summary>
-    public BicepOutputReference LogAnalyticsWorkspaceId => new("AZURE_LOG_ANALYTICS_WORKSPACE_ID", this);
-
-    /// <summary>
-    /// Gets the principal name of the managed identity.
-    /// </summary>
-    public BicepOutputReference PrincipalName => new("MANAGED_IDENTITY_NAME", this);
+    internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
 
     /// <summary>
     /// Gets the name of the Container App Environment.
     /// </summary>
-    public BicepOutputReference ContainerAppEnvironmentName => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
+    public BicepOutputReference NameOutputReference => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
-    internal Dictionary<string, BicepOutputReference> VolumeNames { get; } = [];
+    /// <summary>
+    /// Gets the container registry name.
+    /// </summary>
+    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentId => ContainerAppEnvironmentId;
+    internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppDomain => ContainerAppDomain;
+    // Implement IAzureContainerRegistry interface
+    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerRegistryUrl => ContainerRegistryUrl;
+    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerRegistryManagedIdentityId => ContainerRegistryManagedIdentityId;
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
-    IManifestExpressionProvider IAzureContainerAppEnvironment.LogAnalyticsWorkspaceId => LogAnalyticsWorkspaceId;
-
-    IManifestExpressionProvider IAzureContainerAppEnvironment.PrincipalName => PrincipalName;
-
-    IManifestExpressionProvider IAzureContainerAppEnvironment.ContainerAppEnvironmentName => ContainerAppEnvironmentName;
-
-    IManifestExpressionProvider IAzureContainerAppEnvironment.GetSecretOutputKeyVault(AzureBicepResource resource)
+    internal BicepOutputReference GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
-        throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
-    }
-
-    IManifestExpressionProvider IAzureContainerAppEnvironment.GetVolumeStorage(IResource resource, ContainerMountType type, string volumeIndex)
-    {
-        // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"volumes_{resource.Name}_{volumeIndex}";
-
-        if (!VolumeNames.TryGetValue(outputName, out var outputReference))
+        var prefix = volume.Type switch
         {
-            outputReference = new BicepOutputReference(outputName, this);
+            ContainerMountType.BindMount => "bindmounts",
+            ContainerMountType.Volume => "volumes",
+            _ => throw new NotSupportedException()
+        };
 
-            VolumeNames[outputName] = outputReference;
+        // REVIEW: Should we use the same naming algorithm as azd?
+        var outputName = $"{prefix}_{resource.Name}_{volumeIndex}";
+
+        if (!VolumeNames.TryGetValue(outputName, out var volumeName))
+        {
+            volumeName = (resource, volume, volumeIndex, new BicepOutputReference(outputName, this));
+
+            VolumeNames[outputName] = volumeName;
         }
 
-        return outputReference;
+        return volumeName.outputReference;
+    }
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a ContainerAppManagedEnvironment with the same identifier already exists
+        var existingCae = resources.OfType<ContainerAppManagedEnvironment>().SingleOrDefault(cae => cae.BicepIdentifier == bicepIdentifier);
+
+        if (existingCae is not null)
+        {
+            return existingCae;
+        }
+
+        // Create and add new resource if it doesn't exist
+        // Even though it's a compound resource, we'll only expose the managed environment
+        var cae = ContainerAppManagedEnvironment.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            cae))
+        {
+            cae.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
+        infra.Add(cae);
+        return cae;
     }
 }

@@ -4,13 +4,14 @@
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Tests.Shared.DashboardModel;
 
 public static class ModelTestHelpers
 {
     public static ResourceViewModel CreateResource(
-        string? appName = null,
+        string? resourceName = null,
         KnownResourceState? state = null,
         string? displayName = null,
         ImmutableArray<UrlViewModel>? urls = null,
@@ -20,13 +21,17 @@ public static class ModelTestHelpers
         string? stateStyle = null,
         HealthStatus? reportHealthStatus = null,
         bool createNullHealthReport = false,
-        ImmutableArray<CommandViewModel>? commands = null)
+        ImmutableArray<CommandViewModel>? commands = null,
+        ImmutableArray<RelationshipViewModel>? relationships = null,
+        bool hidden = false,
+        string? iconName = null,
+        IconVariant? iconVariant = null)
     {
         return new ResourceViewModel
         {
-            Name = appName ?? "Name!",
+            Name = resourceName ?? "Name!",
             ResourceType = resourceType ?? KnownResourceTypes.Container,
-            DisplayName = displayName ?? appName ?? "Display name!",
+            DisplayName = displayName ?? resourceName ?? "Display name!",
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             StartTimeStamp = DateTime.UtcNow,
@@ -40,7 +45,10 @@ public static class ModelTestHelpers
             StateStyle = stateStyle,
             HealthReports = reportHealthStatus is null && !createNullHealthReport ? [] : [new HealthReportViewModel("healthcheck", reportHealthStatus, null, null)],
             Commands = commands ?? [],
-            Relationships = [],
+            Relationships = relationships ?? [],
+            IsHidden = hidden,
+            IconName = iconName,
+            IconVariant = iconVariant
         };
     }
 }

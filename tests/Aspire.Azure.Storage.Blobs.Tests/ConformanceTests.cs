@@ -24,6 +24,9 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
 
     protected override string ActivitySourceName => "Azure.Storage.Blobs.BlobContainerClient";
 
+    // AzureStorageBlobsSettings subclassed by AzureBlobStorageContainerSettings
+    protected override bool CheckOptionClassSealed => false;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Azure.Core",
@@ -78,11 +81,11 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
     {
         if (key is null)
         {
-            builder.AddAzureBlobClient("blob", ConfigureCredentials);
+            builder.AddAzureBlobServiceClient("blob", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureBlobClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureBlobServiceClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureStorageBlobsSettings settings)

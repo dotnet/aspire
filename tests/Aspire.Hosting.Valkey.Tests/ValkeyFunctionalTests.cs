@@ -5,12 +5,12 @@ using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
-using Xunit;
 
 namespace Aspire.Hosting.Valkey.Tests;
 
@@ -41,7 +41,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        await app.WaitForHealthyAsync(valkey).WaitAsync(TimeSpan.FromMinutes(2));
+        await app.WaitForHealthyAsync(valkey).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -103,7 +103,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TimeSpan.FromMinutes(2));
+                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -154,7 +154,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TimeSpan.FromMinutes(2));
+                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TestConstants.LongTimeoutTimeSpan);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 

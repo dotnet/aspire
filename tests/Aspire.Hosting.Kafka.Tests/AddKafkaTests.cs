@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Kafka.Tests;
 
@@ -150,9 +149,9 @@ public class AddKafkaTests
         return new()
         {
             { "kafka-ui", "kafka-ui", 8081 },
-            { null, "kafka1-kafka-ui", 8081 },
+            { null, "kafka-ui", 8081 },
             { "kafka-ui", "kafka-ui", null },
-            { null, "kafka1-kafka-ui", null },
+            { null, "kafka-ui", null },
         };
     }
 

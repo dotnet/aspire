@@ -5,8 +5,6 @@
   <PropertyGroup>
     <IsAotCompatible>true</IsAotCompatible>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-    <!-- This is a temporary workaround for https://github.com/dotnet/roslyn/issues/76600. -->
-    <NoWarn>$(NoWarn);CS9270</NoWarn>
 
     <ComponentCommonPackageTags>aspire integration client component cloud</ComponentCommonPackageTags>
     <ComponentCachePackageTags>$(ComponentCommonPackageTags) cache caching</ComponentCachePackageTags>

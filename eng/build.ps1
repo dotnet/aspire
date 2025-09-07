@@ -57,7 +57,7 @@ if ($help) {
 }
 
 if ($vs) {
-  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.sln"
+  $solution = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "Aspire.slnx"
 
   . $PSScriptRoot\common\tools.ps1
 
@@ -107,5 +107,3 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
 
 Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
-
-exit 0

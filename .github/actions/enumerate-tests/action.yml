@@ -26,8 +26,7 @@ runs:
     - name: Set up .NET Core
       uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
       with:
-        dotnet-version: |
-          9.x
+        global-json-file: ${{ github.workspace }}/global.json
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
@@ -49,7 +48,7 @@ runs:
           "/t:Build;ExtractTestClassNames"
           /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
           -p:ExtractTestClassNamesForHelix=true
-          -p:ArchiveTests=true
+          -p:PrepareForHelix=true
           -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
           -p:InstallBrowsersForPlaywright=false
 
@@ -69,7 +68,7 @@ runs:
         "integrations_tests_matrix=$jsonString"
         "integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
-    - name: Generate tests matrix
+    - name: Generate templates matrix
       id: generate_templates_matrix
       if: ${{ inputs.includeTemplates }}
       shell: pwsh

@@ -6,4 +6,5 @@ namespace Aspire.Dashboard.Otlp.Model;
 public sealed class AddContext
 {
     public int FailureCount { get; set; }
+    public int SuccessCount { get; set; }
 }

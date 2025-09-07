@@ -1,9 +1,12 @@
-﻿@namespace Aspire.Dashboard.Components.Controls
-@using Aspire.Dashboard.Resources
+﻿@using Aspire.Dashboard.Resources
+@namespace Aspire.Dashboard.Components.Controls
+
+@inject IStringLocalizer<ControlsStrings> Loc
 
 <AspireMenuButton IconStart="@(new Icons.Regular.Size16.Delete())"
                   Icon="@(new Icons.Regular.Size12.ChevronDown())"
                   IconColor="Color.FillInverse"
                   Items="@_clearMenuItems"
                   ButtonAppearance="Appearance.Neutral"
-                  ButtonClass="clear-button" />
+                  ButtonClass="clear-button"
+                  Title="@Loc[nameof(ControlsStrings.ClearSignalsButtonTitle)]" />

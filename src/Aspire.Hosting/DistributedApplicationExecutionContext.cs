@@ -36,7 +36,7 @@ public class DistributedApplicationExecutionContext
     /// <summary>
     /// The name of the publisher that is being used if <see cref="Operation"/> is set to <see cref="DistributedApplicationOperation.Publish"/>. 
     /// </summary>
-    public string? PublisherName { get; set; }
+    public string PublisherName { get; set; }
 
     private readonly DistributedApplicationExecutionContextOptions? _options;
 
@@ -85,9 +85,4 @@ public class DistributedApplicationExecutionContext
     /// Returns true if the current operation is running.
     /// </summary>
     public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
-
-    /// <summary>
-    /// Returns true if the current operation is inspecting.
-    /// </summary>
-    public bool IsInspectMode => Operation == DistributedApplicationOperation.Inspect;
 }

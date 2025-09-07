@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
-using Xunit;
 
 namespace Aspire.Hosting.RabbitMQ.Tests;
 
@@ -53,7 +52,7 @@ public class AddRabbitMQTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
         Assert.Equal("rabbit", containerResource.Name);
 
-        var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "tcp"));
+        var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "tcp");
         Assert.Equal(5672, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("tcp", primaryEndpoint.Name);
@@ -64,7 +63,7 @@ public class AddRabbitMQTests
 
         if (withManagementPlugin)
         {
-            var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "management"));
+            var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "management");
             Assert.Equal(15672, mangementEndpoint.TargetPort);
             Assert.False(primaryEndpoint.IsExternal);
             Assert.Equal("management", mangementEndpoint.Name);
@@ -112,6 +111,11 @@ public class AddRabbitMQTests
 
     [Theory]
     [InlineData(null, RabbitMQContainerImageTags.ManagementTag)]
+    [InlineData("management", "management")]
+    [InlineData("4.0.9-management", "4.0.9-management")]
+    [InlineData("alpine", "management-alpine")]
+    [InlineData("management-alpine", "management-alpine")]
+    [InlineData("4.0.9-management-alpine", "4.0.9-management-alpine")]
     [InlineData("3", "3-management")]
     [InlineData("3.12", "3.12-management")]
     [InlineData("3.12.0", "3.12.0-management")]

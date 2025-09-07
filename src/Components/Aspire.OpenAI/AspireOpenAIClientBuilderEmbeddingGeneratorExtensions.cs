@@ -65,7 +65,7 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
         deploymentName ??= builder.GetRequiredDeploymentName();
-        var result = openAiClient.AsEmbeddingGenerator(deploymentName);
+        var result = openAiClient.GetEmbeddingClient(deploymentName).AsIEmbeddingGenerator();
 
         if (builder.DisableTracing)
         {
@@ -75,6 +75,9 @@ public static class AspireOpenAIClientBuilderEmbeddingGeneratorExtensions
         var loggerFactory = services.GetService<ILoggerFactory>();
         return new OpenTelemetryEmbeddingGenerator<string, Embedding<float>>(
             result,
-            loggerFactory?.CreateLogger(typeof(OpenTelemetryEmbeddingGenerator<string, Embedding<float>>)));
+            loggerFactory?.CreateLogger(typeof(OpenTelemetryEmbeddingGenerator<string, Embedding<float>>)))
+        {
+            EnableSensitiveData = builder.EnableSensitiveTelemetryData
+        };
     }
 }

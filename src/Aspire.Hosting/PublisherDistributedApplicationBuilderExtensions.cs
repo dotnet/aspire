@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// TODO
+/// Extensions for adding a publisher to the distributed application.
 /// </summary>
-public static class PublisherDistributedApplicationBuilderExtensions
+internal static class PublisherDistributedApplicationBuilderExtensions
 {
     /// <summary>
     /// Adds a publisher to the distributed application for use by the Aspire CLI.
@@ -19,7 +19,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>. </param>
     /// <param name="name">The name of the publisher.</param>
     /// <param name="configureOptions">Callback to configure options for the publisher.</param>
-    public static void AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
+    internal static IDistributedApplicationBuilder AddPublisher<TPublisher, TPublisherOptions>(this IDistributedApplicationBuilder builder, string name, Action<TPublisherOptions>? configureOptions = null)
         where TPublisher : class, IDistributedApplicationPublisher
         where TPublisherOptions : class
     {
@@ -33,7 +33,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
 
         if (configureOptions is not null)
         {
-            builder.Services.Configure("name", configureOptions);
+            builder.Services.Configure(name, configureOptions);
         }
 
         builder.Services.Configure<TPublisherOptions>(name, builder.Configuration.GetSection(nameof(PublishingOptions.Publishing)));
@@ -41,5 +41,7 @@ public static class PublisherDistributedApplicationBuilderExtensions
         {
             configureOptions?.Invoke(options);
         });
+
+        return builder;
     }
 }

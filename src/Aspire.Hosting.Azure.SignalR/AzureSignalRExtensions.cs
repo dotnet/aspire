@@ -83,7 +83,8 @@ public static class AzureSignalRExtensions
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } },
+                DisableLocalAuth = true,
             });
 
             infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = service.HostName });
@@ -121,6 +122,9 @@ public static class AzureSignalRExtensions
             return builder;
         }
 
+        // Mark this resource as an emulator for consistent resource identification and tooling support
+        builder.WithAnnotation(new EmulatorResourceAnnotation());
+
         builder
             .WithEndpoint(name: EmulatorEndpointName, targetPort: 8888, scheme: "http")
             .WithAnnotation(new ContainerImageAnnotation
@@ -146,6 +150,7 @@ public static class AzureSignalRExtensions
     /// <param name="target">The target Azure SignalR resource.</param>
     /// <param name="roles">The built-in SignalR roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
+    /// <remarks>
     /// <example>
     /// Assigns the SignalRContributor role to the 'Projects.Api' project.
     /// <code lang="csharp">
@@ -158,6 +163,7 @@ public static class AzureSignalRExtensions
     ///   .WithReference(signalr);
     /// </code>
     /// </example>
+    /// </remarks>
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureSignalRResource> target,

@@ -26,6 +26,29 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     public ReferenceExpression ConnectionStringExpression =>
        Parent.GetBlobConnectionString();
 
+    internal ReferenceExpression GetConnectionString(string? blobContainerName)
+    {
+        if (string.IsNullOrEmpty(blobContainerName))
+        {
+            return ConnectionStringExpression;
+        }
+
+        ReferenceExpressionBuilder builder = new();
+
+        if (Parent.IsEmulator)
+        {
+            builder.AppendFormatted(ConnectionStringExpression);
+        }
+        else
+        {
+            builder.Append($"Endpoint={ConnectionStringExpression}");
+        }
+
+        builder.Append($";ContainerName={blobContainerName}");
+
+        return builder.Build();
+    }
+
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
     {
         if (Parent.IsEmulator)
@@ -42,8 +65,9 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             // uses the queue service for its internal bookkeeping on blob triggers.
             target[$"{connectionName}__blobServiceUri"] = Parent.BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+
             // Injected to support Aspire client integration for Azure Storage.
-            // We don't inject the queue resource here since we on;y want it to
+            // We don't inject the queue resource here since we only want it to
             // be accessible by the Functions host.
             target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.BlobEndpoint;
         }

@@ -15,14 +15,19 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     : AzureProvisioningResource(name, configureInfrastructure),
     IResourceWithConnectionString
 {
+    [Obsolete("Use AzureOpenAIDeploymentResource instead.")]
     private readonly List<AzureOpenAIDeployment> _deployments = [];
+    private readonly List<AzureOpenAIDeploymentResource> _deploymentResources = [];
 
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure OpenAI resource.
     /// </summary>
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
-    private BicepOutputReference NameOutputReference => new("name", this);
+    /// <summary>
+    /// Gets the "name" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
@@ -30,11 +35,18 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{ConnectionString}");
 
+    internal ReferenceExpression GetConnectionString(string deploymentName) =>
+        ReferenceExpression.Create($"{ConnectionString};Deployment={deploymentName}");
+
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
     public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
+    internal IReadOnlyList<AzureOpenAIDeploymentResource> DeploymentResources => _deploymentResources;
+
+    [Obsolete("AzureOpenAIDeployment is deprecated.")]
     internal void AddDeployment(AzureOpenAIDeployment deployment)
     {
         ArgumentNullException.ThrowIfNull(deployment);
@@ -42,11 +54,36 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
         _deployments.Add(deployment);
     }
 
+    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
+    {
+        _deploymentResources.Add(deployment);
+    }
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = CognitiveServicesAccount.FromExisting(this.GetBicepIdentifier());
-        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a CognitiveServicesAccount with the same identifier already exists
+        var existingAccount = resources.OfType<CognitiveServicesAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
+        
+        if (existingAccount is not null)
+        {
+            return existingAccount;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var account = CognitiveServicesAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            account))
+        {
+            account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(account);
         return account;
     }

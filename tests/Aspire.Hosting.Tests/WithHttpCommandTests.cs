@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -29,6 +29,50 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         var httpClientFactory = app.Services.GetService<IHttpClientFactory>();
         Assert.NotNull(httpClientFactory);
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointByNameIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", endpointName: "nonhttp");
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
+    }
+
+    [Fact]
+    public void WithHttpCommand_Throws_WhenEndpointIsNotHttp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var container = builder.AddContainer("name", "image")
+                .WithEndpoint(targetPort: 9999, scheme: "tcp", name: "nonhttp");
+
+        // Act
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            container.WithHttpCommand("/some-path", "Do The Thing", () => container.GetEndpoint("nonhttp"));
+        });
+
+        // Assert
+        Assert.Equal(
+            "Could not create HTTP command for resource 'name' as the endpoint with name 'nonhttp' and scheme 'tcp' is not an HTTP endpoint.",
+            ex.Message
+        );
     }
 
     [Fact]
@@ -129,28 +173,21 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(403, false)]
     [InlineData(404, false)]
     [InlineData(500, false)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9670")]
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8194")]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand($"/status/{statusCode}", "Do The Thing", commandName: "mycommand");
-        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceBuilder.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
 
         // Assert
         Assert.Equal(expectSuccess, result.Success);
@@ -160,6 +197,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData("get", true)]
     [InlineData("post", false)]
     [Theory]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9725")]
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
         // Arrange
@@ -167,26 +205,20 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { Method = method });
-        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceBuilder.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
 
         // Assert
         Assert.Equal(expectSuccess, result.Success);
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9800")]
     public async Task WithHttpCommand_UsesNamedHttpClient()
     {
         // Arrange
@@ -196,20 +228,13 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
             .AddHttpMessageHandler((sp) => trackingMessageHandler);
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { HttpClientName = "commandclient" });
-        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceBuilder.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
 
         // Assert
         Assert.True(trackingMessageHandler.Called);
@@ -227,6 +252,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9818")]
     public async Task WithHttpCommand_UsesEndpointSelector()
     {
         // Arrange
@@ -241,32 +267,27 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                     callbackCalled = true;
                     return serviceA.GetEndpoint("http");
                 });
-        var command = serviceB.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = serviceB.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(serviceB.Resource, "mycommand");
 
         // Assert
         Assert.True(callbackCalled);
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8192")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9789")]
     public async Task WithHttpCommand_CallsPrepareRequestCallback_BeforeSendingRequest()
     {
         // Arrange
         var callbackCalled = false;
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        string resolvedResourceName = null!;
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
@@ -276,7 +297,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                     {
                         Assert.NotNull(requestContext);
                         Assert.NotNull(requestContext.ServiceProvider);
-                        Assert.Equal("servicea", requestContext.ResourceName);
+                        Assert.Equal(resolvedResourceName, requestContext.ResourceName);
                         Assert.NotNull(requestContext.Endpoint);
                         Assert.NotNull(requestContext.HttpClient);
                         Assert.NotNull(requestContext.Request);
@@ -285,20 +306,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                         return Task.CompletedTask;
                     }
                 });
-        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        resolvedResourceName = resourceBuilder.Resource.GetResolvedResourceNames().Single();
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceBuilder.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
 
         // Assert
         Assert.True(callbackCalled);
@@ -306,12 +321,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8200")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9772")]
     public async Task WithHttpCommand_CallsGetResponseCallback_AfterSendingRequest()
     {
         // Arrange
         var callbackCalled = false;
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        string resolvedResourceName = null!;
         var resourceBuilder = builder.AddProject<Projects.ServiceA>("servicea")
             .WithHttpCommand("/status/200", "Do The Thing",
                 commandName: "mycommand",
@@ -321,7 +338,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                     {
                         Assert.NotNull(resultContext);
                         Assert.NotNull(resultContext.ServiceProvider);
-                        Assert.Equal("servicea", resultContext.ResourceName);
+                        Assert.Equal(resolvedResourceName, resultContext.ResourceName);
                         Assert.NotNull(resultContext.Endpoint);
                         Assert.NotNull(resultContext.HttpClient);
                         Assert.NotNull(resultContext.Response);
@@ -330,20 +347,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
                         return Task.FromResult(CommandResults.Failure("A test error message"));
                     }
                 });
-        var command = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().First(c => c.Name == "mycommand");
 
         // Act
         var app = builder.Build();
         await app.StartAsync();
         await app.ResourceNotifications.WaitForResourceHealthyAsync("servicea").DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        resolvedResourceName = resourceBuilder.Resource.GetResolvedResourceNames().Single();
 
-        var context = new ExecuteCommandContext
-        {
-            ResourceName = resourceBuilder.Resource.Name,
-            ServiceProvider = app.Services,
-            CancellationToken = CancellationToken.None
-        };
-        var result = await command.ExecuteCommand(context);
+        var result = await app.ResourceCommands.ExecuteCommandAsync(resourceBuilder.Resource, "mycommand");
 
         // Assert
         Assert.True(callbackCalled);
@@ -352,7 +363,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/8101")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange
@@ -411,6 +422,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9811")]
     public async Task WithHttpCommand_EnablesCommandUsingCustomUpdateStateCallback()
     {
         // Arrange

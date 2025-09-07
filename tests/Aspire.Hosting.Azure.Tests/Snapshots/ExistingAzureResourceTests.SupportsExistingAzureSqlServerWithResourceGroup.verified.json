@@ -1,0 +1,11 @@
+﻿{
+  "type": "azure.bicep.v1",
+  "connectionString": "Server=tcp:{sqlServer.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+  "path": "sqlServer.module.bicep",
+  "params": {
+    "existingResourceName": "{existingResourceName.value}"
+  },
+  "scope": {
+    "resourceGroup": "{existingResourceGroupName.value}"
+  }
+}

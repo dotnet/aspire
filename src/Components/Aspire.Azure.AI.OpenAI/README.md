@@ -19,7 +19,7 @@ dotnet add package Aspire.Azure.AI.OpenAI
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _AppHost.cs_ file of your project, call the `AddAzureOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
 builder.AddAzureOpenAIClient("openaiConnectionName");
@@ -134,7 +134,7 @@ In your AppHost project, install the Aspire Azure Cognitive Services Hosting lib
 dotnet add package Aspire.Hosting.Azure.CognitiveServices
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
+Then, in the _AppHost.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
 
 ```csharp
 var openai = builder.ExecutionContext.IsPublishMode

@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="de" original="../RootCommandStrings.resx">
+    <body>
+      <trans-unit id="CliWaitForDebuggerArgumentDescription">
+        <source>Wait for a debugger to attach before executing the command.</source>
+        <target state="translated">Warten Sie, bis ein Debugger angefügt wurde, bevor Sie den Befehl ausführen.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DebugArgumentDescription">
+        <source>Enable debug logging to the console.</source>
+        <target state="translated">Aktivieren Sie die Debugprotokollierung in der Konsole.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
+        <target state="translated">Die Aspire CLI kann zum Erstellen, Ausführen und Veröffentlichen von Aspire-basierten Anwendungen verwendet werden.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WaitForDebuggerArgumentDescription">
+        <source>Wait for a debugger to attach before executing the command.</source>
+        <target state="translated">Warten Sie, bis ein Debugger angefügt wurde, bevor Sie den Befehl ausführen.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WaitingForDebugger">
+        <source>Waiting for debugger to attach to CLI process ID: {0}</source>
+        <target state="translated">Es wird auf das Anfügen des Debuggers an die CLI-Prozess-ID „{0}“ gewartet.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

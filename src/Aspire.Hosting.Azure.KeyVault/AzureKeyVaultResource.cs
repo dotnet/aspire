@@ -13,8 +13,12 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString, IKeyVaultResource
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithConnectionString, IAzureKeyVaultResource
 {
+    /// <summary>
+    /// The secrets for this Key Vault.
+    /// </summary>
+    internal List<AzureKeyVaultSecretResource> Secrets { get; } = [];
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
     /// </summary>
@@ -26,23 +30,17 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the resource identifier of the Azure Key Vault resource.
-    /// </summary>
-    public BicepOutputReference Id => new("id", this);
-
-    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{VaultUri}");
 
-    BicepOutputReference IKeyVaultResource.VaultUriOutputReference => VaultUri;
-    BicepOutputReference IKeyVaultResource.IdOutputReference => Id;
+    BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 
     // In run mode, this is set to the secret client used to access the Azure Key Vault.
-    internal Func<string, CancellationToken, Task<string?>>? SecretResolver { get; set; }
+    internal Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? SecretResolver { get; set; }
 
-    Func<string, CancellationToken, Task<string?>>? IKeyVaultResource.SecretResolver
+    Func<IAzureKeyVaultSecretReference, CancellationToken, Task<string?>>? IAzureKeyVaultResource.SecretResolver
     {
         get => SecretResolver;
         set => SecretResolver = value;
@@ -54,7 +52,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <param name="secretName"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public IKeyVaultSecretReference GetSecretReference(string secretName)
+    public IAzureKeyVaultSecretReference GetSecret(string secretName)
     {
         ArgumentException.ThrowIfNullOrEmpty(secretName, nameof(secretName));
 
@@ -64,8 +62,28 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = KeyVaultService.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+
+        // Check if a KeyVaultService with the same identifier already exists
+        var existingStore = resources.OfType<KeyVaultService>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+
+        // Create and add new resource if it doesn't exist
+        var store = KeyVaultService.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceNameAndScope(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

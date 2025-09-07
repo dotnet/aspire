@@ -7,9 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 
   <ItemGroup>
