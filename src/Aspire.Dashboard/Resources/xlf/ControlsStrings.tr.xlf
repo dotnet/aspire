@@ -259,7 +259,7 @@
       </trans-unit>
       <trans-unit id="LabelOther">
         <source>(Other)</source>
-        <target state="new">(Other)</target>
+        <target state="translated">(Diğer)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -519,27 +519,27 @@
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
-        <target state="new">Database</target>
+        <target state="translated">Veritabanı</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeGenAI">
         <source>Gen AI</source>
-        <target state="new">Gen AI</target>
+        <target state="translated">Gen yapay zeka</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeHttp">
         <source>HTTP</source>
-        <target state="new">HTTP</target>
+        <target state="translated">HTTP</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeMessaging">
         <source>Messaging</source>
-        <target state="new">Messaging</target>
+        <target state="translated">Mesajlaşma</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeRpc">
         <source>RPC</source>
-        <target state="new">RPC</target>
+        <target state="translated">RPC</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">
