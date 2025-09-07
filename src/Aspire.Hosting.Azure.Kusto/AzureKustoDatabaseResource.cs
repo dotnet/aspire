@@ -70,19 +70,3 @@ public class AzureKustoDatabaseResource : Resource, IResourceWithParent<AzureKus
     }
 }
 
-// Temporary hack until fixes merged to Azure.Provisioning.Kusto.
-internal class KustoDatabaseWithHacks(string bicepIdentifier, string? resourceVersion = default) : KustoDatabase(bicepIdentifier, resourceVersion)
-{
-    public BicepValue<string> Kind
-    {
-        get { Initialize(); return _kind!; }
-        set { Initialize(); _kind!.Assign(value); }
-    }
-    private BicepValue<string>? _kind;
-
-    protected override void DefineProvisionableProperties()
-    {
-        base.DefineProvisionableProperties();
-        _kind = DefineProperty<string>(nameof(Kind), ["kind"], isRequired: true);
-    }
-}
