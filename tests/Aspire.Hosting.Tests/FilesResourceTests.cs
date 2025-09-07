@@ -8,40 +8,6 @@ namespace Aspire.Hosting.Tests;
 public class FilesResourceTests
 {
     [Fact]
-    public void AddFilesResourceWithMultipleFiles()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var files = new[] { "/path/to/file1.txt", "/path/to/file2.txt" };
-
-        appBuilder.AddFiles("myfiles", files);
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var filesResource = Assert.Single(appModel.Resources.OfType<FilesResource>());
-
-        Assert.Equal("myfiles", filesResource.Name);
-        Assert.Equal(files, filesResource.Files);
-    }
-
-    [Fact]
-    public void AddFilesResourceWithSingleFile()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var filePath = "/path/to/file.txt";
-
-        appBuilder.AddFiles("myfile", filePath);
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var filesResource = Assert.Single(appModel.Resources.OfType<FilesResource>());
-
-        Assert.Equal("myfile", filesResource.Name);
-        Assert.Single(filesResource.Files, filePath);
-    }
-
-    [Fact]
     public void AddFilesResourceWithNoInitialFiles()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -58,13 +24,13 @@ public class FilesResourceTests
     }
 
     [Fact]
-    public void WithFileAddsFileToResource()
+    public void WithSourceAddsSourceToResource()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddFiles("myfiles")
-                  .WithFile("/path/to/file1.txt")
-                  .WithFile("/path/to/file2.txt");
+                  .WithSource("/path/to/directory")
+                  .WithSource("/path/to/file.txt");
 
         using var app = appBuilder.Build();
 
@@ -73,38 +39,16 @@ public class FilesResourceTests
 
         Assert.Equal("myfiles", filesResource.Name);
         Assert.Equal(2, filesResource.Files.Count());
-        Assert.Contains("/path/to/file1.txt", filesResource.Files);
-        Assert.Contains("/path/to/file2.txt", filesResource.Files);
-    }
-
-    [Fact]
-    public void WithFilesAddsMultipleFilesToResource()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var additionalFiles = new[] { "/path/to/file3.txt", "/path/to/file4.txt" };
-
-        appBuilder.AddFiles("myfiles", "/path/to/file1.txt")
-                  .WithFiles(additionalFiles);
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var filesResource = Assert.Single(appModel.Resources.OfType<FilesResource>());
-
-        Assert.Equal("myfiles", filesResource.Name);
-        Assert.Equal(3, filesResource.Files.Count());
-        Assert.Contains("/path/to/file1.txt", filesResource.Files);
-        Assert.Contains("/path/to/file3.txt", filesResource.Files);
-        Assert.Contains("/path/to/file4.txt", filesResource.Files);
+        Assert.Contains("/path/to/directory", filesResource.Files);
+        Assert.Contains("/path/to/file.txt", filesResource.Files);
     }
 
     [Fact]
     public void FilesResourceImplementsIResourceWithFiles()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var files = new[] { "/path/to/file1.txt" };
 
-        appBuilder.AddFiles("myfiles", files);
+        appBuilder.AddFiles("myfiles").WithSource("/path/to/file1.txt");
 
         using var app = appBuilder.Build();
 
@@ -113,7 +57,7 @@ public class FilesResourceTests
 
         Assert.IsAssignableFrom<IResourceWithFiles>(filesResource);
         var resourceWithFiles = (IResourceWithFiles)filesResource;
-        Assert.Equal(files, resourceWithFiles.Files);
+        Assert.Single(resourceWithFiles.Files, "/path/to/file1.txt");
     }
 
     [Fact]
