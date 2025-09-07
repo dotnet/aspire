@@ -101,8 +101,19 @@ public static class AzureKustoBuilderExtensions
         AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
 
         return resourceBuilder
-            .WithDefaultRoleAssignments(KustoBuiltInRoleExtensions.GetBuiltInRoleName,
-                KustoBuiltInRole.Contributor);
+            .WithDefaultRoleAssignments(GetBuiltInRoleNameHack, KustoBuiltInRoleHack.Contributor);
+    }
+
+    // HACK: Until this is resolved: https://github.com/Azure/azure-sdk-for-net/issues/52499
+    private static string GetBuiltInRoleNameHack(KustoBuiltInRoleHack value)
+    {
+        return value._value switch
+        {
+            KustoBuiltInRoleHack.OwnerValue => nameof(KustoBuiltInRoleHack.Owner),
+            KustoBuiltInRoleHack.ContributorValue => nameof(KustoBuiltInRoleHack.Contributor),
+            KustoBuiltInRoleHack.ReaderValue => nameof(KustoBuiltInRoleHack.Reader),
+            _ => value.ToString()
+        };
     }
 
     /// <summary>
