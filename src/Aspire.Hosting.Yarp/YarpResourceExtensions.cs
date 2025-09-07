@@ -79,7 +79,7 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
-    /// Enables static file serving in the YARP resource.
+    /// Enables static file serving in the YARP resource. Static files are served from the wwwroot folder.
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -88,5 +88,20 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithEnvironment("YARP_ENABLE_STATIC_FILES", "true");
+    }
+
+    /// <summary>
+    /// Enables static file serving in the YARP resource and bind mounts files from the specified source path to the wwwroot folder in the container.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="sourcePath">The source path containing static files to serve.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<YarpResource> WithStaticFilesBindMount(this IResourceBuilder<YarpResource> builder, string sourcePath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        return builder.WithStaticFiles()
+                     .WithContainerFiles("/wwwroot", sourcePath);
     }
 }
