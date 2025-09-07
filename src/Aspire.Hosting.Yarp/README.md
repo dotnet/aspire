@@ -53,6 +53,28 @@ var gateway = builder.AddYarp("gateway")
                              .WithTransformPathRemovePrefix("/external");
                      });
 ```
+
+### Enabling static file serving
+
+To serve static files alongside proxied routes:
+
+```csharp
+var backendService = builder.AddProject<Projects.Backend>("backend");
+
+var gateway = builder.AddYarp("gateway")
+                     .WithStaticFiles() // Enables static file serving
+                     .WithConfiguration(yarp =>
+                     {
+                         // API routes are proxied to backend
+                         yarp.AddRoute("/api/{**catch-all}", backendService)
+                             .WithTransformPathRemovePrefix("/api");
+                         
+                         // Static files (HTML, CSS, JS, etc.) are served directly
+                         // from the YARP container for any non-matching routes
+                     });
+```
+
+This configuration allows the YARP gateway to serve both static files (for frontend assets) and proxy API requests to backend services.
 ## Configuration API
 
 ### Route configuration
@@ -70,6 +92,22 @@ yarp.AddRoute("/path/{**catch-all}", externalService);     // Route to external 
 var cluster = yarp.AddCluster(resource);
 var route = yarp.AddRoute("/path/{**catch-all}", cluster);
 ```
+
+### Static file serving
+
+To enable static file serving in the YARP container, use the `WithStaticFiles()` method:
+
+```csharp
+var gateway = builder.AddYarp("gateway")
+                     .WithStaticFiles()  // Enable static file serving
+                     .WithConfiguration(yarp =>
+                     {
+                         yarp.AddRoute("/api/{**catch-all}", backendService)
+                             .WithTransformPathRemovePrefix("/api");
+                     });
+```
+
+This configures the YARP container to serve static files from its default static files directory. The static files will be available at the gateway's base URL while API routes continue to be proxied to backend services.
 
 ### Route matching options
 

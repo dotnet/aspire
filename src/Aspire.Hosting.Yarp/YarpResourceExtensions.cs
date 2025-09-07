@@ -77,4 +77,16 @@ public static class YarpResourceExtensions
             endpoint.Port = port;
         });
     }
+
+    /// <summary>
+    /// Enables static file serving in the YARP resource.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<YarpResource> WithStaticFiles(this IResourceBuilder<YarpResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvironment("YARP_ENABLE_STATIC_FILES", "true");
+    }
 }
