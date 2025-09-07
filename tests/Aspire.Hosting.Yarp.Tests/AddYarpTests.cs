@@ -68,7 +68,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("true", value);
     }
 
-    [Fact] 
+    [Fact]
     public async Task VerifyWithStaticFilesWorksInPublishOperation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

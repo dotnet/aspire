@@ -69,14 +69,11 @@ This will copy files into the container use container files in run mode, and use
 #### Copy files via Docker
 
 You can also use a docker file to copy static assets into the yarp container: e.g.
-
-
 ```C#
 builder.AddYarp("frontend")
        .WithStaticFiles()
        .WithDockerFile("../npmapp");
 ```
-
 
 ```Dockerfile
 # Stage 1: Build React app

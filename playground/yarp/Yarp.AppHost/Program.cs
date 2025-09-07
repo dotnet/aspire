@@ -10,7 +10,6 @@ var backendService = builder.AddProject<Projects.Yarp_Backend>("backend");
 var frontendService = builder.AddProject<Projects.Yarp_Frontend>("frontend");
 
 var gateway = builder.AddYarp("gateway")
-                     .WithStaticFiles() // Enable static file serving
                      .WithConfiguration(yarp =>
                      {
                          yarp.AddRoute(frontendService);
