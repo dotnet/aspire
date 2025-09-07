@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Add a files resource with a source directory containing static content
 builder.AddFiles("static-content")
-       .WithSource("content");
+       .WithSource("../content");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
