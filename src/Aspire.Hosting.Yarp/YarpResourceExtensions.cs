@@ -96,7 +96,7 @@ public static class YarpResourceExtensions
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="sourcePath">The source path containing static files to serve.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<YarpResource> WithStaticFilesBindMount(this IResourceBuilder<YarpResource> builder, string sourcePath)
+    public static IResourceBuilder<YarpResource> WithStaticFiles(this IResourceBuilder<YarpResource> builder, string sourcePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);

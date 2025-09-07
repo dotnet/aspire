@@ -93,7 +93,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         
         try
         {
-            var yarp = builder.AddYarp("yarp").WithStaticFilesBindMount(testDir);
+            var yarp = builder.AddYarp("yarp").WithStaticFiles(testDir);
 
             var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
@@ -121,7 +121,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         
         try
         {
-            var yarp = builder.AddYarp("yarp").WithStaticFilesBindMount(testDir);
+            var yarp = builder.AddYarp("yarp").WithStaticFiles(testDir);
 
             var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
 
@@ -149,7 +149,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         
         try
         {
-            var yarp = builder.AddYarp("yarp").WithStaticFilesBindMount(testDir);
+            var yarp = builder.AddYarp("yarp").WithStaticFiles(testDir);
 
             var annotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>());
             Assert.Equal("/wwwroot", annotation.DestinationPath);

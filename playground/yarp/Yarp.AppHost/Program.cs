@@ -19,7 +19,7 @@ var gateway = builder.AddYarp("gateway")
                      });
 
 var staticGateway = builder.AddYarp("static-gateway")
-                           .WithStaticFilesBindMount("./static-content")
+                           .WithStaticFiles("./static-content")
                            .WithConfiguration(yarp =>
                            {
                                yarp.AddRoute("/api/{**catch-all}", backendService)
