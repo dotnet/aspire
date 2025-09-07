@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
-        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <target state="translated">{1} 内に '{0}' の PackageVersion 要素が見つかりませんでした </target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
