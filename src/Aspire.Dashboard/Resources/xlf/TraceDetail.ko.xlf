@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailNoSpans">
         <source>No spans found</source>
-        <target state="new">No spans found</target>
+        <target state="translated">범위를 찾을 수 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
