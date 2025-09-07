@@ -663,6 +663,37 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
+    public async Task ProjectVolumesAreTranslatedToContainerApps()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddProject<Project>("myproject", launchProfileName: null)
+            .WithVolume("project-vol", "/app/data")
+            .WithVolume("/app/tmp");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var project = Assert.Single(model.GetProjectResources());
+
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
     public async Task KeyVaultReferenceHandling()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
