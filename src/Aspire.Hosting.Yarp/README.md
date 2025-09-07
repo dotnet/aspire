@@ -54,27 +54,43 @@ var gateway = builder.AddYarp("gateway")
                      });
 ```
 
-### Enabling static file serving
+### Static file serving
 
-To serve static files alongside proxied routes:
+YARP can serve static files alongside proxied routes. There are two approaches:
 
-```csharp
-var backendService = builder.AddProject<Projects.Backend>("backend");
+#### Copy files locally
 
-var gateway = builder.AddYarp("gateway")
-                     .WithStaticFiles() // Enables static file serving
-                     .WithConfiguration(yarp =>
-                     {
-                         // API routes are proxied to backend
-                         yarp.AddRoute("/api/{**catch-all}", backendService)
-                             .WithTransformPathRemovePrefix("/api");
-                         
-                         // Static files (HTML, CSS, JS, etc.) are served directly
-                         // from the YARP container for any non-matching routes
-                     });
+```C#
+builder.AddYarp("static")
+       .WithStaticFiles("../static");
+```
+This will copy files into the container use container files in run mode, and use a bind mount in publish mode.
+
+#### Copy files via Docker
+
+You can also use a docker file to copy static assets into the yarp container: e.g.
+
+
+```C#
+builder.AddYarp("frontend")
+       .WithStaticFiles()
+       .WithDockerFile("../npmapp");
 ```
 
-This configuration allows the YARP gateway to serve both static files (for frontend assets) and proxy API requests to backend services.
+
+```Dockerfile
+# Stage 1: Build React app
+FROM node:20 AS builder
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build
+
+# Stage 2: Copy static files to YARP container
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
+WORKDIR /app
+COPY --from=builder /app/dist ./wwwroot
+```
 ## Configuration API
 
 ### Route configuration
@@ -92,22 +108,6 @@ yarp.AddRoute("/path/{**catch-all}", externalService);     // Route to external 
 var cluster = yarp.AddCluster(resource);
 var route = yarp.AddRoute("/path/{**catch-all}", cluster);
 ```
-
-### Static file serving
-
-To enable static file serving in the YARP container, use the `WithStaticFiles()` method:
-
-```csharp
-var gateway = builder.AddYarp("gateway")
-                     .WithStaticFiles()  // Enable static file serving
-                     .WithConfiguration(yarp =>
-                     {
-                         yarp.AddRoute("/api/{**catch-all}", backendService)
-                             .WithTransformPathRemovePrefix("/api");
-                     });
-```
-
-This configures the YARP container to serve static files from its default static files directory. The static files will be available at the gateway's base URL while API routes continue to be proxied to backend services.
 
 ### Route matching options
 
