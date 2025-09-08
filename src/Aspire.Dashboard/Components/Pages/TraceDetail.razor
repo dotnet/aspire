@@ -66,6 +66,9 @@
                                   ImmediateDelay="@FluentUIExtensions.InputDelay"
                                   Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                                   title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"/>
+                    <SpanTypeSelect @bind-SpanType="@_selectedSpanType"
+                                    SpanTypes="@_spanTypes"
+                                    HandleSelectedSpanTypeChangedAsync="@HandleSelectedSpanTypeChangedAsync" />
                     <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
                                       Icon="@(new Icons.Regular.Size20.Options())"
                                       Items="@_traceActionsMenuItems"
@@ -151,8 +154,8 @@
                                             }
                                         }
 
-                                        <span class="span-overview-container" style="margin-left: @(marginLeft)px;">
-                                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
+                                        <div class="span-overview-container">
+                                            <span @onclick:stopPropagation="true" style="margin-left: @(marginLeft)px;" class="main-grid-expand-container @(context.IsCollapsed ? "main-grid-collapsed" : "main-grid-expanded")">
                                                 @if (context.Children.Count > 0)
                                                 {
                                                     <FluentButton aria-label="@ControlStringsLoc[nameof(ControlsStrings.ToggleNesting)]" Appearance="Appearance.Lightweight" Class="main-grid-expand-button" OnClick="@(() => OnToggleCollapse(context))">
@@ -201,7 +204,19 @@
                                                     </span>
                                                 }
                                             </span>
-                                        </span>
+                                            <span @onclick:stopPropagation="true">
+                                                @if (IsGenAISpan(context))
+                                                {
+                                                    <FluentButton Appearance="Appearance.Lightweight"
+                                                                  Title="@ControlStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"
+                                                                  Class="genai-details-button"
+                                                                  OnClick="() => OnGenAIClickedAsync(context)">
+                                                        <FluentIcon Icon="Icons.Regular.Size20.Sparkle"
+                                                                    Color="Color.Accent" />
+                                                    </FluentButton>
+                                                }
+                                            </span>
+                                        </div>
                                     </AspireTemplateColumn>
                                     <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Tooltip="true" TooltipText="@(c => GetResourceName(c.Span.Source))" Class="expand-col">
                                         <div class="resource-name">

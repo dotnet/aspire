@@ -448,6 +448,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to GenAI details.
+        /// </summary>
+        public static string GenAIDetailsTitle {
+            get {
+                return ResourceManager.GetString("GenAIDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copied!.
         /// </summary>
         public static string GridValueCopied {
