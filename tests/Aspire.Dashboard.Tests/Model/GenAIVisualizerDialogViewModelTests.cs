@@ -61,6 +61,64 @@ public sealed class GenAIVisualizerDialogViewModelTests
     }
 
     [Fact]
+    public void Create_SpanError_HasErrorItem()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var status = new Status
+        {
+            Code = Status.Types.StatusCode.Error,
+            Message = "Error!"
+        };
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create("error.type", "Exception")
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes, status: status)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Items,
+            i =>
+            {
+                Assert.Equal(GenAIItemType.Error, i.Type);
+                Assert.Collection(i.ItemParts,
+                    p => Assert.Equal("""
+                        Exception
+
+                        Error!
+                        """, p.ErrorMessage));
+            });
+        Assert.False(vm.NoMessageContent);
+    }
+
+    [Fact]
     public void Create_GenAILogEntries_HasMessages()
     {
         // Arrange
@@ -261,26 +319,17 @@ public sealed class GenAIVisualizerDialogViewModelTests
             new ChatMessage
             {
                 Role = "user",
-                Parts = new List<MessagePart>
-                {
-                    new TextPart { Content = "User!" }
-                }
+                Parts = [new TextPart { Content = "User!" }]
             },
             new ChatMessage
             {
                 Role = "assistant",
-                Parts = new List<MessagePart>
-                {
-                    new ToolCallRequestPart { Name = "generate_names", Arguments = JsonNode.Parse(@"{""count"":2}") }
-                }
+                Parts = [new ToolCallRequestPart { Name = "generate_names", Arguments = JsonNode.Parse(@"{""count"":2}") }]
             },
             new ChatMessage
             {
                 Role = "user",
-                Parts = new List<MessagePart>
-                {
-                    new ToolCallResponsePart { Response = JsonNode.Parse(@"[""Jack"",""Jane""]") }
-                }
+                Parts = [new ToolCallResponsePart { Response = JsonNode.Parse(@"[""Jack"",""Jane""]") }]
             }
         }, GenAIMessagesContext.Default.ListChatMessage);
 
@@ -289,10 +338,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
             new ChatMessage
             {
                 Role = "assistant",
-                Parts = new List<MessagePart>
-                {
-                    new TextPart { Content = "Output!" }
-                }
+                Parts = [new TextPart { Content = "Output!" }]
             }
         }, GenAIMessagesContext.Default.ListChatMessage);
 
@@ -378,6 +424,126 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
+    }
+
+    [Fact]
+    public void Create_GenAISpanAttributesWithoutContent_HasNoMessageContent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var systemInstruction = JsonSerializer.Serialize(new List<MessagePart>
+        {
+            new TextPart { Content = "" }
+        }, GenAIMessagesContext.Default.ListMessagePart);
+
+        var inputMessages = JsonSerializer.Serialize(new List<ChatMessage>
+        {
+            new ChatMessage
+            {
+                Role = "user",
+                Parts = [new TextPart { Content = "" }]
+            },
+            new ChatMessage
+            {
+                Role = "assistant",
+                Parts = [new ToolCallRequestPart { Name = "generate_names" }]
+            },
+            new ChatMessage
+            {
+                Role = "user",
+                Parts = [new ToolCallResponsePart()]
+            }
+        }, GenAIMessagesContext.Default.ListChatMessage);
+
+        var outputMessages = JsonSerializer.Serialize(new List<ChatMessage>
+        {
+            new ChatMessage
+            {
+                Role = "assistant",
+                Parts = [new TextPart { Content = "" }]
+            }
+        }, GenAIMessagesContext.Default.ListChatMessage);
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            KeyValuePair.Create(GenAIHelpers.GenAISystemInstructions, systemInstruction),
+            KeyValuePair.Create(GenAIHelpers.GenAIInputMessages, inputMessages),
+            KeyValuePair.Create(GenAIHelpers.GenAIOutputInstructions, outputMessages)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.AssistantMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p =>
+                    {
+                        var toolCallRequestPart = Assert.IsType<ToolCallRequestPart>(p.MessagePart);
+                        Assert.Equal("generate_names", toolCallRequestPart.Name);
+                        Assert.Null(toolCallRequestPart.Arguments);
+                    });
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.ToolMessage, m.Type);
+                Assert.Equal("TestService", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Null(Assert.IsType<ToolCallResponsePart>(p.MessagePart).Response));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Equal("ai-server.address", m.ResourceName);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.True(vm.NoMessageContent);
     }
 
     private static GenAIVisualizerDialogViewModel Create(

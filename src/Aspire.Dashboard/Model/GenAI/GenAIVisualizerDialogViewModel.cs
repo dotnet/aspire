@@ -113,6 +113,11 @@ public sealed class GenAIVisualizerDialogViewModel
 
     private static bool AllMessagesHaveNoContent(List<GenAIItemViewModel> messageViewModels)
     {
+        if (messageViewModels.Count == 0)
+        {
+            return false;
+        }
+
         foreach (var messageViewModel in messageViewModels)
         {
             foreach (var partViewModel in messageViewModel.ItemParts)
