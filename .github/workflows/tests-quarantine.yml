@@ -4,7 +4,7 @@ name: Quarantined Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours
+    - cron: '0 2,14 * * *' # Twice daily at 02:00 and 14:00 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

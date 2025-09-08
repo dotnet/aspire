@@ -4,7 +4,7 @@ name: Outerloop Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours
+    - cron: '0 2 * * *' # Daily at 02:00 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
