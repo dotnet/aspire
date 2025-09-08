@@ -425,6 +425,8 @@ public partial class InteractionsProviderTests : DashboardTestContext
     [InlineData(true, "**Hello** _World_! <b>Bold</b>", "<strong>Hello</strong> <em>World</em>! &lt;b&gt;Bold&lt;/b&gt;")]
     [InlineData(false, "**Hello** _World_! <b>Bold</b>", "**Hello** _World_! &lt;b&gt;Bold&lt;/b&gt;")]
     [InlineData(true, "Para1\r\n\r\nPara2", "<p>Para1</p>\r\n<p>Para2</p>")]
+    [InlineData(true, "This is a test://www.localhost.com", "This is a test://www.localhost.com")]
+    [InlineData(true, "This is a [test](test://www.localhost.com)", "This is a <a href=\"test://www.localhost.com\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">test</a>")]
     public async Task ReceiveData_InputDialogWithMarkdownMessage_ExpectedResolvedMessage(bool markdownSupported, string message, string expectedMessage)
     {
         // Arrange
