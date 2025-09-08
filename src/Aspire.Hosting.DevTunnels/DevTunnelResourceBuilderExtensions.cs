@@ -307,6 +307,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             })
             .OnInitializeResource((portResource, e, ct) =>
             {
+                // Setup event subscriptions for the port lifecycle
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
                 _ = eventing.Subscribe<DevTunnelResourceStartedEvent>(portResource.DevTunnel, async (evt, ct) =>
                 {
@@ -384,51 +385,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         // Lifecycle from the tunnel
         tunnelBuilder
-            //.OnBeforeResourceStarted(async (tunnelResource, e, ct) =>
-            //{
-                // // Tunnel starting, clear port status
-                // var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-                // portLogger.LogInformation("Tunnel starting, waiting for it to be healthy");
-                // var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                // await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
-                // {
-                //     State = KnownResourceStates.Waiting
-                // }).ConfigureAwait(false);
-
-                // var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
-                // // Start task to wait until tunnel is created and target endpoint is allocated
-                // _ = Task.Run(async () =>
-                // {
-                //     try
-                //     {
-                //         // Wait here to ensure tunnel has been created & target endpoint is allocated!
-                //         _ = Task.WhenAll(tunnel.TunnelCreatedTask, portResource.TargetEndpointAllocatedTask).ConfigureAwait(false);
-
-                //         portResource.Options.Labels ??= [];
-                //         // TODO: Validate and add the labels here
-                //         // Labels: The field Labels must match the regular expression '[\w-=]{1,50}'.
-                //         //portResource.Options.Labels.Add(portResource.TargetEndpoint.Resource.Name);
-                //         //portResource.Options.Labels.Add(portResource.TargetEndpoint.EndpointName);
-
-                //         // Create the tunnel port
-                //         _ = await devTunnelClient.CreateOrUpdatePortAsync(
-                //             portResource.DevTunnel.TunnelId,
-                //             portResource.TargetEndpoint.Port,
-                //             portResource.Options,
-                //             ct)
-                //         .ConfigureAwait(false);
-
-                //         // Mark the port created
-                //         portResource.PortCreatedTcs.SetResult();
-
-                //         portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'.", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
-                //     }
-                //     catch (Exception ex)
-                //     {
-                //         portLogger.LogError(ex, "Error trying to create/update dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
-                //     }
-                // }, ct);
-            //})
             .OnResourceReady(async (tunnelResource, e, ct) =>
             {
                 // Update the port now that the tunnel is ready
