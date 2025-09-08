@@ -47,12 +47,12 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     public const string TunnelEndpointName = "tunnel";
 
     /// <summary>
-    /// 
+    /// Initializes a new instance of the <see cref="DevTunnelPortResource"/> class, representing a single forwarded endpoint/port on a dev tunnel.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="tunnel"></param>
-    /// <param name="targetEndpoint"></param>
-    /// <param name="options"></param>
+    /// <param name="name">The name of the port resource.</param>
+    /// <param name="tunnel">The parent <see cref="DevTunnelResource"/> this port belongs to.</param>
+    /// <param name="targetEndpoint">The endpoint to be forwarded through the tunnel.</param>
+    /// <param name="options">Options controlling how this port is exposed.</param>
     public DevTunnelPortResource(
         string name,
         DevTunnelResource tunnel,

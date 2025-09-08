@@ -46,7 +46,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
         var command = GetCommandPath();
 
         var notificationTask = _notificationTask;
-        if (notificationTask is { IsCompleted: false})
+        if (notificationTask is { IsCompleted: false })
         {
             // Notification is still being shown so just throw again.
             throw GetCommandNotFoundException(command);

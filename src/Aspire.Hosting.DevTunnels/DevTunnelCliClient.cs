@@ -123,6 +123,10 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
 
     private static string SkipToFirstChar(string output, char startingChar)
     {
+        if (string.IsNullOrEmpty(output))
+        {
+            return "";
+        }
         if (output[0] == startingChar)
         {
             return output;

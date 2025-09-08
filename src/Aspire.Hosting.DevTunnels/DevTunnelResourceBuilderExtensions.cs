@@ -113,7 +113,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 return Task.CompletedTask;
             });
 
-        // Tunnels will expire after some time not being hosted so we won't foricibly delete them when the resource or AppHost is stopped
+        // Tunnels will expire after some time not being hosted so we won't forcibly delete them when the resource or AppHost is stopped
 
         return rb;
     }
