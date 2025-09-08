@@ -14,7 +14,7 @@ public sealed class MarkdownOptions
 {
     public required MarkdownPipeline Pipeline { get; init; }
     public required bool SuppressSurroundingParagraph { get; init; }
-    public required HashSet<string>? AllowedSchemes { get; init; }
+    public required HashSet<string>? AllowedUrlSchemes { get; init; }
 }
 
 public static class MarkdownHelpers
@@ -50,7 +50,7 @@ public static class MarkdownHelpers
         // Open absolute links in the response in a new window.
         foreach (var link in document.Descendants<LinkInline>())
         {
-            switch (DetectLink(link.Url, options.AllowedSchemes))
+            switch (DetectLink(link.Url, options.AllowedUrlSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -62,7 +62,7 @@ public static class MarkdownHelpers
         }
         foreach (var link in document.Descendants<AutolinkInline>())
         {
-            switch (DetectLink(link.Url, options.AllowedSchemes))
+            switch (DetectLink(link.Url, options.AllowedUrlSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -90,7 +90,7 @@ public static class MarkdownHelpers
 
         return writer.ToString();
 
-        static LinkType DetectLink(string? url, HashSet<string>? allowedSchemes)
+        static LinkType DetectLink(string? url, HashSet<string>? allowedUrlSchemes)
         {
             if (url == null || !Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri))
             {
@@ -102,7 +102,7 @@ public static class MarkdownHelpers
                 return LinkType.Relative;
             }
 
-            if (allowedSchemes != null && !allowedSchemes.Contains(uri.Scheme))
+            if (allowedUrlSchemes != null && !allowedUrlSchemes.Contains(uri.Scheme))
             {
                 return LinkType.Prohibited;
             }
