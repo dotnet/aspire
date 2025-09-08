@@ -38,13 +38,9 @@ internal sealed class DevTunnelCli
         => RunAsync(["user", "login", "--github", "--json"], null, null, useShellExecute: true, cancellationToken);
 
     public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, string? provider = null, CancellationToken cancellationToken = default)
-        => RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
-        {
-            list.Add("user");
-            list.Add("logout");
-        })
-        .AddIfNotNull("--provider", provider)
-        .ToArray(), outputWriter, errorWriter, cancellationToken);
+        => RunAsync(new ArgsBuilder(["user", "logout"])
+            .AddIfNotNull("--provider", provider)
+        , outputWriter, errorWriter, cancellationToken);
 
     public Task<int> UserStatusAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
         => RunAsync(["user", "show", "--json"], outputWriter, errorWriter, cancellationToken);
@@ -57,16 +53,13 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(static list =>
-        {
-            list.Add("create");
-        })
-        .AddIfNotNull(tunnelId)
-        .AddIfNotNull("--description", options.Description)
-        .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
-        .AddLabels("--labels", options.Labels)
-        .AddIfTrue("--json", true)
-        .ToArray(), outputWriter, errorWriter, cancellationToken);
+        return RunAsync(new ArgsBuilder(["create"])
+            .AddIfNotNull(tunnelId)
+            .AddIfNotNull("--description", options.Description)
+            .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
+            .AddValues("--labels", options.Labels)
+            .Add("--json")
+        , outputWriter, errorWriter, cancellationToken);
     }
 
     public Task<int> UpdateTunnelAsync(
@@ -77,15 +70,11 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
-        {
-            list.Add("update");
-            list.Add(tunnelId);
-        })
-        .AddIfNotNull("--description", options.Description)
-        .AddLabels("--add-labels", options.Labels)
-        .AddIfTrue("--json", true)
-        .ToArray(), outputWriter, errorWriter, cancellationToken);
+        return RunAsync(new ArgsBuilder(["update", tunnelId])
+            .AddIfNotNull("--description", options.Description)
+            .AddValues("--add-labels", options.Labels)
+            .Add("--json")
+        , outputWriter, errorWriter, cancellationToken);
     }
 
     public Task<int> DeleteTunnelAsync(string tunnelId, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
@@ -103,17 +92,12 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
-        {
-            list.Add("port");
-            list.Add("create");
-            list.Add(tunnelId);
-        })
-        .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
-        .AddIfNotNull("--protocol", options.Protocol)
-        .AddLabels("--labels", options.Labels)
-        .AddIfTrue("--json", true)
-        .ToArray(), outputWriter, errorWriter, cancellationToken);
+        return RunAsync(new ArgsBuilder(["port", "create", tunnelId])
+            .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
+            .AddIfNotNull("--protocol", options.Protocol)
+            .AddValues("--labels", options.Labels)
+            .Add("--json")
+        , outputWriter, errorWriter, cancellationToken);
     }
 
     public Task<int> UpdatePortAsync(
@@ -125,17 +109,12 @@ internal sealed class DevTunnelCli
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
-        return RunAsync(DevTunnelCliArgBuilderExtensions.BuildArgs(list =>
-        {
-            list.Add("port");
-            list.Add("update");
-            list.Add(tunnelId);
-        })
-        .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
-        .AddIfNotNull("--description", options.Description)
-        .AddLabels("--add-labels", options.Labels)
-        .AddIfTrue("--json", true)
-        .ToArray(), outputWriter, errorWriter, cancellationToken);
+        return RunAsync(new ArgsBuilder(["port", "update", tunnelId])
+            .Add("--port-number", portNumber.ToString(CultureInfo.InvariantCulture))
+            .AddIfNotNull("--description", options.Description)
+            .AddValues("--add-labels", options.Labels)
+            .Add("--json")
+        , outputWriter, errorWriter, cancellationToken);
     }
 
     public async Task<int> CreateOrUpdatePortAsync(
@@ -343,81 +322,79 @@ internal sealed class DevTunnelCli
     }
 }
 
-// TODO: Rewrite this helper to be more ergnomic, e.g. new ArgsBuilder().Add(...).AddIf(...)
-internal static class DevTunnelCliArgBuilderExtensions
+internal sealed class ArgsBuilder(IEnumerable<string> initialArgs)
 {
-    internal static List<string> BuildArgs(Action<List<string>> addBase)
+    private readonly List<string> _args = [.. initialArgs];
+
+    public ArgsBuilder Add(string value)
     {
-        var list = new List<string>();
-        addBase(list);
-        return list;
+        _args.Add(value);
+        return this;
     }
 
-    internal static List<string> Add(this List<string> list, string name, string value)
+    public ArgsBuilder Add(string name, string value)
     {
-        list.Add(name);
-        list.Add(value);
-        return list;
+        _args.Add(name);
+        _args.Add(value);
+        return this;
     }
 
-    internal static List<string> AddIfNotNull(this List<string> list, string name, string? value)
+    public ArgsBuilder AddIfNotNull(string? value)
     {
         if (!string.IsNullOrEmpty(value))
         {
-            list.Add(name);
-            list.Add(value);
+            _args.Add(value);
         }
-        return list;
+        return this;
     }
 
-    internal static List<string> AddIfNotNull(this List<string> list, string? name)
+    public ArgsBuilder AddIfNotNull(string name, string? value)
     {
-        if (!string.IsNullOrEmpty(name))
+        if (!string.IsNullOrEmpty(value))
         {
-            list.Add(name);
+            _args.Add(name);
+            _args.Add(value);
         }
-        return list;
+        return this;
     }
 
-    internal static List<string> AddIfTrue(this List<string> list, string name, bool? condition)
+    public ArgsBuilder AddIfTrue(string name, bool? condition)
     {
         if (condition == true)
         {
-            list.Add(name);
+            _args.Add(name);
         }
-        return list;
+        return this;
     }
 
-    internal static List<string> AddIfFalse(this List<string> list, string name, bool? condition)
+    public ArgsBuilder AddIfFalse(string name, bool? condition)
     {
         if (condition == false)
         {
-            list.Add(name);
+            _args.Add(name);
         }
-        return list;
+        return this;
     }
 
-    /// <summary>
-    /// Adds labels using a single option in the form: --labels "label1 label2".
-    /// The value is a space-separated list of label strings.
-    /// </summary>
-    internal static List<string> AddLabels(this List<string> list, string name, List<string>? labels)
+    internal ArgsBuilder AddValues(string name, List<string>? values, char separator = ' ')
     {
-        if (labels is null || labels.Count == 0)
+        if (values is null || values.Count == 0)
         {
-            return list;
+            return this;
         }
 
-        // Build a single space-separated string of labels.
-        // Assumes label strings themselves do not contain spaces.
-        var tokens = labels.Where(l => !string.IsNullOrWhiteSpace(l));
-        var joined = string.Join(' ', tokens);
+        // Build a single separated string of values.
+        // Assumes values themselves do not contain the separator character.
+        var tokens = values.Where(l => !string.IsNullOrWhiteSpace(l));
+        var joined = string.Join(separator, tokens);
         if (!string.IsNullOrWhiteSpace(joined))
         {
-            list.Add(name);
-            list.Add(joined);
+            _args.Add(name);
+            _args.Add(joined);
         }
 
-        return list;
+        return this;
     }
+
+    public static implicit operator string[](ArgsBuilder builder) => [.. builder._args];
 }
