@@ -178,19 +178,35 @@ public static partial class DevTunnelsResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Gets the endpoint for the dev tunnel port that references the specified target resource and endpoint name.
+    /// Injects service discovery information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
+    /// Each endpoint defined on the target resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
-    /// <param name="tunnelBuilder"></param>
-    /// <param name="targetResource"></param>
-    /// <param name="endpointName"></param>
-    /// <returns>The endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder,
-        IResourceBuilder<IResourceWithEndpoints> targetResource, string endpointName)
+    /// <param name="builder">The builder.</param>
+    /// <param name="targetResource">The resource to inject service discovery information for.</param>
+    /// <param name="tunnelResource">The dev tunnel resource to resolve the tunnel address from.</param>
+    /// <returns>The builder.</returns>
+    public static IResourceBuilder<TResource> WithReference<TResource>(this IResourceBuilder<TResource> builder,
+        IResourceBuilder<IResourceWithEndpoints> targetResource, IResourceBuilder<DevTunnelResource> tunnelResource)
+        where TResource : IResourceWithEnvironment
     {
-        return tunnelBuilder.Resource.Ports.FirstOrDefault(p => p.TargetEndpoint.Resource == targetResource.Resource
-                                                                && string.Equals(p.TargetEndpoint.EndpointName, endpointName, StringComparisons.EndpointAnnotationName))
-            ?.TunnelEndpoint
-            ?? throw new ArgumentException($"Dev tunnel '{tunnelBuilder.Resource.Name}' does not have a port referencing endpoint '{endpointName}' on resource '{targetResource.Resource.Name}'.", nameof(targetResource));
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(targetResource);
+        ArgumentNullException.ThrowIfNull(tunnelResource);
+
+        builder.WithEnvironment(async context =>
+        {
+            // Add environment variables for each tunnel port that references an endpoint on the target resource
+            foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
+            {
+                await port.TunnelEndpointAllocatedTask.ConfigureAwait(false);
+
+                var serviceName = targetResource.Resource.Name;
+                var endpointName = port.TargetEndpoint.EndpointName;
+                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+            }
+        });
+
+        return builder;
     }
 
     private static void AddDevTunnelPort(
@@ -414,6 +430,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 // Allocate endpoint to the tunnel port
                 var raiseEndpointsAllocatedEvent = portResource.TunnelEndpointAnnotation.AllocatedEndpoint is null;
                 portResource.TunnelEndpointAnnotation.AllocatedEndpoint = new(portResource.TunnelEndpointAnnotation, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
+                portResource.TunnelEndpointAllocatedTcs.SetResult();
 
                 // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
                 // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for

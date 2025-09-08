@@ -88,6 +88,10 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
 
     internal EndpointAnnotation TunnelEndpointAnnotation { get; }
 
+    internal TaskCompletionSource TunnelEndpointAllocatedTcs { get; } = new();
+
+    internal Task TunnelEndpointAllocatedTask => TunnelEndpointAllocatedTcs.Task;
+
     internal EndpointReference TargetEndpoint { get; init; }
 
     internal TaskCompletionSource TargetEndpointAllocatedTcs { get; set; } = new();

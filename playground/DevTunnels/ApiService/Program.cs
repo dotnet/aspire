@@ -5,20 +5,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// HACK: I don't like the naming required to resolve the tunnel endpoint here, need to rethink this.
-//       This is the current breakdown:
-//       https://_tunnel  .  devtunnel-public-frontend-https
-//       \___/   \_____/     \______________/ \______/ \___/
-//         |        |               |           |        |
-//     [scheme] [endpoint name]     |           |     [target endpoint name]
-//                  [tunnel resource name]   [target resource name]
-builder.Services.AddHttpClient("tunnel-public", client => client.BaseAddress = new("https://_tunnel.devtunnel-public-frontend-https"));
+builder.Services.AddHttpClient("frontend", client => client.BaseAddress = new("https://frontend"));
 
 var app = builder.Build();
 
 app.MapGet("/", async (IHttpClientFactory httpClientFactory) =>
 {
-    var http = httpClientFactory.CreateClient("tunnel-public");
+    var http = httpClientFactory.CreateClient("frontend");
     var response = await http.GetAsync("/");
     var contentLength = response.Content.Headers.ContentLength ?? response.Content.ReadAsStringAsync().Result.Length;
     return new

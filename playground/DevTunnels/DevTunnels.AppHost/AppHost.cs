@@ -13,9 +13,8 @@ var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
 var privateDevTunnel = builder.AddDevTunnel("devtunnel")
     .WithReference(frontend.GetEndpoint("https"));
 
-// BUG: This currently causes an error because the env vars try to get written before the tunnel endpoint is allocated.
-//      Manually starting the api after the tunnel is created works fine.
-api.WithReference(publicDevTunnel.GetEndpoint(frontend, "https"));
+// Inject the public dev tunnel endpoint for frontend into the API service
+api.WithReference(frontend, publicDevTunnel);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
