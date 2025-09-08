@@ -163,10 +163,11 @@ internal sealed class ResourceContainerImageBuilder(
                 }
             }
 
-            var buildTasks = resources.Select(resource =>
-                BuildImageAsync(step, resource, options, cancellationToken));
-
-            await Task.WhenAll(buildTasks).ConfigureAwait(false);
+            foreach (var resource in resources)
+            {
+                // TODO: Consider parallelizing this.
+                await BuildImageAsync(step, resource, options, cancellationToken).ConfigureAwait(false);
+            }
 
             await step.CompleteAsync("Building container images completed", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
         }
