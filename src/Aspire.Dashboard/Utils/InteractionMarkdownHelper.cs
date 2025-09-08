@@ -20,6 +20,14 @@ public static class InteractionMarkdownHelper
         // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
         var hasNewline = markdown.Contains('\n') || markdown.Contains('\r');
 
-        return MarkdownHelpers.ToHtml(markdown, s_markdownPipeline, !hasNewline);
+        // Interactions are trusted, so allow all schemes.
+        var options = new MarkdownOptions
+        {
+            Pipeline = s_markdownPipeline,
+            AllowedUrlSchemes = null,
+            SuppressSurroundingParagraph = !hasNewline
+        };
+
+        return MarkdownHelpers.ToHtml(markdown, options);
     }
 }
