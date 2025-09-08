@@ -42,7 +42,7 @@ jobs:
           --ci
           /p:CI=false
           /p:GeneratePackageOnBuild=false
-          /p:InstallBrowsersForPlaywright=false
+          ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
 
       - name: Generate test runsheet
         id: generate_tests_matrix
