@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
-        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <target state="translated">在 {1} 中找不到 ‘{0}’ 的 PackageVersion 元素</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
