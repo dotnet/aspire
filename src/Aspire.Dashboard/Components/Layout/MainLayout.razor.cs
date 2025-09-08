@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
@@ -25,6 +26,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
+    private CancellationTokenSource? _disposalCts;
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
@@ -68,6 +70,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [Inject]
     public required ILocalStorage LocalStorage { get; init; }
 
+    [Inject]
+    public required ILogger<MainLayout> Logger { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -99,6 +104,15 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
                 return ValueTask.CompletedTask;
             });
+        }
+        else
+        {
+            if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
+            {
+                // Check if the dashboard client can connect.
+                // Run in a new task to not block other behavior if a connection error occurs and a dialog is shown.
+                _ = Task.Run(EnsureClientConnectionAsync);
+            }
         }
 
         var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
@@ -132,6 +146,44 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                         await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey, true);
                     };
                 });
+            }
+        }
+    }
+
+    private async Task EnsureClientConnectionAsync()
+    {
+        Debug.Assert(DashboardClient.IsEnabled, "Dashboard client must be enabled to ensure connection.");
+
+        _disposalCts = new CancellationTokenSource();
+        try
+        {
+            await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Connection error.");
+
+            var dialogParameters = new DialogParameters<MessageBoxContent>
+            {
+                PrimaryAction = DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogRetryButton)],
+                SecondaryAction = DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogCancelButton)],
+                PreventDismissOnOverlayClick = true,
+                Content = new MessageBoxContent
+                {
+                    Title = DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogTitle)],
+                    MarkupMessage = new MarkupString(DialogsLoc[nameof(Resources.Dialogs.ConnectionErrorDialogMessage)]),
+                    Intent = MessageBoxIntent.Confirmation,
+                    IconColor = Color.Error,
+                    Icon = new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.DismissCircle()
+                }
+            };
+            var reference = await DialogService.ShowMessageBoxAsync(dialogParameters);
+
+            var result = await reference.Result;
+            if (!result.Cancelled)
+            {
+                // Force dashboard to reload.
+                NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), forceLoad: true);
             }
         }
     }
@@ -280,6 +332,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _disposalCts?.Cancel();
         _shortcutManagerReference?.Dispose();
         _layoutReference?.Dispose();
         _themeChangedSubscription?.Dispose();
