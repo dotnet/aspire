@@ -8,6 +8,7 @@ import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
+import { timingSafeEqual } from 'crypto';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -56,7 +57,7 @@ export default class AspireRpcServer {
 
         function withAuthentication(callback: (...params: any[]) => any) {
             return (...params: any[]) => {
-                if (!params || params[0] !== token) {
+                if (!params || timingSafeEqual(Buffer.from(params[0]), Buffer.from(token)) === false) {
                     throw new Error(invalidTokenProvided);
                 }
 

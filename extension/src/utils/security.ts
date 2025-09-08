@@ -38,6 +38,6 @@ export function createSelfSignedCert(commonName: string = 'localhost') {
 }
 
 export function generateToken(): string {
-    const key = randomBytes(16);
+    const key = randomBytes(32);
     return key.toString('base64');
 }
