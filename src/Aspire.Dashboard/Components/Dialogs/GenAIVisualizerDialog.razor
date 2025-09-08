@@ -170,11 +170,17 @@
                         @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages)
-                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages)
+                                @if (Content.NoMessageContent)
+                                {
+                                    <div class="no-message-content-content">
+                                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
+                                    </div>
+                                }
+                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
+                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
                                 @if (Content.ErrorItem is { } errorItem)
                                 {
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem])
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
                                 }
                             </div>
                         }
@@ -194,7 +200,7 @@
 <FluentDialogFooter Visible="false" />
 
 @{
-    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items)
+    RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
     {
         return@<div>
             <div class="section-title">@title</div>
@@ -202,6 +208,8 @@
             {
                 foreach (var item in items)
                 {
+                    var itemParts = item.ItemParts.Where(p => !string.IsNullOrEmpty(p.TextVisualizerViewModel.Text)).ToList();
+
                     <div class="message-container">
                         @if (item.Type != GenAIItemType.Error)
                         {
@@ -214,16 +222,22 @@
                                 <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
                             </FluentButton>
                         </span>
-                        @foreach (var itemPart in item.ItemParts)
+                        @foreach (var itemPart in itemParts)
                         {
                             <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" />
+                        }
+                        @if (itemParts.Count == 0)
+                        {
+                            <div class="no-message-content">
+                                @Loc[nameof(Dialogs.GenAINoMessageContent)]
+                            </div>
                         }
                     </div>
                 }
             }
             else
             {
-                <p>No messages found.</p>
+                <p>@Loc[nameof(Dialogs.GenAINoMessages)]</p>
             }
         </div>;
     }

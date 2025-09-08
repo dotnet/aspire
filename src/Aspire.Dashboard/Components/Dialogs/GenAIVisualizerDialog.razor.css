@@ -169,6 +169,17 @@
     display: block;
 }
 
+::deep .no-message-content {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+}
+
+::deep .no-message-content-content {
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
+    padding-bottom: 12px;
+}
+
 ::deep .message-copy-button {
     margin-left: auto;
     margin-top: 4px;

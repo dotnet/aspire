@@ -385,6 +385,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No message content..
+        /// </summary>
+        public static string GenAINoMessageContent {
+            get {
+                return ResourceManager.GetString("GenAINoMessageContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href=&quot;{0}&quot; target=&quot;_blank&quot;&gt;AI telemetry configuration&lt;/a&gt;..
+        /// </summary>
+        public static string GenAINoMessageContentMoreInformationMessage {
+            get {
+                return ResourceManager.GetString("GenAINoMessageContentMoreInformationMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No messages found..
+        /// </summary>
+        public static string GenAINoMessages {
+            get {
+                return ResourceManager.GetString("GenAINoMessages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Output.
         /// </summary>
         public static string GenAIOutputHeaderText {

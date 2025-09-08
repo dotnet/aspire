@@ -376,4 +376,14 @@
   <data name="GenAIErrorHeaderText" xml:space="preserve">
     <value>Error</value>
   </data>
+  <data name="GenAINoMessageContentMoreInformationMessage" xml:space="preserve">
+    <value>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</value>
+    <comment>{0} is a URL</comment>
+  </data>
+  <data name="GenAINoMessageContent" xml:space="preserve">
+    <value>No message content.</value>
+  </data>
+  <data name="GenAINoMessages" xml:space="preserve">
+    <value>No messages found.</value>
+  </data>
 </root>

@@ -36,6 +36,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public OverviewViewKind OverviewActiveView { get; set; }
     public ItemViewKind MessageActiveView { get; set; }
 
+    public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
@@ -91,7 +92,7 @@ public sealed class GenAIVisualizerDialogViewModel
                     TextVisualizerViewModel = new TextVisualizerViewModel(errorMessage, indentText: false)
                 }],
                 Parent = viewModel.Span,
-                ResourceName = viewModel.SourceName,
+                ResourceName = viewModel.PeerName,
                 Type = GenAIItemType.Error
             };
             viewModel.Items.Add(viewModel.ErrorItem);
@@ -105,7 +106,46 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputMessages = viewModel.Items.Where(e => e.Type is GenAIItemType.SystemMessage or GenAIItemType.UserMessage or GenAIItemType.AssistantMessage or GenAIItemType.ToolMessage).ToList();
         viewModel.OutputMessages = viewModel.Items.Where(e => e.Type == GenAIItemType.OutputMessage).ToList();
 
+        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages);
+
         return viewModel;
+    }
+
+    private static bool AllMessagesHaveNoContent(List<GenAIItemViewModel> messageViewModels)
+    {
+        foreach (var messageViewModel in messageViewModels)
+        {
+            foreach (var partViewModel in messageViewModel.ItemParts)
+            {
+                if (partViewModel.MessagePart is TextPart textPart)
+                {
+                    if (!string.IsNullOrEmpty(textPart.Content))
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is ToolCallRequestPart toolCallRequestPart)
+                {
+                    if (toolCallRequestPart.Arguments != null)
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is ToolCallResponsePart toolCallResponsePart)
+                {
+                    if (toolCallResponsePart.Response != null)
+                    {
+                        return false;
+                    }
+                }
+                else if (partViewModel.MessagePart is GenericPart)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     // The standard for recording messages has changed a number of times. Try to get messages in the following order:
