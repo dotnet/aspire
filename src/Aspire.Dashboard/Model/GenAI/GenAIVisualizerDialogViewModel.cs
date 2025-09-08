@@ -248,15 +248,20 @@ public sealed class GenAIVisualizerDialogViewModel
 
     private static TextVisualizerViewModel CreateMessagePartVisualizer(MessagePart p)
     {
-        var content = p switch
+        if (p is TextPart textPart)
         {
-            TextPart t => t.Content ?? string.Empty,
-            ToolCallRequestPart f => $"{f.Name}({f.Arguments?.ToJsonString()})",
-            ToolCallResponsePart r => r.Response?.ToJsonString() ?? string.Empty,
-            _ => string.Empty
-        };
+            return new TextVisualizerViewModel(textPart.Content ?? string.Empty, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
+        }
+        if (p is ToolCallRequestPart toolCallRequestPart)
+        {
+            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({toolCallRequestPart.Arguments?.ToJsonString()})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
+        }
+        if (p is ToolCallResponsePart toolCallResponsePart)
+        {
+            return new TextVisualizerViewModel(toolCallResponsePart.Response?.ToJsonString() ?? string.Empty, indentText: true);
+        }
 
-        return new TextVisualizerViewModel(content, indentText: true);
+        return new TextVisualizerViewModel(string.Empty, indentText: false, knownFormat: DashboardUIHelpers.PlaintextFormat);
     }
 
     private static GenAIItemViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIItemType type, List<GenAIItemPartViewModel> parts, long? internalId)
@@ -285,7 +290,7 @@ public sealed class GenAIVisualizerDialogViewModel
                 {
                     MessagePart = new TextPart { Content = systemOrUserEvent.Content },
                     ErrorMessage = null,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(systemOrUserEvent.Content ?? string.Empty, indentText: true)
+                    TextVisualizerViewModel = new TextVisualizerViewModel(systemOrUserEvent.Content ?? string.Empty, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat)
                 });
                 break;
             case GenAIItemType.AssistantMessage:
@@ -321,7 +326,7 @@ public sealed class GenAIVisualizerDialogViewModel
                 {
                     MessagePart = new TextPart { Content = assistantEvent.Content },
                     ErrorMessage = null,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(assistantEvent.Content, indentText: true)
+                    TextVisualizerViewModel = new TextVisualizerViewModel(assistantEvent.Content, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat)
                 });
             }
             if (assistantEvent?.ToolCalls?.Length > 0)
@@ -341,7 +346,7 @@ public sealed class GenAIVisualizerDialogViewModel
                     {
                         MessagePart = new ToolCallRequestPart { Name = function.Name, Arguments = function.Arguments },
                         ErrorMessage = null,
-                        TextVisualizerViewModel = new TextVisualizerViewModel(content, indentText: false, format: "javascript")
+                        TextVisualizerViewModel = new TextVisualizerViewModel(content, indentText: false, knownFormat: "javascript")
                     });
                 }
             }

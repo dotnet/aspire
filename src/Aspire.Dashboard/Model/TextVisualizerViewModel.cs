@@ -20,14 +20,14 @@ public class TextVisualizerViewModel
     public List<StringLogLine> Lines { get; set; } = [];
     public List<StringLogLine> FormattedLines { get; set; } = [];
 
-    public TextVisualizerViewModel(string text, bool indentText, string? format = null)
+    public TextVisualizerViewModel(string text, bool indentText, string? knownFormat = null, string? fallbackFormat = null)
     {
         Text = text;
         Lines = GetLines(Text, DashboardUIHelpers.PlaintextFormat);
 
-        if (format != null)
+        if (knownFormat != null)
         {
-            ChangeFormattedText(format, Text);
+            ChangeFormattedText(knownFormat, Text);
         }
         else if (TryFormatJson(Text, out var formattedJson))
         {
@@ -39,7 +39,7 @@ public class TextVisualizerViewModel
         }
         else
         {
-            ChangeFormattedText(DashboardUIHelpers.PlaintextFormat, Text);
+            ChangeFormattedText(fallbackFormat ?? DashboardUIHelpers.PlaintextFormat, Text);
         }
     }
 

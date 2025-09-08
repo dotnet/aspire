@@ -28,7 +28,7 @@
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
-        new(ChatRole.System, "You are a story generator.")
+        new(ChatRole.System, "You are a story generator. Format stories in Markdown. Use bold and italics for emphasis. Each sentence must include a Markdown formatted link to Wikipedia about a topic in the sentence.")
     };
 
     public Task<List<string>> GenerateNamesAsync(int number)
