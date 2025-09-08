@@ -10,9 +10,18 @@ using Markdig.Syntax.Inlines;
 
 namespace Aspire.Dashboard.Utils;
 
+public sealed class MarkdownOptions
+{
+    public required MarkdownPipeline Pipeline { get; init; }
+    public required bool SuppressSurroundingParagraph { get; init; }
+    public required HashSet<string>? AllowedSchemes { get; init; }
+}
+
 public static class MarkdownHelpers
 {
-    private static readonly HashSet<string> s_allowedSchemes = new HashSet<string>(StringComparers.EndpointAnnotationUriScheme) { "http", "https", "mailto" };
+    // These URL schemes are considered always safe to be included in Markdown received from untrusted 3rd parties, e.g. GenAI.
+    // Untrusted 3rd party Markdown should be limited to these URLs to avoid links that could trigger other programs that listen for the scheme.
+    public static readonly HashSet<string> SafeUrlSchemes = new HashSet<string>(StringComparers.EndpointAnnotationUriScheme) { "http", "https", "mailto" };
 
     public static MarkdownPipelineBuilder CreateMarkdownPipelineBuilder()
     {
@@ -34,22 +43,14 @@ public static class MarkdownHelpers
         return pipelineBuilder;
     }
 
-    public static string ToHtml(string markdown, MarkdownPipeline pipeline, bool suppressSurroundingParagraph = false)
+    public static string ToHtml(string markdown, MarkdownOptions options)
     {
-        // markdig won't render a surrounding paragraph if HtmlRenderer.ImplicitParagraph is true.
-        // The naming is odd, but I think the idea is we're telling the renderer that there is an implicit paragraph
-        // around the content and so renderer doesn't need to add one.
-        return ToHtml(markdown, pipeline, suppressSurroundingParagraph ? render => render.ImplicitParagraph = true : null);
-    }
-
-    private static string ToHtml(string markdown, MarkdownPipeline pipeline, Action<HtmlRenderer>? setupAction)
-    {
-        var document = Markdown.Parse(markdown, pipeline);
+        var document = Markdown.Parse(markdown, options.Pipeline);
 
         // Open absolute links in the response in a new window.
         foreach (var link in document.Descendants<LinkInline>())
         {
-            switch (DetectLink(link.Url))
+            switch (DetectLink(link.Url, options.AllowedSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -61,7 +62,7 @@ public static class MarkdownHelpers
         }
         foreach (var link in document.Descendants<AutolinkInline>())
         {
-            switch (DetectLink(link.Url))
+            switch (DetectLink(link.Url, options.AllowedSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -74,15 +75,22 @@ public static class MarkdownHelpers
 
         var writer = new StringWriter();
         var renderer = new HtmlRenderer(writer);
-        setupAction?.Invoke(renderer);
-        pipeline.Setup(renderer);
+        if (options.SuppressSurroundingParagraph)
+        {
+            // markdig won't render a surrounding paragraph if HtmlRenderer.ImplicitParagraph is true.
+            // The naming is odd, but I think the idea is we're telling the renderer that there is an implicit paragraph
+            // around the content and so renderer doesn't need to add one.
+            renderer.ImplicitParagraph = true;
+        }
+
+        options.Pipeline.Setup(renderer);
 
         renderer.Render(document); // using the renderer directly
         writer.Flush();
 
         return writer.ToString();
 
-        static LinkType DetectLink(string? url)
+        static LinkType DetectLink(string? url, HashSet<string>? allowedSchemes)
         {
             if (url == null || !Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri))
             {
@@ -94,7 +102,7 @@ public static class MarkdownHelpers
                 return LinkType.Relative;
             }
 
-            if (!s_allowedSchemes.Contains(uri.Scheme))
+            if (allowedSchemes != null && !allowedSchemes.Contains(uri.Scheme))
             {
                 return LinkType.Prohibited;
             }
