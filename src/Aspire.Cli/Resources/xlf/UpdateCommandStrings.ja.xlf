@@ -27,6 +27,11 @@
         <target state="translated">現在、中央パッケージ管理では、'aspire update' によるサポートがありません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="CheckingWorkloadStatus">
+        <source>Checking for Aspire workload...</source>
+        <target state="new">Checking for Aspire workload...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">{1} 内に '{0}' の PackageVersion 要素が見つかりませんでした </target>
@@ -45,6 +50,11 @@
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">Aspire プロジェクトの統合を更新します。(プレビュー)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentUpdateComplete">
+        <source>Aspire environment update complete.</source>
+        <target state="new">Aspire environment update complete.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -102,6 +112,21 @@
         <target state="translated">チャネルを選択:</target>
         <note />
       </trans-unit>
+      <trans-unit id="SkippingTemplateUpdate">
+        <source>No template updates available.</source>
+        <target state="new">No template updates available.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateUpdateFailed">
+        <source>Failed to update templates (exit code {0}). Continuing with project updates.</source>
+        <target state="new">Failed to update templates (exit code {0}). Continuing with project updates.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateUpdateSuccessful">
+        <source>Templates updated to version {0}.</source>
+        <target state="new">Templates updated to version {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">予期しないコード パスです。</target>
@@ -117,9 +142,24 @@
         <target state="translated">正常に更新されました!</target>
         <note />
       </trans-unit>
+      <trans-unit id="UpdatingTemplatesStatus">
+        <source>Updating Aspire templates...</source>
+        <target state="new">Updating Aspire templates...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
         <target state="translated">NuGet.config ファイル用の、どのディレクトリですか?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadFound">
+        <source>Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</source>
+        <target state="new">Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotFound">
+        <source>No Aspire workload detected.</source>
+        <target state="new">No Aspire workload detected.</target>
         <note />
       </trans-unit>
     </body>

@@ -84,4 +84,28 @@
   <data name="CouldNotFindPackageVersionInDirectoryPackagesProps" xml:space="preserve">
     <value>Could not find PackageVersion element for '{0}' in {1}</value>
   </data>
+  <data name="CheckingWorkloadStatus" xml:space="preserve">
+    <value>Checking for Aspire workload...</value>
+  </data>
+  <data name="WorkloadFound" xml:space="preserve">
+    <value>Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</value>
+  </data>
+  <data name="WorkloadNotFound" xml:space="preserve">
+    <value>No Aspire workload detected.</value>
+  </data>
+  <data name="UpdatingTemplatesStatus" xml:space="preserve">
+    <value>Updating Aspire templates...</value>
+  </data>
+  <data name="TemplateUpdateFailed" xml:space="preserve">
+    <value>Failed to update templates (exit code {0}). Continuing with project updates.</value>
+  </data>
+  <data name="TemplateUpdateSuccessful" xml:space="preserve">
+    <value>Templates updated to version {0}.</value>
+  </data>
+  <data name="SkippingTemplateUpdate" xml:space="preserve">
+    <value>No template updates available.</value>
+  </data>
+  <data name="EnvironmentUpdateComplete" xml:space="preserve">
+    <value>Aspire environment update complete.</value>
+  </data>
 </root>
