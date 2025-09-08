@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -695,11 +696,11 @@ public class AzureContainerAppsTests
         Assert.Contains("my_ace_outputs_volumes_druid_0", bicep);
         Assert.Contains("my_ace_outputs_volumes_druid_1", bicep);
         Assert.Contains("my_ace_outputs_bindmounts_druid_0", bicep);
-        
+
         // Also verify the container app environment resource output
         var containerAppEnvResource = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
         var (envManifest, envBicep) = await GetManifestWithBicep(containerAppEnvResource);
-        
+
         await Verify(manifest.ToString())
               .AppendContentAsFile(bicep)
               .AppendContentAsFile(envManifest.ToString())
@@ -1615,5 +1616,146 @@ public class AzureContainerAppsTests
         await app.RunAsync();
 
         await VerifyFile(Path.Combine(tempDir.Path, "aspire-manifest.json"));
+    }
+
+    [Fact]
+    public async Task PublishAsContainerAppJobInfluencesContainerAppDefinition()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+        builder.AddContainer("api", "myimage")
+            .PublishAsAzureContainerAppJob((infra, j) =>
+            {
+                Assert.Contains(j, infra.GetProvisionableResources());
+
+                j.Configuration.TriggerType = ContainerAppJobTriggerType.Schedule;
+                j.Configuration.ScheduleTriggerConfig.CronExpression = "*/5 * * * *";
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task PublishAsContainerAppJob_WorksForProjectResource()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+        builder.AddProject<Project>("job", launchProfileName: null)
+            .PublishAsAzureContainerAppJob((infra, job) => { });
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var project = Assert.Single(model.GetProjectResources());
+        project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(bicep, "bicep");
+    }
+    
+    [Fact]
+    public async Task PublishAsContainerAppJob_ThrowsIfBothCustomizationsAreApplied()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddProject<Project>("job", launchProfileName: null)
+            .PublishAsAzureContainerApp((infra, app) => { })
+            .PublishAsAzureContainerAppJob((infra, job) => { });
+
+        using var app = builder.Build();
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await ExecuteBeforeStartHooksAsync(app, default));
+    }
+
+    [Fact]
+    public async Task PublishAsContainerAppJob_ThrowsForAzureFunctions()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddAzureFunctionsProject<TestFunctionsProject>("funcjob")
+            .PublishAsAzureContainerAppJob((infra, job) => { });
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var funcjob = model.Resources.Single(r => r.Name == "funcjob");
+        funcjob.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource);
+
+        await Assert.ThrowsAsync<NotSupportedException>(async () => await GetManifestWithBicep(resource));
+    }
+
+    private sealed class TestFunctionsProject : IProjectMetadata
+    {
+        public string ProjectPath => "functions-project";
+
+        public LaunchSettings LaunchSettings => new()
+        {
+            Profiles = new Dictionary<string, LaunchProfile>
+            {
+                ["funcapp"] = new()
+                {
+                    CommandLineArgs = "--port 7071",
+                    LaunchBrowser = false,
+                }
+            }
+        };
+    }
+
+    [Fact]
+    public async Task CanMixContainerAppsAndJobsInSameManifest()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddContainer("web", "nginx:latest")
+            .PublishAsAzureContainerApp((infra, app) => { });
+
+        builder.AddContainer("batch", "image:latest")
+            .PublishAsAzureContainerAppJob((infra, job) => { });
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var containers = model.GetContainerResources().ToArray();
+        Assert.Equal(2, containers.Length);
+
+        var batch = containers.First(c => c.Name == "batch");
+        var web = containers.First(c => c.Name == "web");
+
+        var batchTarget = batch.Annotations.OfType<DeploymentTargetAnnotation>().FirstOrDefault();
+        var webTarget = web.Annotations.OfType<DeploymentTargetAnnotation>().FirstOrDefault();
+
+        var batchResource = batchTarget?.DeploymentTarget as AzureProvisioningResource;
+        var webResource = webTarget?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(batchResource);
+        Assert.NotNull(webResource);
+
+        var (batchManifest, batchBicep) = await GetManifestWithBicep(batchResource);
+        var (webManifest, webBicep) = await GetManifestWithBicep(webResource);
+
+        Assert.Contains("Microsoft.App/jobs", batchBicep);
+        Assert.Contains("Microsoft.App/containerApps", webBicep);
     }
 }

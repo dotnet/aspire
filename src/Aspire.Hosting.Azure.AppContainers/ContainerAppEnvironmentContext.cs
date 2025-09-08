@@ -18,9 +18,9 @@ internal sealed class ContainerAppEnvironmentContext(
 
     public AzureContainerAppEnvironmentResource Environment => environment;
 
-    private readonly Dictionary<IResource, ContainerAppContext> _containerApps = new(new ResourceNameComparer());
+    private readonly Dictionary<IResource, BaseContainerAppContext> _containerApps = new(new ResourceNameComparer());
 
-    public ContainerAppContext GetContainerAppContext(IResource resource)
+    public BaseContainerAppContext GetContainerAppContext(IResource resource)
     {
         if (!_containerApps.TryGetValue(resource, out var context))
         {
@@ -34,7 +34,7 @@ internal sealed class ContainerAppEnvironmentContext(
     {
         if (!_containerApps.TryGetValue(resource, out var context))
         {
-            _containerApps[resource] = context = new ContainerAppContext(resource, this);
+            _containerApps[resource] = context = CreateContainerAppContext(resource);
             await context.ProcessResourceAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -44,5 +44,23 @@ internal sealed class ContainerAppEnvironmentContext(
         };
 
         return provisioningResource;
+    }
+
+    private BaseContainerAppContext CreateContainerAppContext(IResource resource)
+    {
+        bool hasJobCustomization = resource.HasAnnotationOfType<AzureContainerJobCustomizationAnnotation>();
+        bool hasAppCustomization = resource.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>();
+
+        if (hasJobCustomization && hasAppCustomization)
+        {
+            throw new InvalidOperationException($"Resource '{resource.Name}' cannot have both AzureContainerAppCustomizationAnnotation and AzureContainerJobCustomizationAnnotation.");
+        }
+
+        if (hasJobCustomization)
+        {
+            return new ContainerAppJobContext(resource, this);
+        }
+
+        return new ContainerAppContext(resource, this);
     }
 }
