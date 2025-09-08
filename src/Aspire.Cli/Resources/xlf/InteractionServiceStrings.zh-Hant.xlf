@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host</source>
-        <target state="needs-review-translation">正在建置應用程式主機...</target>
+        <target state="translated">正在建置應用程式主機</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select app host to use:</source>
-        <target state="new">Select app host to use:</target>
+        <target state="translated">選取要使用的應用程式主機:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="UnbuildableAppHostsDetected">
         <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
-        <target state="new">No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</target>
+        <target state="translated">找不到應用程式主機 (可能有應用程式主機專案檔案具有語法錯誤/無效的 SDK 版本)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

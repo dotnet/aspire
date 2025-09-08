@@ -50,7 +50,7 @@
       ```
 
     -->
-  <Target Name="_GenerateTestMatrix" BeforeTargets="Test" Condition=" '$(TestRunnerName)' == 'TestRunsheetBuilder' or  '$(TestRunnerName)' == 'QuarantinedTestRunsheetBuilder' ">
+  <Target Name="_GenerateTestMatrix" BeforeTargets="Test" Condition=" '$(TestRunnerName)' == 'TestRunsheetBuilder' or  '$(TestRunnerName)' == 'QuarantinedTestRunsheetBuilder' or '$(TestRunnerName)' == 'OuterloopTestRunsheetBuilder' ">
     <PropertyGroup>
       <_CombinedRunsheetFile>$(ArtifactsTmpDir)/combined_runsheet.json</_CombinedRunsheetFile>
       <_Command>

@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host</source>
-        <target state="needs-review-translation">Génération de l’hôte d’application...</target>
+        <target state="translated">Génération d’un hôte d’application</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select app host to use:</source>
-        <target state="new">Select app host to use:</target>
+        <target state="translated">Sélectionnez l’hôte d’application à utiliser :</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="UnbuildableAppHostsDetected">
         <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
-        <target state="new">No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</target>
+        <target state="translated">Aucun hôte d’application n’a été trouvé (il peut y avoir des fichiers de projet d’hôtes d’application contenant des erreurs de syntaxe ou des versions de SDK non valides).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

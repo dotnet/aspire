@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Výstupní cesta pro artefakty nasazení</target>
+        <source>The optional output path for deployment artifacts.</source>
+        <target state="translated">Volitelná výstupní cesta pro artefakty nasazení.</target>
         <note />
       </trans-unit>
     </body>

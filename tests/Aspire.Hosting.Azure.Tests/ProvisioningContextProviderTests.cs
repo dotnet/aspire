@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001
+#pragma warning disable ASPIREPUBLISHERS001
 
 using System.Reflection;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +22,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -36,8 +37,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -60,7 +60,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -76,8 +75,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
@@ -90,7 +88,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(location: null);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -106,8 +103,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
@@ -120,7 +116,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions(resourceGroup: null);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -136,8 +131,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -158,7 +152,6 @@ public class ProvisioningContextProviderTests
         // Arrange
         var resourceGroupName = "my-custom-rg";
         var options = ProvisioningTestHelpers.CreateOptions(resourceGroup: resourceGroupName);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -174,8 +167,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -190,7 +182,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -206,8 +197,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -223,7 +213,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -239,8 +228,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -257,7 +245,6 @@ public class ProvisioningContextProviderTests
         // Arrange
         var testInteractionService = new TestInteractionService();
         var options = ProvisioningTestHelpers.CreateOptions(null, null, null);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -273,8 +260,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
         // Act
         var createTask = provider.CreateProvisioningContextAsync(userSecrets);
 
@@ -336,7 +322,6 @@ public class ProvisioningContextProviderTests
     {
         var testInteractionService = new TestInteractionService();
         var options = ProvisioningTestHelpers.CreateOptions(null, null, null);
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -352,8 +337,7 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            publishingOptions);
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         var createTask = provider.CreateProvisioningContextAsync(userSecrets);
 
@@ -387,7 +371,6 @@ public class ProvisioningContextProviderTests
     {
         // Arrange
         var options = ProvisioningTestHelpers.CreateOptions();
-        var publishingOptions = ProvisioningTestHelpers.CreatePublishingOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -404,7 +387,7 @@ public class ProvisioningContextProviderTests
             userPrincipalProvider,
             tokenCredentialProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            publishingOptions);
+            new NullPublishingActivityReporter());
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);

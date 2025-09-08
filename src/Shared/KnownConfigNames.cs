@@ -42,6 +42,7 @@ internal static class KnownConfigNames
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
     public const string ExtensionCapabilities = "ASPIRE_EXTENSION_CAPABILITIES";
     public const string ExtensionDebugRunMode = "ASPIRE_EXTENSION_DEBUG_RUN_MODE";
+    public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
 
     public static class Legacy
     {

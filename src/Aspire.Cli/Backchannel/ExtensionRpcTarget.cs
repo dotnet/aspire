@@ -22,6 +22,9 @@ internal interface IExtensionRpcTarget
 
     [JsonRpcMethod("stopCli")]
     Task StopCliAsync(string token);
+
+    [JsonRpcMethod("getDebugSessionId")]
+    Task<string?> GetDebugSessionIdAsync(string token);
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget
@@ -57,5 +60,10 @@ internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcT
 
         Environment.Exit(ExitCodeConstants.Success);
         return Task.CompletedTask;
+    }
+
+    public Task<string?> GetDebugSessionIdAsync(string token)
+    {
+        return Task.FromResult(configuration[KnownConfigNames.ExtensionDebugSessionId]);
     }
 }

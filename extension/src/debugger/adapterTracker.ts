@@ -11,7 +11,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                 return {
                     onDidSendMessage: message => {
                         if (message.type === 'event' && message.event === 'output') {
-                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.debugSessionId === null) {
                                 extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
                                 return;
                             }
@@ -21,7 +21,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                                 const notification: ServiceLogsNotification = {
                                     notification_type: 'serviceLogs',
                                     session_id: session.configuration.runId,
-                                    dcp_id: session.configuration.dcpId,
+                                    dcp_id: session.configuration.debugSessionId,
                                     is_std_err: category === 'stderr',
                                     log_message: removeTrailingNewline(output)
                                 };
@@ -37,7 +37,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                                 return;
                             }
 
-                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                            if (!isDebugConfigurationWithId(session.configuration) || session.configuration.debugSessionId === null) {
                                 extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
                                 return;
                             }
@@ -49,7 +49,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                             const processNotification: ProcessRestartedNotification = {
                                 notification_type: 'processRestarted',
                                 session_id: session.configuration.runId,
-                                dcp_id: session.configuration.dcpId,
+                                dcp_id: session.configuration.debugSessionId,
                                 pid: message.body.systemProcessId
                             };
 
@@ -57,7 +57,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         }
                     },
                     onExit(code: number | undefined) {
-                        if (!isDebugConfigurationWithId(session.configuration) || session.configuration.dcpId === null) {
+                        if (!isDebugConfigurationWithId(session.configuration) || session.configuration.debugSessionId === null) {
                             extensionLogOutputChannel.warn(`Debug session ${session.id} does not have an attached run id.`);
                         return;
                         }
@@ -65,7 +65,7 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         const notification: SessionTerminatedNotification = {
                             notification_type: 'sessionTerminated',
                             session_id: session.configuration.runId,
-                            dcp_id: session.configuration.dcpId,
+                            dcp_id: session.configuration.debugSessionId,
                             exit_code: code ?? 0
                         };
 

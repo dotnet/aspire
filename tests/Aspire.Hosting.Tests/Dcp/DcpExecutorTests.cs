@@ -1106,7 +1106,7 @@ public class DcpExecutorTests
         Assert.Equal(AddressAllocationModes.Proxyless, svc.Spec.AddressAllocationMode);
         Assert.Equal(desiredPort, svc.Status?.EffectivePort);
         Assert.NotNull(dcpCtr.Spec.Ports);
-        Assert.Contains(dcpCtr.Spec.Ports!, p =>  p.HostPort == desiredPort && p.ContainerPort == desiredTargetPort && p.Protocol == "UDP");
+        Assert.Contains(dcpCtr.Spec.Ports!, p => p.HostPort == desiredPort && p.ContainerPort == desiredTargetPort && p.Protocol == "UDP");
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "PORT_AND_PROTOCOL_SET").Value;
@@ -1273,6 +1273,267 @@ public class DcpExecutorTests
     }
 
     [Fact]
+    public async Task ProjectLaunchConfiguration_Populated_WhenLaunchProfileSpecified_InDebugSession()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddProject<Projects.ServiceA>("proj", launchProfileName: "http");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345" // Force IDE execution path
+        });
+        var configuration = configBuilder.Build();
+
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+
+        // Act
+        await executor.RunApplicationAsync();
+
+        // Assert
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.NotNull(plc);
+        Assert.False(plc!.DisableLaunchProfile);
+        Assert.Equal("http", plc.LaunchProfile);
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_Disabled_WhenLaunchProfileExcluded_InDebugSession()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        // Passing null launchProfileName applies ExcludeLaunchProfileAnnotation
+        builder.AddProject<Projects.ServiceA>("proj", launchProfileName: null);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345" // Force IDE execution path
+        });
+        var configuration = configBuilder.Build();
+
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+
+        // Act
+        await executor.RunApplicationAsync();
+
+        // Assert
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.NotNull(plc);
+        Assert.True(plc!.DisableLaunchProfile);
+        Assert.Equal(string.Empty, plc.LaunchProfile);
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_DefaultLaunchProfileAnnotationFallsBack_WhenProfileMissing_InDebugSession()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        // Configure a default launch profile name that does NOT exist in TestProjectWithLaunchSettings (profiles: Foo, http)
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "DoesNotExistProfile";
+        builder.AddProject<TestProjectWithLaunchSettings>("proj");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345" // Force IDE execution path
+        });
+        var configuration = configBuilder.Build();
+
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+
+        // Act
+        await executor.RunApplicationAsync();
+
+        // Assert
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.NotNull(plc);
+        // Should have fallen back to the first available profile (in insertion order) which is Foo, not the missing one.
+        Assert.False(plc!.DisableLaunchProfile);
+        Assert.Equal("Foo", plc.LaunchProfile);
+        Assert.NotEqual("DoesNotExistProfile", plc.LaunchProfile);
+        // DOTNET_LAUNCH_PROFILE env var should reflect the effective profile name.
+        Assert.NotNull(exe.Spec.Env);
+        var effectiveLaunchProfileEnv = exe.Spec.Env.SingleOrDefault(v => v.Name == "DOTNET_LAUNCH_PROFILE")?.Value;
+        Assert.Equal("Foo", effectiveLaunchProfileEnv);
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_DefaultLaunchProfileAnnotationSelectsExisting_InDebugSession()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "http"; // existing profile
+        builder.AddProject<TestProjectWithLaunchSettings>("proj");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345"
+        });
+        var configuration = configBuilder.Build();
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.False(plc!.DisableLaunchProfile);
+        Assert.Equal("http", plc.LaunchProfile);
+        var envVal = exe.Spec.Env!.SingleOrDefault(e => e.Name == "DOTNET_LAUNCH_PROFILE")?.Value;
+        Assert.Equal("http", envVal);
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_ExplicitLaunchProfileOverridesDefault_InDebugSession()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "Foo"; // default points to Foo
+        builder.AddProject<TestProjectWithLaunchSettings>("proj", launchProfileName: "http"); // explicit different
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345"
+        });
+        var configuration = configBuilder.Build();
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.False(plc!.DisableLaunchProfile);
+        Assert.Equal("http", plc.LaunchProfile); // explicit wins
+        var envVal = exe.Spec.Env!.SingleOrDefault(e => e.Name == "DOTNET_LAUNCH_PROFILE")?.Value;
+        Assert.Equal("http", envVal);
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_DefaultIgnoredWhenExcluded_InDebugSession()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "Foo";
+        builder.AddProject<TestProjectWithLaunchSettings>("proj", launchProfileName: null); // exclude
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345"
+        });
+        var configuration = configBuilder.Build();
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.True(plc!.DisableLaunchProfile);
+        Assert.Equal(string.Empty, plc.LaunchProfile);
+        Assert.DoesNotContain(exe.Spec.Env ?? [], e => e.Name == "DOTNET_LAUNCH_PROFILE");
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_NoProfiles_NoLaunchProfileSelected_InDebugSession()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["AppHost:DefaultLaunchProfileName"] = "Foo"; // won't match anything
+        builder.AddProject<TestProjectNoProfiles>("proj");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345"
+        });
+        var configuration = configBuilder.Build();
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.False(plc!.DisableLaunchProfile); // not excluded
+        Assert.Equal(string.Empty, plc.LaunchProfile); // nothing selected
+        Assert.DoesNotContain(exe.Spec.Env ?? [], e => e.Name == "DOTNET_LAUNCH_PROFILE");
+    }
+
+    [Fact]
+    public async Task ProjectLaunchConfiguration_FallbackToFirstProfileInsertionOrder_InDebugSession()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddProject<TestProjectMultiProfileOrder>("proj");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345"
+        });
+        var configuration = configBuilder.Build();
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.False(plc!.DisableLaunchProfile);
+        Assert.Equal("Zed", plc.LaunchProfile); // first inserted wins
+    }
+
+    [Fact]
     public async Task PlainExecutable_ExtensionMode_SupportedDebugMode_RunsInIde()
     {
         // Arrange
@@ -1403,9 +1664,6 @@ public class DcpExecutorTests
         Assert.False(nonDebuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
     }
 
-    private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
-    private sealed class TestOtherExecutableResource(string directory) : ExecutableResource("TestOtherExecutable", "test-other", directory);
-
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
@@ -1460,6 +1718,9 @@ public class DcpExecutorTests
             events ?? new DcpExecutorEvents());
     }
 
+    private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
+    private sealed class TestOtherExecutableResource(string directory) : ExecutableResource("TestOtherExecutable", "test-other", directory);
+    
     private sealed class TestHostEnvironment : IHostEnvironment
     {
         public string ApplicationName { get; set; } = default!;
@@ -1472,6 +1733,60 @@ public class DcpExecutorTests
     {
         public string ProjectPath => "TestProject";
         public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    {
+        public string ProjectPath => "TestProjectWithLaunchSettings";
+        public LaunchSettings LaunchSettings { get; } = CreateLaunchSettings();
+
+        private static LaunchSettings CreateLaunchSettings()
+        {
+            var settings = new LaunchSettings();
+            settings.Profiles["Foo"] = new LaunchProfile
+            {
+                CommandName = "Project",
+                LaunchUrl = "http://localhost:5000",
+                ApplicationUrl = "http://localhost:5000;https://localhost:5001",
+                EnvironmentVariables = new Dictionary<string, string>
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            };
+            settings.Profiles["http"] = new LaunchProfile
+            {
+                CommandName = "Project",
+                LaunchUrl = "http://localhost:5003",
+                ApplicationUrl = "http://localhost:5003;",
+                EnvironmentVariables = new Dictionary<string, string>
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            };
+            return settings;
+        }
+    }
+
+    private sealed class TestProjectNoProfiles : IProjectMetadata
+    {
+        public string ProjectPath => "TestProjectNoProfiles";
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class TestProjectMultiProfileOrder : IProjectMetadata
+    {
+        public string ProjectPath => "TestProjectMultiProfileOrder";
+        public LaunchSettings LaunchSettings { get; } = CreateLaunchSettings();
+
+        private static LaunchSettings CreateLaunchSettings()
+        {
+            var settings = new LaunchSettings();
+            // Intentionally non-alphabetical insertion order to verify iteration order.
+            settings.Profiles["Zed"] = new LaunchProfile { CommandName = "Project", ApplicationUrl = "http://localhost:6001" };
+            settings.Profiles["Alpha"] = new LaunchProfile { CommandName = "Project", ApplicationUrl = "http://localhost:6002" };
+            settings.Profiles["Beta"] = new LaunchProfile { CommandName = "Project", ApplicationUrl = "http://localhost:6003" };
+            return settings;
+        }
     }
 
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent

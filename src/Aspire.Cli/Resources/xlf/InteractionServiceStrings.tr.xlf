@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host</source>
-        <target state="needs-review-translation">Uygulama ana işlemi oluşturuluyor...</target>
+        <target state="translated">Uygulama ana işlemi oluşturuluyor</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select app host to use:</source>
-        <target state="new">Select app host to use:</target>
+        <target state="translated">Kullanılacak uygulama ana işlemini seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="UnbuildableAppHostsDetected">
         <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
-        <target state="new">No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</target>
+        <target state="translated">Uygulama ana işlemi bulunamadı (söz dizimi hataları veya geçersiz SDK sürümlerine sahip uygulama ana işlemleri proje dosyaları olabilir).</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

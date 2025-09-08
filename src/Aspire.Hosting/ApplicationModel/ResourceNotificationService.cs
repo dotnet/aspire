@@ -121,7 +121,7 @@ public class ResourceNotificationService : IDisposable
     {
         if (_logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug("Waiting for resource '{Name}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
+            _logger.LogDebug("Waiting for resource '{ResourceName}' to enter one of the target state: {TargetStates}", resourceName, string.Join(", ", targetStates));
         }
 
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposing.Token, cancellationToken);
@@ -132,7 +132,7 @@ public class ResourceNotificationService : IDisposable
                 && resourceEvent.Snapshot.State?.Text is { Length: > 0 } stateText
                 && targetStates.Contains(stateText, StringComparers.ResourceState))
             {
-                _logger.LogDebug("Finished waiting for resource '{Name}'. Resource state is '{State}'.", resourceName, stateText);
+                _logger.LogDebug("Finished waiting for resource '{ResourceName}'. Resource state is '{State}'.", resourceName, stateText);
                 return stateText;
             }
         }
@@ -148,18 +148,18 @@ public class ResourceNotificationService : IDisposable
             // otherwise we don't care about their health status.
             if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
             {
-                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", displayName);
+                resourceLogger.LogInformation("Waiting for resource '{ResourceName}' to become healthy.", displayName);
                 await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken).ConfigureAwait(false);
             }
 
             // Now wait for the resource ready event to be executed.
-            resourceLogger.LogInformation("Waiting for resource ready to execute for '{Name}'.", displayName);
+            resourceLogger.LogInformation("Waiting for resource ready to execute for '{ResourceName}'.", displayName);
             resourceEvent = await WaitForResourceCoreAsync(dependency.Name, re => re.ResourceId == resourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Observe the result of the resource ready event task
             await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+            resourceLogger.LogInformation("Finished waiting for resource '{ResourceName}'.", displayName);
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -217,7 +217,7 @@ public class ResourceNotificationService : IDisposable
     /// </remarks>
     public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Waiting for resource '{Name}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
+        _logger.LogDebug("Waiting for resource '{ResourceName}' to enter the '{State}' state.", resourceName, HealthStatus.Healthy);
         var resourceEvent = await WaitForResourceCoreAsync(resourceName, re => ShouldYield(waitBehavior, re.Snapshot), cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (resourceEvent.Snapshot.HealthStatus != HealthStatus.Healthy)
@@ -226,7 +226,14 @@ public class ResourceNotificationService : IDisposable
             throw new DistributedApplicationException($"Stopped waiting for resource '{resourceName}' to become healthy because it failed to start.");
         }
 
-        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+        // Now wait for the resource ready event to be executed (matching behavior of WaitUntilHealthyAsync).
+        _logger.LogDebug("Waiting for resource ready to execute for '{ResourceName}'.", resourceName);
+        resourceEvent = await WaitForResourceCoreAsync(resourceName, re => re.ResourceId == resourceEvent.ResourceId && re.Snapshot.ResourceReadyEvent is not null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Observe the result of the resource ready event task
+        await resourceEvent.Snapshot.ResourceReadyEvent!.EventTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogDebug("Finished waiting for resource '{ResourceName}'.", resourceName);
 
         return resourceEvent;
 
@@ -250,7 +257,7 @@ public class ResourceNotificationService : IDisposable
         var tasks = new Task[names.Length];
 
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
-        resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Name);
+        resourceLogger.LogInformation("Waiting for resource '{ResourceName}' to complete.", dependency.Name);
 
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
 
@@ -291,7 +298,7 @@ public class ResourceNotificationService : IDisposable
                     );
             }
 
-            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", displayName);
+            resourceLogger.LogInformation("Finished waiting for resource '{ResourceName}'.", displayName);
 
             static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
                 KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
@@ -303,7 +310,7 @@ public class ResourceNotificationService : IDisposable
         Func<ILogger, string, string, ResourceEvent, Task> postRunningAction, CancellationToken cancellationToken)
     {
         var resourceLogger = _resourceLoggerService.GetLogger(resource);
-        resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
+        resourceLogger.LogInformation("Waiting for resource '{ResourceName}' to enter the '{State}' state.", dependency.Name, KnownResourceStates.Running);
         await PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
 
         var names = dependency.GetResolvedResourceNames();
@@ -372,7 +379,7 @@ public class ResourceNotificationService : IDisposable
         {
             // Unlike WaitUntilHealthyAsync, we don't wait for health checks here.
             // We only wait for the resource to reach the Running state.
-            resourceLogger.LogInformation("Finished waiting for resource '{Name}' to start.", displayName);
+            resourceLogger.LogInformation("Finished waiting for resource '{ResourceName}' to start.", displayName);
             return Task.CompletedTask;
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -429,9 +436,9 @@ public class ResourceNotificationService : IDisposable
                                                      Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
     public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Waiting for resource '{Name}' to match predicate.", resourceName);
+        _logger.LogDebug("Waiting for resource '{ResourceName}' to match predicate.", resourceName);
         var resourceEvent = await WaitForResourceCoreAsync(resourceName, predicate, cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("Finished waiting for resource '{Name}'.", resourceName);
+        _logger.LogDebug("Finished waiting for resource '{ResourceName}'.", resourceName);
 
         return resourceEvent;
     }
@@ -608,12 +615,12 @@ public class ResourceNotificationService : IDisposable
                 if (!string.IsNullOrWhiteSpace(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
                 {
                     // The state text has changed from the previous state
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
+                    _logger.LogDebug("Resource {ResourceName}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
                 }
                 else if (string.IsNullOrWhiteSpace(previousStateText))
                 {
                     // There was no previous state text so just log the new state
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
+                    _logger.LogDebug("Resource {ResourceName}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
                 }
             }
 
@@ -623,7 +630,7 @@ public class ResourceNotificationService : IDisposable
                 // makes them more easily analyzed in a text editor
                 _logger.LogTrace(
                     "Version: {Version} " +
-                    "Resource {Resource}/{ResourceId} update published: " +
+                    "Resource {ResourceName}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, " +
                     "CreationTimeStamp = {CreationTimeStamp:s}, " +
                     "State = {{ Text = {StateText}, Style = {StateStyle} }}, " +

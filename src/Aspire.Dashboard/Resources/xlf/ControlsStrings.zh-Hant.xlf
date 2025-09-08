@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
-        <target state="new">Collapse all</target>
+        <target state="translated">全部摺疊</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
-        <target state="new">Expand all</target>
+        <target state="translated">全部展開</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -255,6 +255,11 @@
       <trans-unit id="LabelNone">
         <source>(None)</source>
         <target state="translated">(無)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="translated">(其他)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -512,6 +517,31 @@
         <target state="translated">開始時間 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeDatabase">
+        <source>Database</source>
+        <target state="translated">資料庫</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeGenAI">
+        <source>Gen AI</source>
+        <target state="translated">Gen AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeHttp">
+        <source>HTTP</source>
+        <target state="translated">HTTP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeMessaging">
+        <source>Messaging</source>
+        <target state="translated">傳訊</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeRpc">
+        <source>RPC</source>
+        <target state="translated">RPC</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
         <target state="translated">狀態</target>
@@ -589,7 +619,7 @@
       </trans-unit>
       <trans-unit id="ViewStructuredLogsText">
         <source>View structured logs</source>
-        <target state="new">View structured logs</target>
+        <target state="translated">檢視結構化記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

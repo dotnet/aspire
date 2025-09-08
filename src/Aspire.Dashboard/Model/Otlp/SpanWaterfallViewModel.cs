@@ -48,7 +48,7 @@ public sealed class SpanWaterfallViewModel
         return tooltip;
     }
 
-    public bool MatchesFilter(string filter, Func<OtlpResourceView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
+    public bool MatchesFilter(string filter, TelemetryFilter? typeFilter, Func<OtlpResourceView, string> getResourceName, [NotNullWhen(true)] out IEnumerable<SpanWaterfallViewModel>? matchedDescendents)
     {
         if (Filter(this))
         {
@@ -58,7 +58,7 @@ public sealed class SpanWaterfallViewModel
 
         foreach (var child in Children)
         {
-            if (child.MatchesFilter(filter, getResourceName, out var matchedChildDescendents))
+            if (child.MatchesFilter(filter, typeFilter, getResourceName, out var matchedChildDescendents))
             {
                 matchedDescendents = [child, ..matchedChildDescendents];
                 return true;
@@ -70,6 +70,14 @@ public sealed class SpanWaterfallViewModel
 
         bool Filter(SpanWaterfallViewModel viewModel)
         {
+            if (typeFilter != null)
+            {
+                if (!typeFilter.Apply(viewModel.Span))
+                {
+                    return false;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(filter))
             {
                 return true;

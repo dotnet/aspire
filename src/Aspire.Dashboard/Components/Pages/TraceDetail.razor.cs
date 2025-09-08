@@ -43,6 +43,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string _filter = string.Empty;
     private readonly List<MenuButtonItem> _traceActionsMenuItems = [];
     private AspirePageContentLayout? _layout;
+    private List<SelectViewModel<SpanType>> _spanTypes = default!;
+    private SelectViewModel<SpanType> _selectedSpanType = default!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -106,6 +108,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         UpdateTraceActionsMenu();
+
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlStringsLoc);
+        _selectedSpanType = _spanTypes[0];
     }
 
     private void UpdateTraceActionsMenu()
@@ -161,7 +166,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 continue;
             }
 
-            if (viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
+            if (viewModel.MatchesFilter(_filter, _selectedSpanType.Id?.Filter, GetResourceName, out var matchedDescendents))
             {
                 visibleViewModels.Add(viewModel);
                 foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))
@@ -247,7 +252,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
-            Filters = [new TelemetryFilter
+            Filters = [new FieldTelemetryFilter
             {
                 Field = KnownStructuredLogFields.TraceIdField,
                 Condition = FilterCondition.Equals,
@@ -275,6 +280,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     private async Task HandleAfterFilterBindAsync()
+    {
+        SelectedData = null;
+        await InvokeAsync(StateHasChanged);
+
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private async Task HandleSelectedSpanTypeChangedAsync()
     {
         SelectedData = null;
         await InvokeAsync(StateHasChanged);

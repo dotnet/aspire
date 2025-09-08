@@ -340,6 +340,7 @@ internal static class ContainerFileSystemItemExtensions
         var type = item switch
         {
             ContainerFile => ContainerFileSystemEntryType.File,
+            ContainerOpenSSLCertificateFile => ContainerFileSystemEntryType.OpenSSL,
             ContainerDirectory => ContainerFileSystemEntryType.Directory,
             _ => throw new ArgumentException("Unknown file system entry type")
         };
@@ -353,7 +354,7 @@ internal static class ContainerFileSystemItemExtensions
             Mode = (int)item.Mode,
         };
 
-        if (item is ContainerFile file)
+        if (item is ContainerFileBase file)
         {
             entry.Source = file.SourcePath;
             entry.Contents = file.Contents;
@@ -429,6 +430,8 @@ internal static class ContainerFileSystemEntryType
     public const string Directory = "directory";
 
     public const string File = "file";
+
+    public const string OpenSSL = "openssl";
 }
 
 internal sealed class ContainerStatus : V1Status

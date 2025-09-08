@@ -180,7 +180,7 @@ internal sealed class ResourceContainerImageBuilder(
 
     private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Building container image for resource {Resource}", resource.Name);
+        logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
         if (resource is ProjectResource)
         {
