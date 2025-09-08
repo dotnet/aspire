@@ -124,12 +124,17 @@
                     },
                     "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": false
                     },
                     "DisableTracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
                       "default": false
+                    },
+                    "EnableSensitiveTelemetryData": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry."
                     },
                     "Endpoint": {
                       "type": "string",

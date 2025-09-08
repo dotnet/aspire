@@ -810,7 +810,7 @@ public class LogTests
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
+            Filters = [new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
         }).Items);
 
         Assert.Single(repository.GetLogs(new GetLogsContext
@@ -818,7 +818,7 @@ public class LogTests
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
+            Filters = [new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
         }).Items);
     }
 

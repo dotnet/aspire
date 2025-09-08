@@ -1,11 +1,10 @@
-import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
-import { sendToAspireTerminal } from '../utils/terminal';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { isWorkspaceOpen } from '../utils/workspace';
 
-export async function configCommand(rpcServerConnectionInfo: RpcServerConnectionInfo) {
+export async function configCommand(terminalProvider: AspireTerminalProvider) {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    sendToAspireTerminal("aspire config", rpcServerConnectionInfo);
+    terminalProvider.sendToAspireTerminal("aspire config", null);
 }

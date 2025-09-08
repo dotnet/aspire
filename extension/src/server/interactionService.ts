@@ -1,7 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
@@ -42,13 +42,11 @@ type ConsoleLine = {
 };
 
 export class InteractionService implements IInteractionService {
-    private _hasAspireDebugSession: () => boolean;
-    private _getAspireDebugSession: () => AspireDebugSession;
+    private _getAspireDebugSession: () => AspireDebugSession | null;
 
     private _statusBarItem: vscode.StatusBarItem | undefined;
 
-    constructor(hasAspireDebugSession: () => boolean, getAspireDebugSession: () => AspireDebugSession) {
-        this._hasAspireDebugSession = hasAspireDebugSession;
+    constructor(getAspireDebugSession: () => AspireDebugSession | null) {
         this._getAspireDebugSession = getAspireDebugSession;
     }
 
@@ -63,9 +61,7 @@ export class InteractionService implements IInteractionService {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
 
-            if (this._hasAspireDebugSession()) {
-                this._getAspireDebugSession().sendMessage(formatText(statusText));
-            }
+            this._getAspireDebugSession()?.sendMessage(formatText(statusText));
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
         }
@@ -274,16 +270,26 @@ export class InteractionService implements IInteractionService {
     }
 
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        return this._getAspireDebugSession().startAppHost(projectFile, args, environment, debug);
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        return debugSession.startAppHost(projectFile, args, environment, debug);
     }
 
     stopDebugging() {
         this.clearStatusBar();
-        this._getAspireDebugSession().dispose();
+        this._getAspireDebugSession()?.dispose();
     }
 
     notifyAppHostStartupCompleted() {
-        this._getAspireDebugSession().notifyAppHostStartupCompleted();
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        debugSession.notifyAppHostStartupCompleted();
     }
 
     clearStatusBar() {

@@ -52,13 +52,20 @@ When complete, the CLI will create a NuGet.config to make sure that packages are
 > [!TIP]
 > `aspire new` will automatically update the aspire templates and they will be available in Visual Studio and `dotnet new`.
 
-These will create a `.slnx` file and at least two projects.
+## Updating an Existing Project
 
-Assuming the NuGet feed you added above is visible -- for example you added it globally or it's in a NuGet.config in this folder - you can now run it (make sure that Docker desktop is started):
+If you have an existing Aspire project and want to update it to use the latest daily build, you can run:
 
+```shell
+aspire update
+```
+
+This will update the project to use the daily packages and feeds.
+
+> [!TIP]
+> `aspire update` can be used at any time to update your project to the latest available Aspire build, including daily builds.
+
+After updating your project, you can run it using the following command:
 ```shell
 aspire run
 ```
-
-> [!TIP]
-> If you see an error attempting to run the application with aspire run, it's likely that you need to update the Aspire packages in the application. You can always use `dotnet run` on the *.AppHost project as a fallback (please report an issue before you do so!)

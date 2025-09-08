@@ -126,6 +126,17 @@ Arguments passed to the application that is being run.
 **Description:**
 Runs the Aspire app host and executes a command against a specified resource. Use either `--resource` for an existing resource or `--start-resource` to start a resource and then execute the command.
 
+### update
+
+Update integrations in the Aspire project. (Preview)
+
+```cli
+aspire update [options]
+```
+
+**Description:**
+Updates Aspire integration packages to their latest compatible versions. Supports both traditional package management (PackageReference with Version) and Central Package Management (CPM) using Directory.Packages.props. The command automatically detects the package management approach used in the project and updates packages accordingly.
+
 ### config
 
 Manage configuration settings.

@@ -257,6 +257,11 @@
         <target state="translated">(Nenhum)</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="translated">(Outro)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LabelValueUnset">
         <source>(Unset)</source>
         <target state="translated">(Remover definição)</target>
@@ -511,6 +516,31 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Horário de início &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanTypeDatabase">
+        <source>Database</source>
+        <target state="translated">Banco de dados</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeGenAI">
+        <source>Gen AI</source>
+        <target state="translated">IA Generativa</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeHttp">
+        <source>HTTP</source>
+        <target state="translated">HTTP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeMessaging">
+        <source>Messaging</source>
+        <target state="translated">Mensagens</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeRpc">
+        <source>RPC</source>
+        <target state="translated">RPC</target>
+        <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>

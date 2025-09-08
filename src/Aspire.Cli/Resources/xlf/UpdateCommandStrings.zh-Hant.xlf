@@ -27,9 +27,9 @@
         <target state="translated">中央套件管理目前不受 'aspire update' 支援。</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingWorkloadStatus">
-        <source>Checking for Aspire workload...</source>
-        <target state="new">Checking for Aspire workload...</target>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">在{1}中找不到 '{0}' 的 PackageVersion 元素</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
@@ -45,11 +45,6 @@
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">更新 Aspire 專案中的整合。(預覽)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="EnvironmentUpdateComplete">
-        <source>Environment update complete!</source>
-        <target state="new">Environment update complete!</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -107,21 +102,6 @@
         <target state="translated">選取通道:</target>
         <note />
       </trans-unit>
-      <trans-unit id="SkippingTemplateUpdate">
-        <source>Skipping template update (no template package found for channel).</source>
-        <target state="new">Skipping template update (no template package found for channel).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TemplateUpdateFailed">
-        <source>Failed to update Aspire templates. Exit code: {0}</source>
-        <target state="new">Failed to update Aspire templates. Exit code: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TemplateUpdateSuccessful">
-        <source>Aspire templates updated successfully to version {0}.</source>
-        <target state="new">Aspire templates updated successfully to version {0}.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
         <target state="translated">未預期的程式碼路徑。</target>
@@ -137,24 +117,9 @@
         <target state="translated">更新成功!</target>
         <note />
       </trans-unit>
-      <trans-unit id="UpdatingTemplatesStatus">
-        <source>Updating Aspire templates...</source>
-        <target state="new">Updating Aspire templates...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
         <target state="translated">哪個目錄用於 NuGet.config 檔案?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WorkloadFound">
-        <source>Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</source>
-        <target state="new">Aspire workload detected. It is recommended to remove the workload manually using 'dotnet workload uninstall aspire' to avoid conflicts.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WorkloadNotFound">
-        <source>No Aspire workload detected.</source>
-        <target state="new">No Aspire workload detected.</target>
         <note />
       </trans-unit>
     </body>

@@ -1,9 +1,8 @@
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { DcpServerConnectionInfo, EnvVar } from "../../dcp/types";
+import { EnvVar } from "../../dcp/types";
 import { mergeEnvs } from "../../utils/environment";
-import { createEnvironment } from "../../utils/terminal";
 import { extensionLogOutputChannel } from "../../utils/logging";
-import { RpcServerConnectionInfo } from "../../server/AspireRpcServer";
+import { AspireTerminalProvider } from "../../utils/AspireTerminalProvider";
 
 export interface SpawnProcessOptions {
     stdoutCallback?: (data: string) => void;
@@ -11,13 +10,12 @@ export interface SpawnProcessOptions {
     exitCallback?: (code: number | null) => void;
     env?: EnvVar[];
     workingDirectory?: string;
-    dcpServerConnectionInfo?: DcpServerConnectionInfo;
-    excludeExtensionEnvironment?: boolean;
+    debugSessionId: string | null
 }
 
-export function spawnCliProcess(rpcServerConnectionInfo: RpcServerConnectionInfo, command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
+export function spawnCliProcess(terminalProvider: AspireTerminalProvider, command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
     const envVars = mergeEnvs(process.env, options?.env);
-    const additionalEnv = options?.excludeExtensionEnvironment ? { } : createEnvironment(rpcServerConnectionInfo, options?.dcpServerConnectionInfo);
+    const additionalEnv = terminalProvider.createEnvironment(options?.debugSessionId ?? null);
     const workingDirectory = options?.workingDirectory ?? process.cwd();
 
     extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);

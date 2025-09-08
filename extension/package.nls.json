@@ -54,5 +54,6 @@
   "aspire-vscode.strings.aspireConfigExists": "Aspire launch configuration already exists in launch.json",
   "aspire-vscode.strings.aspireConfigAdded": "Aspire launch configuration added to launch.json successfully!",
   "aspire-vscode.strings.openLaunchJson": "Open launch.json",
-  "aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}"
+  "aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}",
+  "aspire-vscode.strings.debugSessionAlreadyExists": "A debug session is already active for id {0}."
 }

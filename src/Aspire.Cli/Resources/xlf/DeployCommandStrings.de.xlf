@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Der Ausgabepfad für Bereitstellungsartefakte.</target>
+        <source>The optional output path for deployment artifacts.</source>
+        <target state="translated">Der optionale Ausgabepfad für Bereitstellungsartefakte.</target>
         <note />
       </trans-unit>
     </body>

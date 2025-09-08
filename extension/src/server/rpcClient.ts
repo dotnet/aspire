@@ -1,9 +1,11 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
-import { getAspireTerminal } from '../utils/terminal';
-import { RpcServerConnectionInfo } from './AspireRpcServer';
+import { IInteractionService } from './interactionService';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 
 export interface ICliRpcClient {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
     getCliVersion(): Promise<string>;
     validatePromptInputString(input: string): Promise<ValidationResult | null>;
     stopCli(): Promise<void>;
@@ -15,16 +17,21 @@ export type ValidationResult = {
 };
 
 export class RpcClient implements ICliRpcClient {
-    private _rpcServerConnectionInfo: RpcServerConnectionInfo;
     private _messageConnection: MessageConnection;
     private _token: string;
     private _connectionClosed: boolean;
+    private _terminalProvider: AspireTerminalProvider;
 
-    constructor(rpcServerConnectionInfo: RpcServerConnectionInfo, messageConnection: MessageConnection, token: string) {
-        this._rpcServerConnectionInfo = rpcServerConnectionInfo;
+    public debugSessionId: string | null;
+    public interactionService: IInteractionService;
+
+    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, token: string, debugSessionId: string | null, interactionService: IInteractionService) {
+        this._terminalProvider = terminalProvider;
         this._messageConnection = messageConnection;
         this._token = token;
         this._connectionClosed = false;
+        this.debugSessionId = debugSessionId;
+        this.interactionService = interactionService;
 
         this._messageConnection.onClose(() => {
             this._connectionClosed = true;
@@ -59,7 +66,7 @@ export class RpcClient implements ICliRpcClient {
         if (this._connectionClosed) {
             // If connection is already closed for some reason, we cannot send a request
             // Instead, dispose of the terminal directly.
-            getAspireTerminal(this._rpcServerConnectionInfo).dispose();
+            this._terminalProvider.getAspireTerminal(this.debugSessionId).dispose();
         } else {
             await this._messageConnection.sendRequest('stopCli', this._token);
         }

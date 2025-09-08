@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host</source>
-        <target state="new">Building app host</target>
+        <target state="translated">正在建置應用程式主機</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">

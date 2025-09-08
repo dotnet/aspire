@@ -148,6 +148,56 @@ public static class ExecutableResourceBuilderExtensions
             context.WriteContainerAsync(container));
     }
 
+    /// <summary>
+    /// Sets the command for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="command">Command.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithCommand<T>(this IResourceBuilder<T> builder, string command) where T : ExecutableResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(command);
+
+        var executableAnnotation = builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault();
+        if (executableAnnotation is { })
+        {
+            executableAnnotation.Command = command;
+        }
+        else
+        {
+            executableAnnotation = new ExecutableAnnotation
+            {
+                Command = command,
+                WorkingDirectory = string.Empty
+            };
+            builder.Resource.Annotations.Add(executableAnnotation);            
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the working directory for the executable resource.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource.</typeparam>
+    /// <param name="builder">Builder for the executable resource.</param>
+    /// <param name="workingDirectory">Working directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithWorkingDirectory<T>(this IResourceBuilder<T> builder, string workingDirectory) where T : ExecutableResource
+    {
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        if (builder.Resource.Annotations.OfType<ExecutableAnnotation>().LastOrDefault() is { } executableAnnotation)
+        {
+            workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, workingDirectory));
+            executableAnnotation.WorkingDirectory = workingDirectory;
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' is missing the ExecutableAnnotation");
+    }
+
     // Allows us to mirror annotations from ExecutableResource to ContainerResource
     private sealed class ExecutableContainerResource(ExecutableResource er) : ContainerResource(er.Name)
     {

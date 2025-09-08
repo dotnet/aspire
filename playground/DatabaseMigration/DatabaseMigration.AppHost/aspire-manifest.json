@@ -4,7 +4,7 @@
     "sql1": {
       "type": "container.v0",
       "connectionString": "Server={sql1.bindings.tcp.host},{sql1.bindings.tcp.port};User ID=sa;Password={sql1-password.value};TrustServerCertificate=true",
-      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "image": "mcr.microsoft.com/mssql/server:2025-latest",
       "env": {
         "ACCEPT_EULA": "Y",
         "MSSQL_SA_PASSWORD": "{sql1-password.value}"

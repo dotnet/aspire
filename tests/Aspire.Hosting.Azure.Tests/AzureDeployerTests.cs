@@ -25,7 +25,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 {
     [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/11105")]
-    public void DeployAsync_EmitsPublishedResources()
+    public void DeployAsync_DoesNotEmitPublishedResources()
     {
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory(".azure-deployer-test");
@@ -42,9 +42,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Assert files exist but don't verify contents
         var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.True(File.Exists(mainBicepPath));
+        Assert.False(File.Exists(mainBicepPath));
         var envBicepPath = Path.Combine(tempDir.FullName, "env", "env.bicep");
-        Assert.True(File.Exists(envBicepPath));
+        Assert.False(File.Exists(envBicepPath));
 
         tempDir.Delete(recursive: true);
     }
@@ -393,6 +393,147 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath == "docker" &&
                    cmd.Arguments != null &&
                    cmd.Arguments.StartsWith("push acaregistry.azurecr.io/"));
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithUnresolvedParameters_PromptsForParameterValues()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter that will be unresolved
+        var param = builder.AddParameter("test-param");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", notificationInteraction.Message);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the parameter input (should include save to secrets option)
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("test-param", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal("Enter value for test-param", input.Placeholder);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "test-value";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.GetValueAsync(default);
+        Assert.Equal("test-value", setValue);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithResolvedParameters_SkipsPrompting()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+        builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
+
+        // Add a parameter with a resolved value
+        var param = builder.AddParameter("test-param", () => "resolved-value");
+        var secondParam = builder.AddParameter("test-param-2");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithCustomInputGeneratorParameter_RespectsInputGenerator()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter with a custom input generator
+        var param = builder.AddParameter("custom-param")
+            .WithCustomInput(p => new InteractionInput
+            {
+                Name = p.Name,
+                InputType = InputType.Number,
+                Label = "Custom Port Number",
+                Description = "Enter a custom port number for the service",
+                EnableDescriptionMarkdown = false,
+                Placeholder = "8080"
+            });
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the custom input generator is respected (should include save to secrets option)
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("custom-param", input.Name);
+                Assert.Equal("Custom Port Number", input.Label);
+                Assert.Equal("Enter a custom port number for the service", input.Description);
+                Assert.Equal(InputType.Number, input.InputType);
+                Assert.Equal("8080", input.Placeholder);
+                Assert.False(input.EnableDescriptionMarkdown);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "9090";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.GetValueAsync(default);
+        Assert.Equal("9090", setValue);
     }
 
     [Fact]

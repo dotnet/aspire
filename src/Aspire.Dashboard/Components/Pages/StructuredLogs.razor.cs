@@ -162,14 +162,14 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
         if (!string.IsNullOrEmpty(TraceId))
         {
-            ViewModel.AddFilter(new TelemetryFilter
+            ViewModel.AddFilter(new FieldTelemetryFilter
             {
                 Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new TelemetryFilter
+            ViewModel.AddFilter(new FieldTelemetryFilter
             {
                 Field = KnownStructuredLogFields.SpanIdField, Condition = FilterCondition.Equals, Value = SpanId
             });
@@ -284,7 +284,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private async Task OpenFilterAsync(TelemetryFilter? entry)
+    private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
@@ -315,7 +315,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is FieldTelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -486,7 +486,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     {
         public string? SelectedResource { get; set; }
         public string? LogLevelText { get; set; }
-        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+        public required IReadOnlyCollection<FieldTelemetryFilter> Filters { get; set; }
     }
 
     // IComponentWithTelemetry impl

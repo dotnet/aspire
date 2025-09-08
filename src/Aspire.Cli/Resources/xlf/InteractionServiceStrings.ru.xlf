@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building app host</source>
-        <target state="new">Building app host</target>
+        <target state="translated">Выполняется сборка хоста приложения</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
