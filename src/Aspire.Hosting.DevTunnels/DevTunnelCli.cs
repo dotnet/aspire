@@ -343,6 +343,7 @@ internal sealed class DevTunnelCli
     }
 }
 
+// TODO: Rewrite this helper to be more ergnomic, e.g. new ArgsBuilder().Add(...).AddIf(...)
 internal static class DevTunnelCliArgBuilderExtensions
 {
     internal static List<string> BuildArgs(Action<List<string>> addBase)

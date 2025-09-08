@@ -25,6 +25,8 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     private readonly IInteractionService _interactionService = interactionService;
     private readonly ILogger _logger = logger;
 
+    private Task? _notificationTask;
+
     /// <summary>
     /// Returns the command string (file name or path) that should be validated.
     /// </summary>
@@ -42,6 +44,14 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     protected sealed override async Task ExecuteCoreAsync(CancellationToken cancellationToken)
     {
         var command = GetCommandPath();
+
+        var notificationTask = _notificationTask;
+        if (notificationTask is { IsCompleted: false})
+        {
+            // Notification is still being shown so just throw again.
+            throw GetCommandNotFoundException(command);
+        }
+
         if (string.IsNullOrWhiteSpace(command))
         {
             throw new InvalidOperationException("Command path cannot be null or empty.");
@@ -70,22 +80,25 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
                         ShowSecondaryButton = false
                     };
 
-                    _ = _interactionService.PromptNotificationAsync(
+                    _notificationTask = _interactionService.PromptNotificationAsync(
                         title: "Missing command",
                         message: message,
                         options,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogDebug(ex, "Failed to show missing command notification");
                 }
             }
-            throw new DistributedApplicationException($"Required command '{command}' was not found.");
+            throw GetCommandNotFoundException(command);
         }
 
         await OnValidatedAsync(resolved, cancellationToken).ConfigureAwait(false);
     }
+
+    private static DistributedApplicationException GetCommandNotFoundException(string command) =>
+        new($"Required command '{command}' was not found on PATH or at a specified location.");
 
     /// <summary>
     /// Optional link returned to guide users when the command is missing. Return null for no link.

@@ -11,7 +11,7 @@ namespace Aspire.Hosting.DevTunnels;
 /// </summary>
 internal abstract class CoalescingAsyncOperation : IDisposable
 {
-    private readonly object _sync = new();
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private Task? _runningTask;
     private CancellationTokenSource? _cts;
 
@@ -26,46 +26,67 @@ internal abstract class CoalescingAsyncOperation : IDisposable
     /// running this returns a task that completes when the in-flight operation finishes. If not running
     /// a new execution starts.
     /// </summary>
-    public Task RunAsync(CancellationToken cancellationToken = default)
+    public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        Task? current;
-        lock (_sync)
+        Task current;
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
             if (_runningTask is { IsCompleted: false })
             {
+                // Already running, coalesce onto the existing task
                 current = _runningTask;
             }
             else
             {
+                // Start a new execution
                 _cts?.Dispose();
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 current = _runningTask = ExecuteWrapperAsync(_cts.Token);
 
-                _ = _runningTask.ContinueWith(t =>
+                _ = _runningTask.ContinueWith(static (t, state) =>
                 {
-                    lock (_sync)
-                    {
-                        if (ReferenceEquals(t, _runningTask))
-                        {
-                            _runningTask = null;
-                        }
-                    }
-                }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                    var self = (CoalescingAsyncOperation)state!;
+                    self.ClearCompleted(t);
+                }, this, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
         }
+        finally
+        {
+            _gate.Release();
+        }
 
-        // Each caller can independently cancel their wait without cancelling the shared operation.
-        return current.WaitAsync(cancellationToken);
+        await current.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ExecuteWrapperAsync(CancellationToken ct)
+    private async Task ExecuteWrapperAsync(CancellationToken ct) => await ExecuteCoreAsync(ct).ConfigureAwait(false);
+
+    private void ClearCompleted(Task completed)
     {
-        await ExecuteCoreAsync(ct).ConfigureAwait(false);
+        // Fire-and-forget async cleanup (no need to await where called).
+        _ = ClearCompletedAsync(completed);
+    }
+
+    private async Task ClearCompletedAsync(Task completed)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (ReferenceEquals(completed, _runningTask))
+            {
+                _runningTask = null; // Allow GC of completed task.
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public virtual void Dispose()
     {
-        lock (_sync)
+        _gate.Wait();
+        try
         {
             try
             {
@@ -78,6 +99,11 @@ internal abstract class CoalescingAsyncOperation : IDisposable
             _cts?.Dispose();
             _cts = null;
             _runningTask = null;
+        }
+        finally
+        {
+            _gate.Release();
+            _gate.Dispose();
         }
     }
 }

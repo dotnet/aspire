@@ -3,15 +3,19 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var api = builder.AddProject<Projects.ApiService>("api");
 var frontend = builder.AddProject<Projects.WebFrontEnd>("frontend");
 
-var devtunnel = builder.AddDevTunnel("devtunnel")
+var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
     .WithAnonymousAccess()
     .WithReference(frontend.GetEndpoint("https"));
 
+var privateDevTunnel = builder.AddDevTunnel("devtunnel")
+    .WithReference(frontend.GetEndpoint("https"));
+
 // BUG: This currently causes an error because the env vars try to get written before the tunnel endpoint is allocated.
-//      Manually starting the frontend after the tunnel is created works fine.
-frontend.WithReference(devtunnel.GetEndpoint(frontend, "https"));
+//      Manually starting the api after the tunnel is created works fine.
+api.WithReference(publicDevTunnel.GetEndpoint(frontend, "https"));
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
