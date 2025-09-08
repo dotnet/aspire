@@ -46,7 +46,7 @@ jobs:
 
       - name: Generate test runsheet
         id: generate_tests_matrix
-        run: |
+        run: >
           ./build.sh
           --test
           /p:TestRunnerName=${{ inputs.testRunnerName }}
