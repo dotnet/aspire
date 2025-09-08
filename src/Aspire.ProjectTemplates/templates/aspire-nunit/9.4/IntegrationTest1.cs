@@ -19,7 +19,8 @@ public class IntegrationTest1
     // public async Task GetWebResourceRootReturnsOkStatusCode()
     // {
     //     // Arrange
-    //     var cancellationToken = TestContext.CurrentContext.CancellationToken;
+    //     using var cts = new CancellationTokenSource(DefaultTimeout);
+    //     var cancellationToken = cts.Token;
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
     //     appHost.Services.AddLogging(logging =>
     //     {
@@ -37,9 +38,9 @@ public class IntegrationTest1
     //     await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
     //
     //     // Act
-    //     var httpClient = app.CreateHttpClient("webfrontend");
+    //     using var httpClient = app.CreateHttpClient("webfrontend");
     //     await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-    //     var response = await httpClient.GetAsync("/", cancellationToken);
+    //     using var response = await httpClient.GetAsync("/", cancellationToken);
     //
     //     // Assert
     //     Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));

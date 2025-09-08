@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
@@ -11,6 +12,7 @@ using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -189,12 +191,14 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11222")]
     public async Task NewCommandDoesNotPromptForOutputPathIfSpecifiedOnCommandLine()
     {
         bool promptedForPath = false;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
 
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
@@ -299,6 +303,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11172")]
     public async Task NewCommandDoesNotPromptForTemplateVersionIfSpecifiedOnCommandLine()
     {
         bool promptedForTemplateVersion = false;
@@ -382,11 +387,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("new");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        
+
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
         Assert.Contains("No template versions were found", displayedErrorMessage);
     }
-    
+
     [Fact]
     public async Task NewCommand_WhenCertificateServiceThrows_ReturnsNonZeroExitCode()
     {
@@ -500,6 +505,78 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             throw new CertificateServiceException("Failed to trust certificates");
         }
     }
+
+    [Fact]
+    public async Task NewCommandPromptsForTemplateVersionBeforeTemplateOptions()
+    {
+        var operationOrder = new List<string>();
+        
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+
+                prompter.PromptForTemplatesVersionCallback = (packages) =>
+                {
+                    operationOrder.Add("TemplateVersion");
+                    return packages.First();
+                };
+
+                return prompter;
+            };
+
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var testInteractionService = new OrderTrackingInteractionService(operationOrder);
+                return testInteractionService;
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetConfigFile, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                return runner;
+            };
+        });
+        
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new aspire-starter --name TestApp --output .");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+        
+        // Verify that template version was prompted before template options
+        Assert.Contains("TemplateVersion", operationOrder);
+        
+        // If template options were prompted, they should come after version selection
+        var versionIndex = operationOrder.IndexOf("TemplateVersion");
+        var optionIndex = operationOrder.IndexOf("TemplateOption");
+        
+        if (optionIndex >= 0)
+        {
+            Assert.True(versionIndex < optionIndex, 
+                $"Template version should be prompted before template options. Order: {string.Join(", ", operationOrder)}");
+        }
+    }
 }
 
 internal sealed class TestNewCommandPrompter(IInteractionService interactionService) : NewCommandPrompter(interactionService)
@@ -544,4 +621,55 @@ internal sealed class TestNewCommandPrompter(IInteractionService interactionServ
             _ => Task.FromResult(candidatePackages.First()) // If no callback is provided just accept the first package.
         };
     }
+}
+
+internal sealed class OrderTrackingInteractionService(List<string> operationOrder) : IInteractionService
+{
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
+    {
+        return action();
+    }
+
+    public void ShowStatus(string statusText, Action action)
+    {
+        action();
+    }
+
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(defaultValue ?? string.Empty);
+    }
+
+    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        // Track template option prompts
+        if (promptText?.Contains("Redis") == true || 
+            promptText?.Contains("test framework") == true ||
+            promptText?.Contains("Create a test project") == true ||
+            promptText?.Contains("xUnit") == true)
+        {
+            operationOrder.Add("TemplateOption");
+        }
+
+        return Task.FromResult(choices.First());
+    }
+
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
+    public void DisplayError(string errorMessage) { }
+    public void DisplayMessage(string emoji, string message) { }
+    public void DisplaySuccess(string message) { }
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayCancellationMessage() { }
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
+    public void DisplaySubtleMessage(string message) { }
+    public void DisplayEmptyLine() { }
+    public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
 }

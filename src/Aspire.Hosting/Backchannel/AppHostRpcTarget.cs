@@ -80,7 +80,7 @@ internal class AppHostRpcTarget(
 
             if (!resourceEvent.Resource.TryGetEndpoints(out var endpoints))
             {
-                logger.LogTrace("Resource {Resource} does not have endpoints.", resourceEvent.Resource.Name);
+                logger.LogTrace("Resource {ResourceName} does not have endpoints.", resourceEvent.Resource.Name);
                 endpoints = Enumerable.Empty<EndpointAnnotation>();
             }
 

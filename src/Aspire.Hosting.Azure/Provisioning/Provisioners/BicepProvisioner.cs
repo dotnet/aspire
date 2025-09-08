@@ -126,7 +126,7 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile(context.OutputPath);
+        var template = resource.GetBicepTemplateFile();
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need
@@ -176,15 +176,8 @@ internal sealed class BicepProvisioner(
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
         });
-        // Only set the location and custom deployment name
-        // for top-level AzureEnvironmentResource.
-#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        if (resource is AzureEnvironmentResource)
-        {
-            deploymentContent.Location = context.Location;
-            deploymentName = $"{resourceGroup.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
-        }
-#pragma warning restore ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        // Set the location and use timestamped deployment name for all resources
+        deploymentName = $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete

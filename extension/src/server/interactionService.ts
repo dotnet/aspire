@@ -1,15 +1,12 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { startAppHost } from '../debugger/appHost';
-import { getAspireTerminal } from '../utils/terminal';
-import { EnvVar, stopAllDebuggingSessions } from '../debugger/common';
-
-type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
+import { EnvVar } from '../dcp/types';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -27,13 +24,16 @@ export interface IInteractionService {
     displayCancellationMessage: () => void;
     openProject: (projectPath: string) => void;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void>;
+    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
+    notifyAppHostStartupCompleted: () => void;
 }
 
+type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
+
 type DashboardUrls = {
-    baseUrlWithLoginToken: string;
-    codespacesUrlWithLoginToken: string | null;
+    BaseUrlWithLoginToken: string;
+    CodespacesUrlWithLoginToken: string | null;
 };
 
 type ConsoleLine = {
@@ -42,7 +42,13 @@ type ConsoleLine = {
 };
 
 export class InteractionService implements IInteractionService {
+    private _getAspireDebugSession: () => AspireDebugSession | null;
+
     private _statusBarItem: vscode.StatusBarItem | undefined;
+
+    constructor(getAspireDebugSession: () => AspireDebugSession | null) {
+        this._getAspireDebugSession = getAspireDebugSession;
+    }
 
     showStatus(statusText: string | null) {
         extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
@@ -54,6 +60,8 @@ export class InteractionService implements IInteractionService {
         if (statusText) {
             this._statusBarItem.text = formatText(statusText);
             this._statusBarItem.show();
+
+            this._getAspireDebugSession()?.sendMessage(formatText(statusText));
         } else if (this._statusBarItem) {
             this._statusBarItem.hide();
         }
@@ -198,27 +206,28 @@ export class InteractionService implements IInteractionService {
             { title: directLink }
         ];
 
-        if (dashboardUrls.codespacesUrlWithLoginToken) {
+        if (dashboardUrls.CodespacesUrlWithLoginToken) {
             actions.push({ title: codespacesLink });
         }
 
-        const selected = await vscode.window.showInformationMessage(
+        // Don't await - fire and forget to avoid blocking
+        vscode.window.showInformationMessage(
             openAspireDashboard,
             ...actions
-        );
+        ).then(selected => {
+            if (!selected) {
+                return;
+            }
 
-        if (!selected) {
-            return;
-        }
+            extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
-        extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
-
-        if (selected.title === directLink) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.baseUrlWithLoginToken));
-        }
-        else if (selected.title === codespacesLink && dashboardUrls.codespacesUrlWithLoginToken) {
-            vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.codespacesUrlWithLoginToken));
-        }
+            if (selected.title === directLink) {
+                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+            }
+            else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
+                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+            }
+        });
     }
 
     displayLines(lines: ConsoleLine[]) {
@@ -260,13 +269,27 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean, rpcClient: ICliRpcClient): Promise<void> {
-        return startAppHost(projectFile, workingDirectory, args, environment, debug, rpcClient);
+    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        return debugSession.startAppHost(projectFile, args, environment, debug);
     }
 
     stopDebugging() {
         this.clearStatusBar();
-        stopAllDebuggingSessions();
+        this._getAspireDebugSession()?.dispose();
+    }
+
+    notifyAppHostStartupCompleted() {
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            throw new Error(aspireDebugSessionNotInitialized);
+        }
+
+        debugSession.notifyAppHostStartupCompleted();
     }
 
     clearStatusBar() {
@@ -294,8 +317,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
     connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
     connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, workingDirectory: string, args: string[], environment: EnvVar[], debug: boolean) => {
-        return interactionService.launchAppHost(projectFile, workingDirectory, args, environment, debug, rpcClient);
-    }));
+    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
+    connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
 }

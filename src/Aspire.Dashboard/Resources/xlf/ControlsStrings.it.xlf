@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
-        <target state="new">Collapse all</target>
+        <target state="translated">Comprimi tutto</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
-        <target state="new">Expand all</target>
+        <target state="translated">Espandi tutto</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -255,6 +255,11 @@
       <trans-unit id="LabelNone">
         <source>(None)</source>
         <target state="translated">(Nessuno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="translated">(Altro)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -512,6 +517,31 @@
         <target state="translated">Ora di inizio &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeDatabase">
+        <source>Database</source>
+        <target state="translated">Database</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeGenAI">
+        <source>Gen AI</source>
+        <target state="translated">IA generativa</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeHttp">
+        <source>HTTP</source>
+        <target state="translated">HTTP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeMessaging">
+        <source>Messaging</source>
+        <target state="translated">Messaggistica</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeRpc">
+        <source>RPC</source>
+        <target state="translated">RPC</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
         <target state="translated">Stato</target>
@@ -589,7 +619,7 @@
       </trans-unit>
       <trans-unit id="ViewStructuredLogsText">
         <source>View structured logs</source>
-        <target state="new">View structured logs</target>
+        <target state="translated">Visualizza log strutturati</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

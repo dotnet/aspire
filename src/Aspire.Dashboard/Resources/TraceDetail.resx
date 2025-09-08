@@ -149,4 +149,7 @@
   <data name="TraceDetailResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
+  <data name="TraceDetailNoSpans" xml:space="preserve">
+    <value>No spans found</value>
+  </data>
 </root>

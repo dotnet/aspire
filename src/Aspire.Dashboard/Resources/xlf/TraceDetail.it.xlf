@@ -22,6 +22,11 @@
         <target state="translated">Nome</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailNoSpans">
+        <source>No spans found</source>
+        <target state="translated">Nessuna durata trovata</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">Traccia {0}</target>
@@ -29,7 +34,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailResourceHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">

@@ -36,8 +36,9 @@ internal class ExecCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier)
-        : base("exec", ExecCommandStrings.Description, features, updateNotifier)
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext)
+        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -146,7 +147,7 @@ internal class ExecCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;

@@ -149,12 +149,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = [
-            "msbuild",
-            $"-getProperty:{string.Join(",", properties)}",
-            $"-getItem:{string.Join(",", items)}",
-            projectFile.FullName
-            ];
+        var cliArgsList = new List<string> { "msbuild" };
+        
+        if (properties.Length > 0)
+        {
+            // HACK: MSBuildVersion here because if you ever invoke `dotnet msbuild -getproperty with just a single
+            //       property it will not be returned as JSON. I've reported this as a problem to MSBuild but obviously
+            //       we need to work around it:
+            //
+            //       https://github.com/dotnet/msbuild/issues/12490
+            //
+            cliArgsList.Add($"-getProperty:MSBuildVersion,{string.Join(",", properties)}");
+        }
+        
+        if (items.Length > 0)
+        {
+            cliArgsList.Add($"-getItem:{string.Join(",", items)}");
+        }
+        
+        cliArgsList.Add(projectFile.FullName);
+        
+        string[] cliArgs = [.. cliArgsList];
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
@@ -226,6 +241,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             {
                 ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
             };
+        }
+
+        // Check if update notifications are disabled and set version check environment variable
+        if (!features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, defaultValue: true))
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey(KnownConfigNames.VersionCheckDisabled))
+            {
+                finalEnv[KnownConfigNames.VersionCheckDisabled] = "true";
+            }
         }
 
         return await ExecuteAsync(
@@ -473,20 +504,26 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
-        if (backchannelCompletionSource is not null
-            && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+        if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
-            await extensionInteractionService.LaunchAppHostAsync(
-                projectFile.FullName,
-                startInfo.WorkingDirectory,
-                startInfo.ArgumentList.ToList(),
-                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
-                options.StartDebugSession);
+            // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
-            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+            if (backchannelCompletionSource is not null
+                && projectFile is not null
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+            {
+                await extensionInteractionService.LaunchAppHostAsync(
+                    projectFile.FullName,
+                    startInfo.ArgumentList.ToList(),
+                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                    options.StartDebugSession);
 
-            return ExitCodeConstants.Success;
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+                return ExitCodeConstants.Success;
+            }
         }
 
         var process = new Process { StartInfo = startInfo };
