@@ -70,15 +70,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         });
     }
 
-    private void OnViewMessage(GenAIMessageViewModel viewModel)
+    private void OnViewItem(GenAIItemViewModel viewModel)
     {
-        Content.SelectedMessage = viewModel;
+        Content.SelectedItem = viewModel;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
         var selectedIndex = Content.SelectedTreeItem?.Data as int?;
-        Content.SelectedMessage = Content.Messages.FirstOrDefault(m => m.Index == selectedIndex);
+        Content.SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -102,8 +102,8 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var id = newTab.Id?.Substring("tab-message-".Length);
 
         if (id is null
-            || !Enum.TryParse(typeof(MessageViewKind), id, out var o)
-            || o is not MessageViewKind viewKind)
+            || !Enum.TryParse(typeof(ItemViewKind), id, out var o)
+            || o is not ItemViewKind viewKind)
         {
             return;
         }
@@ -146,14 +146,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return true;
     }
 
-    private string GetMessageTitle(GenAIMessageViewModel e)
+    private string GetItemTitle(GenAIItemViewModel e)
     {
         return e.Type switch
         {
-            GenAIMessageType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
-            GenAIMessageType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
-            GenAIMessageType.AssistantMessage or GenAIMessageType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
-            GenAIMessageType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
+            GenAIItemType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
+            GenAIItemType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
+            GenAIItemType.AssistantMessage or GenAIItemType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
+            GenAIItemType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
+            GenAIItemType.Error => "Error",
             _ => string.Empty
         };
     }

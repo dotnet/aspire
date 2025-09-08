@@ -7,10 +7,10 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class GenAIMessageTitle
+public partial class GenAIItemTitle
 {
     [Parameter, EditorRequired]
-    public required GenAIMessageViewModel Message { get; set; }
+    public required GenAIItemViewModel Item { get; set; }
 
     [Parameter, EditorRequired]
     public required string ResourceName { get; set; }
@@ -23,7 +23,7 @@ public partial class GenAIMessageTitle
 
     protected override void OnParametersSet()
     {
-        _categoryBadge = Message.GetCategoryBadge(Loc);
-        _titleBadge = Message.GetTitleBadge(Loc);
+        _categoryBadge = Item.GetCategoryBadge(Loc);
+        _titleBadge = Item.GetTitleBadge(Loc);
     }
 }

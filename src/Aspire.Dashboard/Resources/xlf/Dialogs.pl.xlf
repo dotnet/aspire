@@ -107,6 +107,11 @@
         <target state="new">Duration</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="new">Error</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIInputHeaderText">
         <source>Input</source>
         <target state="new">Input</target>
@@ -132,6 +137,11 @@
         <target state="new">Output</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="new">Status</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIMessageCategoryToolCalls">
         <source>Tool calls</source>
         <target state="new">Tool calls</target>
@@ -140,6 +150,11 @@
       <trans-unit id="GenAIMessageTitleAssistant">
         <source>Assistant</source>
         <target state="new">Assistant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="new">Error</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIMessageTitleSystem">

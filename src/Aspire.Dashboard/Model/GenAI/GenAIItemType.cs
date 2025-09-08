@@ -3,11 +3,12 @@
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-public enum GenAIMessageType
+public enum GenAIItemType
 {
     SystemMessage,
     UserMessage,
     AssistantMessage,
     ToolMessage,
-    OutputMessage
+    OutputMessage,
+    Error
 }

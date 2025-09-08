@@ -3,8 +3,9 @@
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-public class GenAIMessagePartViewModel
+public class GenAIItemPartViewModel
 {
-    public required MessagePart MessagePart { get; init; }
+    public required MessagePart? MessagePart { get; init; }
+    public required string? ErrorMessage { get; init; }
     public required TextVisualizerViewModel TextVisualizerViewModel { get; init; }
 }

@@ -250,6 +250,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        public static string GenAIErrorHeaderText {
+            get {
+                return ResourceManager.GetString("GenAIErrorHeaderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Input.
         /// </summary>
         public static string GenAIInputHeaderText {
@@ -295,6 +304,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        public static string GenAIMessageCategoryStatus {
+            get {
+                return ResourceManager.GetString("GenAIMessageCategoryStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tool calls.
         /// </summary>
         public static string GenAIMessageCategoryToolCalls {
@@ -309,6 +327,15 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAIMessageTitleAssistant {
             get {
                 return ResourceManager.GetString("GenAIMessageTitleAssistant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        public static string GenAIMessageTitleError {
+            get {
+                return ResourceManager.GetString("GenAIMessageTitleError", resourceCulture);
             }
         }
         

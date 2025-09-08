@@ -367,4 +367,13 @@
   <data name="GenAIMessageTitleTool" xml:space="preserve">
     <value>Tool</value>
   </data>
+  <data name="GenAIMessageTitleError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="GenAIMessageCategoryStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="GenAIErrorHeaderText" xml:space="preserve">
+    <value>Error</value>
+  </data>
 </root>
