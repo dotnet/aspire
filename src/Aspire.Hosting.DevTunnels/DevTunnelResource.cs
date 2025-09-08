@@ -62,7 +62,13 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
         DevTunnel = tunnel;
         Options = options ?? new DevTunnelPortOptions();
         TargetEndpoint = targetEndpoint;
-        TunnelEndpoint = new(this, TunnelEndpointName);
+        TunnelEndpointAnnotation = new EndpointAnnotation(
+            System.Net.Sockets.ProtocolType.Tcp,
+            "https",
+            transport: null,
+            name: targetEndpoint.EndpointName,
+            isProxied: false);
+        TunnelEndpoint = new(targetEndpoint.Resource, TunnelEndpointAnnotation);
     }
 
     /// <summary>
@@ -80,11 +86,17 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// </summary>
     public EndpointReference TunnelEndpoint { get; }
 
+    internal EndpointAnnotation TunnelEndpointAnnotation { get; }
+
     internal EndpointReference TargetEndpoint { get; init; }
 
     internal TaskCompletionSource TargetEndpointAllocatedTcs { get; set; } = new();
 
     internal Task TargetEndpointAllocatedTask => TargetEndpointAllocatedTcs.Task;
+
+    internal TaskCompletionSource PortCreatedTcs { get; set; } = new();
+
+    internal Task PortCreatedTask => PortCreatedTcs.Task;
 
     internal DevTunnelStatus.DevTunnelPort? LastKnownStatus { get; set; }
 }
