@@ -214,24 +214,23 @@ public class Program
 
         using var cts = new CancellationTokenSource();
 
-        Console.CancelKeyPress += (sender, eventArgs) =>
-        {
-            cts.Cancel();
-            eventArgs.Cancel = true;
-        };
-
         using var app = await BuildApplicationAsync(args);
 
-        await app.StartAsync(cts.Token).ConfigureAwait(false);
+        await app.StartAsync().ConfigureAwait(false);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
-        var invokeConfig = new InvocationConfiguration() { EnableDefaultExceptionHandler = true };
+        var invokeConfig = new InvocationConfiguration()
+        {
+            EnableDefaultExceptionHandler = true,
+            // HACK: Workaround until we get 10.0 RC2: https://github.com/dotnet/command-line-api/pull/2674/files
+            ProcessTerminationTimeout = TimeSpan.FromSeconds(2)
+        };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
+        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
 
-        await app.StopAsync(cts.Token).ConfigureAwait(false);
+        await app.StopAsync().ConfigureAwait(false);
 
         return exitCode;
     }
