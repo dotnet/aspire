@@ -62,7 +62,7 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
     /// <summary>
     /// The databases for this cluster.
     /// </summary>
-    internal List<AzureKustoDatabaseResource> Databases { get; } = [];
+    internal List<AzureKustoReadWriteDatabaseResource> Databases { get; } = [];
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

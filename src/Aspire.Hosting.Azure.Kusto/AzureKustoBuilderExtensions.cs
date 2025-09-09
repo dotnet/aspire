@@ -117,13 +117,13 @@ public static class AzureKustoBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Kusto database to the application model.
+    /// Adds a Kusto read-write database to the application model.
     /// </summary>
     /// <param name="builder">The Kusto server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureKustoDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
+    public static IResourceBuilder<AzureKustoReadWriteDatabaseResource> AddReadWriteDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -131,7 +131,7 @@ public static class AzureKustoBuilderExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        var kustoDatabase = new AzureKustoDatabaseResource(name, databaseName, builder.Resource);
+        var kustoDatabase = new AzureKustoReadWriteDatabaseResource(name, databaseName, builder.Resource);
         builder.Resource.Databases.Add(kustoDatabase);
         var resourceBuilder = builder.ApplicationBuilder.AddResource(kustoDatabase);
 
@@ -153,6 +153,19 @@ public static class AzureKustoBuilderExtensions
 
         return resourceBuilder
             .WithHealthCheck(healthCheckKey);
+    }
+
+    /// <summary>
+    /// Adds a Kusto database to the application model.
+    /// </summary>
+    /// <param name="builder">The Kusto server resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddReadWriteDatabase)} instead.")]
+    public static IResourceBuilder<AzureKustoReadWriteDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
+    {
+        return builder.AddReadWriteDatabase(name, databaseName);
     }
 
     /// <summary>
@@ -211,7 +224,7 @@ public static class AzureKustoBuilderExtensions
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<AzureKustoDatabaseResource> WithCreationScript(this IResourceBuilder<AzureKustoDatabaseResource> builder, string script)
+    public static IResourceBuilder<AzureKustoReadWriteDatabaseResource> WithCreationScript(this IResourceBuilder<AzureKustoReadWriteDatabaseResource> builder, string script)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(script);
@@ -310,7 +323,7 @@ public static class AzureKustoBuilderExtensions
         resourceBuilder.WithHealthCheck(healthCheckKey);
     }
 
-    private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, AzureKustoDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    private static async Task CreateDatabaseAsync(ICslAdminProvider adminProvider, AzureKustoReadWriteDatabaseResource databaseResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         var crp = new ClientRequestProperties()
         {

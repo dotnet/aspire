@@ -8,7 +8,7 @@ builder.AddAzureContainerAppEnvironment("infra");
 
 var kusto = builder.AddAzureKustoCluster("kusto")
     .RunAsEmulator();
-var db = kusto.AddDatabase("testdb");
+var db = kusto.AddReadWriteDatabase("testdb");
 
 builder.AddProject<Projects.AzureKusto_Worker>("worker")
     .WithReference(db)
@@ -51,7 +51,7 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 if (builder.ExecutionContext.IsRunMode)
 {
     // Add an invalid database to demonstrate how a "failed to start" resource appears in the dashboard
-    kusto.AddDatabase("InvalidDb", "__invalid");
+    kusto.AddReadWriteDatabase("InvalidDb", "__invalid");
 }
 
 var app = builder.Build();
