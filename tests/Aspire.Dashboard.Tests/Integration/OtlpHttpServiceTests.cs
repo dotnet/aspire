@@ -4,6 +4,7 @@
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
@@ -29,6 +30,8 @@ public class OtlpHttpServiceTests
     {
         _testOutputHelper = testOutputHelper;
     }
+
+    private sealed record StatusResponse(int Code, string Message);
 
     [Fact]
     public async Task CallService_OtlpHttpEndPoint_BigData_Success()
@@ -274,9 +277,12 @@ public class OtlpHttpServiceTests
         
         // Verify JSON error response
         var responseBody = await responseMessage.Content.ReadAsStringAsync();
-        Assert.Contains("\"code\":15", responseBody);
-        Assert.Contains("\"message\":", responseBody);
-        Assert.Contains("application/x-protobuf", responseBody);
+        var statusResponse = JsonSerializer.Deserialize<StatusResponse>(responseBody, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        
+        Assert.NotNull(statusResponse);
+        Assert.Equal(15, statusResponse.Code); // UNIMPLEMENTED gRPC status code
+        Assert.Contains("application/x-protobuf", statusResponse.Message);
+        Assert.Contains("not supported", statusResponse.Message);
         
         // Verify warning was logged
         var warningLogs = testSink.Writes.Where(w => 

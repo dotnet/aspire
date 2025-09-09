@@ -24,6 +24,8 @@ public static class OtlpHttpEndpointsBuilder
     public const string JsonContentType = "application/json";
     public const string CorsPolicyName = "OtlpHttpCors";
 
+    private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     private sealed record StatusResponse(int Code, string Message);
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
@@ -110,7 +112,7 @@ public static class OtlpHttpEndpointsBuilder
             Code: 15, // UNIMPLEMENTED from gRPC status codes
             Message: $"Content type '{httpContext.Request.ContentType}' is not supported. Only '{ProtobufContentType}' is supported.");
         
-        var json = JsonSerializer.Serialize(status, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(status, s_jsonOptions);
         await httpContext.Response.WriteAsync(json, Encoding.UTF8).ConfigureAwait(false);
     }
 
