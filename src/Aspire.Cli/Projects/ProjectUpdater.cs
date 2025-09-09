@@ -20,13 +20,13 @@ internal interface IProjectUpdater
     Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken);
 }
 
-internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext) : IProjectUpdater
+internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
 
-        var updateSteps = await interactionService.ShowStatusAsync(UpdateCommandStrings.AnalyzingProjectStatus, () => GetUpdateStepsAsync(projectFile, channel, cancellationToken));
+        var (updateSteps, fallbackUsed) = await interactionService.ShowStatusAsync(UpdateCommandStrings.AnalyzingProjectStatus, () => GetUpdateStepsAsync(projectFile, channel, cancellationToken));
 
         if (!updateSteps.Any())
         {
@@ -57,6 +57,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
             }
 
+            interactionService.DisplayEmptyLine();
+        }
+
+        // Display warning if fallback XML parsing was used
+        if (fallbackUsed)
+        {
+            interactionService.DisplayMessage("warning", "[yellow]Note: Update plan generated using fallback XML parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.[/]");
             interactionService.DisplayEmptyLine();
         }
 
@@ -135,7 +142,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
     }
 
-    private async Task<IEnumerable<UpdateStep>> GetUpdateStepsAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken)
+    private async Task<(IEnumerable<UpdateStep> UpdateSteps, bool FallbackUsed)> GetUpdateStepsAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken)
     {
         var context = new UpdateContext(projectFile, channel);
 
@@ -147,7 +154,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             await analyzeStep.Callback();
         }
 
-        return context.UpdateSteps;
+        return (context.UpdateSteps, context.FallbackXmlParsing);
     }
 
     private const string ItemsAndPropertiesCacheKeyPrefix = "ItemsAndProperties";
@@ -175,6 +182,38 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         return document;
+    }
+
+    private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    {
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], context, cancellationToken);
+    }
+
+    private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Try normal MSBuild evaluation first
+            return await GetItemsAndPropertiesAsync(projectFile, items, properties, cancellationToken);
+        }
+        catch (ProjectUpdaterException ex) when (IsAppHostProject(projectFile, context))
+        {
+            // Only use fallback for AppHost projects
+            logger.LogWarning("Falling back to XML parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
+            
+            if (!context.FallbackXmlParsing)
+            {
+                context.FallbackXmlParsing = true;
+                logger.LogWarning("Update plan will be generated using fallback XML parsing; dependency accuracy may be reduced.");
+            }
+
+            return fallbackParser.ParseProject(projectFile);
+        }
+    }
+
+    private static bool IsAppHostProject(FileInfo projectFile, UpdateContext context)
+    {
+        return string.Equals(projectFile.FullName, context.AppHostProjectFile.FullName, StringComparison.OrdinalIgnoreCase);
     }
 
     private Task AnalyzeAppHostAsync(UpdateContext context, CancellationToken cancellationToken)
@@ -205,7 +244,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         logger.LogDebug("Analyzing App Host SDK for: {AppHostFile}", context.AppHostProjectFile.FullName);
 
-        var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(context.AppHostProjectFile, cancellationToken);
+        var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
 
@@ -264,7 +303,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Detect if this project uses Central Package Management
         var cpmInfo = DetectCentralPackageManagement(projectFile);
 
-        var itemsAndPropertiesDocument = await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
+        // Use fallback wrapper for AppHost project, normal method for others
+        var itemsAndPropertiesDocument = IsAppHostProject(projectFile, context)
+            ? await GetItemsAndPropertiesWithFallbackAsync(projectFile, context, cancellationToken)
+            : await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
+
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
         var projectReferencesElement = itemsElement.GetProperty("ProjectReference").EnumerateArray();
@@ -527,6 +570,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public ConcurrentQueue<UpdateStep> UpdateSteps { get; } = new();
     public ConcurrentQueue<AnalyzeStep> AnalyzeSteps { get; } = new();
     public HashSet<string> VisitedProjects { get; } = new();
+    public bool FallbackXmlParsing { get; set; }
 }
 
 internal abstract record UpdateStep(string Description, Func<Task> Callback)
