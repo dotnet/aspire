@@ -75,7 +75,7 @@
     margin: 0.5rem 0.75rem 1rem 0;
 }
 
-::deep#chat-assistant-container code {
+.markdown-container code {
     font-family: 'Cascadia Mono', Consolas, monospace;
     color: unset;
     background-color: var(--neutral-fill-secondary-focus);
@@ -88,7 +88,7 @@
     line-height: 20px;
 }
 
-.markdown-container pre code, ::deep#chat-assistant-container a code {
+.markdown-container pre code, .markdown-container a code {
     background-color: unset;
     padding: unset;
     border-radius: unset;

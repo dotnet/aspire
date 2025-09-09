@@ -93,7 +93,7 @@ public static class MarkdownHelpers
     public static bool GetSuppressSurroundingParagraph(string markdown, bool suppressParagraphOnNewLines)
     {
         // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
-        return suppressParagraphOnNewLines && (markdown.Contains('\n') && markdown.Contains('\r'));
+        return suppressParagraphOnNewLines && !(markdown.Contains('\n') || markdown.Contains('\r'));
     }
 
     private enum LinkType

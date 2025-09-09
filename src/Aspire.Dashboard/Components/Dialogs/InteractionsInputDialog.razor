@@ -145,7 +145,7 @@
             @<div class="input-description" id="@id">
                 @if (vm.EnableDescriptionMarkdown)
                 {
-                    <MarkdownRenderer MarkdownProcessor="@_markdownProcessor" Markdown="@vm.Description" SuppressParagraphUnlessNewLines="true" />
+                    <MarkdownRenderer MarkdownProcessor="@_markdownProcessor" Markdown="@vm.Description" SuppressParagraphOnNewLines="true" />
                 }
                 else
                 {
