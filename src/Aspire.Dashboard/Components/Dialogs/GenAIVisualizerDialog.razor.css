@@ -89,6 +89,7 @@
     margin-right: 8px;
     font-size: 12px;
     font-weight: 600;
+    pointer-events: none;
 }
 
 ::deep .category-message {

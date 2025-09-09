@@ -1,21 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Markdig;
-using Markdig.Extensions.AutoLinks;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
-namespace Aspire.Dashboard.Utils;
-
-public sealed class MarkdownOptions
-{
-    public required MarkdownPipeline Pipeline { get; init; }
-    public required bool SuppressSurroundingParagraph { get; init; }
-    public required HashSet<string>? AllowedUrlSchemes { get; init; }
-}
+namespace Aspire.Dashboard.Model.Markdown;
 
 public static class MarkdownHelpers
 {
@@ -23,29 +14,9 @@ public static class MarkdownHelpers
     // Untrusted 3rd party Markdown should be limited to these URLs to avoid links that could trigger other programs that listen for the scheme.
     public static readonly HashSet<string> SafeUrlSchemes = new HashSet<string>(StringComparers.EndpointAnnotationUriScheme) { "http", "https", "mailto" };
 
-    public static MarkdownPipelineBuilder CreateMarkdownPipelineBuilder()
-    {
-        var autoLinkOptions = new AutoLinkOptions
-        {
-            OpenInNewWindow = true,
-            AllowDomainWithoutPeriod = true
-        };
-        autoLinkOptions.ValidPreviousCharacters += "`";
-
-        var pipelineBuilder = new MarkdownPipelineBuilder();
-        pipelineBuilder.ConfigureNewLine(Environment.NewLine);
-        pipelineBuilder.DisableHtml();
-        pipelineBuilder.UseAutoLinks(autoLinkOptions);
-        pipelineBuilder.UseGridTables();
-        pipelineBuilder.UsePipeTables();
-        pipelineBuilder.UseEmphasisExtras();
-
-        return pipelineBuilder;
-    }
-
     public static string ToHtml(string markdown, MarkdownOptions options)
     {
-        var document = Markdown.Parse(markdown, options.Pipeline);
+        var document = Markdig.Markdown.Parse(markdown, options.Pipeline);
 
         // Open absolute links in the response in a new window.
         foreach (var link in document.Descendants<LinkInline>())
@@ -117,6 +88,12 @@ public static class MarkdownHelpers
             attributes.AddPropertyIfNotExist("target", "_blank");
             attributes.AddPropertyIfNotExist("rel", "noopener noreferrer nofollow");
         }
+    }
+
+    public static bool GetSuppressSurroundingParagraph(string markdown, bool suppressParagraphOnNewLines)
+    {
+        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
+        return suppressParagraphOnNewLines && !(markdown.Contains('\n') || markdown.Contains('\r'));
     }
 
     private enum LinkType
