@@ -41,7 +41,7 @@ extends:
       sourceAnalysisPool: VSEngSS-MicroBuild2022-1ES
       policheck:
         enabled: true
-        exclusionsFile: $(System.DefaultWorkingDirectory)\eng\pipelines\aspire-vscode-extension\PoliCheckExclusions.xml
+        exclusionsFile: $(Build.SourcesDirectory)/eng/pipelines/aspire-vscode-extension/PoliCheckExclusions.xml
       sbom:
         enabled: false # SBOM requires very special setup, and is done in compliance.yml
       tsa:

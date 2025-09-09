@@ -19,7 +19,7 @@ steps:
 - task: NuGetAuthenticate@1
   displayName: 🔏 Authenticate NuGet feeds
   inputs:
-    nuGetServiceConnections: vsgreen-code-coverage
+    nuGetServiceConnections: dotnet-aspire-vscode
     forceReinstallCredentialProvider: true
   condition: eq('${{ parameters.CodeCoverage }}', true)
 
