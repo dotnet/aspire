@@ -1,0 +1,109 @@
+parameters:
+- name: CodeCoverage
+  type: boolean
+
+steps:
+- checkout: self
+  clean: true
+  submodules: true
+  fetchTags: false
+  fetchDepth: 1
+
+- template: prereqsTests.yml
+
+- bash: /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+  displayName: 🖥️ Start screen emulation
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+
+# NuGet is needed to get the code coverage tool
+- task: NuGetAuthenticate@1
+  displayName: 🔏 Authenticate NuGet feeds
+  inputs:
+    nuGetServiceConnections: vsgreen-code-coverage
+    forceReinstallCredentialProvider: true
+  condition: eq('${{ parameters.CodeCoverage }}', true)
+
+- script: dotnet tool install dotnet-coverage
+  displayName: 🧰 Install code coverage tool
+  condition: eq('${{ parameters.CodeCoverage }}', true)
+
+- pwsh: yarn unit-test --reporters=default
+  displayName: 🧪 unit tests
+  workingDirectory: $(Build.SourcesDirectory)/extension
+  env:
+    DISPLAY: ':99.0'
+
+
+- pwsh: |
+    try
+    {
+        # The previous Integration Steps is leaving a process running that is causing the
+        # following 1ES CredScan step to fail due to Access Denied file in use errors.
+        # We've identified that one of the main processes left running is Microsoft.CodeAnalysis.LanguageServer.exe
+        # process.  This script will try and find that process and terminate it before the
+        # credscan step so that builds are more reliable.  The VS Green team will further
+        # look into why this process is being left running and put in a real fix in the future.
+
+        # Get all running processes
+        $processes = Get-Process
+
+        # Output all running processes
+        $processes
+
+        # Search for any processes to terminate
+        $processNamesToTerminate = @("Microsoft.CodeAnalysis.LanguageServer")
+        $processesToTerminate = @()
+
+        foreach ($p in $processes)
+        {
+            if ($processNamesToTerminate -contains $p.ProcessName)
+            {
+                $processesToTerminate += $p
+            }
+        }
+
+        # Terminate the processes if we found any
+        Write-Host "Found $($processesToTerminate.Count) processes to terminate."
+        if ($processesToTerminate)
+        {
+            foreach ($p in $processesToTerminate)
+            {
+                Write-Host "Terminating $($p.ProcessName) process with ID $($p.Id)..."
+                try
+                {
+                    if ($p.HasExited -eq $false)
+                    {
+                        $p.Kill()
+                    }
+                }
+                catch
+                {
+                    Write-Host "ERROR: Unable to terminate $($p.ProcessName) process with ID $($p.Id): $_"
+                }
+            }
+            Write-Host "Processes terminated."
+        }
+        else
+        {
+            Write-Host "Processes not found."
+        }
+
+        # Output all running processes after terminating all the processes
+        Get-Process
+    }
+    catch
+    {
+        Write-Host "ERROR: $_"
+    }
+  displayName: 🛑 Terminate VS Code processes
+  condition: always()
+  continueOnError: true
+  ignoreLASTEXITCODE: true
+
+- task: 1ES.PublishPipelineArtifact@1
+  inputs:
+    targetPath: $(Build.SourcesDirectory)/extension/out/test/codecoverage
+    artifactName: Code coverage ($(Agent.JobName)-$(System.JobAttempt))
+  displayName: 📢 Publishing code coverage
+  condition: eq('${{ parameters.CodeCoverage }}', true)
+  continueOnError: true # Can fail when no logs were dropped due to a prior test task failure

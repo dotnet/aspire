@@ -1,0 +1,8 @@
+steps:
+- template: prereqs.yml
+
+- task: UseDotNet@2
+  displayName: ⚙️ Use .NET SDK
+  inputs:
+    packageType: sdk
+    useGlobalJson: true

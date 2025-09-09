@@ -1,0 +1,64 @@
+jobs:
+  - job: sbom
+    displayName: SBOM generation
+    pool: VSEngSS-MicroBuild2022-1ES
+    templateContext:
+      outputs:
+        - output: pipelineArtifact
+          displayName: 📢 Publishing SBOM
+          artifact: SBOM
+          targetPath: $(System.DefaultWorkingDirectory)/extension/_manifest
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: 20.x
+        displayName: ⚙️ Install Node.js
+
+      # lock to older version of python. We need diskutils which was removed in Python 3.12
+      - task: UsePythonVersion@0
+        displayName: ⚙️ Use Python 3.11.9
+        inputs:
+          versionSpec: "3.11.9"
+
+      - task: npmAuthenticate@0
+        displayName: 🔏 Authenticate NPM feed
+        inputs:
+          workingFile: .npmrc
+
+      # We need to install files for all platforms so the generated SBOM will include all files that may appear in any of the VSIXs.
+      - powershell: ./init.ps1 -Verbose -Target all
+        displayName: ⚙️ init
+        retryCountOnTaskFailure: 3
+        workingDirectory: $(Build.SourcesDirectory)/extension
+
+      - task: ManifestGeneratorTask@0
+        displayName: 📃 SBOM generation
+        inputs:
+          BuildDropPath: $(System.DefaultWorkingDirectory)/extension
+
+  - job: SignVerify
+    displayName: Sign verify
+    pool: VSEngSS-MicroBuild2022-1ES
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: 20.x
+        displayName: ⚙️ Install Node.js
+
+      # lock to older version of python. We need diskutils which was removed in Python 3.12
+      - task: UsePythonVersion@0
+        displayName: ⚙️ Use Python 3.11.9
+        inputs:
+          versionSpec: "3.11.9"
+
+      - task: npmAuthenticate@0
+        displayName: 🔏 Authenticate NPM feed
+        inputs:
+          workingFile: .npmrc
+
+      # We need to install files for all Windows platforms because those are the ones we can sign.
+      - powershell: |
+          ./init.ps1 -Verbose
+        displayName: ⚙️ init
+        retryCountOnTaskFailure: 3
+        workingDirectory: $(Build.SourcesDirectory)/extension
