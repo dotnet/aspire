@@ -289,9 +289,9 @@ public class OtlpHttpServiceTests
             w.LoggerName == "Aspire.Dashboard.Otlp.Http" &&
             w.Message!.Contains("OTLP HTTP request with unsupported content type")).ToList();
         
-        var warningLog = Assert.Single(warningLogs);
-        Assert.Contains("application/x-protobuf", warningLog.Message);
-        Assert.Contains("unsupported content type", warningLog.Message);
+        var log = Assert.Single(warningLogs);
+        Assert.Contains("application/x-protobuf", log.Message);
+        Assert.Contains("unsupported content type", log.Message);
     }
 
     [Theory]
