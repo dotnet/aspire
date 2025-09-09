@@ -56,7 +56,15 @@ export default class AspireDcpServer {
                     return;
                 }
 
-                if (timingSafeEqual(Buffer.from(auth.split('Bearer ')[1]), Buffer.from(token)) === false) {
+                const bearerTokenBuffer = Buffer.from(auth.split('Bearer ')[1]);
+                const expectedTokenBuffer = Buffer.from(token);
+
+                if (bearerTokenBuffer.length !== expectedTokenBuffer.length) {
+                    res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid token length in Authorization header.' } });
+                    return;
+                }
+
+                if (timingSafeEqual(bearerTokenBuffer, expectedTokenBuffer) === false) {
                     res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid or missing token in Authorization header.' } });
                     return;
                 }

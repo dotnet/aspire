@@ -18,17 +18,15 @@ export type ValidationResult = {
 
 export class RpcClient implements ICliRpcClient {
     private _messageConnection: MessageConnection;
-    private _token: string;
     private _connectionClosed: boolean;
     private _terminalProvider: AspireTerminalProvider;
 
     public debugSessionId: string | null;
     public interactionService: IInteractionService;
 
-    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, token: string, debugSessionId: string | null, interactionService: IInteractionService) {
+    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, debugSessionId: string | null, interactionService: IInteractionService) {
         this._terminalProvider = terminalProvider;
         this._messageConnection = messageConnection;
-        this._token = token;
         this._connectionClosed = false;
         this.debugSessionId = debugSessionId;
         this.interactionService = interactionService;
@@ -44,7 +42,7 @@ export class RpcClient implements ICliRpcClient {
             `Requesting CLI version from CLI`,
             (version: string) => `Received CLI version: ${version}`,
             async () => {
-                return await this._messageConnection.sendRequest<string>('getCliVersion', this._token);
+                return await this._messageConnection.sendRequest<string>('getCliVersion');
             }
         );
     }
@@ -55,7 +53,6 @@ export class RpcClient implements ICliRpcClient {
             (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
             async () => {
                 return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
-                    token: this._token,
                     input
                 });
             }
@@ -68,7 +65,7 @@ export class RpcClient implements ICliRpcClient {
             // Instead, dispose of the terminal directly.
             this._terminalProvider.getAspireTerminal(this.debugSessionId).dispose();
         } else {
-            await this._messageConnection.sendRequest('stopCli', this._token);
+            await this._messageConnection.sendRequest('stopCli');
         }
     }
 }
