@@ -48,7 +48,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
         var notificationTask = _notificationTask;
         if (notificationTask is { IsCompleted: false })
         {
-            // Notification is still being shown so just throw again.
+            // Failure notification is still being shown so just throw again.
             throw GetCommandNotFoundException(command);
         }
 
@@ -98,7 +98,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     }
 
     private static DistributedApplicationException GetCommandNotFoundException(string command) =>
-        new($"Required command '{command}' was not found on PATH or at a specified location.");
+        new($"Required command '{command}' was not found on PATH or at the specified location.");
 
     /// <summary>
     /// Optional link returned to guide users when the command is missing. Return null for no link.
