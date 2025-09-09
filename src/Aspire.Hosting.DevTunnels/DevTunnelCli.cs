@@ -28,17 +28,14 @@ internal sealed class DevTunnelCli
         _cliPath = filePath;
     }
 
-    public string CliPath => _cliPath;
-
     public Task<int> UserLoginMicrosoftAsync(CancellationToken cancellationToken = default)
         => RunAsync(["user", "login", "--entra", "--json", "--nologo"], null, null, useShellExecute: true, cancellationToken);
 
     public Task<int> UserLoginGitHubAsync(CancellationToken cancellationToken = default)
         => RunAsync(["user", "login", "--github", "--json", "--nologo"], null, null, useShellExecute: true, cancellationToken);
 
-    public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, string? provider = null, CancellationToken cancellationToken = default)
-        => RunAsync(new ArgsBuilder(["user", "logout", "--nologo"])
-            .AddIfNotNull("--provider", provider)
+    public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
+        => RunAsync(new ArgsBuilder(["user", "logout", "--json", "--nologo"])
         , outputWriter, errorWriter, cancellationToken);
 
     public Task<int> UserStatusAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
@@ -154,38 +151,6 @@ internal sealed class DevTunnelCli
             .Add("--nologo")
         , outputWriter, errorWriter, cancellationToken);
     }
-
-    public async Task<int> CreateOrUpdatePortAsync(
-        string tunnelId,
-        int portNumber,
-        DevTunnelPortOptions? options = null,
-        TextWriter? outputWriter = null,
-        TextWriter? errorWriter = null,
-        CancellationToken cancellationToken = default)
-    {
-        var exitCode = await UpdatePortAsync(tunnelId, portNumber, options, outputWriter, errorWriter, cancellationToken).ConfigureAwait(false);
-        if (exitCode == ResourceNotFoundExitCode)
-        {
-            // Port does not exist, create it
-            return await CreatePortAsync(tunnelId, portNumber, options, outputWriter, errorWriter, cancellationToken).ConfigureAwait(false);
-        }
-        return exitCode;
-    }
-
-    public Task<int> DeletePortAsync(string tunnelId, int portNumber, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["port", "delete", "--tunnel-id", tunnelId, "--port-number", portNumber.ToString(CultureInfo.InvariantCulture)], outputWriter, errorWriter, cancellationToken);
-
-    public Task<int> ShowPortAsync(string tunnelId, int portNumber, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["port", "show", "--tunnel-id", tunnelId, "--port-number", portNumber.ToString(CultureInfo.InvariantCulture)], outputWriter, errorWriter, cancellationToken);
-
-    public Task<int> SetAnonymousAccessAsync(string tunnelId, bool allowAnonymous, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => UpdateTunnelAsync(tunnelId, options: new DevTunnelOptions { AllowAnonymous = allowAnonymous }, outputWriter: outputWriter, errorWriter: errorWriter, cancellationToken: cancellationToken);
-
-    public Task<int> SetTenantAccessAsync(string tunnelId, string? tenant, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => UpdateTunnelAsync(tunnelId, options: new DevTunnelOptions { Tenant = tenant }, outputWriter: outputWriter, errorWriter: errorWriter, cancellationToken: cancellationToken);
-
-    public Task<int> SetOrganizationAccessAsync(string tunnelId, string? organization, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => UpdateTunnelAsync(tunnelId, options: new DevTunnelOptions { Organization = organization }, outputWriter: outputWriter, errorWriter: errorWriter, cancellationToken: cancellationToken);
 
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
         => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, cancellationToken);

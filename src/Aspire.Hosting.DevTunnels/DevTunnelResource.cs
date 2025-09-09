@@ -32,7 +32,7 @@ public sealed class DevTunnelResource(string name, string tunnelId, string comma
 }
 
 /// <summary>
-/// Child resource representing a single forwarded endpoint/port on a dev tunnel.
+/// A resource representing a single forwarded endpoint/port on a dev tunnel.
 /// Contains an endpoint that resolves to the public tunnel URL of this port.
 /// </summary>
 public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscovery, IResourceWithWaitSupport
@@ -77,10 +77,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// </summary>
     public DevTunnelPortOptions Options { get; }
 
-    /// <summary>
-    /// The public URL of the tunnel for this port as an Aspire endpoint.
-    /// </summary>
-    public EndpointReference TunnelEndpoint { get; }
+    internal EndpointReference TunnelEndpoint { get; }
 
     internal EndpointAnnotation TunnelEndpointAnnotation { get; }
 

@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.DevTunnels;
 
 /// <summary>
-/// Options for the dev tunnel resource.
+/// Options for the dev tunnel resource. Controls the creation and access settings of the underyling dev tunnel.
 /// </summary>
 public sealed class DevTunnelOptions
 {
@@ -14,50 +14,30 @@ public sealed class DevTunnelOptions
     public string? Description { get; set; }
 
     /// <summary>
-    /// Whether to allow anonymous access. If false, authentication is required.
+    /// Whether to allow anonymous access to this dev tunnel. If <c>false</c>, authentication is required. Defaults to <c>false</c>.
     /// </summary>
     public bool AllowAnonymous { get; set; }
 
     /// <summary>
-    /// Optional Microsoft Entra tenant ID or domain that should be granted access to the tunnel.
-    /// </summary>
-    public string? Tenant { get; set; }
-
-    /// <summary>
-    /// Optional GitHub organization name whose members should be granted access to the tunnel.
-    /// </summary>
-    public string? Organization { get; set; }
-
-    /// <summary>
-    /// Optional expiration in minutes for ephemeral tunnels.
-    /// </summary>
-    public int? ExpirationMinutes { get; set; }
-
-    /// <summary>
-    /// Optional labels to attach to the tunnel as a one-dimensional list of strings.
+    /// Optional labels to attach to the tunnel.
     /// </summary>
     public List<string>? Labels { get; set; }
 }
 
 /// <summary>
-/// Options for a dev tunnel port/endpoint.
+/// Options for a dev tunnel port.
 /// </summary>
 public sealed class DevTunnelPortOptions
 {
     /// <summary>
-    /// A description for this port within the tunnel. Defaults to the endpoint's name.
+    /// A description for this port within the dev tunnel.
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Protocol type to expose. "http", "https", or "auto".
+    /// Protocol type to expose. "http", "https", or "auto". Defaults to match scheme of exposed endpoint.
     /// </summary>
-    public string Protocol { get; set; } = "auto";
-
-    /// <summary>
-    /// Optional host header to use when forwarding HTTP traffic to the target.
-    /// </summary>
-    public string? ForwardHostHeader { get; set; }
+    public string? Protocol { get; set; }
 
     /// <summary>
     /// Optional labels to attach to this tunnel port.

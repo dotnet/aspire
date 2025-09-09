@@ -22,10 +22,24 @@ public static partial class DevTunnelsResourceBuilderExtensions
 {
     private static readonly string s_aspireUserAgent = GetUserAgent();
 
-    // TODO: Put proper doc comments here
     /// <summary>
-    /// Adds a Dev tunnel resource.
+    /// Adds a dev tunnel resource to the application model.
     /// </summary>
+    /// <remarks>
+    /// Dev tunnels can be used to expose local endpoints to the public internet via a secure tunnel. By default,
+    /// the tunnel requires authentication, but anonymous access can be enabled via <see cref="WithAnonymousAccess(IResourceBuilder{DevTunnelResource})"/>.
+    /// </remarks>
+    /// <example>
+    /// The following example shows how to create a dev tunnel resource that exposes all endpoints on a web application project and enable anonymous access:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var web = builder.AddProject&lt;Projects.WebApp&gt;("web");
+    /// var tunnel = builder.AddDevTunnel("mytunnel")
+    ///     .WithReference(web)
+    ///     .WithAnonymousAccess();
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<DevTunnelResource> AddDevTunnel(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -180,6 +194,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Adds ports on the dev tunnel for all endpoints found on the referenced resource.
     /// </summary>
+    /// <remarks>
+    /// To expose only specific endpoints on the referenced resource, use <see cref="WithReference(IResourceBuilder{DevTunnelResource}, EndpointReference, DevTunnelPortOptions?)"/>.
+    /// </remarks>
     public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         IResourceBuilder<TResource> resourceBuilder,
@@ -201,6 +218,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Exposes the specified endpoint via the dev tunnel.
     /// </summary>
+    /// <param name="tunnelBuilder">The resource builder.</param>
+    /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
+    /// <returns>The resource builder.</returns>
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint)
@@ -209,6 +229,10 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Exposes the specified endpoint via the dev tunnel.
     /// </summary>
+    /// <param name="tunnelBuilder">The resource builder.</param>
+    /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
+    /// <param name="portOptions">Options for the dev tunnel port.</param>
+    /// <returns>The resource builder.</returns>
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,
@@ -240,6 +264,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// Injects service discovery information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
     /// Each endpoint defined on the target resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
+    /// <remarks>
+    /// Referencing a dev tunnel will delay the start of the resource until the referenced dev tunnel's endpoint is allocated.
+    /// </remarks>
     /// <param name="builder">The builder.</param>
     /// <param name="targetResource">The resource to inject service discovery information for.</param>
     /// <param name="tunnelResource">The dev tunnel resource to resolve the tunnel address from.</param>
@@ -297,10 +324,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
         }
 
         portOptions ??= new();
-        portOptions.Protocol = targetEndpoint.Scheme switch
+        if (portOptions.Protocol is { } proto && proto is not "http" and not "https" and not "auto")
+        {
+            throw new ArgumentException($"Invalid protocol '{proto}' specified in port options. Supported protocols are 'http', 'https', or 'auto'. Set protocol to null to use the endpoint's scheme.", nameof(portOptions));
+        }
+        portOptions.Protocol ??= targetEndpoint.Scheme switch
         {
             "https" or "http" => targetEndpoint.Scheme,
-            _ => throw new ArgumentException($"Cannot tunnel endpoint '{targetEndpoint.EndpointName}' on resource '{targetResource.Name}' because it uses unsupported scheme '{targetEndpoint.Scheme}'. Only 'http' and 'https' endpoints can be tunneled."),
+            _ => throw new ArgumentException($"Cannot tunnel endpoint '{targetEndpoint.EndpointName}' on resource '{targetResource.Name}' because it uses the unsupported scheme '{targetEndpoint.Scheme}'. Only 'http' and 'https' endpoints can be tunneled."),
         };
         portOptions.Description ??= $"{targetResource.Name}/{targetEndpoint.EndpointName}";
 
