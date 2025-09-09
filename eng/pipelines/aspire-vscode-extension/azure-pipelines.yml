@@ -1,0 +1,118 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - main
+    - release
+    - prerelease
+    - validate/*
+
+parameters:
+- name: SignType
+  displayName: Sign type
+  type: string
+  default: Test
+  values: [ 'Test', 'Real' ]
+- name: CodeCoverage
+  displayName: Enable code coverage
+  type: boolean
+  default: false
+
+resources:
+  repositories:
+  - repository: MicroBuildTemplate
+    type: git
+    name: 1ESPipelineTemplates/MicroBuildTemplate
+    ref: refs/tags/release
+
+variables:
+- template: eng/pipelines/aspire-vscode-extension/GlobalVariables.yml
+- name: VSCODE_DATA_DIR
+  value: $(Agent.TempDirectory)/vscode_data
+- name: MINIMUM_LOG_LEVEL
+  value: low
+- name: NUGET_EXPERIMENTAL_CHAIN_BUILD_RETRY_POLICY
+  value: 3,1000
+
+extends:
+  template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
+  parameters:
+    sdl:
+      sourceAnalysisPool: VSEngSS-MicroBuild2022-1ES
+      policheck:
+        enabled: true
+        exclusionsFile: $(System.DefaultWorkingDirectory)\eng\pipelines\aspire-vscode-extension\PoliCheckExclusions.xml
+      sbom:
+        enabled: false # SBOM requires very special setup, and is done in compliance.yml
+      tsa:
+        enabled: true
+        configFile: $(Build.SourcesDirectory)/eng/pipelines/aspire-vscode-extension/TSAOptions.json
+      binskim:
+        enabled: true
+    stages:
+      - stage: StampBuild
+        dependsOn: []
+        jobs:
+        - job: stamp_build
+          displayName: Set build version number
+          pool:
+            name: AzurePipelines-EO
+            image: 1ESPT-Ubuntu20.04
+            os: Linux
+          steps:
+          - checkout: self
+            clean: true
+            fetchTags: false
+            fetchDepth: 0 # We use NB.GV to stamp the package version
+          - script: npm i -g nerdbank-gitversioning && nbgv cloud
+            displayName: 🔢 stamp version
+
+      - stage: Build
+        dependsOn: StampBuild
+        jobs:
+        - template: /azure-pipelines/build.yml@self
+          parameters:
+            # Real sign iff: (asked for specifically) OR (not a PR or manual run **and** in one of the two release branches)
+            ${{ if or(eq(parameters.SignType, 'Real'), and(ne(variables['Build.Reason'], 'PullRequest'), ne(variables['Build.Reason'], 'Manual'), or(eq(variables['Build.SourceBranch'], 'refs/heads/release'), eq(variables['Build.SourceBranch'], 'refs/heads/prerelease')))) }}:
+              SignType: Real
+            ${{ else }}:
+              SignType: Test
+
+        - template: /azure-pipelines/lint.yml@self
+
+      - stage: Test
+        displayName: Test
+        dependsOn: StampBuild
+        jobs:
+        - job: Test_linux
+          displayName: linux
+          pool:
+            name: AzurePipelines-EO
+            image: 1ESPT-Ubuntu20.04
+            os: Linux
+          steps:
+          - template: /azure-pipelines/test.yml@self
+            parameters:
+              CodeCoverage: ${{ parameters.CodeCoverage }}
+        - job: Test_macos
+          displayName: macOS
+          pool:
+            name: Azure Pipelines
+            vmImage: macOS-14
+            os: macOS
+          steps:
+          - template: /azure-pipelines/test.yml@self
+            parameters:
+              CodeCoverage: ${{ parameters.CodeCoverage }}
+        - job: Test_windows
+          displayName: Windows
+          pool: VSEngSS-MicroBuild2022-1ES
+          steps:
+          - template: /azure-pipelines/test.yml@self
+            parameters:
+              CodeCoverage: ${{ parameters.CodeCoverage }}
+
+      - stage: Compliance
+        dependsOn: StampBuild
+        jobs:
+        - template: /azure-pipelines/compliance.yml@self

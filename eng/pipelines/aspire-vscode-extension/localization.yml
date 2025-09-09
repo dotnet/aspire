@@ -1,0 +1,34 @@
+steps:
+
+- task: NuGetAuthenticate@1
+  displayName: 🔏 Authenticate NuGet feeds
+
+- powershell: |
+    yarn run ci-prepareLoc
+  displayName: 🌐 Create default lang files
+  workingDirectory: $(Build.SourcesDirectory)/extension
+
+  # This task uses our own feed in the devdiv account to avoid needing to renew a cross-account PAT.
+  # Our vs-green feed has azure-feed://ceapex/LocTools@Local as an upstream feed so this task can get what it needs.
+- task: OneLocBuild@2
+  displayName: 🌎 Create translation files
+  inputs:
+    locProj: LocProject.json
+    isCreatePrSelected: false
+    dependencyPackageSource: https://pkgs.dev.azure.com/devdiv/DevDiv/_packaging/vs-green/nuget/v3/index.json
+    packageSourceAuth: patAuth
+    outDir: $(Build.SourcesDirectory)\extension\loc
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+# Publishing this artifact is required by the loc team's LEGO system so they know what to translate.
+- task: 1ES.PublishPipelineArtifact@1
+  inputs:
+    targetPath: $(Build.SourcesDirectory)\extension\loc
+    artifactName: loc
+  displayName: 📢 Publish loc artifact
+
+- powershell: |
+    yarn run ci-localize
+  displayName: 📦 Create localization Bundle
+  workingDirectory: $(Build.SourcesDirectory)/extension

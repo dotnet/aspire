@@ -1,0 +1,102 @@
+parameters:
+  - name: SignType
+    type: string
+
+jobs:
+  - job: windows_build
+    displayName: Build
+    pool: VSEngSS-MicroBuild2022-1ES
+    timeoutInMinutes: 120
+    templateContext:
+      mb:
+        signing:
+          enabled: true
+          zipSources: false
+          signType: ${{ parameters.SignType }}
+      outputs:
+        - output: pipelineArtifact
+          displayName: 📢 collect package artifact
+          targetPath: package
+          artifactName: package
+    steps:
+      - checkout: self
+        clean: true
+        submodules: true
+        fetchTags: false
+        fetchDepth: 0 # We use NB.GV to stamp the package version
+
+      - template: prereqs.yml
+
+      - task: ComponentGovernanceComponentDetection@0
+        displayName: 🔍 Component Detection
+
+      - template: localization.yml
+
+      - script: yarn run ci-deployLoc
+        displayName: 🔠 Add localization bundles to dist folder
+        workingDirectory: $(Build.SourcesDirectory)/extension
+
+      - script: npm i -g nerdbank-gitversioning && nbgv-setversion
+        displayName: 🔢 stamp version
+        workingDirectory: $(Build.SourcesDirectory)/extension
+
+      - task: UseDotNet@2
+        displayName: ⚙️ Use .NET SDK
+        inputs:
+          packageType: sdk
+          useGlobalJson: true
+
+      - powershell: |
+          Function Spawn-Tool($command, $commandArgs, $retryCount=0) {
+            Write-Host "$pwd >"
+            for (; $retryCount -ge 0; $retryCount--) {
+              Write-Host "##[command]$command $commandArgs"
+              Invoke-Expression "$command $commandArgs" # Do not use @commandArgs because it quotes '-Target', breaking the script.
+              if ($LASTEXITCODE -eq 0) { break }
+              Write-Host "Task failed with exit code $LASTEXITCODE. $retryCount retries left."
+            }
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          Spawn-Tool './init.ps1' -retryCount 3
+
+          $vscePackageArgs = 'vsce','package'
+          $versionInfo = nbgv get-version -f json | ConvertFrom-Json
+          if ($versionInfo.BuildingRef -ne 'refs/heads/release') {
+            $vscePackageArgs += '--pre-release'
+          }
+
+          Spawn-Tool 'yarn' $vscePackageArgs
+          if (!(Test-Path package)) {
+            New-Item -Type Directory -Path package | Out-Null
+          }
+          Move-Item *.vsix package
+
+          # Restore the original .vscodeignore file.
+          git restore .vscodeignore
+        displayName: 📦 pack
+        retryCountOnTaskFailure: 3
+        workingDirectory: $(Build.SourcesDirectory)/extension
+
+      - script: dotnet build tools/msbuild/signVsix -v:normal
+        displayName: 🖊️ Sign VSIXes
+
+      - pwsh: |
+          $vsixes = Get-ChildItem -Path package -Filter *.vsix -Recurse
+          $totalPackageSize = $vsixes | Measure-Object -Property Length -Sum | Select-Object -ExpandProperty Sum
+          $totalPackageSizeMB = $totalPackageSize / (1024 * 1024)
+          $maxAllowedMB = 575
+          $averagePackageSize = $totalPackageSizeMB / $vsixes.Count
+          $allowedAveragePackageSize = $maxAllowedMB / $vsixes.Count
+          if ($totalPackageSizeMB -gt $maxAllowedMB) {
+            throw "Total package size is too large: $totalPackageSizeMB MB > $maxAllowedMB MB. Average package size is $averagePackageSize MB > $allowedAveragePackageSize MB."
+          }
+          $remainingSpacePercent = ($maxAllowedMB - $totalPackageSizeMB) * 100 / $maxAllowedMB
+          Write-Host "Total package size is $([Math]::Round($totalPackageSizeMB)) MB ($([Math]::Round($remainingSpacePercent, 1))% below the $maxAllowedMB MB size limit). Average package size is $([Math]::Round($averagePackageSize)) MB."
+
+          $warningThreshold = 3
+          if ($allowedAveragePackageSize - $averagePackageSize -lt $warningThreshold) {
+            Write-Host "##vso[task.logissue type=warning;]Average per-package size is within $([Math]::Round($allowedAveragePackageSize - $averagePackageSize, 1)) MB of the limit."
+          }
+        displayName: 🗜️ Guard package size
+        workingDirectory: $(Build.SourcesDirectory)/extension

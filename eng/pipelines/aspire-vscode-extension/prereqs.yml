@@ -1,0 +1,20 @@
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: 20.x
+    displayName: ⚙️ Install Node.js
+
+    # lock to older version of python. We need diskutils which was removed in Python 3.12
+  - task: UsePythonVersion@0
+    displayName: ⚙️ Use Python 3.11.9
+    inputs:
+      versionSpec: "3.11.9"
+
+  - task: npmAuthenticate@0
+    displayName: 🔏 Authenticate NPM feed
+    inputs:
+      workingFile: .npmrc
+
+  - powershell: ./extension/init.ps1 -Verbose
+    displayName: ⚙️ init
+    retryCountOnTaskFailure: 3
