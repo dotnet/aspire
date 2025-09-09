@@ -373,21 +373,37 @@ internal sealed class ArgsBuilder(IEnumerable<string> initialArgs)
         return this;
     }
 
-    internal ArgsBuilder AddValues(string name, List<string>? values, char separator = ' ')
+    internal ArgsBuilder AddValues(string name, List<string>? values, char? separator = null)
     {
         if (values is null || values.Count == 0)
         {
             return this;
         }
 
-        // Build a single separated string of values.
-        // Assumes values themselves do not contain the separator character.
-        var tokens = values.Where(l => !string.IsNullOrWhiteSpace(l));
-        var joined = string.Join(separator, tokens);
-        if (!string.IsNullOrWhiteSpace(joined))
+        if (separator is null)
         {
-            _args.Add(name);
-            _args.Add(joined);
+            // Add each value separately, e.g. --label a --label b
+            foreach (var v in values)
+            {
+                if (!string.IsNullOrWhiteSpace(v))
+                {
+                    _args.Add(name);
+                    _args.Add(v);
+                }
+            }
+            return this;
+        }
+        else
+        {
+            // Build a single separated string of values, e.g. --labels a,b
+            // Assumes values themselves do not contain the separator character.
+            var tokens = values.Where(l => !string.IsNullOrWhiteSpace(l));
+            var joined = string.Join(separator.Value, tokens);
+            if (!string.IsNullOrWhiteSpace(joined))
+            {
+                _args.Add(name);
+                _args.Add(joined);
+            }
         }
 
         return this;

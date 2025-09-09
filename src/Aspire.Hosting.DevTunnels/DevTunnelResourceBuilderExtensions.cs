@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -34,9 +35,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
-        options ??= new DevTunnelOptions();
-
-        tunnelId ??= $"{name}-{builder.Environment.ApplicationName.Replace(".", "-")}-{builder.Configuration["AppHost:Sha256"]?[..8]}".ToLowerInvariant();
+        var appHostId = builder.Configuration["AppHost:Sha256"]?[..8];
+        tunnelId ??= $"{name}-{appHostId}".ToLowerInvariant();
 
         // Validate the TunnelId format [a-z0-9][a-z0-9-]{1,58}[a-z0-9]
         if (!TunnelIdRegex().IsMatch(tunnelId))
@@ -47,6 +47,16 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 - consist of lowercase letters, numbers, and hyphens
                 - be 1-58 characters long
                 """, nameof(tunnelId));
+        }
+
+        options ??= new DevTunnelOptions();
+        options.Labels ??= [];
+        options.Labels.Add($"aspire_{name}-{appHostId}");
+        options.Description ??= $"Dev tunnel for '{name}' in Aspire AppHost '{builder.Environment.ApplicationName}'";
+
+        if (!TryValidateLabels(options.Labels, out var errorMessage))
+        {
+            throw new ArgumentException(errorMessage, nameof(options));
         }
 
         // Add services
@@ -132,12 +142,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     {
                         State = KnownResourceStates.Starting
                     }).ConfigureAwait(false);
-
-                    portResource.Options.Labels ??= [];
-                    // TODO: Validate and add the labels here
-                    // Labels: The field Labels must match the regular expression '[\w-=]{1,50}'.
-                    //portResource.Options.Labels.Add(portResource.TargetEndpoint.Resource.Name);
-                    //portResource.Options.Labels.Add(portResource.TargetEndpoint.EndpointName);
 
                     // Create/update the tunnel port
                     try
@@ -248,18 +252,20 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(targetResource);
         ArgumentNullException.ThrowIfNull(tunnelResource);
 
-        builder.WithEnvironment(async context =>
-        {
-            // Add environment variables for each tunnel port that references an endpoint on the target resource
-            foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
+        builder
+            .WithReferenceRelationship(tunnelResource)
+            .WithEnvironment(async context =>
             {
-                await port.TunnelEndpointAllocatedTask.ConfigureAwait(false);
+                // Add environment variables for each tunnel port that references an endpoint on the target resource
+                foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
+                {
+                    await port.TunnelEndpointAllocatedTask.ConfigureAwait(false);
 
-                var serviceName = targetResource.Resource.Name;
-                var endpointName = port.TargetEndpoint.EndpointName;
-                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
-            }
-        });
+                    var serviceName = targetResource.Resource.Name;
+                    var endpointName = port.TargetEndpoint.EndpointName;
+                    context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+                }
+            });
 
         return builder;
     }
@@ -299,6 +305,15 @@ public static partial class DevTunnelsResourceBuilderExtensions
         portOptions.Description ??= $"{targetResource.Name}/{targetEndpoint.EndpointName}";
 
         var portName = $"{tunnel.Name}-{targetResource.Name}-{targetEndpoint.EndpointName}";
+        portOptions.Labels ??= [];
+        portOptions.Labels.Add(targetResource.Name);
+        portOptions.Labels.Add(targetEndpoint.EndpointName);
+
+        if (!TryValidateLabels(portOptions.Labels, out var errorMessage))
+        {
+            throw new ArgumentException(errorMessage, nameof(portOptions));
+        }
+
         var portResource = new DevTunnelPortResource(
             portName,
             tunnel,
@@ -489,8 +504,37 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
     }
 
-    [GeneratedRegex("^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$")]
+    private static bool TryValidateLabels(IList<string>? labels, [NotNullWhen(false)] out string? errorMessage)
+    {
+        if (labels is null || labels.Count == 0)
+        {
+            errorMessage = null;
+            return true;
+        }
+
+        foreach (var label in labels)
+        {
+            // Validate the label format '[\w-=]{1,50}'
+            if (!LabelRegex().IsMatch(label))
+            {
+                errorMessage = $"""
+                    The label '{label}' is invalid. A valid label must:
+                    - consist of letters, numbers, underscores, hyphens, or equals signs
+                    - be 1-50 characters long
+                    """;
+                return false;
+            }
+        }
+
+        errorMessage = null;
+        return true;
+    }
+
+    [GeneratedRegex(@"^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$")]
     private static partial Regex TunnelIdRegex();
+
+    [GeneratedRegex(@"^[\w\-=_]{1,50}$")]
+    private static partial Regex LabelRegex();
 
     private sealed class DevTunnelResourceStartedEvent(DevTunnelResource tunnel) : IDistributedApplicationResourceEvent
     {
