@@ -73,8 +73,37 @@ internal sealed class DevTunnelCli
         options ??= new DevTunnelOptions();
         return RunAsync(new ArgsBuilder(["update", tunnelId])
             .AddIfNotNull("--description", options.Description)
-            .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
             .AddValues("--add-labels", options.Labels)
+            .Add("--json")
+            .Add("--nologo")
+        , outputWriter, errorWriter, cancellationToken);
+    }
+
+    public Task<int> ResetAccessAsync(
+        string tunnelId,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        CancellationToken cancellationToken = default)
+    {
+        return RunAsync(new ArgsBuilder(["access", "reset", tunnelId])
+            .Add("--json")
+            .Add("--nologo")
+        , outputWriter, errorWriter, cancellationToken);
+    }
+
+    public Task<int> CreateAccessAsync(
+        string tunnelId,
+        int? portNumber = null,
+        bool anonymous = false,
+        bool deny = false,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        CancellationToken cancellationToken = default)
+    {
+        return RunAsync(new ArgsBuilder(["access", "create", tunnelId])
+            .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
+            .AddIfTrue("--deny", deny)
+            .AddIfTrue("--anonymous", anonymous)
             .Add("--json")
             .Add("--nologo")
         , outputWriter, errorWriter, cancellationToken);

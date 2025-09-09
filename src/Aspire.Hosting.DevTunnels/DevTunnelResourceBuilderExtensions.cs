@@ -98,27 +98,77 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 await devTunnelEnvironmentManager.EnsureUserLoggedInAsync(ct).ConfigureAwait(false);
 
                 // Create the dev tunnel
-                logger.LogInformation("Creating or updating dev tunnel '{TunnelId}'", tunnelResource.TunnelId);
-                var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
+                try
+                {
+                    logger.LogInformation("Creating or updating dev tunnel '{TunnelId}'", tunnelResource.TunnelId);
+                    var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
+                    logger.LogDebug("Dev tunnel '{TunnelId}' created/updated", tunnelResource.TunnelId);
+                }
+                catch (Exception ex)
+                {
+                    var exception = new DistributedApplicationException($"Error trying to create/update the dev tunnel resource '{tunnelResource.TunnelId}' that this resource has a reference to: {ex.Message}", ex);
+                    foreach (var portResource in tunnelResource.Ports)
+                    {
+                        portResource.TunnelEndpointAllocatedTcs.SetException(exception);
+                    }
+                    throw;
+                }
 
-                // Mark the tunnel created
-                tunnelResource.TunnelCreatedTcs.SetResult(tunnelStatus);
-                logger.LogDebug("Dev tunnel '{TunnelId}' created/updated", tunnelResource.TunnelId);
+                // Wait for target resource endpoints to be allocated
+                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpointAllocatedTask)).ConfigureAwait(false);
 
-                // Wait for the ports to be created
-                logger.LogDebug("Waiting for ports to be created/updated");
-                await eventing.PublishAsync<DevTunnelResourceStartedEvent>(new(tunnelResource), EventDispatchBehavior.NonBlockingConcurrent, ct).ConfigureAwait(false);
-                await Task.WhenAll(tunnelResource.Ports.Select(p => p.PortCreatedTask)).ConfigureAwait(false);
+                // Start the tunnel ports
+                await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
+
+                async Task StartPortAsync(DevTunnelPortResource portResource)
+                {
+                    var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
+                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
+                    var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
+
+                    // Clear any prior port status
+                    portLogger.LogInformation("Tunnel starting");
+                    await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
+                    {
+                        State = KnownResourceStates.Starting
+                    }).ConfigureAwait(false);
+
+                    portResource.Options.Labels ??= [];
+                    // TODO: Validate and add the labels here
+                    // Labels: The field Labels must match the regular expression '[\w-=]{1,50}'.
+                    //portResource.Options.Labels.Add(portResource.TargetEndpoint.Resource.Name);
+                    //portResource.Options.Labels.Add(portResource.TargetEndpoint.EndpointName);
+
+                    // Create/update the tunnel port
+                    try
+                    {
+                        _ = await devTunnelClient.CreateOrUpdatePortAsync(
+                                portResource.DevTunnel.TunnelId,
+                                portResource.TargetEndpoint.Port,
+                                portResource.Options,
+                                ct)
+                            .ConfigureAwait(false);
+
+                        portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'.", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        portLogger.LogError(ex, "Error trying to create/update dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
+                        portResource.TunnelEndpointAllocatedTcs.SetException(ex);
+                        throw;
+                    }
+
+                    await eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, e.Services), EventDispatchBehavior.NonBlockingConcurrent, ct).ConfigureAwait(false);
+                }
             })
             .OnResourceStopped(static (tunnelResource, e, ct) =>
             {
                 // Tunnel stopped, mark status as null
-                tunnelResource.TunnelCreatedTcs = new();
                 tunnelResource.LastKnownStatus = null;
                 return Task.CompletedTask;
             });
 
-        // Tunnels will expire after some time not being hosted so we won't forcibly delete them when the resource or AppHost is stopped
+        // Tunnels will expire after not being hosted for 30 days by default so we won't forcibly delete them when the resource or AppHost is stopped
 
         return rb;
     }
@@ -326,53 +376,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     new("Description", portOptions.Description),
                     new("Labels", portOptions.Labels is null ? "" : $"{string.Join(", ", portOptions.Labels)}"),
                 ]
-            })
-            .OnInitializeResource((portResource, e, ct) =>
-            {
-                // Setup event subscriptions for the port lifecycle
-                var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
-                _ = eventing.Subscribe<DevTunnelResourceStartedEvent>(portResource.DevTunnel, async (evt, ct) =>
-                {
-                    // Tunnel starting, clear port status
-                    var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-                    portLogger.LogInformation("Tunnel starting, waiting for it to be healthy");
-                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                    await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
-                    {
-                        State = KnownResourceStates.Waiting
-                    }).ConfigureAwait(false);
-
-                    var devTunnelClient = e.Services.GetRequiredService<IDevTunnelClient>();
-                    try
-                    {
-                        // Wait here to ensure tunnel has been created & target endpoint is allocated!
-                        _ = Task.WhenAll(tunnel.TunnelCreatedTask, portResource.TargetEndpointAllocatedTask).ConfigureAwait(false);
-
-                        portResource.Options.Labels ??= [];
-                        // TODO: Validate and add the labels here
-                        // Labels: The field Labels must match the regular expression '[\w-=]{1,50}'.
-                        //portResource.Options.Labels.Add(portResource.TargetEndpoint.Resource.Name);
-                        //portResource.Options.Labels.Add(portResource.TargetEndpoint.EndpointName);
-
-                        // Create the tunnel port
-                        _ = await devTunnelClient.CreateOrUpdatePortAsync(
-                            portResource.DevTunnel.TunnelId,
-                            portResource.TargetEndpoint.Port,
-                            portResource.Options,
-                            ct)
-                        .ConfigureAwait(false);
-
-                        // Mark the port created
-                        portResource.PortCreatedTcs.SetResult();
-
-                        portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'.", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
-                    }
-                    catch (Exception ex)
-                    {
-                        portLogger.LogError(ex, "Error trying to create/update dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
-                    }
-                });
-                return Task.CompletedTask;
             });
 
         // When the target endpoint is allocated, validate it and mark the TCS accordingly
@@ -409,7 +412,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         tunnelBuilder
             .OnResourceReady(async (tunnelResource, e, ct) =>
             {
-                // Update the port now that the tunnel is ready
+                // Update the port now that the tunnel is ready (healthy)
                 // We need to do this in this handler so that it runs every time the tunnel is started
                 var tunnelStatus = portResource.DevTunnel.LastKnownStatus;
                 var tunnelPortStatus = portResource.LastKnownStatus;
@@ -460,8 +463,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
             {
                 // Tunnel stopped, mark port as stopped too
                 portResource.LastKnownStatus = null;
-                portResource.PortCreatedTcs.TrySetCanceled(ct);
-                portResource.PortCreatedTcs = new();
 
                 var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();

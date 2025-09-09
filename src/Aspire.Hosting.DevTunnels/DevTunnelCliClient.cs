@@ -15,15 +15,29 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
     public async Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, CancellationToken cancellationToken = default)
     {
         var (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
-            (stdout, stderr, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, ct),
+            (stdout, stderr, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, ct),
             "tunnel",
             cancellationToken).ConfigureAwait(false);
 
-        if (exitCode == DevTunnelCli.ResourceNotFoundExitCode)
+        if (exitCode == DevTunnelCli.ResourceConflictsWithExistingExitCode)
         {
-            // Tunnel does not exist, create it
+            // Tunnel already exists
+
+            // Reset the access controls to match the updated options
             (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
-                (stdout, stderr, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, ct),
+                (stdout, stderr, ct) => _cli.ResetAccessAsync(tunnelId, stdout, stderr, ct),
+                cancellationToken).ConfigureAwait(false);
+
+            if (options.AllowAnonymous)
+            {
+                (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                    (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, /* port */ null, /* anonymous */ true, /* deny */ false, stdout, stderr, ct),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            // Do the update
+            (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                (stdout, stderr, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, ct),
                 "tunnel",
                 cancellationToken).ConfigureAwait(false);
         }
