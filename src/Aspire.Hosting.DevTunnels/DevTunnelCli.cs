@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.DevTunnels;
@@ -188,44 +187,6 @@ internal sealed class DevTunnelCli
     public Task<int> SetOrganizationAccessAsync(string tunnelId, string? organization, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
         => UpdateTunnelAsync(tunnelId, options: new DevTunnelOptions { Organization = organization }, outputWriter: outputWriter, errorWriter: errorWriter, cancellationToken: cancellationToken);
 
-    public async Task<bool> UserIsLoggedInAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-    {
-        var outputBuilder = new StringBuilder();
-        var exitCode = await RunAsync(
-            (isError, line) =>
-            {
-                if (!isError)
-                {
-                    outputBuilder.AppendLine(line);
-                    outputWriter?.WriteLine(line);
-                }
-                else
-                {
-                    errorWriter?.WriteLine(line);
-                }
-            },
-            ["user", "show", "--json", "--nologo"],
-            cancellationToken).ConfigureAwait(false);
-
-        var output = outputBuilder.ToString();
-
-        if (exitCode != 0)
-        {
-            return false;
-        }
-
-        try
-        {
-            var jsonOutput = JsonDocument.Parse(output.ToString());
-            return jsonOutput.RootElement.GetProperty("status").GetString() != "Not logged in";
-        }
-        catch (JsonException ex)
-        {
-            errorWriter?.WriteLine($"Failed to get user login status: {ex.Message}");
-            return false;
-        }
-    }
-
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
         => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, cancellationToken);
 
@@ -243,9 +204,6 @@ internal sealed class DevTunnelCli
             }
         }, args, useShellExecute, cancellationToken);
     }
-
-    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, CancellationToken cancellationToken = default)
-        => await RunAsync(onOutput, args, useShellExecute: false, cancellationToken).ConfigureAwait(false);
 
     private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, bool useShellExecute = false, CancellationToken cancellationToken = default)
     {

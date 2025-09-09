@@ -26,11 +26,11 @@ internal sealed class DevTunnelLoginManager(
     {
         while (true)
         {
-            _logger.LogInformation("Checking dev tunnel login status");
+            _logger.LogDebug("Checking dev tunnel login status");
             var loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
             if (loginStatus.IsLoggedIn)
             {
-                _logger.LogInformation("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
+                _logger.LogDebug("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
                 // Already logged in
                 break;
             }
@@ -87,7 +87,7 @@ internal sealed class DevTunnelLoginManager(
                 else
                 {
                     // Logged in from another window while we were prompting
-                    _logger.LogInformation("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
+                    _logger.LogDebug("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
                     break;
                 }
 
