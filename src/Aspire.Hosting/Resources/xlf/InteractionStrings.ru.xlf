@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
-        <target state="translated">Среда выполнения контейнера не установлена</target>
+        <source>Container runtime not installed</source>
+        <target state="needs-review-translation">Среда выполнения контейнера не установлена</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
-        <target state="translated">Неработоспособная среда выполнения контейнера</target>
+        <source>Container runtime unhealthy</source>
+        <target state="needs-review-translation">Неработоспособная среда выполнения контейнера</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
