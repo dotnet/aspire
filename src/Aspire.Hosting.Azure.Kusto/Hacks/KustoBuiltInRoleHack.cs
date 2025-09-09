@@ -14,7 +14,7 @@ namespace Azure.Provisioning.Kusto;
 /// Built-in Kusto roles that you can assign to users, groups, service principals, and managed identities.
 /// </summary>
 /// <param name="value">The ID value of the role.</param>
-public readonly struct KustoBuiltInRoleHack(string value) : IEquatable<KustoBuiltInRoleHack>
+internal readonly struct KustoBuiltInRoleHack(string value) : IEquatable<KustoBuiltInRoleHack>
 {
     internal readonly string _value = value ?? throw new ArgumentNullException(nameof(value));
 
