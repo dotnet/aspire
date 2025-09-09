@@ -26,11 +26,11 @@ internal sealed class DeployCommand : PublishCommandBase
     {
         var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
 
-        var targetPath = fullyQualifiedOutputPath is not null
-            ? fullyQualifiedOutputPath
-            : Path.Combine(Environment.CurrentDirectory, "aspire-output");
+        if (fullyQualifiedOutputPath != null)
+        {
+            baseArgs.AddRange(["--output-path", fullyQualifiedOutputPath]);
+        }
 
-        baseArgs.AddRange(["--output-path", targetPath]);
         baseArgs.AddRange(["--deploy", "true"]);
         baseArgs.AddRange(unmatchedTokens);
 
