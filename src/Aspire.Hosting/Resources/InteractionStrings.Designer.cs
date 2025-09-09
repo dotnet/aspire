@@ -97,7 +97,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Container Runtime Not Installed.
+        ///   Looks up a localized string similar to Container runtime not installed.
         /// </summary>
         internal static string ContainerRuntimeNotInstalledTitle {
             get {
@@ -124,7 +124,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Container Runtime Unhealthy.
+        ///   Looks up a localized string similar to Container runtime unhealthy.
         /// </summary>
         internal static string ContainerRuntimeUnhealthyTitle {
             get {
