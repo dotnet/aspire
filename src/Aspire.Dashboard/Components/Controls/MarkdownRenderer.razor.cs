@@ -49,7 +49,7 @@ public partial class MarkdownRenderer : ComponentBase, IAsyncDisposable
 
         if (_jsModule is not null)
         {
-            if (!string.IsNullOrWhiteSpace(_html.Value) && _htmlChanged)
+            if (_htmlChanged && !string.IsNullOrWhiteSpace(_html.Value))
             {
                 _htmlChanged = false;
                 await _jsModule.InvokeVoidAsync("highlightCodeBlocks", _containerElement);
