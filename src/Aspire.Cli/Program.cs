@@ -212,18 +212,26 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
+        using var cts = new CancellationTokenSource();
+
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            cts.Cancel();
+            eventArgs.Cancel = true;
+        };
+
         using var app = await BuildApplicationAsync(args);
 
-        await app.StartAsync().ConfigureAwait(false);
+        await app.StartAsync(cts.Token).ConfigureAwait(false);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
         var invokeConfig = new InvocationConfiguration() { EnableDefaultExceptionHandler = true };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
+        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
 
-        await app.StopAsync().ConfigureAwait(false);
+        await app.StopAsync(cts.Token).ConfigureAwait(false);
 
         return exitCode;
     }
