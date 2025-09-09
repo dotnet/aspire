@@ -212,8 +212,6 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        using var cts = new CancellationTokenSource();
-
         using var app = await BuildApplicationAsync(args);
 
         await app.StartAsync().ConfigureAwait(false);
