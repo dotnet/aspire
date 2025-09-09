@@ -50,7 +50,7 @@ public class KustoPublicApiTests
         var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource(null!, "db", parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource(null!, "db", parentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -65,7 +65,7 @@ public class KustoPublicApiTests
         var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", name, parentResource);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -78,7 +78,7 @@ public class KustoPublicApiTests
         var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", null!, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", null!, parentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -93,7 +93,7 @@ public class KustoPublicApiTests
         var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", name, parentResource);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -106,7 +106,7 @@ public class KustoPublicApiTests
         AzureKustoClusterResource kustoParentResource = null!;
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", "db1", kustoParentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", "db1", kustoParentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -116,7 +116,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto", _ => { }));
+        var resource = new AzureKustoReadWriteDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto", _ => { }));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
