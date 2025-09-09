@@ -6,3 +6,4 @@ steps:
   inputs:
     packageType: sdk
     useGlobalJson: true
+    includePreviewVersions: true
