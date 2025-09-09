@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
@@ -14,12 +15,11 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding Dev tunnels resources to an <see cref="IDistributedApplicationBuilder"/>.
+/// Provides extension methods for adding dev tunnels resources to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
 public static partial class DevTunnelsResourceBuilderExtensions
 {
-    private static readonly string s_aspireUserAgent = new ProductInfoHeaderValue("Aspire.DevTunnels", typeof(DevTunnelResource)
-            .Assembly.GetName().Version?.ToString() ?? "unknown").ToString();
+    private static readonly string s_aspireUserAgent = GetUserAgent();
 
     // TODO: Put proper doc comments here
     /// <summary>
@@ -477,6 +477,15 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }).ConfigureAwait(false);
                 await eventing.PublishAsync<ResourceStoppedEvent>(new(portResource, e.Services, new(portResource, portResource.Name, stoppedSnapshot!)), ct).ConfigureAwait(false);
             });
+    }
+
+    private static string GetUserAgent()
+    {
+        var assembly = typeof(DevTunnelResource).Assembly;
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? assembly.GetName().Version?.ToString()
+            ?? "unknown";
+        return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
     }
 
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$")]

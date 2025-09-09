@@ -73,6 +73,7 @@ internal sealed class DevTunnelCli
         options ??= new DevTunnelOptions();
         return RunAsync(new ArgsBuilder(["update", tunnelId])
             .AddIfNotNull("--description", options.Description)
+            .AddIfTrue("--allow-anonymous", options.AllowAnonymous)
             .AddValues("--add-labels", options.Labels)
             .Add("--json")
             .Add("--nologo")
