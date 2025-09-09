@@ -67,7 +67,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             timeout: default));
 
         var rb = builder.AddResource(tunnelResource)
-            .WithArgs("host", tunnelId)
+            .WithArgs("host", tunnelId, "--nologo")
             .WithIconName("CloudBidirectional")
             .WithEnvironment("TUNNEL_SERVICE_USER_AGENT", s_aspireUserAgent)
             .WithInitialState(new()
