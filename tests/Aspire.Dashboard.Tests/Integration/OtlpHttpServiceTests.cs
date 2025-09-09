@@ -270,6 +270,13 @@ public class OtlpHttpServiceTests
 
         // Assert
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, responseMessage.StatusCode);
+        Assert.Equal("application/json", responseMessage.Content.Headers.ContentType?.MediaType);
+        
+        // Verify JSON error response
+        var responseBody = await responseMessage.Content.ReadAsStringAsync();
+        Assert.Contains("\"code\":15", responseBody);
+        Assert.Contains("\"message\":", responseBody);
+        Assert.Contains("application/x-protobuf", responseBody);
         
         // Verify warning was logged
         var warningLogs = testSink.Writes.Where(w => 

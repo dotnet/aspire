@@ -5,6 +5,8 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
 using Google.Protobuf;
@@ -21,6 +23,8 @@ public static class OtlpHttpEndpointsBuilder
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
     public const string CorsPolicyName = "OtlpHttpCors";
+
+    private sealed record StatusResponse(int Code, string Message);
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
@@ -94,11 +98,20 @@ public static class OtlpHttpEndpointsBuilder
         return KnownContentType.None;
     }
 
-    private static void LogUnsupportedContentTypeWarning(HttpContext httpContext)
+    private static async Task WriteUnsupportedContentTypeResponse(HttpContext httpContext)
     {
         var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
-        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", 
-            httpContext.Request.ContentType, ProtobufContentType);
+        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", httpContext.Request.ContentType, ProtobufContentType);
+        
+        httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+        httpContext.Response.ContentType = JsonContentType;
+        
+        var status = new StatusResponse(
+            Code: 15, // UNIMPLEMENTED from gRPC status codes
+            Message: $"Content type '{httpContext.Request.ContentType}' is not supported. Only '{ProtobufContentType}' is supported.");
+        
+        var json = JsonSerializer.Serialize(status, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        await httpContext.Response.WriteAsync(json, Encoding.UTF8).ConfigureAwait(false);
     }
 
     private static T AddOtlpHttpMetadata<T>(this T builder) where T : IEndpointConventionBuilder
@@ -138,8 +151,7 @@ public static class OtlpHttpEndpointsBuilder
                     }
                 case KnownContentType.Json:
                 default:
-                    LogUnsupportedContentTypeWarning(context);
-                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+                    await WriteUnsupportedContentTypeResponse(context).ConfigureAwait(false);
                     return Empty;
             }
         }
@@ -167,8 +179,7 @@ public static class OtlpHttpEndpointsBuilder
                     break;
                 case KnownContentType.Json:
                 default:
-                    LogUnsupportedContentTypeWarning(httpContext);
-                    httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+                    await WriteUnsupportedContentTypeResponse(httpContext).ConfigureAwait(false);
                     break;
             }
         }
