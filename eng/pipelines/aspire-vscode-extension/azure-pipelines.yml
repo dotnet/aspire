@@ -26,7 +26,7 @@ resources:
     ref: refs/tags/release
 
 variables:
-- template: eng/pipelines/aspire-vscode-extension/GlobalVariables.yml
+- template: GlobalVariables.yml
 - name: VSCODE_DATA_DIR
   value: $(Agent.TempDirectory)/vscode_data
 - name: MINIMUM_LOG_LEVEL
