@@ -78,7 +78,7 @@ jobs:
         retryCountOnTaskFailure: 3
         workingDirectory: $(Build.SourcesDirectory)/extension
 
-      - script: dotnet build tools/msbuild/signVsix -v:normal
+      - script: dotnet build msbuild/signVsix -v:normal
         displayName: 🖊️ Sign VSIXes
 
       - pwsh: |
