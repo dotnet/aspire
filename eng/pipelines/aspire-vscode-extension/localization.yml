@@ -13,7 +13,7 @@ steps:
 - task: OneLocBuild@2
   displayName: 🌎 Create translation files
   inputs:
-    locProj: LocProject.json
+    locProj: $(Build.SourcesDirectory)/extension/LocProject.json
     isCreatePrSelected: false
     dependencyPackageSource: https://pkgs.dev.azure.com/devdiv/DevDiv/_packaging/vs-green/nuget/v3/index.json
     packageSourceAuth: patAuth
