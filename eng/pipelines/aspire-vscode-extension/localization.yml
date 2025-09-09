@@ -20,7 +20,6 @@ steps:
     outDir: $(Build.SourcesDirectory)\extension\loc
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-  workingDirectory: $(Build.SourcesDirectory)/extension
 
 # Publishing this artifact is required by the loc team's LEGO system so they know what to translate.
 - task: 1ES.PublishPipelineArtifact@1
