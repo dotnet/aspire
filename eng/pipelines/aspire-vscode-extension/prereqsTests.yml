@@ -6,6 +6,3 @@ steps:
   inputs:
     version: '8.0.x'
     useGlobalJson: false
-
-- powershell: $(Build.SourcesDirectory)/eng/common/dotnet-install.ps1
-  displayName: ⚙️ Install dotnet
