@@ -7,17 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddHttpClient("gateway", client => client.BaseAddress = new Uri("https+http://gateway"));
-
-builder.Services.AddHttpClient("nuget", client => client.BaseAddress = new Uri("https://nuget"));
-
-builder.Services.AddHttpClient("external-service", client =>
-{
-    // The URL is set in appsettings.json or can be overridden by an environment variable
-    client.BaseAddress = new Uri(builder.Configuration["EXTERNAL_SERVICE_URL"]
-        ?? throw new InvalidOperationException("Missing URL for exteral service"));
-});
-
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
