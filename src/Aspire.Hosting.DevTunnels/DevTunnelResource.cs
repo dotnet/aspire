@@ -66,7 +66,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
             System.Net.Sockets.ProtocolType.Tcp,
             "https",
             transport: null,
-            name: targetEndpoint.EndpointName,
+            name: TunnelEndpointName,
             isProxied: false);
         TunnelEndpoint = new(targetEndpoint.Resource, TunnelEndpointAnnotation);
     }

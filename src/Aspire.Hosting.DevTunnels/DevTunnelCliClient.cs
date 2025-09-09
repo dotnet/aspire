@@ -106,7 +106,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         var output = stdout.ToString().Trim();
         try
         {
-            // Skip to opening curly brace, CLI sometimes prints a welcome header
+            // HACK: Skip to opening curly brace, CLI sometimes prints a welcome header
             output = SkipToFirstChar(output, '{');
             if (!string.IsNullOrEmpty(propertyName))
             {

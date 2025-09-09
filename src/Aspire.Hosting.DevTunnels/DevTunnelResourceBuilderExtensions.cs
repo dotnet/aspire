@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
@@ -17,6 +18,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static partial class DevTunnelsResourceBuilderExtensions
 {
+    private static readonly string s_aspireUserAgent = new ProductInfoHeaderValue("Aspire.DevTunnels", typeof(DevTunnelResource)
+            .Assembly.GetName().Version?.ToString() ?? "unknown").ToString();
+
     // TODO: Put proper doc comments here
     /// <summary>
     /// Adds a Dev tunnel resource.
@@ -65,6 +69,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         var rb = builder.AddResource(tunnelResource)
             .WithArgs("host", tunnelId)
             .WithIconName("CloudBidirectional")
+            .WithEnvironment("TUNNEL_SERVICE_USER_AGENT", s_aspireUserAgent)
             .WithInitialState(new()
             {
                 ResourceType = "DevTunnel",
@@ -252,13 +257,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         tunnel.Ports.Add(portResource);
 
+        // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);
+
         var portBuilder = tunnelBuilder.ApplicationBuilder.AddResource(portResource)
             // visual grouping beneath the tunnel
             .WithParentRelationship(tunnelBuilder)
             // indicate the target resource relationship
             .WithReferenceRelationship(targetResource)
-            // public tunnel URL endpoint
             // NOTE:
             // The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
             // We might consider updating the central logic that creates endpoint URLs to allow setting a target host like *.devtunnels.ms & if the
