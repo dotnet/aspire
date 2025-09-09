@@ -439,7 +439,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 // Allocate endpoint to the tunnel port
                 var raiseEndpointsAllocatedEvent = portResource.TunnelEndpointAnnotation.AllocatedEndpoint is null;
                 portResource.TunnelEndpointAnnotation.AllocatedEndpoint = new(portResource.TunnelEndpointAnnotation, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
-                portResource.TunnelEndpointAllocatedTcs.SetResult();
 
                 // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
                 // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for
@@ -447,6 +446,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 if (raiseEndpointsAllocatedEvent)
                 {
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
+                    portResource.TunnelEndpointAllocatedTcs.SetResult();
                 }
 
                 // Mark the port as running

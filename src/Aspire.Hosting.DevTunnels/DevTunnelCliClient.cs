@@ -24,13 +24,13 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
             // Tunnel already exists
 
             // Reset the access controls to match the updated options
-            (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+            (var access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
                 (stdout, stderr, ct) => _cli.ResetAccessAsync(tunnelId, stdout, stderr, ct),
                 cancellationToken).ConfigureAwait(false);
 
             if (options.AllowAnonymous)
             {
-                (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
                     (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, /* port */ null, /* anonymous */ true, /* deny */ false, stdout, stderr, ct),
                     cancellationToken).ConfigureAwait(false);
             }
@@ -120,11 +120,11 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         var output = stdout.ToString().Trim();
         try
         {
-            if (!string.IsNullOrEmpty(propertyName))
+            var result = propertyName switch
             {
-                output = JsonDocument.Parse(output).RootElement.GetProperty(propertyName).GetRawText();
-            }
-            var result = JsonSerializer.Deserialize<T>(output, _jsonOptions);
+                { Length: > 0 } => JsonSerializer.Deserialize<T>(JsonDocument.Parse(output).RootElement.GetProperty(propertyName).GetRawText(), _jsonOptions),
+                _ => JsonSerializer.Deserialize<T>(output, _jsonOptions),
+            };
             return (result, 0, default);
         }
         catch (JsonException ex)

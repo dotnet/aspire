@@ -38,3 +38,10 @@ internal sealed record DevTunnelStatus(string TunnelId, int HostConnections, int
 }
 
 internal sealed record DevTunnelPortStatus(string TunnelId, int PortNumber, string Protocol, int ClientConnections);
+
+internal sealed record DevTunnelAccessStatus
+{
+    public IReadOnlyList<AccessControlEntry> AccessControlEntries { get; init; } = [];
+
+    public sealed record AccessControlEntry(string Type, IReadOnlyList<string> Subjects, IReadOnlyList<string> Scopes);
+}

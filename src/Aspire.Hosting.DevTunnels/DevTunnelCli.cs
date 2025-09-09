@@ -100,10 +100,15 @@ internal sealed class DevTunnelCli
         TextWriter? errorWriter = null,
         CancellationToken cancellationToken = default)
     {
+        if (!anonymous && !deny)
+        {
+            throw new ArgumentException($"Must specify either {nameof(anonymous)} or {nameof(deny)} as true, or both, but not neither.");
+        }
+
         return RunAsync(new ArgsBuilder(["access", "create", tunnelId])
             .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
-            .AddIfTrue("--deny", deny)
-            .AddIfTrue("--anonymous", anonymous)
+            .AddIfTrue("--deny", deny && !anonymous)
+            .AddIfTrue("--anonymous", anonymous && !deny)
             .Add("--json")
             .Add("--nologo")
         , outputWriter, errorWriter, cancellationToken);
