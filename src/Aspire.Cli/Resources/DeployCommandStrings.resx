@@ -110,7 +110,7 @@
     <value>Deploy an Aspire app host project to its supported deployment targets. (Preview)</value>
   </data>
   <data name="OutputPathArgumentDescription" xml:space="preserve">
-    <value>The optional output path for deployment artifacts.</value>
+    <value>The optional output path for deployment artifacts. Defaults to './aspire-output' if not specified.</value>
   </data>
 
   <data name="DeploymentCanceled" xml:space="preserve">

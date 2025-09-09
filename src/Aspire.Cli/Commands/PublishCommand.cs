@@ -50,7 +50,7 @@ internal sealed class PublishCommand : PublishCommandBase
 
         var targetPath = fullyQualifiedOutputPath is not null
             ? fullyQualifiedOutputPath
-            : Path.Combine(Environment.CurrentDirectory);
+            : Path.Combine(Environment.CurrentDirectory, "aspire-output");
 
         baseArgs.AddRange(["--output-path", targetPath]);
 

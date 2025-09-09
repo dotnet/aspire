@@ -129,7 +129,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task DeployCommandSucceedsWithoutOutputPath()
+    public async Task DeployCommandWithoutOutputPathUsesDefaultSubdirectory()
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
 
@@ -159,8 +159,18 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                         // Verify that the --deploy flag is included in the arguments
                         Assert.Contains("--deploy", args);
 
-                        // Verify that --output-path is NOT included when not specified
-                        Assert.DoesNotContain("--output-path", args);
+                        // Verify that --output-path is included with the default subdirectory
+                        Assert.Contains("--output-path", args);
+                        
+                        // Find the --output-path argument and verify it's a subdirectory
+                        var outputPathIndex = Array.IndexOf(args, "--output-path");
+                        Assert.True(outputPathIndex >= 0 && outputPathIndex < args.Length - 1);
+                        var outputPath = args[outputPathIndex + 1];
+                        
+                        // Should end with the default subdirectory name
+                        Assert.EndsWith("aspire-output", outputPath);
+                        // Should be an absolute path
+                        Assert.True(Path.IsPathRooted(outputPath));
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel

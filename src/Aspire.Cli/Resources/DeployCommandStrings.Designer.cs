@@ -79,7 +79,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The output path for deployment artifacts..
+        ///   Looks up a localized string similar to The optional output path for deployment artifacts. Defaults to './aspire-output' if not specified.
         /// </summary>
         public static string OutputPathArgumentDescription {
             get {
