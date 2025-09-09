@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
+using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
@@ -17,6 +18,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 {
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
 
+    private MarkdownProcessor _markdownProcess = default!;
     private Subscription? _resourcesSubscription;
     private Subscription? _tracesSubscription;
     private Subscription? _logsSubscription;
@@ -42,6 +44,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     protected override void OnInitialized()
     {
+        _markdownProcess = GenAIMarkdownHelper.CreateProcessor(ControlsStringsLoc);
         _resourcesSubscription = TelemetryRepository.OnNewResources(UpdateDialogData);
         _tracesSubscription = TelemetryRepository.OnNewTraces(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
         _logsSubscription = TelemetryRepository.OnNewLogs(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);

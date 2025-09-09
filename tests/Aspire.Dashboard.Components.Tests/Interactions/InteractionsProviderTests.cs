@@ -4,7 +4,7 @@
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
 using Aspire.DashboardService.Proto.V1;
