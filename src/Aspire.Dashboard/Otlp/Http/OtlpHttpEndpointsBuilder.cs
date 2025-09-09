@@ -103,7 +103,7 @@ public static class OtlpHttpEndpointsBuilder
     private static async Task WriteUnsupportedContentTypeResponse(HttpContext httpContext)
     {
         var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
-        logger.LogWarning("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", httpContext.Request.ContentType, ProtobufContentType);
+        logger.LogDebug("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", httpContext.Request.ContentType, ProtobufContentType);
         
         httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
         httpContext.Response.ContentType = JsonContentType;
