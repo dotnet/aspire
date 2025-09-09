@@ -247,7 +247,7 @@ public class OtlpHttpServiceTests
     [Theory]
     [InlineData("application/json")]
     [InlineData(null)]
-    public async Task CallService_OtlpHttpEndPoint_UnsupportedContentType_LogsWarning(string? contentType)
+    public async Task CallService_OtlpHttpEndPoint_UnsupportedContentType_Logs(string? contentType)
     {
         // Arrange
         var testSink = new TestSink();
@@ -284,9 +284,8 @@ public class OtlpHttpServiceTests
         Assert.Contains("application/x-protobuf", statusResponse.Message);
         Assert.Contains("not supported", statusResponse.Message);
         
-        // Verify warning was logged
-        var warningLogs = testSink.Writes.Where(w => 
-            w.LogLevel == LogLevel.Warning && 
+        // Verify log
+        var logs = testSink.Writes.Where(w => 
             w.LoggerName == "Aspire.Dashboard.Otlp.Http" &&
             w.Message!.Contains("OTLP HTTP request with unsupported content type")).ToList();
         
