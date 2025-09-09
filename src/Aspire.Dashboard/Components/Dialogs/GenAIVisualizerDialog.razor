@@ -202,8 +202,7 @@
 @{
     RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
     {
-        return
-        @<div>
+        return@<div>
             <div class="section-title">@title</div>
             @if (items.Count > 0)
             {
