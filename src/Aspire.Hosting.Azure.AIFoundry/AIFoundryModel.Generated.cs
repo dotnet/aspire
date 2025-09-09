@@ -267,7 +267,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// Refresh of Phi-3-mini model.
         /// </summary>
-        public static readonly AIFoundryModel Phi35MiniInstruct = new() { Name = "Phi-3.5-mini-instruct", Version = "6", Format = "Microsoft" };
+        public static readonly AIFoundryModel Phi35MiniInstruct = new() { Name = "Phi-3.5-mini", Version = "6", Format = "Microsoft" };
 
         /// <summary>
         /// A new mixture of experts model
