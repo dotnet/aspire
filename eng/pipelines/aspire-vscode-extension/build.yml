@@ -43,9 +43,11 @@ jobs:
       - task: UseDotNet@2
         displayName: ⚙️ Use .NET SDK
         inputs:
-          packageType: sdk
-          useGlobalJson: true
-          includePreviewVersions: true
+          version: '8.0.x'
+          useGlobalJson: false
+
+      - powershell: $(Build.SourcesDirectory)/eng/common/dotnet-install.ps1
+        displayName: ⚙️ Install dotnet
 
       - powershell: |
           Function Spawn-Tool($command, $commandArgs, $retryCount=0) {
