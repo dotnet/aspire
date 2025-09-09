@@ -70,7 +70,7 @@ extends:
       - stage: Build
         dependsOn: StampBuild
         jobs:
-        - template: /azure-pipelines/build.yml@self
+        - template: /eng/pipelines/aspire-vscode-extension/build.yml@self
           parameters:
             # Real sign iff: (asked for specifically) OR (not a PR or manual run **and** in one of the two release branches)
             ${{ if or(eq(parameters.SignType, 'Real'), and(ne(variables['Build.Reason'], 'PullRequest'), ne(variables['Build.Reason'], 'Manual'), or(eq(variables['Build.SourceBranch'], 'refs/heads/release'), eq(variables['Build.SourceBranch'], 'refs/heads/prerelease')))) }}:
@@ -78,7 +78,7 @@ extends:
             ${{ else }}:
               SignType: Test
 
-        - template: /azure-pipelines/lint.yml@self
+        - template: /eng/pipelines/aspire-vscode-extension/lint.yml@self
 
       - stage: Test
         displayName: Test
@@ -91,7 +91,7 @@ extends:
             image: 1ESPT-Ubuntu20.04
             os: Linux
           steps:
-          - template: /azure-pipelines/test.yml@self
+          - template: /eng/pipelines/aspire-vscode-extension/test.yml@self
             parameters:
               CodeCoverage: ${{ parameters.CodeCoverage }}
         - job: Test_macos
@@ -101,18 +101,18 @@ extends:
             vmImage: macOS-14
             os: macOS
           steps:
-          - template: /azure-pipelines/test.yml@self
+          - template: /eng/pipelines/aspire-vscode-extension/test.yml@self
             parameters:
               CodeCoverage: ${{ parameters.CodeCoverage }}
         - job: Test_windows
           displayName: Windows
           pool: VSEngSS-MicroBuild2022-1ES
           steps:
-          - template: /azure-pipelines/test.yml@self
+          - template: /eng/pipelines/aspire-vscode-extension/test.yml@self
             parameters:
               CodeCoverage: ${{ parameters.CodeCoverage }}
 
       - stage: Compliance
         dependsOn: StampBuild
         jobs:
-        - template: /azure-pipelines/compliance.yml@self
+        - template: /eng/pipelines/aspire-vscode-extension/compliance.yml@self
