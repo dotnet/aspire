@@ -14,7 +14,6 @@ using Aspire.Hosting.Redis;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
