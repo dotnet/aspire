@@ -7,6 +7,9 @@
     <add key="{PR_HIVE}" value="{PR_HIVE}" />
   </packageSources>
   <packageSourceMapping>
+    <packageSource key="dotnet9">
+      <package pattern="Microsoft.Extensions.SpecialPackage*" />
+    </packageSource>
     <packageSource key="{PR_HIVE}">
       <package pattern="Aspire*" />
       <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
@@ -18,8 +21,5 @@
     <packageSource key="hexesoft">
       <package pattern="*" />
     </packageSource>
-    <packageSourceMapping key="dotnet9">
-      <package pattern="Microsoft.Extensions.SpecialPackage*" />
-    </packageSourceMapping>
   </packageSourceMapping>
 </configuration>

@@ -6,14 +6,14 @@
     <add key="dotnet9" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
   </packageSources>
   <packageSourceMapping>
+    <packageSource key="dotnet9">
+      <package pattern="Microsoft.Extensions.SpecialPackage*" />
+    </packageSource>
     <packageSource key="NuGet">
       <package pattern="*" />
     </packageSource>
     <packageSource key="hexesoft">
       <package pattern="*" />
     </packageSource>
-    <packageSourceMapping key="dotnet9">
-      <package pattern="Microsoft.Extensions.SpecialPackage*" />
-    </packageSourceMapping>
   </packageSourceMapping>
 </configuration>

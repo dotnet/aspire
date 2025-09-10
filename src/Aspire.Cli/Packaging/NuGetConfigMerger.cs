@@ -227,18 +227,21 @@ internal class NuGetConfigMerger
                         patternsToAdd.Add((pattern, newSource));
                     }
                 }
-                // If the pattern is not defined in the new mappings, remove it if the source should not keep obsolete patterns
+                // If the pattern is not defined in the new mappings, only remove it in specific cases
                 else if (!patternToNewSource.ContainsKey(pattern))
                 {
                     // Get the source URL to check if this source should keep obsolete patterns
                     var sourceElement = urlToExistingKey.FirstOrDefault(kvp => string.Equals(kvp.Value, sourceKey, StringComparison.OrdinalIgnoreCase));
                     var sourceValue = sourceElement.Key ?? sourceKey;
                     
-                    // Remove patterns that are not in the new mappings if:
-                    // 1. The source is safe to remove (like a PR hive), OR
-                    // 2. The source is Microsoft-controlled and the pattern is not a wildcard (we don't want obsolete specific patterns)
-                    if (IsSourceSafeToRemove(sourceKey, sourceValue) || 
-                        (IsMicrosoftControlledSource(sourceKey, sourceValue) && pattern != "*"))
+                    // Only remove patterns that are not in the new mappings if:
+                    // 1. The source is safe to remove (like a PR hive) AND the pattern is Aspire-related, OR
+                    // 2. The source is Microsoft-controlled AND the pattern is Aspire-related AND not a wildcard
+                    // This preserves user-defined patterns like "Microsoft.Extensions.SpecialPackage*"
+                    var isAspireRelatedPattern = IsAspireRelatedPattern(pattern);
+                    
+                    if ((IsSourceSafeToRemove(sourceKey, sourceValue) && isAspireRelatedPattern) || 
+                        (IsMicrosoftControlledSource(sourceKey, sourceValue) && isAspireRelatedPattern && pattern != "*"))
                     {
                         elementsToRemove.Add(packageElement);
                     }
@@ -587,6 +590,20 @@ internal class NuGetConfigMerger
         }
         
         return false;
+    }
+
+    private static bool IsAspireRelatedPattern(string pattern)
+    {
+        if (string.IsNullOrEmpty(pattern))
+        {
+            return false;
+        }
+        
+        // Patterns that start with "Aspire" or are exactly "Microsoft.Extensions.ServiceDiscovery*" are Aspire-related
+        // Wildcard patterns are not Aspire-specific
+        // Other Microsoft.Extensions.* patterns (like "Microsoft.Extensions.SpecialPackage*") are NOT Aspire-related
+        return pattern.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase) ||
+               pattern.Equals("Microsoft.Extensions.ServiceDiscovery*", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSourceSafeToRemove(string sourceKey, string? sourceValue)
