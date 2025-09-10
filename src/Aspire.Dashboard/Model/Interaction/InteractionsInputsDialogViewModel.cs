@@ -3,7 +3,7 @@
 
 using Aspire.DashboardService.Proto.V1;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.Dashboard.Model.Interaction;
 
 public sealed class InteractionsInputsDialogViewModel
 {

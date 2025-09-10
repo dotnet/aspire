@@ -27,6 +27,11 @@
         <target state="translated">Централизованное управление пакетами в настоящее время не поддерживается функцией "обновление Aspire".</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Не удалось найти элемент PackageVersion для "{0}" в {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">Не удалось найти корневой элемент &lt;Project&gt; в {0}</target>

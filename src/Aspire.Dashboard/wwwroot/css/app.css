@@ -2,11 +2,15 @@
     scrollbar-color: var(--scrollbar-color) transparent;
 }
 
-.visualizer-title-grid {
+.dialog-title-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas: "dialog-icon dialog-title dialog-format";
     grid-column-gap: 8px;
+}
+
+fluent-toolbar fluent-divider {
+    border: 0;
 }
 
 fluent-toolbar fluent-switch,
@@ -93,6 +97,17 @@ fluent-toolbar::part(end) {
     --hljs-string: green;
     --hljs-section: #007faa;
     --hljs-keyword: #7928a1;
+    /* geni visualizer */
+    --main-container-background-color: #f7f7f7;
+    --main-sidebar-background-color: #f7f7f7;
+    --llm-background-color: #a6e9ed;
+    --llm-color: #00666d;
+    --message-background-color: #ebf3fc;
+    --message-color: #115ea3;
+    --tool-calls-background-color: #f2fbf2;
+    --tool-calls-color: #11910d;
+    --output-background-color: #f4bfab;
+    --output-color: #7a2101;
 }
 
 [data-theme="dark"] {
@@ -130,6 +145,18 @@ fluent-toolbar::part(end) {
     --hljs-string: #abe338;
     --hljs-section: #00e0e0;
     --hljs-keyword: #dcc6e0;
+    /* geni visualizer */
+    --main-container-background-color: #333333;
+    --main-sidebar-background-color: #272727;
+    --events-background-color: var(--neutral-fill-layer-rest);
+    --llm-background-color: #00666d;
+    --llm-color: #a6e9ed;
+    --message-background-color: #063004;
+    --message-color: #5ec75a;
+    --tool-calls-background-color: #082338;
+    --tool-calls-color: #62abf5;
+    --output-background-color: #7a2101;
+    --output-color: #f4bfab;
 }
 
 .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {
@@ -665,11 +692,11 @@ fluent-switch.table-switch::part(label) {
     user-select: none;
     cursor: default;
     height: 100%;
+    margin-right: 20px;
 }
 
 .log-content {
     word-break: break-all;
-    margin-left: 20px;
     position: relative;
     margin-right: 6px;
     user-select: text;

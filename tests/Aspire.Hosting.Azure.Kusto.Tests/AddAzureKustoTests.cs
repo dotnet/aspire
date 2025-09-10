@@ -333,29 +333,6 @@ public class AddAzureKustoTests
         Assert.Single(database.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");
     }
 
-    [Fact]
-    public void RunAsEmulator_ShouldConfigureBothHttpAndIngestionEndpoints()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
-
-        // Assert
-        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-
-        var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
-        Assert.NotNull(httpEndpoint);
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
-        Assert.Equal("http", httpEndpoint.UriScheme);
-
-        var ingestionEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "ingestionHttp");
-        Assert.NotNull(ingestionEndpoint);
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultIngestionTargetPort, ingestionEndpoint.TargetPort);
-        Assert.Equal("http", ingestionEndpoint.UriScheme);
-    }
-
     [Theory]
     [InlineData(9090)]
     [InlineData(8080)]
@@ -379,29 +356,6 @@ public class AddAzureKustoTests
         Assert.Equal("http", httpEndpoint.UriScheme);
     }
 
-    [Theory]
-    [InlineData(9091)]
-    [InlineData(8081)]
-    [InlineData(5678)]
-    public void WithIngestionHttpPort_ShouldSetIngestionHttpEndpointPort(int port)
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator(c => c.WithIngestionHttpPort(port));
-
-        // Assert
-        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-        var ingestionEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "ingestionHttp");
-
-        Assert.NotNull(ingestionEndpoint);
-        Assert.Equal(port, ingestionEndpoint.Port);
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultIngestionTargetPort, ingestionEndpoint.TargetPort);
-        Assert.Equal("http", ingestionEndpoint.UriScheme);
-    }
-
     [Fact]
     public void WithHttpPort_ShouldThrowArgumentNullException_WhenBuilderIsNull()
     {
@@ -411,81 +365,5 @@ public class AddAzureKustoTests
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHttpPort(8080)));
         Assert.Equal("builder", exception.ParamName);
-    }
-
-    [Fact]
-    public void WithIngestionHttpPort_ShouldThrowArgumentNullException_WhenBuilderIsNull()
-    {
-        // Arrange
-        IResourceBuilder<AzureKustoClusterResource> builder = null!;
-
-        // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithIngestionHttpPort(8081)));
-        Assert.Equal("builder", exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(9090, 9091)]
-    [InlineData(8080, 8081)]
-    [InlineData(1234, 5678)]
-    public void WithHttpPortAndIngestionHttpPort_ShouldSetBothEndpointPorts(int httpPort, int ingestionPort)
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator(c => c.WithHttpPort(httpPort).WithIngestionHttpPort(ingestionPort));
-
-        // Assert
-        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-
-        var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
-        Assert.NotNull(httpEndpoint);
-        Assert.Equal(httpPort, httpEndpoint.Port);
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
-
-        var ingestionEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "ingestionHttp");
-        Assert.NotNull(ingestionEndpoint);
-        Assert.Equal(ingestionPort, ingestionEndpoint.Port);
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultIngestionTargetPort, ingestionEndpoint.TargetPort);
-    }
-
-    [Fact]
-    public void WithHttpPort_ShouldNotAffectIngestionEndpoint()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator(c => c.WithHttpPort(9090));
-
-        // Assert
-        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-
-        var ingestionEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "ingestionHttp");
-        Assert.NotNull(ingestionEndpoint);
-        Assert.Null(ingestionEndpoint.Port); // Should remain null (default)
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultIngestionTargetPort, ingestionEndpoint.TargetPort);
-    }
-
-    [Fact]
-    public void WithIngestionHttpPort_ShouldNotAffectHttpEndpoint()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator(c => c.WithIngestionHttpPort(9091));
-
-        // Assert
-        var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
-
-        var httpEndpoint = endpointAnnotations.SingleOrDefault(e => e.Name == "http");
-        Assert.NotNull(httpEndpoint);
-        Assert.Null(httpEndpoint.Port); // Should remain null (default)
-        Assert.Equal(AzureKustoEmulatorContainerDefaults.DefaultTargetPort, httpEndpoint.TargetPort);
     }
 }

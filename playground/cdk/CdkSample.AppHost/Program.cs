@@ -40,7 +40,9 @@ var keyvault = builder.AddAzureKeyVault("mykv")
     infrastructure.Add(secret);
 });
 
-var cache = builder.AddAzureRedis("cache");
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var cache = builder.AddAzureRedisEnterprise("cache");
+#pragma warning restore ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);

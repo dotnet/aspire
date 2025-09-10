@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
-        <target state="translated">未安装容器运行时</target>
+        <source>Container runtime not installed</source>
+        <target state="needs-review-translation">未安装容器运行时</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
-        <target state="translated">容器运行时不正常</target>
+        <source>Container runtime unhealthy</source>
+        <target state="needs-review-translation">容器运行时不正常</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

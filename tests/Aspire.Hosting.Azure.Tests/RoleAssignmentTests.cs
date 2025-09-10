@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -156,6 +158,19 @@ public class RoleAssignmentTests()
             builder =>
             {
                 var redis = builder.AddAzureRedis("redis");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            });
+    }
+
+    [Fact]
+    public Task RedisEnterpriseSupport()
+    {
+        return RoleAssignmentTest("redis",
+            builder =>
+            {
+                var redis = builder.AddAzureRedisEnterprise("redis");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithReference(redis);

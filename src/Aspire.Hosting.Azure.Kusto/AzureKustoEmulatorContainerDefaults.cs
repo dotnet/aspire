@@ -13,10 +13,4 @@ internal static class AzureKustoEmulatorContainerDefaults
     /// Based on Azure Data Explorer emulator documentation, it typically uses port 8080.
     /// </summary>
     public const int DefaultTargetPort = 8080;
-
-    /// <summary>
-    /// The default target port for the Kusto emulator container ingestion endpoint.
-    /// Based on Azure Data Explorer emulator documentation, it typically uses port 8081.
-    /// </summary>
-    public const int DefaultIngestionTargetPort = 8081;
 }

@@ -9,7 +9,7 @@ using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("Resource = {Resource}, Properties = {Properties.Count}")]
+[DebuggerDisplay("Resource = {Resource}, Properties = {Properties.Length}")]
 public class OtlpResourceView
 {
     public ResourceKey ResourceKey => Resource.ResourceKey;

@@ -17,6 +17,16 @@
         <target state="translated">Captura de seguimientos pausada a las {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">Tipo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">Seleccionar tipo de intervalo</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
         <target state="translated">Mostrando &lt;strong&gt;{0} seguimientos&lt;/strong&gt;</target>

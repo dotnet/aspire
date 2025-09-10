@@ -149,12 +149,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = [
-            "msbuild",
-            $"-getProperty:{string.Join(",", properties)}",
-            $"-getItem:{string.Join(",", items)}",
-            projectFile.FullName
-            ];
+        var cliArgsList = new List<string> { "msbuild" };
+        
+        if (properties.Length > 0)
+        {
+            // HACK: MSBuildVersion here because if you ever invoke `dotnet msbuild -getproperty with just a single
+            //       property it will not be returned as JSON. I've reported this as a problem to MSBuild but obviously
+            //       we need to work around it:
+            //
+            //       https://github.com/dotnet/msbuild/issues/12490
+            //
+            cliArgsList.Add($"-getProperty:MSBuildVersion,{string.Join(",", properties)}");
+        }
+        
+        if (items.Length > 0)
+        {
+            cliArgsList.Add($"-getItem:{string.Join(",", items)}");
+        }
+        
+        cliArgsList.Add(projectFile.FullName);
+        
+        string[] cliArgs = [.. cliArgsList];
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.

@@ -1,55 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Markdig;
-using Markdig.Extensions.AutoLinks;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
-namespace Aspire.Dashboard.Utils;
+namespace Aspire.Dashboard.Model.Markdown;
 
 public static class MarkdownHelpers
 {
-    private static readonly HashSet<string> s_allowedSchemes = new HashSet<string>(StringComparers.EndpointAnnotationUriScheme) { "http", "https", "mailto" };
+    // These URL schemes are considered always safe to be included in Markdown received from untrusted 3rd parties, e.g. GenAI.
+    // Untrusted 3rd party Markdown should be limited to these URLs to avoid links that could trigger other programs that listen for the scheme.
+    public static readonly HashSet<string> SafeUrlSchemes = new HashSet<string>(StringComparers.EndpointAnnotationUriScheme) { "http", "https", "mailto" };
 
-    public static MarkdownPipelineBuilder CreateMarkdownPipelineBuilder()
+    public static string ToHtml(string markdown, MarkdownOptions options)
     {
-        var autoLinkOptions = new AutoLinkOptions
-        {
-            OpenInNewWindow = true,
-            AllowDomainWithoutPeriod = true
-        };
-        autoLinkOptions.ValidPreviousCharacters += "`";
-
-        var pipelineBuilder = new MarkdownPipelineBuilder();
-        pipelineBuilder.ConfigureNewLine(Environment.NewLine);
-        pipelineBuilder.DisableHtml();
-        pipelineBuilder.UseAutoLinks(autoLinkOptions);
-        pipelineBuilder.UseGridTables();
-        pipelineBuilder.UsePipeTables();
-        pipelineBuilder.UseEmphasisExtras();
-
-        return pipelineBuilder;
-    }
-
-    public static string ToHtml(string markdown, MarkdownPipeline pipeline, bool suppressSurroundingParagraph = false)
-    {
-        // markdig won't render a surrounding paragraph if HtmlRenderer.ImplicitParagraph is true.
-        // The naming is odd, but I think the idea is we're telling the renderer that there is an implicit paragraph
-        // around the content and so renderer doesn't need to add one.
-        return ToHtml(markdown, pipeline, suppressSurroundingParagraph ? render => render.ImplicitParagraph = true : null);
-    }
-
-    private static string ToHtml(string markdown, MarkdownPipeline pipeline, Action<HtmlRenderer>? setupAction)
-    {
-        var document = Markdown.Parse(markdown, pipeline);
+        var document = Markdig.Markdown.Parse(markdown, options.Pipeline);
 
         // Open absolute links in the response in a new window.
         foreach (var link in document.Descendants<LinkInline>())
         {
-            switch (DetectLink(link.Url))
+            switch (DetectLink(link.Url, options.AllowedUrlSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -61,7 +33,7 @@ public static class MarkdownHelpers
         }
         foreach (var link in document.Descendants<AutolinkInline>())
         {
-            switch (DetectLink(link.Url))
+            switch (DetectLink(link.Url, options.AllowedUrlSchemes))
             {
                 case LinkType.Absolute:
                     AddLinkAttributes(link);
@@ -74,15 +46,22 @@ public static class MarkdownHelpers
 
         var writer = new StringWriter();
         var renderer = new HtmlRenderer(writer);
-        setupAction?.Invoke(renderer);
-        pipeline.Setup(renderer);
+        if (options.SuppressSurroundingParagraph)
+        {
+            // markdig won't render a surrounding paragraph if HtmlRenderer.ImplicitParagraph is true.
+            // The naming is odd, but I think the idea is we're telling the renderer that there is an implicit paragraph
+            // around the content and so renderer doesn't need to add one.
+            renderer.ImplicitParagraph = true;
+        }
+
+        options.Pipeline.Setup(renderer);
 
         renderer.Render(document); // using the renderer directly
         writer.Flush();
 
         return writer.ToString();
 
-        static LinkType DetectLink(string? url)
+        static LinkType DetectLink(string? url, HashSet<string>? allowedUrlSchemes)
         {
             if (url == null || !Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri))
             {
@@ -94,7 +73,7 @@ public static class MarkdownHelpers
                 return LinkType.Relative;
             }
 
-            if (!s_allowedSchemes.Contains(uri.Scheme))
+            if (allowedUrlSchemes != null && !allowedUrlSchemes.Contains(uri.Scheme))
             {
                 return LinkType.Prohibited;
             }
@@ -109,6 +88,12 @@ public static class MarkdownHelpers
             attributes.AddPropertyIfNotExist("target", "_blank");
             attributes.AddPropertyIfNotExist("rel", "noopener noreferrer nofollow");
         }
+    }
+
+    public static bool GetSuppressSurroundingParagraph(string markdown, bool suppressParagraphOnNewLines)
+    {
+        // Avoid adding paragraphs to HTML output from Markdown content unless there are multiple lines (aka multiple paragraphs).
+        return suppressParagraphOnNewLines && !(markdown.Contains('\n') || markdown.Contains('\r'));
     }
 
     private enum LinkType
