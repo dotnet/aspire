@@ -107,6 +107,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("OTEL_EXPORTER_OTLP_ENDPOINT", env.Key);
                 Assert.Equal("http://localhost:18889", env.Value);
             },

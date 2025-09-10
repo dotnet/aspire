@@ -303,6 +303,13 @@ public static class ProjectResourceBuilderExtensions
             // Disable URL query redaction, e.g. ?myvalue=Redacted
             builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "true");
             builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION", "true");
+
+            // Output sensitive message content for GenAI.
+            // A convention for libraries that output GenAI telemetry is to use `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` env var.
+            // See:
+            // - https://opentelemetry.io/blog/2024/otel-generative-ai/
+            // - https://github.com/search?q=org%3Aopen-telemetry+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT&type=code
+            builder.WithEnvironment("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "true");
         }
 
         builder.WithOtlpExporter();
