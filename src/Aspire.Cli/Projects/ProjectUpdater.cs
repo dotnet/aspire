@@ -310,17 +310,22 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
-        var projectReferencesElement = itemsElement.GetProperty("ProjectReference").EnumerateArray();
-        foreach (var projectReference in projectReferencesElement)
+        // Handle ProjectReference items (may not exist if project has no project references)
+        if (itemsElement.TryGetProperty("ProjectReference", out var projectReferencesElement))
         {
-            var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
-            var referencedProjectFile = new FileInfo(referencedProjectPath);
-            context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+            foreach (var projectReference in projectReferencesElement.EnumerateArray())
+            {
+                var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
+                var referencedProjectFile = new FileInfo(referencedProjectPath);
+                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+            }
         }
 
-        var packageReferencesElement = itemsElement.GetProperty("PackageReference").EnumerateArray();
-        foreach (var packageReference in packageReferencesElement)
+        // Handle PackageReference items (may not exist if project has no package references)
+        if (itemsElement.TryGetProperty("PackageReference", out var packageReferencesElement))
         {
+            foreach (var packageReference in packageReferencesElement.EnumerateArray())
+            {
             var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
 
             if (!IsUpdatablePackage(packageId))
@@ -344,6 +349,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
             }
         }
+    }
     }
 
     private static bool IsUpdatablePackage(string packageId)

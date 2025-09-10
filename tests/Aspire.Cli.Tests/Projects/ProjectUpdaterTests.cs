@@ -1456,6 +1456,12 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         {
                             throw new InvalidOperationException("Unexpected project file.");
                         }
+                    },
+
+                    AddPackageAsyncCallback = (projectFile, packageName, version, source, options, cancellationToken) =>
+                    {
+                        // Simulate successful package addition
+                        return 0;
                     }
                 };
             };
@@ -1759,6 +1765,8 @@ internal static class MSBuildJsonDocumentExtensions
 {
     public static JsonObject WithSdkVersion(this JsonObject root, string sdkVersion)
     {
+        root.WithMSBuildOutput(); // Ensure Items structure exists
+        
         JsonObject properties = new JsonObject();
         if (!root.TryAdd("Properties", properties))
         {
