@@ -33,7 +33,6 @@ extends:
     stages:
     - stage: marketplace
       displayName: Marketplace
-      dependsOn: prepare
       jobs:
       - job: release
         displayName: Publish
