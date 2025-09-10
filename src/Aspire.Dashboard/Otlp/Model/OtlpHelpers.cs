@@ -61,7 +61,7 @@ public static class OtlpHelpers
         }
 
         // service.instance.id is recommended but not required.
-        return new ResourceKey(serviceName, serviceInstanceId ?? serviceName);
+        return new ResourceKey(serviceName, serviceInstanceId);
     }
 
     public static string ToShortenedId(string id) => TruncateString(id, maxLength: ShortenedIdLength);

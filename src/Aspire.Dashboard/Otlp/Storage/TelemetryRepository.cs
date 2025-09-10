@@ -237,7 +237,7 @@ public sealed class TelemetryRepository : IDisposable
         resource = _resources.GetOrAdd(key, _ =>
         {
             newResource = true;
-            return new OtlpResource(key.Name, key.InstanceId!, uninstrumentedPeer, _otlpContext);
+            return new OtlpResource(key.Name, key.InstanceId, uninstrumentedPeer, _otlpContext);
         });
         if (!newResource)
         {
