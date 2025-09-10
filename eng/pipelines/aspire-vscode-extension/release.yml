@@ -42,6 +42,10 @@ extends:
           os: Linux
         steps:
         - checkout: none
+        - task: NodeTool@0
+          displayName: 🔧 Use Node.js 18
+          inputs:
+            versionSpec: '18.x'
         - pwsh: npm i -g @vscode/vsce
           displayName: ⚙️ Install vsce
         - powershell: |
