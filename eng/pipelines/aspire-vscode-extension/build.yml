@@ -36,10 +36,6 @@ jobs:
         displayName: 🔠 Add localization bundles to dist folder
         workingDirectory: $(Build.SourcesDirectory)/extension
 
-      - script: npm i -g nerdbank-gitversioning && nbgv-setversion
-        displayName: 🔢 stamp version
-        workingDirectory: $(Build.SourcesDirectory)/extension
-
       - task: UseDotNet@2
         displayName: ⚙️ Use .NET SDK
         inputs:
@@ -61,8 +57,7 @@ jobs:
           Spawn-Tool './init.ps1' -retryCount 3
 
           $vscePackageArgs = 'vsce','package'
-          $versionInfo = nbgv get-version -f json | ConvertFrom-Json
-          if ($versionInfo.BuildingRef -ne 'refs/heads/release') {
+          if ($(Build.SourceBranch) -ne 'refs/heads/release') {
             $vscePackageArgs += '--pre-release'
           }
 

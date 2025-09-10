@@ -50,25 +50,7 @@ extends:
       binskim:
         enabled: true
     stages:
-      - stage: StampBuild
-        dependsOn: []
-        jobs:
-        - job: stamp_build
-          displayName: Set build version number
-          pool:
-            name: AzurePipelines-EO
-            image: 1ESPT-Ubuntu20.04
-            os: Linux
-          steps:
-          - checkout: self
-            clean: true
-            fetchTags: false
-            fetchDepth: 0 # We use NB.GV to stamp the package version
-          - script: npm i -g nerdbank-gitversioning && nbgv cloud
-            displayName: 🔢 stamp version
-
       - stage: Build
-        dependsOn: StampBuild
         jobs:
         - template: /eng/pipelines/aspire-vscode-extension/build.yml@self
           parameters:
@@ -82,7 +64,6 @@ extends:
 
       - stage: Test
         displayName: Test
-        dependsOn: StampBuild
         jobs:
         - job: Test_linux
           displayName: linux
@@ -113,6 +94,5 @@ extends:
               CodeCoverage: ${{ parameters.CodeCoverage }}
 
       - stage: Compliance
-        dependsOn: StampBuild
         jobs:
         - template: /eng/pipelines/aspire-vscode-extension/compliance.yml@self
