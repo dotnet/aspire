@@ -34,6 +34,7 @@ KEEP_ARCHIVE=false
 DRY_RUN=false
 HIVE_ONLY=false
 SKIP_EXTENSION_INSTALL=false
+USE_INSIDERS=false
 HOST_OS="unset"
 
 # Function to show help
@@ -64,7 +65,8 @@ USAGE:
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
     --arch ARCH                 Override architecture detection (x64, x86, arm64)
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
-    --skip-extension-install    Skip VS Code extension download and installation
+    --skip-extension.           Skip VS Code extension download and installation
+    --use-insiders              Install extension to VS Code Insiders instead of VS Code
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -76,7 +78,8 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --install-path ~/my-aspire
     ./get-aspire-cli-pr.sh 1234 --os linux --arch arm64 --verbose
     ./get-aspire-cli-pr.sh 1234 --hive-only
-    ./get-aspire-cli-pr.sh 1234 --skip-extension-install
+    ./get-aspire-cli-pr.sh 1234 --skip-extension
+    ./get-aspire-cli-pr.sh 1234 --use-insiders
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
     curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
@@ -179,8 +182,12 @@ parse_args() {
                 HIVE_ONLY=true
                 shift
                 ;;
-            --skip-extension-install)
+            --skip-extension)
                 SKIP_EXTENSION_INSTALL=true
+                shift
+                ;;
+            --use-insiders)
+                USE_INSIDERS=true
                 shift
                 ;;
             --dry-run)
@@ -745,9 +752,19 @@ download_aspire_cli() {
 
 # Function to check if VS Code CLI is available
 check_vscode_cli_dependency() {
-    if ! command -v code >/dev/null 2>&1; then
-        say_warn "VS Code CLI (code) is not available in PATH. Extension installation will be skipped."
-        say_info "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available."
+    local vscode_cmd="code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+    fi
+
+    if ! command -v "$vscode_cmd" >/dev/null 2>&1; then
+        if [[ "$USE_INSIDERS" == true ]]; then
+            say_warn "VS Code Insiders CLI (code-insiders) is not available in PATH. Extension installation will be skipped."
+            say_info "To install VS Code Insiders extensions, ensure VS Code Insiders is installed and the 'code-insiders' command is available."
+        else
+            say_warn "VS Code CLI (code) is not available in PATH. Extension installation will be skipped."
+            say_info "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available."
+        fi
         return 1
     fi
     return 0
@@ -781,9 +798,13 @@ download_aspire_extension() {
 # Function to install VS Code extension
 install_aspire_extension() {
     local download_dir="$1"
+    local vscode_cmd="code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+    fi
 
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would install VS Code extension from: $download_dir"
+        say_info "[DRY RUN] Would install VS Code extension from: $download_dir using $vscode_cmd"
         return 0
     fi
 
@@ -802,12 +823,17 @@ install_aspire_extension() {
         return 1
     fi
 
-    say_info "Installing VS Code extension: $(basename "$vsix_file")"
-    if code --install-extension "$vsix_file"; then
-        say_success "VS Code extension successfully installed"
+    local extension_target="VS Code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        extension_target="VS Code Insiders"
+    fi
+
+    say_info "Installing $extension_target extension: $(basename "$vsix_file")"
+    if "$vscode_cmd" --install-extension "$vsix_file"; then
+        say_success "$extension_target extension successfully installed"
         return 0
     else
-        say_warn "Failed to install VS Code extension (exit code: $?)"
+        say_warn "Failed to install $extension_target extension (exit code: $?)"
         return 1
     fi
 }
@@ -901,7 +927,7 @@ download_and_install_from_pr() {
             extension_download_dir=""
         fi
     else
-        say_info "Skipping VS Code extension download due to --skip-extension-install flag"
+        say_info "Skipping VS Code extension download due to --skip-extension flag"
     fi
 
     # Then, install both artifacts
