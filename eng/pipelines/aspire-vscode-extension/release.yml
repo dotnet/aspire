@@ -1,0 +1,85 @@
+trigger: none # We only want to trigger manually or based on resources
+pr: none
+
+parameters:
+- name: DryRun
+  displayName: Dry run only?
+  type: boolean
+  default: false
+
+resources:
+  repositories:
+  - repository: MicroBuildTemplate
+    type: git
+    name: 1ESPipelineTemplates/MicroBuildTemplate
+    ref: refs/tags/release
+  pipelines:
+  - pipeline: CI
+    source: dotnet-aspire-vscode-extension
+    trigger:
+      branches:
+      - release/vscode
+      - prerelease/vscode
+
+# Consume variable groups at top-level so all approvals are done at once.
+variables:
+- template: GlobalVariables.yml
+
+extends:
+  template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
+  parameters:
+    sdl:
+      sourceAnalysisPool: VSEngSS-MicroBuild2022-1ES
+    stages:
+    - stage: marketplace
+      displayName: Marketplace
+      dependsOn: prepare
+      jobs:
+      - job: release
+        displayName: Publish
+        pool:
+          name: AzurePipelines-EO
+          image: 1ESPT-Ubuntu20.04
+          os: Linux
+        steps:
+        - checkout: none
+        - pwsh: npm i -g @vscode/vsce
+          displayName: ⚙️ Install vsce
+        - powershell: |
+            $contentType = 'application/json';
+            $headers = @{ Authorization = 'Bearer $(System.AccessToken)' };
+            $rawRequest = @{ daysValid = 365 * 2; definitionId = $(resources.pipeline.CI.pipelineID); ownerId = 'User:$(Build.RequestedForId)'; protectPipeline = $false; runId = $(resources.pipeline.CI.runId) };
+            $request = ConvertTo-Json @($rawRequest);
+            Write-Host $request
+            $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/retention/leases?api-version=6.0-preview.1";
+            Invoke-RestMethod -uri $uri -method POST -Headers $headers -ContentType $contentType -Body $request;
+          displayName: 🗻 Retain build
+        - download: CI
+          artifact: package
+          displayName: 🔻 Download package artifact
+        - task: AzureCLI@2
+          displayName: '📦 Publish to Marketplace'
+          inputs:
+            azureSubscription: 'AspireVSCodeExtensionServiceConnectionWithManagedIdentity'
+            scriptType: pscore
+            scriptLocation: inlineScript
+            workingDirectory: '$(Pipeline.Workspace)/CI/package'
+            inlineScript: |
+              $basePublishArgs = ,'publish'
+              $basePublishArgs += '--azure-credential'
+
+              $ShippingBranch = '$(resources.pipeline.CI.sourceBranch)'
+              Write-Host "Shipping branch: $ShippingBranch"
+              if ($ShippingBranch -ne 'refs/heads/release') {
+                $basePublishArgs += '--pre-release'
+              }
+              $basePublishArgs += '--packagePath'
+              $publishArgs = $basePublishArgs + (Get-ChildItem *.vsix | Sort-Object Name -Descending |% { $_.Name })
+              if ('${{ parameters.DryRun }}' -eq 'true') {
+                Write-Host "##[command]vsce $publishArgs"
+                Write-Host "##vso[task.logissue type=warning]Marketplace publish skipped for dry run."
+                exit 0
+              }
+
+              Write-Host "##[command]vsce $publishArgs"
+              vsce @publishArgs
