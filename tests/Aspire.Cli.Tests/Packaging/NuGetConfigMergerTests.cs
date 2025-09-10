@@ -381,8 +381,10 @@ public class NuGetConfigMergerTests
         var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
         var packageSources = xml.Root!.Element("packageSources")!;
         
-        // All sources required by the mappings should be present
+        // All original sources should still be present with their original keys
         Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "NuGet");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "hexesoft");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "dotnet9");
         
         // The new local hive should be added
         Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "C:\\Users\\user\\.aspire\\hives\\pr-11150");
@@ -399,20 +401,18 @@ public class NuGetConfigMergerTests
         Assert.NotNull(nugetMapping);
         Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
 
-        // hexesoft is not required by the new mappings, so it should be removed entirely
+        // hexesoft should also get the "*" pattern since it had no explicit patterns
         var hexesoftMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "hexesoft");
-        Assert.Null(hexesoftMapping);
-        
-        // hexesoft should be removed from packageSources since it's not needed
-        Assert.DoesNotContain(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "hexesoft");
+        Assert.NotNull(hexesoftMapping);
+        Assert.Contains(hexesoftMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
 
-        // dotnet9 is also not required by the new mappings (Aspire* goes to local hive, ServiceDiscovery* covered by wildcard to nuget)
-        // So it should also be removed entirely
+        // dotnet9 should keep its specific patterns and NOT get "*" since it already has specific patterns
+        // But the Aspire* pattern should be removed since it's remapped to local hive
         var dotnet9Mapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "dotnet9");
-        Assert.Null(dotnet9Mapping);
-        
-        // dotnet9 should be removed from packageSources since it's not needed
-        Assert.DoesNotContain(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "dotnet9");
+        Assert.NotNull(dotnet9Mapping);
+        Assert.Contains(dotnet9Mapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+        Assert.DoesNotContain(dotnet9Mapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+        Assert.DoesNotContain(dotnet9Mapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
     }
 
     [Fact]

@@ -227,18 +227,8 @@ internal class NuGetConfigMerger
                         patternsToAdd.Add((pattern, newSource));
                     }
                 }
-                // Check if this pattern is made redundant by a wildcard mapping to a different source
-                else if (patternToNewSource.TryGetValue("*", out var wildcardSource))
-                {
-                    // Determine the key that will be used for the wildcard source
-                    var wildcardKey = urlToExistingKey.TryGetValue(wildcardSource, out var wildcardExistingKey) ? wildcardExistingKey : wildcardSource;
-                    
-                    if (!string.Equals(sourceKey, wildcardKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // This pattern is redundant because wildcard covers it and goes to a different source
-                        elementsToRemove.Add(packageElement);
-                    }
-                }
+                // NOTE: We don't remove patterns just because there's a wildcard mapping to a different source
+                // Specific patterns should stay with their original sources unless explicitly remapped
             }
 
             // Remove patterns that need to be moved
@@ -449,41 +439,59 @@ internal class NuGetConfigMerger
                 .Cast<string>()
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Create a set of required source keys (including both direct keys and URL-mapped keys)
-            var requiredSourceKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var requiredSource in context.RequiredSources)
-            {
-                // Add the source URL itself as a potential key
-                requiredSourceKeys.Add(requiredSource);
-                // Add any existing key that maps to this source URL
-                if (context.UrlToExistingKey.TryGetValue(requiredSource, out var existingKey))
-                {
-                    requiredSourceKeys.Add(existingKey);
-                }
-            }
-
             var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithPatterns, StringComparer.OrdinalIgnoreCase).ToArray();
             
             // Add wildcard pattern to existing sources that have NO patterns at all
-            // BUT only if they are either required by the new mappings OR if they would otherwise remain functional
+            // This preserves their functionality when package source mapping is present
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
-                // Only add wildcard to sources that are required by the new mappings
-                // Sources that are not required will be removed by RemoveEmptyPackageSourceElements
-                if (requiredSourceKeys.Contains(sourceKey))
+                // Get the source URL to check if it's safe to give it a wildcard pattern
+                var sourceElement = context.ExistingAdds
+                    .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                var sourceValue = (string?)sourceElement?.Attribute("value");
+                
+                // For user-defined sources that we want to preserve, give them wildcard patterns
+                // Only skip this for sources that we would remove anyway (like PR hives)
+                if (!IsSourceSafeToRemove(sourceKey, sourceValue))
                 {
-                    var sourceElement = new XElement("packageSource");
-                    sourceElement.SetAttributeValue("key", sourceKey);
+                    var packageSourceElement = new XElement("packageSource");
+                    packageSourceElement.SetAttributeValue("key", sourceKey);
                     
                     var wildcardPackage = new XElement("package");
                     wildcardPackage.SetAttributeValue("pattern", "*");
-                    sourceElement.Add(wildcardPackage);
+                    packageSourceElement.Add(wildcardPackage);
                     
-                    packageSourceMapping.Add(sourceElement);
+                    packageSourceMapping.Add(packageSourceElement);
                     sourcesInUse.Add(sourceKey);
                 }
             }
         }
+    }
+
+    private static bool IsSourceSafeToRemove(string sourceKey, string? sourceValue)
+    {
+        // Only remove sources that we know are tied to Aspire channels or PR hives
+        if (string.IsNullOrEmpty(sourceKey) && string.IsNullOrEmpty(sourceValue))
+        {
+            return false;
+        }
+
+        var urlToCheck = sourceValue ?? sourceKey;
+        
+        // Check if this is an Aspire PR hive
+        if (!string.IsNullOrEmpty(urlToCheck) && urlToCheck.Contains(".aspire") && urlToCheck.Contains("hives"))
+        {
+            return true;
+        }
+        
+        // Check if this is a known Microsoft/Azure DevOps feed that might be temporary
+        if (!string.IsNullOrEmpty(urlToCheck) && urlToCheck.Contains("pkgs.dev.azure.com"))
+        {
+            return true;
+        }
+        
+        // Don't remove other sources - they may be user-defined
+        return false;
     }
 
     private static void RemoveEmptyPackageSourceElements(
@@ -502,7 +510,7 @@ internal class NuGetConfigMerger
             var sourceKey = (string?)emptyElement.Attribute("key");
             emptyElement.Remove();
 
-            // Remove the corresponding source from packageSources if it's not in use elsewhere
+            // Only remove the corresponding source from packageSources if it's safe to remove and not in use elsewhere
             if (!string.IsNullOrEmpty(sourceKey) && !sourcesInUse.Contains(sourceKey))
             {
                 // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
@@ -515,12 +523,20 @@ internal class NuGetConfigMerger
                     var sourceToRemove = packageSources.Elements("add")
                         .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
-                    sourceToRemove?.Remove();
+                    
+                    if (sourceToRemove != null)
+                    {
+                        var sourceValue = (string?)sourceToRemove.Attribute("value");
+                        if (IsSourceSafeToRemove(sourceKey, sourceValue))
+                        {
+                            sourceToRemove.Remove();
+                        }
+                    }
                 }
             }
         }
 
-        // Also remove sources that have no packageSource elements at all and are not in use
+        // Also remove sources that have no packageSource elements at all and are not in use, but only if safe to remove
         var existingSourceKeys = packageSources.Elements("add")
             .Select(add => (string?)add.Attribute("key"))
             .Where(key => !string.IsNullOrEmpty(key))
@@ -549,7 +565,15 @@ internal class NuGetConfigMerger
                     var sourceToRemove = packageSources.Elements("add")
                         .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals((string?)add.Attribute("value"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase));
-                    sourceToRemove?.Remove();
+                    
+                    if (sourceToRemove != null)
+                    {
+                        var sourceValue = (string?)sourceToRemove.Attribute("value");
+                        if (IsSourceSafeToRemove(unmappedSourceKey, sourceValue))
+                        {
+                            sourceToRemove.Remove();
+                        }
+                    }
                 }
             }
         }
