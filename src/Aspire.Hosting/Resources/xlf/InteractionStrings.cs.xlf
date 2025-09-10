@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
         <source>Container runtime not installed</source>
-        <target state="needs-review-translation">Modul runtime kontejneru není nainstalovaný</target>
+        <target state="translated">Modul runtime kontejneru není nainstalovaný</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container runtime unhealthy</source>
-        <target state="needs-review-translation">Modul runtime kontejneru není ve stavu V pořádku</target>
+        <target state="translated">Modul runtime kontejneru není v pořádku</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">

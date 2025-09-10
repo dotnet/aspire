@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
         <source>Container runtime not installed</source>
-        <target state="needs-review-translation">コンテナー ランタイムがインストールされていません</target>
+        <target state="translated">コンテナー ランタイムがインストールされていません</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
         <source>Container runtime unhealthy</source>
-        <target state="needs-review-translation">異常なコンテナー ランタイム</target>
+        <target state="translated">異常なコンテナー ランタイム</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
