@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -49,60 +48,46 @@ internal sealed class FallbackProjectParser
             // Extract project references
             var projectReferences = ExtractProjectReferences(root, projectFile);
 
-            // Build the synthetic JSON structure
-            var jsonBuilder = new StringBuilder();
-            jsonBuilder.AppendLine("{");
+            // Build the synthetic JSON structure using JsonObject
+            var rootObject = new JsonObject();
             
             // Items section
-            jsonBuilder.AppendLine("  \"Items\": {");
+            var itemsObject = new JsonObject();
             
             // PackageReference items
-            jsonBuilder.AppendLine("    \"PackageReference\": [");
-            for (int i = 0; i < packageReferences.Length; i++)
+            var packageRefArray = new JsonArray();
+            foreach (var pkg in packageReferences)
             {
-                var pkg = packageReferences[i];
-                jsonBuilder.Append("      {");
-                jsonBuilder.Append(CultureInfo.InvariantCulture, $"\"Identity\": \"{EscapeJsonString(pkg.Identity)}\", ");
-                jsonBuilder.Append(CultureInfo.InvariantCulture, $"\"Version\": \"{EscapeJsonString(pkg.Version)}\"");
-                jsonBuilder.Append('}');
-                if (i < packageReferences.Length - 1)
-                {
-                    jsonBuilder.Append(',');
-                }
-                jsonBuilder.AppendLine();
+                var packageObj = new JsonObject();
+                packageObj["Identity"] = JsonValue.Create(pkg.Identity);
+                packageObj["Version"] = JsonValue.Create(pkg.Version);
+                packageRefArray.Add((JsonNode?)packageObj);
             }
-            jsonBuilder.AppendLine("    ],");
+            itemsObject["PackageReference"] = packageRefArray;
             
             // ProjectReference items
-            jsonBuilder.AppendLine("    \"ProjectReference\": [");
-            for (int i = 0; i < projectReferences.Length; i++)
+            var projectRefArray = new JsonArray();
+            foreach (var proj in projectReferences)
             {
-                var proj = projectReferences[i];
-                jsonBuilder.Append("      {");
-                jsonBuilder.Append(CultureInfo.InvariantCulture, $"\"Identity\": \"{EscapeJsonString(proj.Identity)}\", ");
-                jsonBuilder.Append(CultureInfo.InvariantCulture, $"\"FullPath\": \"{EscapeJsonString(proj.FullPath)}\"");
-                jsonBuilder.Append('}');
-                if (i < projectReferences.Length - 1)
-                {
-                    jsonBuilder.Append(',');
-                }
-                jsonBuilder.AppendLine();
+                var projectObj = new JsonObject();
+                projectObj["Identity"] = JsonValue.Create(proj.Identity);
+                projectObj["FullPath"] = JsonValue.Create(proj.FullPath);
+                projectRefArray.Add((JsonNode?)projectObj);
             }
-            jsonBuilder.AppendLine("    ]");
+            itemsObject["ProjectReference"] = projectRefArray;
             
-            jsonBuilder.AppendLine("  },");
+            rootObject["Items"] = itemsObject;
             
             // Properties section
-            jsonBuilder.AppendLine("  \"Properties\": {");
-            jsonBuilder.AppendLine(CultureInfo.InvariantCulture, $"    \"AspireHostingSDKVersion\": \"{EscapeJsonString(aspireHostingSdkVersion)}\"");
-            jsonBuilder.AppendLine("  },");
+            var propertiesObject = new JsonObject();
+            propertiesObject["AspireHostingSDKVersion"] = JsonValue.Create(aspireHostingSdkVersion);
+            rootObject["Properties"] = propertiesObject;
             
             // Fallback flag
-            jsonBuilder.AppendLine("  \"Fallback\": true");
-            jsonBuilder.AppendLine("}");
+            rootObject["Fallback"] = JsonValue.Create(true);
 
-            var json = jsonBuilder.ToString();
-            return JsonDocument.Parse(json);
+            // Convert JsonObject to JsonDocument
+            return JsonDocument.Parse(rootObject.ToJsonString());
         }
         catch (Exception ex)
         {
@@ -186,21 +171,6 @@ internal sealed class FallbackProjectParser
         }
 
         return projectReferences.ToArray();
-    }
-
-    private static string EscapeJsonString(string? value)
-    {
-        if (value is null)
-        {
-            return string.Empty;
-        }
-
-        return value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
     }
 }
 
