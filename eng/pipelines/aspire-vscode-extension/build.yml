@@ -16,7 +16,7 @@ jobs:
       outputs:
         - output: pipelineArtifact
           displayName: 📢 collect package artifact
-          targetPath: package
+          targetPath: $(Build.SourcesDirectory)/extension/package
           artifactName: package
     steps:
       - checkout: self
