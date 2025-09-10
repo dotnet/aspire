@@ -162,7 +162,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
+            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
@@ -239,7 +239,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    Console.WriteLine($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -247,7 +247,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    Console.WriteLine($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -263,15 +263,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    Console.WriteLine($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        Console.WriteLine($"[DEBUG]   {activity.Data.CompletionMessage}");
+                        _interactionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
                 }
             }
         }
@@ -282,7 +282,7 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            Console.WriteLine($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+            _interactionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
         }
 
         return !hasErrors;
