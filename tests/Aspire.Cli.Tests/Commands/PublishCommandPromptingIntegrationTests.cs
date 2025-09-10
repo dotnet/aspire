@@ -563,8 +563,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var promptCall = promptCalls[0];
 
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
-        // should be converted to Spectre markup with URL instead of text
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
+        // should be converted to Spectre markup preserving both link text and URL
+        var expectedSpectreMarkup = "[bold]Enter[/] the [grey][bold]config[/][/] value for [link=https://portal.azure.com]Azure Portal[/]:";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
