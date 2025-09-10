@@ -99,7 +99,7 @@ foreach ($argument in $PSBoundParameters.Keys)
     "configuration"          { $configuration = (Get-Culture).TextInfo.ToTitleCase($($PSBoundParameters[$argument])); $arguments += " -configuration $configuration" }
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
     "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
-    "buildExtension"         { $arguments += " -buildExtension" }
+    "buildExtension"         { if ($PSBoundParameters[$argument]) { $arguments += " -buildExtension" } }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
