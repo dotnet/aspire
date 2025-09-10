@@ -95,6 +95,26 @@ public sealed class ResourcesSelectHelpersTests
         Assert.Equal(OtlpResourceType.Singleton, app.Id!.Type);
     }
 
+    [Theory]
+    [InlineData("singleton-", "", true)]
+    [InlineData("singleton-", null, false)]
+    [InlineData("singleton", "", true)]
+    [InlineData("singleton", null, true)]
+    public void GetResource_EmptyOrNullInstanceId_GetInstance(string name, string? instanceId, bool found)
+    {
+        // Arrange
+        var appVMs = ResourcesSelectHelpers.CreateResources(new List<OtlpResource>
+        {
+            CreateOtlpResource(name: "singleton", instanceId: instanceId)
+        });
+
+        // Act
+        var app = appVMs.GetResource(NullLogger.Instance, name, canSelectGrouping: false, null!);
+
+        // Assert
+        Assert.Equal(found, app != null);
+    }
+
     [Fact]
     public void GetResource_NameDifferentByCase_Merge()
     {
