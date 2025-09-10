@@ -13,7 +13,7 @@ app.MapGet("/", async (IHttpClientFactory httpClientFactory) =>
 {
     var http = httpClientFactory.CreateClient("frontend");
     var response = await http.GetAsync("/");
-    var contentLength = response.Content.Headers.ContentLength ?? response.Content.ReadAsStringAsync().Result.Length;
+    var contentLength = response.Content.Headers.ContentLength ?? (await response.Content.ReadAsStringAsync()).Length;
     return new
     {
         url = response.RequestMessage?.RequestUri?.ToString(),
