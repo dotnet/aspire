@@ -147,7 +147,7 @@ public sealed class TelemetryRepository : IDisposable
 
     public List<OtlpResource> GetResources(ResourceKey key, bool includeUninstrumentedPeers = false)
     {
-        if (key.InstanceId == null)
+        if (string.IsNullOrEmpty(key.InstanceId))
         {
             return GetResourcesByName(key.Name, includeUninstrumentedPeers: includeUninstrumentedPeers);
         }

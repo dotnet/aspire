@@ -88,18 +88,27 @@ public sealed class ResourcesSelectHelpersTests
             {
                 Assert.Equal("NAME-instanceabc", app.Name);
                 Assert.Equal(OtlpResourceType.Instance, app.Id!.Type);
-                Assert.Equal("name-instanceabc", app.Id!.InstanceId);
+                Assert.Equal("NAME-instanceabc", app.Id!.InstanceId);
             });
 
         var testSink = new TestSink();
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
+        var logger = factory.CreateLogger("Test");
 
         // Act
-        var app = appVMs.GetResource(factory.CreateLogger("Test"), "name-instance", canSelectGrouping: false, null!);
+        var app1 = appVMs.GetResource(logger, "name-instance", canSelectGrouping: false, null!);
 
         // Assert
-        Assert.Equal("name-instance", app.Id!.InstanceId);
-        Assert.Equal(OtlpResourceType.Instance, app.Id!.Type);
+        Assert.Equal("name-instance", app1.Id!.InstanceId);
+        Assert.Equal(OtlpResourceType.Instance, app1.Id!.Type);
+        Assert.Empty(testSink.Writes);
+
+        // Act
+        var app2 = appVMs.GetResource(logger, "name-instanceabc", canSelectGrouping: false, null!);
+
+        // Assert
+        Assert.Equal("NAME-instanceabc", app2.Id!.InstanceId);
+        Assert.Equal(OtlpResourceType.Instance, app2.Id!.Type);
         Assert.Empty(testSink.Writes);
     }
 

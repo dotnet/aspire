@@ -45,7 +45,7 @@ public readonly record struct ResourceKey(string Name, string? InstanceId) : ICo
             return c;
         }
 
-        return string.Compare(InstanceId, other.InstanceId, StringComparisons.ResourceName);
+        return string.Compare(InstanceId ?? string.Empty, other.InstanceId ?? string.Empty, StringComparisons.ResourceName);
     }
 
     public bool EqualsCompositeName(string name)
@@ -55,7 +55,7 @@ public readonly record struct ResourceKey(string Name, string? InstanceId) : ICo
             return false;
         }
 
-        if (InstanceId != null)
+        if (!string.IsNullOrEmpty(InstanceId))
         {
             // Composite name has the format "{Name}-{InstanceId}".
             if (name.Length != Name.Length + InstanceId.Length + 1)
@@ -88,7 +88,7 @@ public readonly record struct ResourceKey(string Name, string? InstanceId) : ICo
 
     public override string ToString()
     {
-        if (InstanceId == null)
+        if (string.IsNullOrEmpty(InstanceId))
         {
             return Name;
         }
