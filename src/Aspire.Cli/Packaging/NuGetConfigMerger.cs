@@ -227,8 +227,22 @@ internal class NuGetConfigMerger
                         patternsToAdd.Add((pattern, newSource));
                     }
                 }
-                // NOTE: We don't remove patterns just because there's a wildcard mapping to a different source
-                // Specific patterns should stay with their original sources unless explicitly remapped
+                // Check if this pattern is made redundant by a wildcard mapping to a different source
+                else if (patternToNewSource.TryGetValue("*", out var wildcardSource))
+                {
+                    // Determine the key that will be used for the wildcard source
+                    var wildcardKey = urlToExistingKey.TryGetValue(wildcardSource, out var wildcardExistingKey) ? wildcardExistingKey : wildcardSource;
+                    
+                    if (!string.Equals(sourceKey, wildcardKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // This pattern is redundant because wildcard covers it and goes to a different source
+                        // Remove it only if the pattern is not a wildcard itself (specific patterns can be redundant)
+                        if (pattern != "*")
+                        {
+                            elementsToRemove.Add(packageElement);
+                        }
+                    }
+                }
             }
 
             // Remove patterns that need to be moved
@@ -441,16 +455,49 @@ internal class NuGetConfigMerger
 
             var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithPatterns, StringComparer.OrdinalIgnoreCase).ToArray();
             
-            // Add wildcard pattern to existing sources that have NO patterns at all
-            // This preserves their functionality when package source mapping is present
+            // Only add wildcard patterns to sources that originally had NO patterns at all
+            // Sources that had patterns but lost them due to remapping should be removed entirely
+            
+            // Check the original packageSourceMapping to see which sources had patterns originally
+            var originalSourcesWithPatterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var originalPsm = context.PackageSourceMapping;
+            if (originalPsm != null)
+            {
+                foreach (var ps in originalPsm.Elements("packageSource"))
+                {
+                    var originalSourceKey = (string?)ps.Attribute("key");
+                    if (!string.IsNullOrEmpty(originalSourceKey) && ps.Elements("package").Any())
+                    {
+                        // Add the original key
+                        originalSourcesWithPatterns.Add(originalSourceKey);
+                        
+                        // Also add the proper key if this was a URL-based key
+                        if (context.UrlToExistingKey.TryGetValue(originalSourceKey, out var properKey))
+                        {
+                            originalSourcesWithPatterns.Add(properKey);
+                        }
+                    }
+                }
+            }
+            
+            // Only give wildcard patterns to sources that:
+            // 1. Have no patterns now
+            // 2. Originally had no patterns either (were unmapped before)
+            // 3. Are not safe to remove (user-defined sources)
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
+                // Skip sources that originally had patterns - they should be removed if they're now empty
+                if (originalSourcesWithPatterns.Contains(sourceKey))
+                {
+                    continue;
+                }
+                
                 // Get the source URL to check if it's safe to give it a wildcard pattern
                 var sourceElement = context.ExistingAdds
                     .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
                 var sourceValue = (string?)sourceElement?.Attribute("value");
                 
-                // For user-defined sources that we want to preserve, give them wildcard patterns
+                // For user-defined sources that originally had no patterns, give them wildcard patterns
                 // Only skip this for sources that we would remove anyway (like PR hives)
                 if (!IsSourceSafeToRemove(sourceKey, sourceValue))
                 {
@@ -510,7 +557,9 @@ internal class NuGetConfigMerger
             var sourceKey = (string?)emptyElement.Attribute("key");
             emptyElement.Remove();
 
-            // Only remove the corresponding source from packageSources if it's safe to remove and not in use elsewhere
+            // Remove the corresponding source from packageSources if it's not in use elsewhere
+            // For empty package source elements, we remove the source regardless of whether it's "safe to remove"
+            // because an empty package source element means the source is no longer serving any patterns
             if (!string.IsNullOrEmpty(sourceKey) && !sourcesInUse.Contains(sourceKey))
             {
                 // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
@@ -523,15 +572,7 @@ internal class NuGetConfigMerger
                     var sourceToRemove = packageSources.Elements("add")
                         .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (sourceToRemove != null)
-                    {
-                        var sourceValue = (string?)sourceToRemove.Attribute("value");
-                        if (IsSourceSafeToRemove(sourceKey, sourceValue))
-                        {
-                            sourceToRemove.Remove();
-                        }
-                    }
+                    sourceToRemove?.Remove();
                 }
             }
         }
