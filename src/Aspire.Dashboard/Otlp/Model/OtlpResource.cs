@@ -281,12 +281,12 @@ public class OtlpResource
                         instanceId = chars.Slice(0, 8).ToString();
                     }
 
-                    if (!string.IsNullOrEmpty(instanceId))
+                    if (instanceId == null)
                     {
-                        return $"{item.ResourceName}-{instanceId}";
+                        return item.ResourceName;
                     }
 
-                    return item.ResourceName;
+                    return $"{item.ResourceName}-{instanceId}";
                 }
             }
         }
