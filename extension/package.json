@@ -24,13 +24,13 @@
     "apphost"
   ],
   "activationEvents": [
-  "onDebug",
-  "onDebugResolve:aspire",
-  "onDebugInitialConfigurations:aspire",
-  "onDebugDynamicConfigurations:aspire",
-  "workspaceContains:**/*.csproj",
-  "onStartupFinished",
-  "onView:workbench.view.debug"
+    "onDebug",
+    "onDebugResolve:aspire",
+    "onDebugInitialConfigurations:aspire",
+    "onDebugDynamicConfigurations:aspire",
+    "workspaceContains:**/*.csproj",
+    "onStartupFinished",
+    "onView:workbench.view.debug"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -40,7 +40,9 @@
         "label": "Aspire",
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -61,16 +63,15 @@
               "program": "${workspaceFolder}"
             }
           }
+        ],
+        "initialConfigurations": [
+          {
+            "type": "aspire",
+            "request": "launch",
+            "name": "%extension.debug.defaultConfiguration.name%",
+            "program": "${workspaceFolder}"
+          }
         ]
-         ,
-         "initialConfigurations": [
-           {
-             "type": "aspire",
-             "request": "launch",
-             "name": "%extension.debug.defaultConfiguration.name%",
-             "program": "${workspaceFolder}"
-           }
-         ]
       }
     ],
     "commands": [
