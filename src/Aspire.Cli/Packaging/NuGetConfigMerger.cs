@@ -246,20 +246,6 @@ internal class NuGetConfigMerger
                         elementsToRemove.Add(packageElement);
                     }
                 }
-                // Check if this pattern is made redundant by a wildcard mapping to a different source
-                else if (patternToNewSource.TryGetValue("*", out var wildcardSource) && pattern != "*")
-                {
-                    // Determine the key that will be used for the wildcard source
-                    var wildcardKey = urlToExistingKey.TryGetValue(wildcardSource, out var wildcardExistingKey) ? wildcardExistingKey : wildcardSource;
-                    
-                    if (!string.Equals(sourceKey, wildcardKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // This specific pattern is redundant because wildcard covers it and goes to a different source
-                        // But only remove it if it's not being preserved intentionally
-                        // For now, be conservative and don't remove patterns covered by wildcards
-                        // unless they are explicitly remapped
-                    }
-                }
             }
 
             // Remove patterns that need to be moved
