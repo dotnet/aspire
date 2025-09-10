@@ -58,7 +58,7 @@
     .\get-aspire-cli-pr.ps1 1234 -WhatIf
 
 .EXAMPLE
-    .\get-aspire-cli-pr.ps1 1234 -SkipExtensionInstall
+    .\get-aspire-cli-pr.ps1 1234 -SkipExtension
 
 .EXAMPLE
     .\get-aspire-cli-pr.ps1 1234 -UseInsiders
@@ -102,7 +102,7 @@ param(
     [switch]$HiveOnly,
 
     [Parameter(HelpMessage = "Skip VS Code extension download and installation")]
-    [switch]$SkipExtensionInstall,
+    [switch]$SkipExtension,
 
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
@@ -1013,10 +1013,10 @@ function Start-DownloadAndInstall {
 
     # Download VS Code extension if not skipped
     $extensionDownloadDir = $null
-    if (-not $SkipExtensionInstall) {
+    if (-not $SkipExtension) {
         $extensionDownloadDir = Get-AspireExtensionFromArtifact -RunId $runId -TempDir $TempDir
     } else {
-        Write-Message "Skipping VS Code extension download due to -SkipExtensionInstall flag" -Level Info
+        Write-Message "Skipping VS Code extension download due to -SkipExtension flag" -Level Info
     }
 
     # Then, install artifacts
@@ -1029,7 +1029,7 @@ function Start-DownloadAndInstall {
     Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
 
     # Install VS Code extension if downloaded
-    if ($extensionDownloadDir -and -not $SkipExtensionInstall) {
+    if ($extensionDownloadDir -and -not $SkipExtension) {
         if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
             Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir -UseInsiders:$UseInsiders
         }
