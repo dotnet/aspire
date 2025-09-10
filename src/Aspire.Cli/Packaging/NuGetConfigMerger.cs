@@ -437,20 +437,39 @@ internal class NuGetConfigMerger
                 .Cast<string>()
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+            // Create a set of required source keys (including both direct keys and URL-mapped keys)
+            var requiredSourceKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var requiredSource in context.RequiredSources)
+            {
+                // Add the source URL itself as a potential key
+                requiredSourceKeys.Add(requiredSource);
+                // Add any existing key that maps to this source URL
+                if (context.UrlToExistingKey.TryGetValue(requiredSource, out var existingKey))
+                {
+                    requiredSourceKeys.Add(existingKey);
+                }
+            }
+
             var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithPatterns, StringComparer.OrdinalIgnoreCase).ToArray();
             
-            // Add wildcard pattern only to sources that have NO patterns at all
+            // Add wildcard pattern to existing sources that have NO patterns at all
+            // BUT only if they are either required by the new mappings OR if they would otherwise remain functional
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
-                var sourceElement = new XElement("packageSource");
-                sourceElement.SetAttributeValue("key", sourceKey);
-                
-                var wildcardPackage = new XElement("package");
-                wildcardPackage.SetAttributeValue("pattern", "*");
-                sourceElement.Add(wildcardPackage);
-                
-                packageSourceMapping.Add(sourceElement);
-                sourcesInUse.Add(sourceKey);
+                // Only add wildcard to sources that are required by the new mappings
+                // Sources that are not required will be removed by RemoveEmptyPackageSourceElements
+                if (requiredSourceKeys.Contains(sourceKey))
+                {
+                    var sourceElement = new XElement("packageSource");
+                    sourceElement.SetAttributeValue("key", sourceKey);
+                    
+                    var wildcardPackage = new XElement("package");
+                    wildcardPackage.SetAttributeValue("pattern", "*");
+                    sourceElement.Add(wildcardPackage);
+                    
+                    packageSourceMapping.Add(sourceElement);
+                    sourcesInUse.Add(sourceKey);
+                }
             }
         }
     }
@@ -484,6 +503,40 @@ internal class NuGetConfigMerger
                     var sourceToRemove = packageSources.Elements("add")
                         .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                    sourceToRemove?.Remove();
+                }
+            }
+        }
+
+        // Also remove sources that have no packageSource elements at all and are not in use
+        var existingSourceKeys = packageSources.Elements("add")
+            .Select(add => (string?)add.Attribute("key"))
+            .Where(key => !string.IsNullOrEmpty(key))
+            .Cast<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var sourcesWithMappings = packageSourceMapping.Elements("packageSource")
+            .Select(ps => (string?)ps.Attribute("key"))
+            .Where(key => !string.IsNullOrEmpty(key))
+            .Cast<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var unmappedSources = existingSourceKeys.Except(sourcesWithMappings, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        foreach (var unmappedSourceKey in unmappedSources)
+        {
+            if (!sourcesInUse.Contains(unmappedSourceKey))
+            {
+                // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
+                var isUsedByExistingKey = urlToExistingKey.Any(kvp => 
+                    string.Equals(kvp.Key, unmappedSourceKey, StringComparison.OrdinalIgnoreCase) && 
+                    sourcesInUse.Contains(kvp.Value));
+                    
+                if (!isUsedByExistingKey)
+                {
+                    var sourceToRemove = packageSources.Elements("add")
+                        .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals((string?)add.Attribute("value"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase));
                     sourceToRemove?.Remove();
                 }
             }

@@ -398,10 +398,13 @@ public class NuGetConfigMergerTests
         Assert.NotNull(nugetMapping);
         Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
 
-        // hexesoft should also get the "*" pattern since it had no explicit patterns
+        // hexesoft is not required by the new mappings, so it should NOT get any patterns
+        // and should be removed entirely
         var hexesoftMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "hexesoft");
-        Assert.NotNull(hexesoftMapping);
-        Assert.Contains(hexesoftMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+        Assert.Null(hexesoftMapping);
+        
+        // hexesoft should also be removed from packageSources since it's not needed
+        Assert.DoesNotContain(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "hexesoft");
 
         // dotnet9 should keep its specific patterns and NOT get "*" since it already has specific patterns
         var dotnet9Mapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "dotnet9");
@@ -534,6 +537,78 @@ public class NuGetConfigMergerTests
         Assert.NotNull(aspireMapping);
         Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
         Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_RemovesUnrequiredSources_InsteadOfAddingWildcardPattern()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Existing config with an old source that should be removed and a valid source that should also be removed
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <add key="https://valid.example" value="https://valid.example" />
+                    <add key="C:\Users\user\.aspire\hives\invalid-pr" value="C:\Users\user\.aspire\hives\invalid-pr" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="https://valid.example">
+                        <package pattern="ValidPkg*" />
+                    </packageSource>
+                    <packageSource key="C:\Users\user\.aspire\hives\invalid-pr">
+                        <package pattern="Aspire*" />
+                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """);
+
+        // New mappings that remap Aspire patterns to nuget.org and add a wildcard
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json"),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://api.nuget.org/v3/index.json"),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // Both the invalid local source and the valid source should be completely removed 
+        // because they are not required by the new mappings
+        Assert.DoesNotContain(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
+        Assert.DoesNotContain(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "https://valid.example");
+        
+        // NuGet.org should be added for all the patterns
+        Assert.Contains(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "https://api.nuget.org/v3/index.json");
+
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // Neither of the old sources should have any mapping entries
+        Assert.DoesNotContain(psm.Elements("packageSource"), 
+            ps => (string?)ps.Attribute("key") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
+        Assert.DoesNotContain(psm.Elements("packageSource"), 
+            ps => (string?)ps.Attribute("key") == "https://valid.example");
+        
+        // NuGet.org should have all the patterns
+        var nugetMapping = psm.Elements("packageSource")
+            .FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://api.nuget.org/v3/index.json");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+        
+        // There should be only one packageSource element (for nuget.org)
+        Assert.Single(psm.Elements("packageSource"));
     }
 
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
