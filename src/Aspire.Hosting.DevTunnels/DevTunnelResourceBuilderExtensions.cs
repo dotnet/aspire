@@ -192,11 +192,34 @@ public static partial class DevTunnelsResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds ports on the dev tunnel for all endpoints found on the referenced resource and sets whether anonymous access is allowed.
+    /// </summary>
+    /// <param name="tunnelBuilder">The resource builder.</param>
+    /// <param name="resourceBuilder">The resource builder for the referenced resource.</param>
+    /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
+        this IResourceBuilder<DevTunnelResource> tunnelBuilder,
+        IResourceBuilder<TResource> resourceBuilder,
+        bool allowAnonymous)
+        where TResource : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+
+        return tunnelBuilder.WithReference(resourceBuilder, new DevTunnelPortOptions { AllowAnonymous = allowAnonymous });
+    }
+
+    /// <summary>
     /// Adds ports on the dev tunnel for all endpoints found on the referenced resource.
     /// </summary>
     /// <remarks>
     /// To expose only specific endpoints on the referenced resource, use <see cref="WithReference(IResourceBuilder{DevTunnelResource}, EndpointReference, DevTunnelPortOptions?)"/>.
     /// </remarks>
+    /// <param name="tunnelBuilder">The resource builder.</param>
+    /// <param name="resourceBuilder">The resource builder for the referenced resource.</param>
+    /// <param name="portOptions">Options for the dev tunnel ports.</param>
+    /// <returns>The resource builder.</returns>
     public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         IResourceBuilder<TResource> resourceBuilder,
@@ -225,6 +248,19 @@ public static partial class DevTunnelsResourceBuilderExtensions
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint)
         => tunnelBuilder.WithReference(targetEndpoint, portOptions: null);
+
+    /// <summary>
+    /// Exposes the specified endpoint via the dev tunnel and sets whether anonymous access is allowed.
+    /// </summary>
+    /// <param name="tunnelBuilder">The resource builder.</param>
+    /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
+    /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<DevTunnelResource> WithReference(
+        this IResourceBuilder<DevTunnelResource> tunnelBuilder,
+        EndpointReference targetEndpoint,
+        bool allowAnonymous)
+        => tunnelBuilder.WithReference(targetEndpoint, new DevTunnelPortOptions { AllowAnonymous = allowAnonymous });
 
     /// <summary>
     /// Exposes the specified endpoint via the dev tunnel.

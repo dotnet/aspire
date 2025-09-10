@@ -43,5 +43,5 @@ internal sealed record DevTunnelAccessStatus
 {
     public IReadOnlyList<AccessControlEntry> AccessControlEntries { get; init; } = [];
 
-    public sealed record AccessControlEntry(string Type, IReadOnlyList<string> Subjects, IReadOnlyList<string> Scopes);
+    public sealed record AccessControlEntry(string Type, bool IsDeny, bool IsInherited, IReadOnlyList<string> Subjects, IReadOnlyList<string> Scopes);
 }

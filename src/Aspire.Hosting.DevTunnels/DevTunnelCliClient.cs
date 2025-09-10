@@ -25,21 +25,26 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
 
             // Reset the access controls to match the updated options
             (var access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
-                (stdout, stderr, ct) => _cli.ResetAccessAsync(tunnelId, stdout, stderr, ct),
+                (stdout, stderr, ct) => _cli.ResetAccessAsync(tunnelId, /* port */ null, stdout, stderr, ct),
                 cancellationToken).ConfigureAwait(false);
 
             if (options.AllowAnonymous)
             {
+                var anonymous = true;
+                var deny = false;
                 (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
-                    (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, /* port */ null, /* anonymous */ true, /* deny */ false, stdout, stderr, ct),
+                    (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, /* port */ null, anonymous, deny, stdout, stderr, ct),
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // Do the update
-            (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
-                (stdout, stderr, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, ct),
-                "tunnel",
-                cancellationToken).ConfigureAwait(false);
+            if (exitCode == 0)
+            {
+                // Do the update
+                (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                    (stdout, stderr, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, ct),
+                    "tunnel",
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
 
         return tunnel ?? throw new DistributedApplicationException($"Failed to create tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
@@ -57,16 +62,49 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
     public async Task<DevTunnelPortStatus> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, CancellationToken cancellationToken = default)
     {
         var (port, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortStatus>(
-            (stdout, stderr, ct) => _cli.UpdatePortAsync(tunnelId, portNumber, options, stdout, stderr, ct),
-            "port",
-            cancellationToken).ConfigureAwait(false);
-
-        if (exitCode == DevTunnelCli.ResourceNotFoundExitCode)
-        {
-            // Port does not exist, create it
-            (port, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortStatus>(
                 (outWriter, errWriter, ct) => _cli.CreatePortAsync(tunnelId, portNumber, options, outWriter, errWriter, ct),
                 cancellationToken).ConfigureAwait(false);
+
+        if (exitCode == 0)
+        {
+            if (options.AllowAnonymous.HasValue)
+            {
+                // AllowAnonymous=true: anonymous=true, deny=false
+                // AllowAnonymous=false: anonymous=true, deny=true
+                var anonymous = true;
+                var deny = !options.AllowAnonymous.Value;
+                (var access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+                    (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, portNumber, anonymous, deny, stdout, stderr, ct),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        else if (exitCode == DevTunnelCli.ResourceConflictsWithExistingExitCode)
+        {
+            // Port already exists
+
+            // Reset the access controls to match the updated options
+            (var access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+                (stdout, stderr, ct) => _cli.ResetAccessAsync(tunnelId, portNumber, stdout, stderr, ct),
+                cancellationToken).ConfigureAwait(false);
+
+            if (options.AllowAnonymous.HasValue)
+            {
+                // AllowAnonymous=true: anonymous=true, deny=false
+                // AllowAnonymous=false: anonymous=true, deny=true
+                var anonymous = true;
+                var deny = !options.AllowAnonymous.Value;
+                (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+                    (stdout, stderr, ct) => _cli.CreateAccessAsync(tunnelId, portNumber, anonymous, deny, stdout, stderr, ct),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            if (exitCode == 0)
+            {
+                (port, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortStatus>(
+                    (stdout, stderr, ct) => _cli.UpdatePortAsync(tunnelId, portNumber, options, stdout, stderr, ct),
+                    "port",
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
 
         return port ?? throw new DistributedApplicationException($"Failed to create port '{portNumber}' for tunnel '{tunnelId}'. Exit code {exitCode}: {error}");

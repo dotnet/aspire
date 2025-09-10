@@ -77,11 +77,13 @@ internal sealed class DevTunnelCli
 
     public Task<int> ResetAccessAsync(
         string tunnelId,
+        int? portNumber = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
         CancellationToken cancellationToken = default)
     {
         return RunAsync(new ArgsBuilder(["access", "reset", tunnelId])
+            .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
             .Add("--json")
             .Add("--nologo")
         , outputWriter, errorWriter, cancellationToken);
@@ -103,8 +105,8 @@ internal sealed class DevTunnelCli
 
         return RunAsync(new ArgsBuilder(["access", "create", tunnelId])
             .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
-            .AddIfTrue("--deny", deny && !anonymous)
-            .AddIfTrue("--anonymous", anonymous && !deny)
+            .AddIfTrue("--deny", deny)
+            .AddIfTrue("--anonymous", anonymous)
             .Add("--json")
             .Add("--nologo")
         , outputWriter, errorWriter, cancellationToken);

@@ -35,6 +35,11 @@ public sealed class DevTunnelPortOptions
     public string? Description { get; set; }
 
     /// <summary>
+    /// Whether to allow anonymous access to this port. If <c>null</c>, defaults to the parent tunnel's setting. Defaults to <c>null</c>.
+    /// </summary>
+    public bool? AllowAnonymous { get; set; }
+
+    /// <summary>
     /// Protocol type to expose. "http", "https", or "auto". Defaults to match scheme of exposed endpoint.
     /// </summary>
     public string? Protocol { get; set; }
