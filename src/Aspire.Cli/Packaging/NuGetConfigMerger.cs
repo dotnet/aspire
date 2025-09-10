@@ -182,7 +182,7 @@ internal class NuGetConfigMerger
         AddNewPatterns(packageSourceMapping, context, sourcesInUse);
         FixUrlBasedPackageSourceKeys(packageSourceMapping, context.UrlToExistingKey, sourcesInUse);
         HandleWildcardMappingForExistingSources(packageSourceMapping, context, sourcesInUse);
-        RemoveEmptyPackageSourceElements(packageSourceMapping, context.PackageSources, context.UrlToExistingKey, sourcesInUse);
+        RemoveEmptyPackageSourceElements(packageSourceMapping, context.PackageSources, context.UrlToExistingKey, sourcesInUse, context);
     }
 
     private static List<(string pattern, string newSource)> RemapExistingPatterns(
@@ -225,6 +225,22 @@ internal class NuGetConfigMerger
                         // This pattern needs to be moved to the new source
                         elementsToRemove.Add(packageElement);
                         patternsToAdd.Add((pattern, newSource));
+                    }
+                }
+                // If the pattern is not defined in the new mappings, remove it if the source should not keep obsolete patterns
+                else if (!patternToNewSource.ContainsKey(pattern))
+                {
+                    // Get the source URL to check if this source should keep obsolete patterns
+                    var sourceElement = urlToExistingKey.FirstOrDefault(kvp => string.Equals(kvp.Value, sourceKey, StringComparison.OrdinalIgnoreCase));
+                    var sourceValue = sourceElement.Key ?? sourceKey;
+                    
+                    // Remove patterns that are not in the new mappings if:
+                    // 1. The source is safe to remove (like a PR hive), OR
+                    // 2. The source is Microsoft-controlled and the pattern is not a wildcard (we don't want obsolete specific patterns)
+                    if (IsSourceSafeToRemove(sourceKey, sourceValue) || 
+                        (IsMicrosoftControlledSource(sourceKey, sourceValue) && pattern != "*"))
+                    {
+                        elementsToRemove.Add(packageElement);
                     }
                 }
                 // Check if this pattern is made redundant by a wildcard mapping to a different source
@@ -482,6 +498,7 @@ internal class NuGetConfigMerger
             // 1. Have no patterns now
             // 2. Originally had no patterns either (were unmapped before) OR still have some patterns left
             // 3. Are not safe to remove (user-defined sources)
+            // 4. Are required by the current channel OR are not Microsoft-controlled sources
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
                 // Get the source URL to check if it's safe to give it a wildcard pattern
@@ -489,9 +506,15 @@ internal class NuGetConfigMerger
                     .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
                 var sourceValue = (string?)sourceElement?.Attribute("value");
                 
+                // Check if this source is required by the current channel
+                var isRequiredByCurrentChannel = context.RequiredSources.Contains(sourceKey, StringComparer.OrdinalIgnoreCase) ||
+                                               context.RequiredSources.Contains(sourceValue ?? "", StringComparer.OrdinalIgnoreCase);
+                
                 // For user-defined sources, give them wildcard patterns to remain functional
-                // Only skip this for sources that we would remove anyway (like PR hives)
-                if (!IsSourceSafeToRemove(sourceKey, sourceValue))
+                // Only skip this for sources that we would remove anyway (like PR hives) OR
+                // Microsoft-controlled sources that are not required by the current channel
+                if (!IsSourceSafeToRemove(sourceKey, sourceValue) && 
+                    (isRequiredByCurrentChannel || !IsMicrosoftControlledSource(sourceKey, sourceValue)))
                 {
                     var packageSourceElement = new XElement("packageSource");
                     packageSourceElement.SetAttributeValue("key", sourceKey);
@@ -604,7 +627,8 @@ internal class NuGetConfigMerger
         XElement packageSourceMapping,
         XElement packageSources,
         Dictionary<string, string> urlToExistingKey,
-        HashSet<string> sourcesInUse)
+        HashSet<string> sourcesInUse,
+        NuGetConfigContext context)
     {
         // Fifth pass: Remove empty packageSource elements and their corresponding sources from packageSources
         var emptyPackageSourceElements = packageSourceMapping.Elements("packageSource")
@@ -669,7 +693,16 @@ internal class NuGetConfigMerger
                     if (sourceToRemove != null)
                     {
                         var sourceValue = (string?)sourceToRemove.Attribute("value");
-                        if (IsSourceSafeToRemove(unmappedSourceKey, sourceValue))
+                        
+                        // Check if this source is required by the current channel
+                        var isRequiredByCurrentChannel = context.RequiredSources.Contains(unmappedSourceKey, StringComparer.OrdinalIgnoreCase) ||
+                                                       context.RequiredSources.Contains(sourceValue ?? "", StringComparer.OrdinalIgnoreCase);
+                        
+                        // Remove the source if:
+                        // 1. It's safe to remove (PR hives, Aspire feeds), OR
+                        // 2. It's a Microsoft-controlled source that's not required by the current channel
+                        if (IsSourceSafeToRemove(unmappedSourceKey, sourceValue) ||
+                            (IsMicrosoftControlledSource(unmappedSourceKey, sourceValue) && !isRequiredByCurrentChannel))
                         {
                             sourceToRemove.Remove();
                         }
@@ -731,16 +764,26 @@ internal class NuGetConfigMerger
         var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithNewMappings, StringComparer.OrdinalIgnoreCase).ToArray();
         
         // Add wildcard pattern to existing sources that don't have any patterns to preserve their original functionality
+        // Only exclude PR hives that are not the current target
         foreach (var sourceKey in sourcesWithoutAnyPatterns)
         {
-            var sourceElement = new XElement("packageSource");
-            sourceElement.SetAttributeValue("key", sourceKey);
+            // Get the source URL to check if it should get a wildcard pattern
+            var sourceElement = context.ExistingAdds
+                .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+            var sourceValue = (string?)sourceElement?.Attribute("value");
             
-            var wildcardPackage = new XElement("package");
-            wildcardPackage.SetAttributeValue("pattern", "*");
-            sourceElement.Add(wildcardPackage);
-            
-            packageSourceMapping.Add(sourceElement);
+            // Only exclude PR hives and Aspire-specific feeds that are not the current target
+            if (!IsSourceSafeToRemove(sourceKey, sourceValue))
+            {
+                var packageSourceElement = new XElement("packageSource");
+                packageSourceElement.SetAttributeValue("key", sourceKey);
+                
+                var wildcardPackage = new XElement("package");
+                wildcardPackage.SetAttributeValue("pattern", "*");
+                packageSourceElement.Add(wildcardPackage);
+                
+                packageSourceMapping.Add(packageSourceElement);
+            }
         }
     }
 
