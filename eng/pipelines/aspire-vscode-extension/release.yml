@@ -68,14 +68,6 @@ extends:
             scriptLocation: inlineScript
             workingDirectory: '$(Pipeline.Workspace)/CI/package'
             inlineScript: |
-              Write-Host "=== Directory Contents ==="
-              Get-ChildItem | Format-Table -AutoSize
-
-              Write-Host "=== VSIX Files Found ==="
-              Get-ChildItem *.vsix | ForEach-Object {
-                Write-Host "  $($_.Name) - $([math]::Round($_.Length/1MB, 2)) MB"
-              }
-
               $basePublishArgs = ,'publish'
               $basePublishArgs += '--azure-credential'
 
