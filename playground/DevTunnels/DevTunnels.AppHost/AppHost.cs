@@ -6,16 +6,16 @@ var builder = DistributedApplication.CreateBuilder(args);
 var api = builder.AddProject<Projects.ApiService>("api");
 var frontend = builder.AddProject<Projects.WebFrontEnd>("frontend");
 
-// var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
-//     .WithAnonymousAccess()
-//     .WithReference(frontend.GetEndpoint("https"));
+var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
+    .WithAnonymousAccess() // All ports on this tunnel default to allowing anonymous access
+    .WithReference(frontend.GetEndpoint("https"));
 
 var privateDevTunnel = builder.AddDevTunnel("devtunnel")
-    .WithAnonymousAccess()
-    .WithReference(frontend.GetEndpoint("https"), allowAnonymous: false);
+    .WithReference(frontend.GetEndpoint("https"))
+    .WithReference(api.GetEndpoint("https"));
 
 // Inject the public dev tunnel endpoint for frontend into the API service
-api.WithReference(frontend, privateDevTunnel);
+api.WithReference(frontend, publicDevTunnel);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

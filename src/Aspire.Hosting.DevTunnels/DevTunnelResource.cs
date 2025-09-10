@@ -29,6 +29,8 @@ public sealed class DevTunnelResource(string name, string tunnelId, string comma
     internal List<DevTunnelPortResource> Ports { get; } = [];
 
     internal DevTunnelStatus? LastKnownStatus { get; set; }
+
+    internal DevTunnelAccessStatus? LastKnownAccessStatus { get; set; }
 }
 
 /// <summary>
@@ -92,4 +94,6 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     internal Task TargetEndpointAllocatedTask => TargetEndpointAllocatedTcs.Task;
 
     internal DevTunnelStatus.DevTunnelPort? LastKnownStatus { get; set; }
+
+    internal DevTunnelAccessStatus? LastKnownAccessStatus { get; set; }
 }

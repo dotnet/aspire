@@ -167,7 +167,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                                 ct)
                             .ConfigureAwait(false);
 
-                        portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'.", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
+                        portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
                     }
                     catch (Exception ex)
                     {
@@ -406,11 +406,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
             {
                 var urls = context.Urls;
 
-                // Remove the port from the tunnel URL since the dev tunnels service always uses 443 for HTTPS
+                // Remove the port and trailing slash from the tunnel URL since the dev tunnels service always uses 443 for HTTPS
                 if (urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
                                              && !string.Equals(new UriBuilder(u.Url).Host, "localhost")) is { } tunnelUrl)
                 {
-                    tunnelUrl.Url = new UriBuilder(tunnelUrl.Url).Uri.ToString();
+                    tunnelUrl.Url = new UriBuilder(tunnelUrl.Url).Uri.ToString().TrimEnd('/');
                 }
 
                 // Remove the localhost version of the tunnel URL that's added by the central endpoint URL logic
@@ -473,7 +473,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 return Task.CompletedTask;
             }
 
-            portLogger.LogDebug("Target resource endpoints allocated.");
+            portLogger.LogDebug("Target resource endpoints allocated");
 
             // We do this check now so that we're verifying the allocated endpoint's address
             if (!string.Equals(portResource.TargetEndpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
@@ -511,7 +511,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var notifications = services.GetRequiredService<ResourceNotificationService>();
 
                 // Mark the port as starting
-                await eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, services), ct).ConfigureAwait(false);
+                await eventing.PublishAsync<BeforeResourceStartedEvent>(new(portResource, services), EventDispatchBehavior.NonBlockingSequential, ct).ConfigureAwait(false);
                 await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
                 {
                     State = KnownResourceStates.Starting,
@@ -540,6 +540,32 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
                 var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
                 portLogger.LogInformation("Forwarding from {PortUrl} to {TargetUrl} ({TargetResourceName}/{TargetEndpointName})", tunnelPortStatus.PortUri.ToString().TrimEnd('/'), portResource.TargetEndpoint.Url, portResource.TargetEndpoint.Resource.Name, portResource.TargetEndpoint.EndpointName);
+
+                // Log anonymous access status
+                try
+                {
+                    var effectivePolicy = portResource.LastKnownAccessStatus?.LogAnonymousAccessPolicy(portLogger);
+                    if (effectivePolicy is not null)
+                    {
+                        // Set property detailing the anonymous access status
+                        await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
+                        {
+                            Properties = [
+                                .. snapshot.Properties.Where(p => !string.Equals(p.Name, "Anonymous access", StringComparison.OrdinalIgnoreCase)),
+                                new("Anonymous access", effectivePolicy)
+                            ]
+                        }).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        portLogger.LogDebug("Anonymous access status unavailable for port at this time (tunnel or port access status null)");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    portLogger.LogDebug(ex, "Failed to log anonymous access status for port");
+                }
+                
             })
             .OnResourceStopped(async (tunnelResource, e, ct) =>
             {

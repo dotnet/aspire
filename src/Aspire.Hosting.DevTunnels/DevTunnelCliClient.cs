@@ -110,6 +110,14 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         return port ?? throw new DistributedApplicationException($"Failed to create port '{portNumber}' for tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
     }
 
+    public async Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, CancellationToken cancellationToken = default)
+    {
+        var (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
+            (stdout, stderr, ct) => _cli.ListAccessAsync(tunnelId, portNumber, stdout, stderr, ct),
+            cancellationToken).ConfigureAwait(false);
+        return access ?? throw new DistributedApplicationException($"Failed to get access details for '{tunnelId}'{(portNumber.HasValue ? $" port {portNumber}" : "")}. Exit code {exitCode}: {error}");
+    }
+
     public async Task<UserLoginStatus> GetUserLoginStatusAsync(CancellationToken cancellationToken = default)
     {
         var (login, exitCode, error) = await CallCliAsJsonAsync<UserLoginStatus>(

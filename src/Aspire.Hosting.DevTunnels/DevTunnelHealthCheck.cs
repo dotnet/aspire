@@ -33,6 +33,17 @@ internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, Dev
                 }
             }
 
+            // Get tunnel and port access status
+            var tunnelAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portNumber: null, cancellationToken).ConfigureAwait(false);
+            _tunnelResource.LastKnownAccessStatus = tunnelAccessStatus;
+
+            // Get access status for each port
+            foreach (var portResource in _tunnelResource.Ports)
+            {
+                var portAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portResource.TargetEndpoint.Port, cancellationToken).ConfigureAwait(false);
+                portResource.LastKnownAccessStatus = portAccessStatus;
+            }
+
             return HealthCheckResult.Healthy($"Dev tunnel '{_tunnelResource.TunnelId}' is active with {tunnelStatus.HostConnections} host connections and {tunnelStatus.Ports?.Count} ports.");
         }
         catch (Exception ex)

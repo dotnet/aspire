@@ -75,6 +75,20 @@ internal sealed class DevTunnelCli
         , outputWriter, errorWriter, cancellationToken);
     }
 
+    public Task<int> ListAccessAsync(
+        string tunnelId,
+        int? portNumber = null,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        CancellationToken cancellationToken = default)
+    {
+        return RunAsync(new ArgsBuilder(["access", "list", tunnelId])
+            .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
+            .Add("--json")
+            .Add("--nologo")
+        , outputWriter, errorWriter, cancellationToken);
+    }
+
     public Task<int> ResetAccessAsync(
         string tunnelId,
         int? portNumber = null,
