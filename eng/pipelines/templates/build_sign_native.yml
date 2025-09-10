@@ -65,6 +65,11 @@ jobs:
           - script: >-
               $(Build.SourcesDirectory)/$(scriptName)
               --ci
+              --buildExtension
+            displayName: 🟣Build extension
+          - script: >-
+              $(Build.SourcesDirectory)/$(scriptName)
+              --ci
               --build
               --restore
               /p:SkipManagedBuild=true
@@ -77,8 +82,15 @@ jobs:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken) # Needed for the signing task
 
           - task: 1ES.PublishBuildArtifacts@1
-            displayName: 🟣Publish Artifacts
+            displayName: 🟣Publish Packages
             condition: always()
             inputs:
               PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
               ArtifactName: native_archives_${{ replace(targetRid, '-', '_') }}
+
+          - task: 1ES.PublishBuildArtifacts@1
+            displayName: 🟣Publish Extension
+            condition: always()
+            inputs:
+              PathtoPublish: '$(Build.SourcesDirectory)/extension/aspire-extension*.vsix'
+              ArtifactName: aspire-extension

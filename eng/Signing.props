@@ -54,6 +54,7 @@
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.zip" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\aspire-cli-*.tar.gz" />
+    <ItemsToSign Include="$(ArtifactsDir)\aspire-extension*.vsix" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
   </ItemGroup>
 </Project>

@@ -32,6 +32,7 @@
     <ItemGroup>
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.zip" />
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.tar.gz" />
+      <_ArchiveFiles Include="$(ArtifactsDir)\aspire-extension*.vsix" />
 
       <!-- Extract RID from each archive file -->
       <_ArchiveFilesWithRid Include="@(_ArchiveFiles)">
