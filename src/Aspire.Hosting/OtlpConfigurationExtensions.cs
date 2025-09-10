@@ -99,6 +99,13 @@ public static class OtlpConfigurationExtensions
                 context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
                 // Configure metrics to include exemplars.
                 context.EnvironmentVariables["OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
+
+                // Output sensitive message content for GenAI.
+                // A convention for libraries that output GenAI telemetry is to use `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` env var.
+                // See:
+                // - https://opentelemetry.io/blog/2024/otel-generative-ai/
+                // - https://github.com/search?q=org%3Aopen-telemetry+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT&type=code
+                context.EnvironmentVariables["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] = "true";
             }
         }));
 

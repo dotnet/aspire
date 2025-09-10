@@ -159,6 +159,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
