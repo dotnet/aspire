@@ -276,6 +276,6 @@ public sealed class ResourcesSelectHelpersTests
 
         var key = OtlpHelpers.GetResourceKey(resource);
 
-        return new OtlpResource(key.Name, key.InstanceId!, uninstrumentedPeer: false, TelemetryTestHelpers.CreateContext());
+        return new OtlpResource(key.Name, key.InstanceId, uninstrumentedPeer: false, TelemetryTestHelpers.CreateContext());
     }
 }
