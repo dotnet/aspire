@@ -57,7 +57,7 @@ jobs:
           Spawn-Tool './init.ps1' -retryCount 3
 
           $vscePackageArgs = 'vsce','package'
-          if ($(Build.SourceBranch) -ne 'refs/heads/release') {
+          if ('$(Build.SourceBranch)' -ne 'refs/heads/release') {
             $vscePackageArgs += '--pre-release'
           }
 
