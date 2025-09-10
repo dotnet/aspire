@@ -43,9 +43,13 @@ public class OtlpResourceView
     {
         var props = new List<OtlpDisplayField>
         {
-            new OtlpDisplayField { DisplayName = "service.name", Key = KnownResourceFields.ServiceNameField, Value = Resource.ResourceName },
-            new OtlpDisplayField { DisplayName = "service.instance.id", Key = KnownResourceFields.ServiceInstanceIdField, Value = Resource.InstanceId }
+            new OtlpDisplayField { DisplayName = "service.name", Key = KnownResourceFields.ServiceNameField, Value = Resource.ResourceName }
         };
+
+        if (Resource.InstanceId is { } instanceId)
+        {
+            props.Add(new OtlpDisplayField { DisplayName = "service.instance.id", Key = KnownResourceFields.ServiceInstanceIdField, Value = instanceId });
+        }
 
         foreach (var kv in Properties)
         {

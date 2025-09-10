@@ -62,6 +62,40 @@ public sealed class ResourcesSelectHelpersTests
     }
 
     [Fact]
+    public void GetResource_NullInstanceId_GetInstance()
+    {
+        // Arrange
+        var appVMs = ResourcesSelectHelpers.CreateResources(new List<OtlpResource>
+        {
+            CreateOtlpResource(name: "singleton", instanceId: null)
+        });
+
+        // Act
+        var app = appVMs.GetResource(NullLogger.Instance, "singleton", canSelectGrouping: false, null!);
+
+        // Assert
+        Assert.Equal("singleton", app.Id!.InstanceId);
+        Assert.Equal(OtlpResourceType.Singleton, app.Id!.Type);
+    }
+
+    [Fact]
+    public void GetResource_EndWithDash_GetInstance()
+    {
+        // Arrange
+        var appVMs = ResourcesSelectHelpers.CreateResources(new List<OtlpResource>
+        {
+            CreateOtlpResource(name: "singleton-", instanceId: null)
+        });
+
+        // Act
+        var app = appVMs.GetResource(NullLogger.Instance, "singleton-", canSelectGrouping: false, null!);
+
+        // Assert
+        Assert.Equal("singleton-", app.Id!.InstanceId);
+        Assert.Equal(OtlpResourceType.Singleton, app.Id!.Type);
+    }
+
+    [Fact]
     public void GetResource_NameDifferentByCase_Merge()
     {
         // Arrange
@@ -211,16 +245,15 @@ public sealed class ResourcesSelectHelpersTests
         Assert.Equal(OtlpResourceType.ResourceGrouping, app.Id!.Type);
     }
 
-    private static OtlpResource CreateOtlpResource(string name, string instanceId)
+    private static OtlpResource CreateOtlpResource(string name, string? instanceId)
     {
-        var resource = new Resource
+        var resource = new Resource();
+        resource.Attributes.Add(new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name } });
+        if (instanceId != null)
         {
-            Attributes =
-                {
-                    new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name } },
-                    new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } }
-                }
-        };
+            resource.Attributes.Add(new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } });
+        }
+
         var key = OtlpHelpers.GetResourceKey(resource);
 
         return new OtlpResource(key.Name, key.InstanceId!, uninstrumentedPeer: false, TelemetryTestHelpers.CreateContext());
