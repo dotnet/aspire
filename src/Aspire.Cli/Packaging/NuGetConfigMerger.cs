@@ -182,7 +182,7 @@ internal class NuGetConfigMerger
         AddNewPatterns(packageSourceMapping, context, sourcesInUse);
         FixUrlBasedPackageSourceKeys(packageSourceMapping, context.UrlToExistingKey, sourcesInUse);
         HandleWildcardMappingForExistingSources(packageSourceMapping, context, sourcesInUse);
-        RemoveEmptyPackageSourceElements(packageSourceMapping, context.PackageSources, context.UrlToExistingKey, sourcesInUse, context);
+        RemoveEmptyPackageSourceElements(packageSourceMapping, context.PackageSources, context.UrlToExistingKey, sourcesInUse);
     }
 
     private static List<(string pattern, string newSource)> RemapExistingPatterns(
@@ -644,8 +644,7 @@ internal class NuGetConfigMerger
         XElement packageSourceMapping,
         XElement packageSources,
         Dictionary<string, string> urlToExistingKey,
-        HashSet<string> sourcesInUse,
-        NuGetConfigContext context)
+        HashSet<string> sourcesInUse)
     {
         // Fifth pass: Remove empty packageSource elements and their corresponding sources from packageSources
         var emptyPackageSourceElements = packageSourceMapping.Elements("packageSource")
@@ -673,57 +672,6 @@ internal class NuGetConfigMerger
                         .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals((string?)add.Attribute("value"), sourceKey, StringComparison.OrdinalIgnoreCase));
                     sourceToRemove?.Remove();
-                }
-            }
-        }
-
-        // Also remove sources that have no packageSource elements at all and are not in use, but only if safe to remove
-        var existingSourceKeys = packageSources.Elements("add")
-            .Select(add => (string?)add.Attribute("key"))
-            .Where(key => !string.IsNullOrEmpty(key))
-            .Cast<string>()
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var sourcesWithMappings = packageSourceMapping.Elements("packageSource")
-            .Select(ps => (string?)ps.Attribute("key"))
-            .Where(key => !string.IsNullOrEmpty(key))
-            .Cast<string>()
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var unmappedSources = existingSourceKeys.Except(sourcesWithMappings, StringComparer.OrdinalIgnoreCase).ToArray();
-
-        foreach (var unmappedSourceKey in unmappedSources)
-        {
-            if (!sourcesInUse.Contains(unmappedSourceKey))
-            {
-                // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
-                var isUsedByExistingKey = urlToExistingKey.Any(kvp => 
-                    string.Equals(kvp.Key, unmappedSourceKey, StringComparison.OrdinalIgnoreCase) && 
-                    sourcesInUse.Contains(kvp.Value));
-                    
-                if (!isUsedByExistingKey)
-                {
-                    var sourceToRemove = packageSources.Elements("add")
-                        .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase) ||
-                                              string.Equals((string?)add.Attribute("value"), unmappedSourceKey, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (sourceToRemove != null)
-                    {
-                        var sourceValue = (string?)sourceToRemove.Attribute("value");
-                        
-                        // Check if this source is required by the current channel
-                        var isRequiredByCurrentChannel = context.RequiredSources.Contains(unmappedSourceKey, StringComparer.OrdinalIgnoreCase) ||
-                                                       context.RequiredSources.Contains(sourceValue ?? "", StringComparer.OrdinalIgnoreCase);
-                        
-                        // Remove the source if:
-                        // 1. It's safe to remove (PR hives, Aspire feeds), OR
-                        // 2. It's a Microsoft-controlled source that's not required by the current channel
-                        if (IsSourceSafeToRemove(unmappedSourceKey, sourceValue) ||
-                            (IsMicrosoftControlledSource(unmappedSourceKey, sourceValue) && !isRequiredByCurrentChannel))
-                        {
-                            sourceToRemove.Remove();
-                        }
-                    }
                 }
             }
         }
