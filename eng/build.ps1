@@ -8,7 +8,6 @@ Param(
   [ValidateSet("windows","linux","osx")][string]$os,
   [switch]$testnobuild,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
-  [switch]$buildExtension,
 
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -99,7 +98,6 @@ foreach ($argument in $PSBoundParameters.Keys)
     "configuration"          { $configuration = (Get-Culture).TextInfo.ToTitleCase($($PSBoundParameters[$argument])); $arguments += " -configuration $configuration" }
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
     "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
-    "buildExtension"         { if ($PSBoundParameters[$argument]) { $arguments += " -buildExtension" } }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
