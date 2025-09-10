@@ -547,7 +547,7 @@ public class NuGetConfigMergerTests
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var root = workspace.WorkspaceRoot;
 
-        // Existing config with an old source that should be removed and a valid source that should also be removed
+        // Existing config with a PR hive source that should be removed and a user-defined source that should be preserved
         await WriteConfigAsync(root,
             """
             <?xml version="1.0"?>
@@ -582,11 +582,12 @@ public class NuGetConfigMergerTests
         var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
         var packageSources = xml.Root!.Element("packageSources")!;
         
-        // Both the invalid local source and the valid source should be completely removed 
-        // because they are not required by the new mappings
+        // The PR hive source should be removed because it's safe to remove and no longer needed
         Assert.DoesNotContain(packageSources.Elements("add"), 
             e => (string?)e.Attribute("value") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
-        Assert.DoesNotContain(packageSources.Elements("add"), 
+        
+        // The user-defined source should be preserved even though its patterns were remapped
+        Assert.Contains(packageSources.Elements("add"), 
             e => (string?)e.Attribute("value") == "https://valid.example");
         
         // NuGet.org should be added for all the patterns
@@ -595,11 +596,15 @@ public class NuGetConfigMergerTests
 
         var psm = xml.Root!.Element("packageSourceMapping")!;
         
-        // Neither of the old sources should have any mapping entries
+        // The PR hive source should not have any mapping entries (removed entirely)
         Assert.DoesNotContain(psm.Elements("packageSource"), 
             ps => (string?)ps.Attribute("key") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
-        Assert.DoesNotContain(psm.Elements("packageSource"), 
-            ps => (string?)ps.Attribute("key") == "https://valid.example");
+        
+        // The user-defined source should get a wildcard pattern to remain functional
+        var validExampleMapping = psm.Elements("packageSource")
+            .FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://valid.example");
+        Assert.NotNull(validExampleMapping);
+        Assert.Contains(validExampleMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
         
         // NuGet.org should have all the patterns
         var nugetMapping = psm.Elements("packageSource")
@@ -609,8 +614,8 @@ public class NuGetConfigMergerTests
         Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
         Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
         
-        // There should be only one packageSource element (for nuget.org)
-        Assert.Single(psm.Elements("packageSource"));
+        // There should be two packageSource elements (nuget.org and valid.example)
+        Assert.Equal(2, psm.Elements("packageSource").Count());
     }
 
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");

@@ -228,19 +228,17 @@ internal class NuGetConfigMerger
                     }
                 }
                 // Check if this pattern is made redundant by a wildcard mapping to a different source
-                else if (patternToNewSource.TryGetValue("*", out var wildcardSource))
+                else if (patternToNewSource.TryGetValue("*", out var wildcardSource) && pattern != "*")
                 {
                     // Determine the key that will be used for the wildcard source
                     var wildcardKey = urlToExistingKey.TryGetValue(wildcardSource, out var wildcardExistingKey) ? wildcardExistingKey : wildcardSource;
                     
                     if (!string.Equals(sourceKey, wildcardKey, StringComparison.OrdinalIgnoreCase))
                     {
-                        // This pattern is redundant because wildcard covers it and goes to a different source
-                        // Remove it only if the pattern is not a wildcard itself (specific patterns can be redundant)
-                        if (pattern != "*")
-                        {
-                            elementsToRemove.Add(packageElement);
-                        }
+                        // This specific pattern is redundant because wildcard covers it and goes to a different source
+                        // But only remove it if it's not being preserved intentionally
+                        // For now, be conservative and don't remove patterns covered by wildcards
+                        // unless they are explicitly remapped
                     }
                 }
             }
@@ -482,22 +480,16 @@ internal class NuGetConfigMerger
             
             // Only give wildcard patterns to sources that:
             // 1. Have no patterns now
-            // 2. Originally had no patterns either (were unmapped before)
+            // 2. Originally had no patterns either (were unmapped before) OR still have some patterns left
             // 3. Are not safe to remove (user-defined sources)
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
-                // Skip sources that originally had patterns - they should be removed if they're now empty
-                if (originalSourcesWithPatterns.Contains(sourceKey))
-                {
-                    continue;
-                }
-                
                 // Get the source URL to check if it's safe to give it a wildcard pattern
                 var sourceElement = context.ExistingAdds
                     .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
                 var sourceValue = (string?)sourceElement?.Attribute("value");
                 
-                // For user-defined sources that originally had no patterns, give them wildcard patterns
+                // For user-defined sources, give them wildcard patterns to remain functional
                 // Only skip this for sources that we would remove anyway (like PR hives)
                 if (!IsSourceSafeToRemove(sourceKey, sourceValue))
                 {
@@ -512,7 +504,66 @@ internal class NuGetConfigMerger
                     sourcesInUse.Add(sourceKey);
                 }
             }
+            
+            // Also give wildcard patterns to sources that still have some patterns left but should remain fully functional
+            // when there's a wildcard mapping that could interfere with their ability to serve packages
+            // But only for user-defined sources, not Microsoft-controlled feeds
+            var sourcesWithPatternsLeft = packageSourceMapping.Elements("packageSource")
+                .Where(ps => ps.Elements("package").Any() && !ps.Elements("package").Any(p => (string?)p.Attribute("pattern") == "*"))
+                .Select(ps => (string?)ps.Attribute("key"))
+                .Where(key => !string.IsNullOrEmpty(key))
+                .Cast<string>()
+                .ToArray();
+                
+            foreach (var sourceKey in sourcesWithPatternsLeft)
+            {
+                // Get the source URL to check if it's a user-defined source
+                var sourceElement = context.ExistingAdds
+                    .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                var sourceValue = (string?)sourceElement?.Attribute("value");
+                
+                // For user-defined sources that still have patterns, also give them wildcard patterns
+                // to ensure they can serve other packages too. But skip Microsoft-controlled sources
+                // that have specific patterns as they are intended to serve specific packages only.
+                if (!IsSourceSafeToRemove(sourceKey, sourceValue) && !IsMicrosoftControlledSource(sourceKey, sourceValue))
+                {
+                    var packageSourceElement = packageSourceMapping.Elements("packageSource")
+                        .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (packageSourceElement != null)
+                    {
+                        var wildcardPackage = new XElement("package");
+                        wildcardPackage.SetAttributeValue("pattern", "*");
+                        packageSourceElement.Add(wildcardPackage);
+                        sourcesInUse.Add(sourceKey);
+                    }
+                }
+            }
         }
+    }
+
+    private static bool IsMicrosoftControlledSource(string sourceKey, string? sourceValue)
+    {
+        var urlToCheck = sourceValue ?? sourceKey;
+        
+        if (string.IsNullOrEmpty(urlToCheck))
+        {
+            return false;
+        }
+        
+        // Check if this is a Microsoft/Azure DevOps feed
+        if (urlToCheck.Contains("pkgs.dev.azure.com"))
+        {
+            return true;
+        }
+        
+        // Check if this is an official NuGet.org feed
+        if (urlToCheck.Contains("api.nuget.org"))
+        {
+            return true;
+        }
+        
+        return false;
     }
 
     private static bool IsSourceSafeToRemove(string sourceKey, string? sourceValue)
@@ -531,10 +582,18 @@ internal class NuGetConfigMerger
             return true;
         }
         
-        // Check if this is a known Microsoft/Azure DevOps feed that might be temporary
+        // Only remove very specific Azure DevOps feeds that we know are temporary (like aspire PR feeds)
+        // Don't remove official .NET feeds or other potentially permanent feeds
         if (!string.IsNullOrEmpty(urlToCheck) && urlToCheck.Contains("pkgs.dev.azure.com"))
         {
-            return true;
+            // Only remove if it's specifically an Aspire-related feed
+            if (urlToCheck.Contains("aspire", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            
+            // Be conservative - don't remove other Azure DevOps feeds as they might be official
+            return false;
         }
         
         // Don't remove other sources - they may be user-defined
