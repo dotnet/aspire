@@ -20,6 +20,7 @@ public sealed partial class LogViewer
     private static readonly MarkupString s_spaceMarkup = new MarkupString("&#32;");
 
     private LogEntries? _logEntries;
+    private Virtualize<LogEntry>? _virtualizeRef;
     private bool _logsChanged;
 
     [Inject]
@@ -61,6 +62,17 @@ public sealed partial class LogViewer
         }
     }
 
+    public async Task RefreshDataAsync()
+    {
+        if (_virtualizeRef == null)
+        {
+            return;
+        }
+
+        await _virtualizeRef.RefreshDataAsync();
+        StateHasChanged();
+    }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)
@@ -72,6 +84,17 @@ public sealed partial class LogViewer
         }
 
         base.OnParametersSet();
+    }
+
+    private ValueTask<ItemsProviderResult<LogEntry>> GetItems(ItemsProviderRequest r)
+    {
+        var entries = _logEntries?.GetEntries();
+        if (entries == null)
+        {
+            return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(Enumerable.Empty<LogEntry>(), 0));
+        }
+
+        return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(entries.Skip(r.StartIndex).Take(r.Count), entries.Count));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
