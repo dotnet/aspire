@@ -1,16 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if ASPIRE_DASHBOARD
 namespace Aspire.Dashboard;
-#else
-namespace Aspire.Hosting.ApplicationModel;
-#endif
 
 /// <summary>
 /// Provides constants for well-known resource command names.
 /// </summary>
-public static class KnownResourceCommands
+internal static class KnownResourceCommands
 {
     /// <summary>
     /// The command name for starting a resource.
