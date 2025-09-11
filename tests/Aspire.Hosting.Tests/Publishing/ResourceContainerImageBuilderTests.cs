@@ -395,7 +395,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         });
 
         var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
-        
+
         // Add trailing slashes to simulate the issue scenario
         var contextPathWithTrailingSlash = tempContextPath + Path.DirectorySeparatorChar;
         var servicea = builder.AddDockerfile("container", contextPathWithTrailingSlash, tempDockerfilePath);
@@ -404,7 +404,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        
+
         // This should not fail even with trailing slash in context path
         await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
 
@@ -585,7 +585,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
 
         var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
-        
+
         // Add trailing slashes to context path to test normalization
         var contextPathWithTrailingSlash = tempContextPath + Path.DirectorySeparatorChar + Path.DirectorySeparatorChar;
         var dockerfileResource = builder.AddDockerfile("test-dockerfile", contextPathWithTrailingSlash, tempDockerfilePath);
@@ -600,13 +600,13 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         // Verify that the fake runtime was called to build the image
         Assert.True(fakeContainerRuntime.WasBuildImageCalled);
         Assert.Single(fakeContainerRuntime.BuildImageCalls);
-        
+
         var buildCall = fakeContainerRuntime.BuildImageCalls[0];
-        
+
         // The context path should be normalized (no trailing slashes)
         Assert.False(buildCall.contextPath.EndsWith(Path.DirectorySeparatorChar.ToString()));
         Assert.False(buildCall.contextPath.EndsWith(Path.AltDirectorySeparatorChar.ToString()));
-        
+
         // It should still point to the same directory
         Assert.Equal(Path.GetFullPath(tempContextPath), Path.GetFullPath(buildCall.contextPath));
     }
@@ -643,6 +643,116 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromDockerfileWithBuildArgsSecretsAndStage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime to capture build arguments and secrets
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        // Add parameters for build args and secrets
+        builder.Configuration["Parameters:goversion"] = "1.22";
+        builder.Configuration["Parameters:secret"] = "mysecret";
+
+        var goVersionParam = builder.AddParameter("goversion");
+        var secretParam = builder.AddParameter("secret", secret: true);
+
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+                              .WithBuildArg("GO_VERSION", goVersionParam)
+                              .WithBuildArg("STATIC_ARG", "static-value")
+                              .WithBuildSecret("SECRET_ASENV", secretParam);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(container.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+
+        // Verify that the correct build arguments were passed
+        Assert.NotNull(fakeContainerRuntime.CapturedBuildArguments);
+        Assert.Equal(2, fakeContainerRuntime.CapturedBuildArguments.Count);
+        Assert.Equal("1.22", fakeContainerRuntime.CapturedBuildArguments["GO_VERSION"]);
+        Assert.Equal("static-value", fakeContainerRuntime.CapturedBuildArguments["STATIC_ARG"]);
+
+        // Verify that the correct build secrets were passed
+        Assert.NotNull(fakeContainerRuntime.CapturedBuildSecrets);
+        Assert.Single(fakeContainerRuntime.CapturedBuildSecrets);
+        Assert.Equal("mysecret", fakeContainerRuntime.CapturedBuildSecrets["SECRET_ASENV"]);
+    }
+
+    [Fact]
+    public async Task CanResolveBuildArgumentsWithDifferentValueTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime to capture build arguments
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        // Add parameters for different value types
+        builder.Configuration["Parameters:stringparam"] = "test-value";
+        var stringParam = builder.AddParameter("stringparam");
+
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+                              .WithBuildArg("STRING_ARG", stringParam)
+                              .WithBuildArg("BOOL_TRUE_ARG", true)
+                              .WithBuildArg("BOOL_FALSE_ARG", false)
+                              .WithBuildArg("NULL_ARG", (string?)null)
+                              .WithBuildArg("DIRECT_STRING_ARG", "direct-string");
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(container.Resource, options: null, cts.Token);
+
+        // Verify that different value types are resolved correctly
+        Assert.NotNull(fakeContainerRuntime.CapturedBuildArguments);
+        Assert.Equal(5, fakeContainerRuntime.CapturedBuildArguments.Count);
+
+        // Parameter should resolve to its configured value
+        Assert.Equal("test-value", fakeContainerRuntime.CapturedBuildArguments["STRING_ARG"]);
+
+        // Boolean values should be converted to strings
+        Assert.Equal("true", fakeContainerRuntime.CapturedBuildArguments["BOOL_TRUE_ARG"]);
+        Assert.Equal("false", fakeContainerRuntime.CapturedBuildArguments["BOOL_FALSE_ARG"]);
+
+        // Null should be converted to empty string
+        Assert.Equal("", fakeContainerRuntime.CapturedBuildArguments["NULL_ARG"]);
+
+        // Direct string should be passed through
+        Assert.Equal("direct-string", fakeContainerRuntime.CapturedBuildArguments["DIRECT_STRING_ARG"]);
+    }
+
     private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
     {
         public string Name => "fake-runtime";
@@ -653,6 +763,9 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
         public List<string> PushImageCalls { get; } = [];
         public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
+        public Dictionary<string, string>? CapturedBuildArguments { get; private set; }
+        public Dictionary<string, string>? CapturedBuildSecrets { get; private set; }
+        public string? CapturedStage { get; private set; }
 
         public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
         {
@@ -664,12 +777,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         {
             WasBuildImageCalled = true;
             BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
-            
+
             if (shouldFail)
             {
                 throw new InvalidOperationException("Fake container runtime is configured to fail");
             }
-            
+
             return Task.CompletedTask;
         }
 
@@ -692,6 +805,17 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             {
                 throw new InvalidOperationException("Fake container runtime is configured to fail");
             }
+            return Task.CompletedTask;
+        }
+
+        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
+        {
+            // Capture the arguments for verification in tests
+            CapturedBuildArguments = buildArguments;
+            CapturedBuildSecrets = buildSecrets;
+            CapturedStage = stage;
+
+            // For testing, we don't need to actually build anything
             return Task.CompletedTask;
         }
     }

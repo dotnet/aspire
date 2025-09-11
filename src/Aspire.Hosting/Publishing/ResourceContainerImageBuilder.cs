@@ -215,8 +215,7 @@ internal sealed class ResourceContainerImageBuilder(
                 // This is a container resource so we'll use the container runtime to build the image
                 await BuildContainerImageFromDockerfileAsync(
                     resource.Name,
-                    dockerfileBuildAnnotation.ContextPath,
-                    dockerfileBuildAnnotation.DockerfilePath,
+                    dockerfileBuildAnnotation,
                     containerImageAnnotation.Image,
                     step,
                     options,
@@ -337,13 +336,43 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
             $"Building image: {resourceName}",
             cancellationToken
             ).ConfigureAwait(false);
+
+        // Resolve build arguments
+        var resolvedBuildArguments = new Dictionary<string, string>();
+        foreach (var buildArg in dockerfileBuildAnnotation.BuildArguments)
+        {
+            var valueString = buildArg.Value switch
+            {
+                string stringValue => stringValue,
+                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                bool boolValue => boolValue ? "true" : "false",
+                null => null,
+                _ => buildArg.Value.ToString()
+            };
+
+            resolvedBuildArguments[buildArg.Key] = valueString ?? "";
+        }
+
+        // Resolve build secrets
+        var resolvedBuildSecrets = new Dictionary<string, string>();
+        foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
+        {
+            var valueString = buildSecret.Value switch
+            {
+                FileInfo filePath => filePath.FullName,
+                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                _ => throw new InvalidOperationException("Build secret can only be a parameter or a file.")
+            };
+
+            resolvedBuildSecrets[buildSecret.Key] = valueString ?? "";
+        }
 
         if (publishingTask is not null)
         {
@@ -352,10 +381,13 @@ internal sealed class ResourceContainerImageBuilder(
                 try
                 {
                     await ContainerRuntime.BuildImageAsync(
-                        contextPath,
-                        dockerfilePath,
+                        dockerfileBuildAnnotation.ContextPath,
+                        dockerfileBuildAnnotation.DockerfilePath,
                         imageName,
                         options,
+                        resolvedBuildArguments,
+                        resolvedBuildSecrets,
+                        dockerfileBuildAnnotation.Stage,
                         cancellationToken).ConfigureAwait(false);
 
                     await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
@@ -374,10 +406,13 @@ internal sealed class ResourceContainerImageBuilder(
             try
             {
                 await ContainerRuntime.BuildImageAsync(
-                    contextPath,
-                    dockerfilePath,
+                    dockerfileBuildAnnotation.ContextPath,
+                    dockerfileBuildAnnotation.DockerfilePath,
                     imageName,
                     options,
+                    resolvedBuildArguments,
+                    resolvedBuildSecrets,
+                    dockerfileBuildAnnotation.Stage,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
