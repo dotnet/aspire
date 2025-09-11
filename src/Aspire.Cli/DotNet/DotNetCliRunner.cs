@@ -459,7 +459,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        var startInfo = new ProcessStartInfo("dotnet")
+        // Get the correct dotnet executable path from the process launcher
+        var runtimeSelector = serviceProvider.GetRequiredService<IDotNetRuntimeSelector>();
+        
+        var startInfo = new ProcessStartInfo(await runtimeSelector.GetDotNetExecutablePathAsync(cancellationToken))
         {
             WorkingDirectory = workingDirectory.FullName,
             UseShellExecute = false,
@@ -468,6 +471,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
+
+        // Apply runtime environment variables
+        var runtimeEnvVars = await runtimeSelector.GetEnvironmentVariablesAsync(cancellationToken);
+        foreach (var kvp in runtimeEnvVars)
+        {
+            startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
+        }
 
         if (env is not null)
         {
