@@ -4,8 +4,10 @@
 using System.Globalization;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -52,7 +54,7 @@ public sealed partial class LogViewer
             field = value;
             if (field != null)
             {
-                VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10000);
+                VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10_000);
             }
         }
     }
