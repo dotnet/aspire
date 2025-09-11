@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -90,9 +89,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException("Unexpected project file.");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -201,9 +198,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException("Unexpected project file.");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     },
                     // FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int
                     AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
@@ -353,9 +348,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException("Unexpected project file.");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     },
                     // FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int
                     AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
@@ -520,9 +513,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException($"Unexpected project file: {projectFile.FullName}");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     },
 
                     AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
@@ -664,9 +655,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException("Unexpected project file.");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -769,9 +758,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         itemsAndProperties.WithSdkVersion("9.4.1");
                         itemsAndProperties.WithPackageReferenceWithoutVersion("Aspire.Hosting.Redis");
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -871,9 +858,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         itemsAndProperties.WithSdkVersion("9.5.0"); // Already up to date
                         itemsAndProperties.WithPackageReferenceWithoutVersion("Aspire.Hosting.Redis");
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -1014,9 +999,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             itemsAndProperties.WithProperty("AspireVersion", "9.4.1");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -1137,9 +1120,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             itemsAndProperties.WithProperty("AspireUnstableVersion", "9.4.1-preview.1");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -1251,9 +1232,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             itemsAndProperties.WithProperty("InvalidVersionProperty", "not-a-version");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -1361,9 +1340,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         // For property resolution queries - don't include the property, simulating it doesn't exist
                         // This will result in the property not being in the response, which should be handled gracefully
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };
@@ -1727,9 +1704,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                             throw new InvalidOperationException("Unexpected project file.");
                         }
 
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
+                        return (0, itemsAndProperties);
                     }
                 };
             };

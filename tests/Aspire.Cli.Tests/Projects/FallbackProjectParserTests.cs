@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Projects;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -30,12 +30,28 @@ public class FallbackProjectParserTests
             var result = parser.ParseProject(new FileInfo(projectFile));
 
             // Assert
-            var properties = result.RootElement.GetProperty("Properties");
-            var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
+            if (!result.TryGetPropertyValue("Properties", out var propertiesNode) || propertiesNode is not JsonObject properties)
+            {
+                Assert.Fail("Properties section not found");
+                return;
+            }
+            
+            if (!properties.TryGetPropertyValue("AspireHostingSDKVersion", out var sdkVersionNode))
+            {
+                Assert.Fail("AspireHostingSDKVersion property not found");
+                return;
+            }
+            
+            var sdkVersion = sdkVersionNode?.GetValue<string>();
             Assert.Equal("9.5.0-test", sdkVersion);
 
             // Should have fallback flag
-            Assert.True(result.RootElement.GetProperty("Fallback").GetBoolean());
+            if (!result.TryGetPropertyValue("Fallback", out var fallbackNode))
+            {
+                Assert.Fail("Fallback property not found");
+                return;
+            }
+            Assert.True(fallbackNode?.GetValue<bool>());
         }
         finally
         {
@@ -71,20 +87,51 @@ public class FallbackProjectParserTests
             var result = parser.ParseProject(new FileInfo(projectFile));
 
             // Assert
-            var items = result.RootElement.GetProperty("Items");
-            var packageRefs = items.GetProperty("PackageReference").EnumerateArray().ToArray();
+            if (!result.TryGetPropertyValue("Items", out var itemsNode) || itemsNode is not JsonObject items)
+            {
+                Assert.Fail("Items section not found");
+                return;
+            }
             
-            Assert.Equal(2, packageRefs.Length);
+            if (!items.TryGetPropertyValue("PackageReference", out var packageRefsNode) || packageRefsNode is not JsonArray packageRefs)
+            {
+                Assert.Fail("PackageReference array not found");
+                return;
+            }
+            
+            Assert.Equal(2, packageRefs.Count);
             
             var appHostPkg = packageRefs.FirstOrDefault(p => 
-                p.GetProperty("Identity").GetString() == "Aspire.Hosting.AppHost");
-            Assert.NotEqual(default(JsonElement), appHostPkg);
-            Assert.Equal("9.5.0-test", appHostPkg.GetProperty("Version").GetString());
+                p is JsonObject pkg && 
+                pkg.TryGetPropertyValue("Identity", out var identityNode) &&
+                identityNode?.GetValue<string>() == "Aspire.Hosting.AppHost");
+            Assert.NotNull(appHostPkg);
+            
+            if (appHostPkg is JsonObject appHostPkgObj && 
+                appHostPkgObj.TryGetPropertyValue("Version", out var versionNode))
+            {
+                Assert.Equal("9.5.0-test", versionNode?.GetValue<string>());
+            }
+            else
+            {
+                Assert.Fail("Version not found for Aspire.Hosting.AppHost");
+            }
             
             var redisPkg = packageRefs.FirstOrDefault(p => 
-                p.GetProperty("Identity").GetString() == "Aspire.Hosting.Redis");
-            Assert.NotEqual(default(JsonElement), redisPkg);
-            Assert.Equal("9.4.1", redisPkg.GetProperty("Version").GetString());
+                p is JsonObject pkg && 
+                pkg.TryGetPropertyValue("Identity", out var identityNode) &&
+                identityNode?.GetValue<string>() == "Aspire.Hosting.Redis");
+            Assert.NotNull(redisPkg);
+            
+            if (redisPkg is JsonObject redisPkgObj && 
+                redisPkgObj.TryGetPropertyValue("Version", out var redisVersionNode))
+            {
+                Assert.Equal("9.4.1", redisVersionNode?.GetValue<string>());
+            }
+            else
+            {
+                Assert.Fail("Version not found for Aspire.Hosting.Redis");
+            }
         }
         finally
         {
@@ -120,18 +167,31 @@ public class FallbackProjectParserTests
             var result = parser.ParseProject(new FileInfo(projectFile));
 
             // Assert
-            var items = result.RootElement.GetProperty("Items");
-            var projectRefs = items.GetProperty("ProjectReference").EnumerateArray().ToArray();
+            if (!result.TryGetPropertyValue("Items", out var itemsNode) || itemsNode is not JsonObject items)
+            {
+                Assert.Fail("Items section not found");
+                return;
+            }
             
-            Assert.Equal(2, projectRefs.Length);
+            if (!items.TryGetPropertyValue("ProjectReference", out var projectRefsNode) || projectRefsNode is not JsonArray projectRefs)
+            {
+                Assert.Fail("ProjectReference array not found");
+                return;
+            }
+            
+            Assert.Equal(2, projectRefs.Count);
             
             var serviceDefaultsRef = projectRefs.FirstOrDefault(p => 
-                p.GetProperty("Identity").GetString()!.Contains("ServiceDefaults"));
-            Assert.NotEqual(default(JsonElement), serviceDefaultsRef);
+                p is JsonObject proj && 
+                proj.TryGetPropertyValue("Identity", out var identityNode) &&
+                identityNode?.GetValue<string>()?.Contains("ServiceDefaults") == true);
+            Assert.NotNull(serviceDefaultsRef);
             
             var webAppRef = projectRefs.FirstOrDefault(p => 
-                p.GetProperty("Identity").GetString()!.Contains("WebApp"));
-            Assert.NotEqual(default(JsonElement), webAppRef);
+                p is JsonObject proj && 
+                proj.TryGetPropertyValue("Identity", out var identityNode) &&
+                identityNode?.GetValue<string>()?.Contains("WebApp") == true);
+            Assert.NotNull(webAppRef);
         }
         finally
         {
