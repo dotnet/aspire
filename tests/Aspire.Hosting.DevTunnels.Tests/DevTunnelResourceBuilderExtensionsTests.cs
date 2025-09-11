@@ -47,6 +47,16 @@ public class DevTunnelResourceBuilderExtensionsTests
     }
 
     [Fact]
+    public void AddDevTunnel_WithSpecificTunnelId_SetsTunnelIdProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tunnel = builder.AddDevTunnel("tunnel", "custom-id");
+
+        Assert.Equal("custom-id", tunnel.Resource.TunnelId);
+    }
+
+    [Fact]
     public void WithReference_WithAnonymousAccess_SetsPortAllowAnonymousOption()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
