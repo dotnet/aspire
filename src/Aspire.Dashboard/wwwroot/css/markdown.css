@@ -145,3 +145,19 @@
     padding-right: calc(.25rem * 1);
     padding-block: calc(.25rem * 1.5);
 }
+
+/* Markdown headings are modified to never be larger than h4 */
+.markdown-container h4 {
+    font-size: var(--type-ramp-plus-2-font-size);
+    line-height: var(--type-ramp-plus-2-line-height);
+}
+
+.markdown-container h5 {
+    font-size: var(--type-ramp-plus-1-font-size);
+    line-height: var(--type-ramp-plus-1-line-height);
+}
+
+.markdown-container h6 {
+    font-size: var(--type-ramp-base-font-size);
+    line-height: var(--type-ramp-base-line-height);
+}

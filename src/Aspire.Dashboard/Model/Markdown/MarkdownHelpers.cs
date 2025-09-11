@@ -44,6 +44,22 @@ public static class MarkdownHelpers
             }
         }
 
+        // Adjust heading levels so that they are appropriate for embedding in a page.
+        // Markdown can easily contain h2/h3 headings, which would be greater than the dialog title header.
+        // This change ensures all headings are h4 or smaller.
+        foreach (var heading in document.Descendants<HeadingBlock>())
+        {
+            heading.Level = heading.Level switch
+            {
+                1 => 4,
+                2 => 4,
+                3 => 5,
+                4 => 5,
+                5 => 6,
+                _ => 6
+            };
+        }
+
         var writer = new StringWriter();
         var renderer = new HtmlRenderer(writer);
         if (options.SuppressSurroundingParagraph)
@@ -73,9 +89,20 @@ public static class MarkdownHelpers
                 return LinkType.Relative;
             }
 
-            if (allowedUrlSchemes != null && !allowedUrlSchemes.Contains(uri.Scheme))
+            if (allowedUrlSchemes != null)
             {
-                return LinkType.Prohibited;
+                if (!allowedUrlSchemes.Contains(uri.Scheme))
+                {
+                    return LinkType.Prohibited;
+                }
+            }
+            else
+            {
+                // Even if no allowed schemes are specified, always block "javascript:" links.
+                if (string.Equals(uri.Scheme, "javascript", StringComparison.OrdinalIgnoreCase))
+                {
+                    return LinkType.Prohibited;
+                }
             }
 
             return LinkType.Absolute;
