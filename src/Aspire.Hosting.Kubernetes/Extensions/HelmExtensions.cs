@@ -74,4 +74,14 @@ internal static class HelmExtensions
 
     public static bool ContainsHelmSecretExpression(this string value)
         => value.Contains($"{{{{ {ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Converts the specified environment variable key into a valid Helm key.
+    /// </summary>
+    /// <remarks>
+    /// The environment variable names in Helm values files can not contain hyphens ('-').
+    /// <see href="link">https://helm.sh/docs/chart_best_practices/values/</see>
+    /// </remarks>
+    public static string ToHelmEnvironmentVariable(this string key)
+        => $"{key.Replace("-", "_")}";
 }
