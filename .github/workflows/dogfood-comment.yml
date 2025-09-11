@@ -39,6 +39,8 @@ jobs:
             const comment = `${dogfoodMarker}
             🚀 **Dogfood this PR with:**
 
+            > **⚠️ WARNING: Do not do this without first carefully reviewing the code of this PR to satisfy yourself it is safe.**
+
             \`\`\`bash
             curl -fsSL ${bashScript} | bash -s -- ${prNumber}
             \`\`\`
