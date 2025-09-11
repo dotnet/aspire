@@ -294,4 +294,80 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             return processResult.ExitCode;
         }
     }
+
+    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker tag (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker tag (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Docker tag with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("docker tag for {LocalImageName} -> {TargetImageName} failed with exit code {ExitCode}.", localImageName, targetImageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Docker tag failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("docker tag for {LocalImageName} -> {TargetImageName} succeeded.", localImageName, targetImageName);
+        }
+    }
+
+    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"push \"{imageName}\"";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker push (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker push (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Docker push with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("docker push for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Docker push failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("docker push for {ImageName} succeeded.", imageName);
+        }
+    }
 }

@@ -383,6 +383,96 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task TagImageAsync_CallsContainerRuntimeTagImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // Act
+        await imageBuilder.TagImageAsync("local-image:latest", "target-image:latest", cts.Token);
+
+        // Assert
+        Assert.True(fakeContainerRuntime.WasTagImageCalled);
+        Assert.Collection(fakeContainerRuntime.TagImageCalls,
+            call =>
+            {
+                Assert.Equal("local-image:latest", call.localImageName);
+                Assert.Equal("target-image:latest", call.targetImageName);
+            });
+    }
+
+    [Fact]
+    public async Task PushImageAsync_CallsContainerRuntimePushImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // Act
+        await imageBuilder.PushImageAsync("test-image:latest", cts.Token);
+
+        // Assert
+        Assert.True(fakeContainerRuntime.WasPushImageCalled);
+        Assert.Collection(fakeContainerRuntime.PushImageCalls,
+            imageName => Assert.Equal("test-image:latest", imageName));
+    }
+
+    [Fact]
+    public async Task TagImageAsync_ThrowsWhenContainerRuntimeFails()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: true);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            imageBuilder.TagImageAsync("local-image:latest", "target-image:latest", cts.Token));
+
+        Assert.Equal("Fake container runtime is configured to fail", exception.Message);
+        Assert.True(fakeContainerRuntime.WasTagImageCalled);
+    }
+
+    [Fact]
+    public async Task PushImageAsync_ThrowsWhenContainerRuntimeFails()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: true);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            imageBuilder.PushImageAsync("test-image:latest", cts.Token));
+
+        Assert.Equal("Fake container runtime is configured to fail", exception.Message);
+        Assert.True(fakeContainerRuntime.WasPushImageCalled);
+    }
+
+    [Fact]
     public async Task BuildImagesAsync_WithOnlyProjectResourcesAndOci_DoesNotNeedContainerRuntime()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
@@ -478,6 +568,10 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     {
         public string Name => "fake-runtime";
         public bool WasHealthCheckCalled { get; private set; }
+        public bool WasTagImageCalled { get; private set; }
+        public bool WasPushImageCalled { get; private set; }
+        public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
+        public List<string> PushImageCalls { get; } = [];
 
         public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
         {
@@ -488,6 +582,28 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
         {
             // For testing, we don't need to actually build anything
+            return Task.CompletedTask;
+        }
+
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
+        {
+            WasTagImageCalled = true;
+            TagImageCalls.Add((localImageName, targetImageName));
+            if (shouldFail)
+            {
+                throw new InvalidOperationException("Fake container runtime is configured to fail");
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+        {
+            WasPushImageCalled = true;
+            PushImageCalls.Add(imageName);
+            if (shouldFail)
+            {
+                throw new InvalidOperationException("Fake container runtime is configured to fail");
+            }
             return Task.CompletedTask;
         }
     }
