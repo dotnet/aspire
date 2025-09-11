@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Model;
 public class StructuredLogsViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
-    private readonly List<TelemetryFilter> _filters = new();
+    private readonly List<FieldTelemetryFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
     private ResourceKey? _resourceKey;
@@ -26,7 +26,7 @@ public class StructuredLogsViewModel
 
     public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
-    public IReadOnlyList<TelemetryFilter> Filters => _filters;
+    public IReadOnlyList<FieldTelemetryFilter> Filters => _filters;
 
     public void ClearFilters()
     {
@@ -34,7 +34,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public void AddFilter(TelemetryFilter filter)
+    public void AddFilter(FieldTelemetryFilter filter)
     {
         // Don't add duplicate filters.
         foreach (var existingFilter in _filters)
@@ -49,7 +49,7 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public bool RemoveFilter(TelemetryFilter filter)
+    public bool RemoveFilter(FieldTelemetryFilter filter)
     {
         if (_filters.Remove(filter))
         {
@@ -79,15 +79,15 @@ public class StructuredLogsViewModel
         var logs = _logs;
         if (logs == null)
         {
-            var filters = Filters.ToList();
+            var filters = GetFilters();
             if (!string.IsNullOrWhiteSpace(FilterText))
             {
-                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
+                filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
             }
             // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
             if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
             {
-                filters.Add(new TelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
+                filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
@@ -100,6 +100,22 @@ public class StructuredLogsViewModel
         }
 
         return logs;
+    }
+
+    public List<TelemetryFilter> GetFilters()
+    {
+        var filters = Filters.Cast<TelemetryFilter>().ToList();;
+        if (!string.IsNullOrWhiteSpace(FilterText))
+        {
+            filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
+        }
+        // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
+        if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
+        {
+            filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
+        }
+
+        return filters;
     }
 
     public void ClearData()

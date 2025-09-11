@@ -250,6 +250,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Collapse all.
+        /// </summary>
+        public static string CollapseAllSpansText {
+            get {
+                return ResourceManager.GetString("CollapseAllSpansText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string DetailsColumnHeader {
@@ -327,6 +336,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ExceptionDetailsTitle {
             get {
                 return ResourceManager.GetString("ExceptionDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expand all.
+        /// </summary>
+        public static string ExpandAllSpansText {
+            get {
+                return ResourceManager.GetString("ExpandAllSpansText", resourceCulture);
             }
         }
         
@@ -430,6 +448,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to GenAI details.
+        /// </summary>
+        public static string GenAIDetailsTitle {
+            get {
+                return ResourceManager.GetString("GenAIDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copied!.
         /// </summary>
         public static string GridValueCopied {
@@ -498,6 +525,15 @@ namespace Aspire.Dashboard.Resources {
         public static string LabelNone {
             get {
                 return ResourceManager.GetString("LabelNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (Other).
+        /// </summary>
+        public static string LabelOther {
+            get {
+                return ResourceManager.GetString("LabelOther", resourceCulture);
             }
         }
         
@@ -961,6 +997,51 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database.
+        /// </summary>
+        public static string SpanTypeDatabase {
+            get {
+                return ResourceManager.GetString("SpanTypeDatabase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gen AI.
+        /// </summary>
+        public static string SpanTypeGenAI {
+            get {
+                return ResourceManager.GetString("SpanTypeGenAI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTP.
+        /// </summary>
+        public static string SpanTypeHttp {
+            get {
+                return ResourceManager.GetString("SpanTypeHttp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Messaging.
+        /// </summary>
+        public static string SpanTypeMessaging {
+            get {
+                return ResourceManager.GetString("SpanTypeMessaging", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to RPC.
+        /// </summary>
+        public static string SpanTypeRpc {
+            get {
+                return ResourceManager.GetString("SpanTypeRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to State.
         /// </summary>
         public static string StateColumnHeader {
@@ -1096,6 +1177,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to View structured logs.
+        /// </summary>
+        public static string ViewStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ViewStructuredLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Mount type.
         /// </summary>
         public static string VolumeMountTypeColumnHeader {
@@ -1110,33 +1200,6 @@ namespace Aspire.Dashboard.Resources {
         public static string VolumePathColumnHeader {
             get {
                 return ResourceManager.GetString("VolumePathColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Collapse all.
-        /// </summary>
-        public static string CollapseAllSpansText {
-            get {
-                return ResourceManager.GetString("CollapseAllSpansText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Expand all.
-        /// </summary>
-        public static string ExpandAllSpansText {
-            get {
-                return ResourceManager.GetString("ExpandAllSpansText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to View structured logs.
-        /// </summary>
-        public static string ViewStructuredLogsText {
-            get {
-                return ResourceManager.GetString("ViewStructuredLogsText", resourceCulture);
             }
         }
     }

@@ -7,7 +7,8 @@
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
-    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- AOAI001 - AzureOpenAIClientOptions.DefaultHeaders/DefaultQueryParameters is experimental. -->
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101;AOAI001</NoWarn>
     <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed.. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>

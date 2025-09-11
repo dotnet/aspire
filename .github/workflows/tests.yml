@@ -76,7 +76,7 @@ jobs:
       os: "ubuntu-latest"
       # Docker tests are run on linux, and Hosting tests take longer to finish
       testSessionTimeout: ${{ matrix.shortname == 'Hosting' && '25m' || '15m' }}
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_macos:
@@ -90,7 +90,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   integrations_test_win:
@@ -104,7 +104,7 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      extraTestArgs: "--filter-not-trait \"quarantined=true\""
+      extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\""
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
   templates_test_lin:
@@ -120,7 +120,7 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
@@ -138,7 +138,7 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true
@@ -156,7 +156,7 @@ jobs:
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
       testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
       requiresTestSdk: true

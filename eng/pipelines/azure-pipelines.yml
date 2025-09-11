@@ -166,6 +166,8 @@ extends:
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
+          featureFlags:
+            autoEnableRoslynWithNewRuleset: false
           enableMicrobuild: true
           # Publish NuGet packages using v3
           # https://github.com/dotnet/arcade/blob/main/Documentation/CorePackages/Publishing.md#basic-onboarding-scenario-for-new-repositories-to-the-current-publishing-version-v3

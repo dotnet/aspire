@@ -22,12 +22,3 @@
 .interaction-input-dialog .interaction-input ::deep .input-description ol {
     margin-bottom: 0.2em;
 }
-
-.interaction-input-dialog .interaction-message ::deep code,
-.interaction-input-dialog .interaction-input ::deep code {
-    font-family: 'Cascadia Mono', Consolas, monospace;
-    color: unset;
-    background-color: var(--neutral-fill-secondary-focus);
-    padding: .15rem .3rem;
-    border-radius: .25rem;
-}

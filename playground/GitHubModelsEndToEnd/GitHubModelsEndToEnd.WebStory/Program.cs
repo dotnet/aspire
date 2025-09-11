@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using GitHubModelsEndToEnd.WebStory.Components;
+using Microsoft.Extensions.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureChatCompletionsClient("chat")
-       .AddChatClient();
+builder.AddAzureChatCompletionsClient("chat", settings => settings.EnableSensitiveTelemetryData = true)
+       .AddChatClient()
+       .UseFunctionInvocation();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

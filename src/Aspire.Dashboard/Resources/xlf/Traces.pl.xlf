@@ -17,6 +17,16 @@
         <target state="translated">Przechwytywanie śladów zostało wstrzymane w {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">Typ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">Wybierz typ zakresu</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
         <target state="translated">Wyświetlanie &lt;strong&gt;{0} śladów&lt;/strong&gt;</target>

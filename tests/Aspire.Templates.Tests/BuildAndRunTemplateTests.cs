@@ -28,8 +28,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
     [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task BuildAndRunAspireTemplate(string config)
     {
         string id = GetNewProjectId(prefix: $"aspire_{config}");
@@ -38,12 +39,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        if (BuildEnvironment.ShouldRunPlaywrightTests)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Fact]
@@ -97,8 +95,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
-    [RequiresSSLCertificate]
+    [RequiresSSLCertificate, RequiresPlaywright]
     [Trait("category", "basic-build")]
+    [OuterLoop("playwright test")]
     public async Task StarterTemplateNewAndRunWithoutExplicitBuild(string config)
     {
         var id = GetNewProjectId(prefix: $"aspire_starter_run_{config}");
@@ -108,11 +107,13 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
+        await using var context = await CreateNewBrowserContextAsync();
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
     [Fact]
+    [RequiresPlaywright]
+    [OuterLoop("playwright test")]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/9155", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     public async Task ProjectWithNoHTTPSRequiresExplicitOverrideWithEnvironmentVariable()
     {
@@ -139,12 +140,9 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         testSpecificBuildEnvironment.EnvVars[KnownConfigNames.AllowUnsecuredTransport] = "true";
         await project.StartAppHostAsync();
 
-        if (BuildEnvironment.ShouldRunPlaywrightTests)
-        {
-            await using var context = await CreateNewBrowserContextAsync();
-            var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
-        }
+        await using var context = await CreateNewBrowserContextAsync();
+        var page = await project.OpenDashboardPageAsync(context);
+        await CheckDashboardHasResourcesAsync(page, [], logPath: project.LogPath);
     }
 
     [Theory]

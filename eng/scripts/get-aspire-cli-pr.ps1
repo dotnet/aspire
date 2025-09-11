@@ -58,7 +58,10 @@
     .\get-aspire-cli-pr.ps1 1234 -WhatIf
 
 .EXAMPLE
-    .\get-aspire-cli-pr.ps1 1234 -SkipExtensionInstall
+    .\get-aspire-cli-pr.ps1 1234 -SkipExtension
+
+.EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -UseInsiders
 
 .EXAMPLE
     Piped execution
@@ -99,7 +102,10 @@ param(
     [switch]$HiveOnly,
 
     [Parameter(HelpMessage = "Skip VS Code extension download and installation")]
-    [switch]$SkipExtensionInstall,
+    [switch]$SkipExtension,
+
+    [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
+    [switch]$UseInsiders,
 
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
@@ -603,15 +609,20 @@ function Test-GitHubCLIDependency {
 # Function to check VS Code CLI dependency
 function Test-VSCodeCLIDependency {
     [CmdletBinding()]
-    param()
+    param(
+        [switch]$UseInsiders
+    )
 
-    if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
-        Write-Message "VS Code CLI (code) is not available in PATH. Extension installation will be skipped." -Level Warning
-        Write-Message "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available." -Level Info
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    if (-not (Get-Command $vscodeCmd -ErrorAction SilentlyContinue)) {
+        Write-Message "$vscodeName CLI ($vscodeCmd) is not available in PATH. Extension installation will be skipped." -Level Warning
+        Write-Message "To install $vscodeName extensions, ensure $vscodeName is installed and the '$vscodeCmd' command is available." -Level Info
         return $false
     }
 
-    Write-Message "VS Code CLI (code) found" -Level Verbose
+    Write-Message "$vscodeName CLI ($vscodeCmd) found" -Level Verbose
     return $true
 }
 
@@ -769,10 +780,15 @@ function Install-AspireExtensionFromDownload {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$DownloadDir
+        [string]$DownloadDir,
+
+        [switch]$UseInsiders
     )
 
-    if (!$PSCmdlet.ShouldProcess("VS Code", "Installing Aspire extension")) {
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    if (!$PSCmdlet.ShouldProcess($vscodeName, "Installing Aspire extension")) {
         return
     }
 
@@ -788,19 +804,19 @@ function Install-AspireExtensionFromDownload {
 
     try {
         # Install the extension using VS Code CLI
-        Write-Message "Installing VS Code extension: $($vsixFile.Name)" -Level Info
-        $installCommand = @("code", "--install-extension", $vsixFile.FullName)
+        Write-Message "Installing $vscodeName extension: $($vsixFile.Name)" -Level Info
+        $installCommand = @($vscodeCmd, "--install-extension", $vsixFile.FullName)
 
         & $installCommand[0] $installCommand[1..($installCommand.Length-1)]
 
         if ($LASTEXITCODE -eq 0) {
-            Write-Message "VS Code extension successfully installed" -Level Success
+            Write-Message "$vscodeName extension successfully installed" -Level Success
         } else {
-            Write-Message "Failed to install VS Code extension (exit code: $LASTEXITCODE)" -Level Warning
+            Write-Message "Failed to install $vscodeName extension (exit code: $LASTEXITCODE)" -Level Warning
         }
     }
     catch {
-        Write-Message "Failed to install VS Code extension: $($_.Exception.Message)" -Level Warning
+        Write-Message "Failed to install $vscodeName extension: $($_.Exception.Message)" -Level Warning
     }
 }
 
@@ -997,10 +1013,10 @@ function Start-DownloadAndInstall {
 
     # Download VS Code extension if not skipped
     $extensionDownloadDir = $null
-    if (-not $SkipExtensionInstall) {
+    if (-not $SkipExtension) {
         $extensionDownloadDir = Get-AspireExtensionFromArtifact -RunId $runId -TempDir $TempDir
     } else {
-        Write-Message "Skipping VS Code extension download due to -SkipExtensionInstall flag" -Level Info
+        Write-Message "Skipping VS Code extension download due to -SkipExtension flag" -Level Info
     }
 
     # Then, install artifacts
@@ -1013,9 +1029,9 @@ function Start-DownloadAndInstall {
     Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
 
     # Install VS Code extension if downloaded
-    if ($extensionDownloadDir -and -not $SkipExtensionInstall) {
-        if (Test-VSCodeCLIDependency) {
-            Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir
+    if ($extensionDownloadDir -and -not $SkipExtension) {
+        if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
+            Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir -UseInsiders:$UseInsiders
         }
     }
 

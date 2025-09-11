@@ -72,15 +72,15 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Commands.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\ControlsStrings.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ControlsStrings.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\ConsoleLogs.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ConsoleLogs.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ControlsStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ControlsStrings.resx</DependentUpon>
     </Compile>
     <Compile Update="Resources\Dialogs.Designer.cs">
       <DesignTime>True</DesignTime>

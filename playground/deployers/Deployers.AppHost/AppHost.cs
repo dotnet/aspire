@@ -3,6 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var computeParam = builder.AddParameter("computeParam");
+var secretParam = builder.AddParameter("secretParam", secret: true);
+var parameterWithDefault = builder.AddParameter("parameterWithDefault", "default");
+
 var aca = builder.AddAzureContainerAppEnvironment("aca-env");
 var aas = builder.AddAzureAppServiceEnvironment("aas-env");
 
@@ -12,7 +16,10 @@ var queue = storage.AddQueues("queue");
 var blob = storage.AddBlobs("foobarbaz");
 var myBlobContainer = storage.AddBlobContainer("myblobcontainer");
 
+var ehName = builder.AddParameter("existingEventHubName");
+var ehRg = builder.AddParameter("existingEventHubResourceGroup");
 var eventHub = builder.AddAzureEventHubs("eventhubs")
+    .PublishAsExisting(ehName, ehRg)
     .RunAsEmulator()
     .AddHub("myhub");
 var serviceBus = builder.AddAzureServiceBus("messaging")
@@ -42,6 +49,9 @@ builder.AddProject<Projects.Deployers_ApiService>("api-service")
 builder.AddDockerfile("python-app", "../Deployers.Dockerfile")
     .WithHttpEndpoint(targetPort: 80)
     .WithExternalHttpEndpoints()
+    .WithEnvironment("P0", computeParam)
+    .WithEnvironment("P1", secretParam)
+    .WithEnvironment("P3", parameterWithDefault)
     .WithComputeEnvironment(aca);
 
 builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("func-app")

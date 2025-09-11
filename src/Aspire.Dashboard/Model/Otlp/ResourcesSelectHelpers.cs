@@ -7,11 +7,11 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public static class ResourcesSelectHelpers
 {
-    public static SelectViewModel<ResourceTypeDetails> GetResource(this ICollection<SelectViewModel<ResourceTypeDetails>> resources, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallback)
+    public static SelectViewModel<ResourceTypeDetails> GetResource(this ICollection<SelectViewModel<ResourceTypeDetails>> resources, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallbackViewModel)
     {
         if (name is null)
         {
-            return fallback;
+            return SingleMatch(resources, logger, name: "(null)", fallbackViewModel, fallback: true);
         }
 
         var allowedMatches = resources.Where(e => SupportType(e.Id?.Type, canSelectGrouping)).ToList();
@@ -20,7 +20,7 @@ public static class ResourcesSelectHelpers
         var instanceIdMatches = allowedMatches.Where(e => string.Equals(name, e.Id?.InstanceId, StringComparisons.ResourceName)).ToList();
         if (instanceIdMatches.Count == 1)
         {
-            return instanceIdMatches[0];
+            return SingleMatch(resources, logger, name, instanceIdMatches[0]);
         }
         else if (instanceIdMatches.Count == 0)
         {
@@ -29,12 +29,12 @@ public static class ResourcesSelectHelpers
 
             if (replicaSetMatches.Count == 1)
             {
-                return replicaSetMatches[0];
+                return SingleMatch(resources, logger, name, replicaSetMatches[0]);
             }
             else if (replicaSetMatches.Count == 0)
             {
                 // No matches found so return the passed in fallback.
-                return fallback;
+                return SingleMatch(resources, logger, name, fallbackViewModel, fallback: true);
             }
             else
             {
@@ -44,6 +44,21 @@ public static class ResourcesSelectHelpers
         else
         {
             return MultipleMatches(allowedMatches, logger, name, instanceIdMatches);
+        }
+
+        static SelectViewModel<ResourceTypeDetails> SingleMatch(ICollection<SelectViewModel<ResourceTypeDetails>> resources, ILogger logger, string name, SelectViewModel<ResourceTypeDetails> match, bool fallback = false)
+        {
+            // There is a single match. Log as much information as possible about resources.
+            logger.LogDebug(
+                """
+                Single match found when getting resource '{Name}'. Fallback used: {Fallback}
+                Available resources:
+                {AvailableResources}
+                Matched resource:
+                {MatchedResource}
+                """, name, fallback, string.Join(Environment.NewLine, resources), match);
+
+            return match;
         }
 
         static SelectViewModel<ResourceTypeDetails> MultipleMatches(ICollection<SelectViewModel<ResourceTypeDetails>> resources, ILogger logger, string name, List<SelectViewModel<ResourceTypeDetails>> matches)
@@ -77,7 +92,7 @@ public static class ResourcesSelectHelpers
                 var resource = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateSingleton($"{resourceName}-{resource.InstanceId}", resourceName),
+                    Id = ResourceTypeDetails.CreateSingleton(resource.ResourceKey.ToString(), resourceName),
                     Name = resourceName
                 });
 
@@ -95,7 +110,7 @@ public static class ResourcesSelectHelpers
             selectViewModels.AddRange(replicas.Select(replica =>
                 new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateReplicaInstance($"{resourceName}-{replica.InstanceId}", resourceName),
+                    Id = ResourceTypeDetails.CreateReplicaInstance(replica.ResourceKey.ToString(), resourceName),
                     Name = OtlpResource.GetResourceName(replica, resources)
                 }));
         }

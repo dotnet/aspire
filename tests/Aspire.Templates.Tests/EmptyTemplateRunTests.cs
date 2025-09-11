@@ -19,6 +19,7 @@ public class EmptyTemplateRunTests : TemplateTestsBase, IClassFixture<EmptyTempl
     [Fact]
     [RequiresPlaywright]
     [RequiresSSLCertificate("Needed for dashboard access")]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();

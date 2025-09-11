@@ -32,6 +32,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private int _totalItemsCount;
+    private List<SelectViewModel<SpanType>> _spanTypes = default!;
     private List<OtlpResource> _resources = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
     private Subscription? _resourcesSubscription;
@@ -90,6 +91,10 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? SpanTypeText { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
@@ -162,7 +167,8 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         ];
 
         _allResource = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
-        PageViewModel = new TracesPageViewModel { SelectedResource = _allResource };
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlsStringsLoc);
+        PageViewModel = new TracesPageViewModel { SelectedResource = _allResource, SelectedSpanType = _spanTypes[0] };
 
         UpdateResources();
         _resourcesSubscription = TelemetryRepository.OnNewResources(callback: () => InvokeAsync(workItem: () =>
@@ -197,6 +203,12 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _resourceChanged = true;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+    }
+
+    private async Task HandleSelectedSpanTypeChangedAsync()
+    {
+        //await ClearSelectedLogEntryAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
     private void UpdateSubscription()
@@ -276,6 +288,9 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         viewModel.SelectedResource = _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _allResource);
         TracesViewModel.ResourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey();
 
+        viewModel.SelectedSpanType = _spanTypes.SingleOrDefault(t => t.Id?.Name == SpanTypeText) ?? _spanTypes[0];
+        TracesViewModel.SpanType = viewModel.SelectedSpanType.Id;
+
         if (SerializedFilters is not null)
         {
             var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
@@ -299,6 +314,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
         return DashboardUrls.TracesUrl(
             resource: serializable.SelectedResource,
+            type: serializable.SelectedSpanType,
             filters: filters);
     }
 
@@ -307,11 +323,12 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         return new TracesPageState
         {
             SelectedResource = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
+            SelectedSpanType = PageViewModel.SelectedSpanType.Id?.Name,
             Filters = TracesViewModel.Filters
         };
     }
 
-    private async Task OpenFilterAsync(TelemetryFilter? entry)
+    private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
@@ -341,7 +358,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is FieldTelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -384,12 +401,14 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     public class TracesPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
+        public required SelectViewModel<SpanType> SelectedSpanType { get; set; }
     }
 
     public class TracesPageState
     {
         public string? SelectedResource { get; set; }
-        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
+        public string? SelectedSpanType { get; set; }
+        public required IReadOnlyCollection<FieldTelemetryFilter> Filters { get; set; }
     }
 
     // IComponentWithTelemetry impl

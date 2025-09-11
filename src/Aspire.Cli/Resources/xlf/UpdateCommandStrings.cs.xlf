@@ -27,6 +27,11 @@
         <target state="translated">Centrální správa balíčků není v současné době přes aspire update podporována.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Nepovedlo se najít element PackageVersion pro: {0} v: {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
         <target state="translated">V {0} se nepovedlo najít kořenový element &lt;Project&gt;</target>
