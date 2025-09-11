@@ -39,6 +39,8 @@ The scripts attempt to add `~/.aspire/bin` to your shell/profile PATH so you can
 
 ## Quickstart
 
+> **⚠️ WARNING: Do not do this without first carefully reviewing the code of this PR to satisfy yourself it is safe.**
+
 Pick one of the approaches below.
 
 ### One-liner (Bash)
