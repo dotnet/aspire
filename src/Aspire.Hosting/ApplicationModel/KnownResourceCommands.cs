@@ -22,14 +22,4 @@ public static class KnownResourceCommands
     /// The command name for restarting a resource.
     /// </summary>
     public const string RestartCommand = "resource-restart";
-
-    /// <summary>
-    /// Determines whether the specified command is a known resource command.
-    /// </summary>
-    /// <param name="command">The command name to check.</param>
-    /// <returns><see langword="true"/> if the command is a known resource command; otherwise, <see langword="false"/>.</returns>
-    internal static bool IsKnownCommand(string command)
-    {
-        return command == StartCommand || command == StopCommand || command == RestartCommand;
-    }
 }

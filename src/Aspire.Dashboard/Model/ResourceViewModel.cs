@@ -221,6 +221,11 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
+    // Known resource command constants
+    private const string StartCommand = "resource-start";
+    private const string StopCommand = "resource-stop"; 
+    private const string RestartCommand = "resource-restart";
+
     public string Name { get; }
     public CommandViewModelState State { get; }
     private string DisplayName { get; }
@@ -250,15 +255,15 @@ public sealed class CommandViewModel
 
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
-        if (Name == KnownResourceCommands.StartCommand)
+        if (Name == StartCommand)
         {
             return loc[nameof(Commands.StartCommandDisplayName)];
         }
-        if (Name == KnownResourceCommands.StopCommand)
+        if (Name == StopCommand)
         {
             return loc[nameof(Commands.StopCommandDisplayName)];
         }
-        if (Name == KnownResourceCommands.RestartCommand)
+        if (Name == RestartCommand)
         {
             return loc[nameof(Commands.RestartCommandDisplayName)];
         }
@@ -267,15 +272,15 @@ public sealed class CommandViewModel
 
     public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
-        if (Name == KnownResourceCommands.StartCommand)
+        if (Name == StartCommand)
         {
             return loc[nameof(Commands.StartCommandDisplayDescription)];
         }
-        if (Name == KnownResourceCommands.StopCommand)
+        if (Name == StopCommand)
         {
             return loc[nameof(Commands.StopCommandDisplayDescription)];
         }
-        if (Name == KnownResourceCommands.RestartCommand)
+        if (Name == RestartCommand)
         {
             return loc[nameof(Commands.RestartCommandDisplayDescription)];
         }
