@@ -10,7 +10,7 @@ public static class TelemetryPropertyValues
 
     public static string GetCommandNameTelemetryValue(string commandName)
     {
-        return Aspire.Hosting.ApplicationModel.KnownResourceCommands.IsKnownCommand(commandName)
+        return KnownResourceCommands.IsKnownCommand(commandName)
             ? commandName
             : CustomResourceCommand;
     }

@@ -250,15 +250,15 @@ public sealed class CommandViewModel
 
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StartCommand)
+        if (Name == KnownResourceCommands.StartCommand)
         {
             return loc[nameof(Commands.StartCommandDisplayName)];
         }
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StopCommand)
+        if (Name == KnownResourceCommands.StopCommand)
         {
             return loc[nameof(Commands.StopCommandDisplayName)];
         }
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand)
+        if (Name == KnownResourceCommands.RestartCommand)
         {
             return loc[nameof(Commands.RestartCommandDisplayName)];
         }
@@ -267,15 +267,15 @@ public sealed class CommandViewModel
 
     public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StartCommand)
+        if (Name == KnownResourceCommands.StartCommand)
         {
             return loc[nameof(Commands.StartCommandDisplayDescription)];
         }
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StopCommand)
+        if (Name == KnownResourceCommands.StopCommand)
         {
             return loc[nameof(Commands.StopCommandDisplayDescription)];
         }
-        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand)
+        if (Name == KnownResourceCommands.RestartCommand)
         {
             return loc[nameof(Commands.RestartCommandDisplayDescription)];
         }
