@@ -109,13 +109,13 @@ builder.AddProject<Projects.ClientApp>("client")
 
 Environment variables are injected after the tunnel port is allocated using the format:
 
-```
+```env
 services__{ResourceName}__{EndpointName}__0 = https://{public-host}/
 ```
 
 Example:
 
-```
+```env
 services__web__https__0 = https://myweb-1234.westeurope.devtunnels.ms/
 ```
 
