@@ -42,7 +42,7 @@ public class SpanType
     // https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
     public static readonly SpanType GenAI = new SpanType(
         "genai",
-        new SpanHasAttributeTelemetryFilter(["gen_ai.system", "gen_ai.provider.name"]));
+        new SpanHasAttributeTelemetryFilter(["gen_ai.system", "gen_ai.provider.name", "gen_ai.operation.name"]));
 
     public static readonly SpanType Other = new SpanType(
         "other",
