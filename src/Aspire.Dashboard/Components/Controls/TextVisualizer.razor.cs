@@ -33,7 +33,7 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        VirtualizeHelper<StringLogLine>.TrySetMaxItemCount(_virtualizeRef, 10000);
+        VirtualizeHelper<StringLogLine>.TrySetMaxItemCount(_virtualizeRef, 10_000);
 
         await ThemeManager.EnsureInitializedAsync();
     }
