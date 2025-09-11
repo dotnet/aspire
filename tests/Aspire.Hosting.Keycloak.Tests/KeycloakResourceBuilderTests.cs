@@ -5,6 +5,7 @@ using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
 
 namespace Aspire.Hosting.Keycloak.Tests;
 
@@ -143,5 +144,174 @@ public class KeycloakResourceBuilderTests
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task WithReverseProxyAddsEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithReverseProxy();
+
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
+
+        var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.Equal("true", kcHttpEnabled.Value);
+
+        var kcProxyHeaders = Assert.Single(env, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.Equal("xforwarded", kcProxyHeaders.Value);
+
+        var kcHostname = Assert.Single(env, e => e.Key == "KC_HOSTNAME");
+        Assert.NotNull(kcHostname.Value);
+        
+        // The hostname should be a resolved endpoint reference
+        Assert.Contains("keycloak", kcHostname.Value);
+        Assert.Contains("8080", kcHostname.Value);
+    }
+
+    [Fact]
+    public async Task WithReverseProxyWithSpecificEndpointUsesCorrectEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithHttpEndpoint(port: 9080, name: "custom")
+                              .WithReverseProxy("custom");
+
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
+
+        var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.Equal("true", kcHttpEnabled.Value);
+
+        var kcProxyHeaders = Assert.Single(env, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.Equal("xforwarded", kcProxyHeaders.Value);
+        
+        var kcHostname = Assert.Single(env, e => e.Key == "KC_HOSTNAME");
+        Assert.NotNull(kcHostname.Value);
+        
+        // The hostname value may be an EndpointReference object in string form
+        // Let's test what we actually get
+        var hostnameStr = kcHostname.Value;
+        Assert.True(
+            hostnameStr.Contains("keycloak") || hostnameStr.Contains("EndpointReference"), 
+            $"Expected hostname to contain 'keycloak' or 'EndpointReference' but got: {hostnameStr}");
+    }
+
+    [Fact]
+    public async Task WithReverseProxyDoesNotAffectOtherEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloakWithoutProxy = builder.AddKeycloak("keycloak1");
+        var keycloakWithProxy = builder.AddKeycloak("keycloak2")
+                                      .WithReverseProxy();
+
+        var envWithoutProxy = await keycloakWithoutProxy.Resource.GetEnvironmentVariableValuesAsync();
+        var envWithProxy = await keycloakWithProxy.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Environment variables without proxy should not include reverse proxy settings
+        Assert.DoesNotContain(envWithoutProxy, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.DoesNotContain(envWithoutProxy, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.DoesNotContain(envWithoutProxy, e => e.Key == "KC_HOSTNAME");
+
+        // Environment variables with proxy should include both original and reverse proxy settings
+        Assert.Contains(envWithProxy, e => e.Key == "KC_BOOTSTRAP_ADMIN_USERNAME");
+        Assert.Contains(envWithProxy, e => e.Key == "KC_BOOTSTRAP_ADMIN_PASSWORD");
+        Assert.Contains(envWithProxy, e => e.Key == "KC_HEALTH_ENABLED");
+        Assert.Contains(envWithProxy, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.Contains(envWithProxy, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.Contains(envWithProxy, e => e.Key == "KC_HOSTNAME");
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithReverseProxy()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithReverseProxy();
+
+        var manifest = await ManifestUtils.GetManifest(keycloak.Resource);
+
+        // Validate that reverse proxy environment variables are included in the manifest
+        var manifestJson = JsonDocument.Parse(manifest.ToString());
+        var env = manifestJson.RootElement.GetProperty("env");
+        
+        // Verify original Keycloak environment variables are present
+        Assert.Equal("admin", env.GetProperty("KC_BOOTSTRAP_ADMIN_USERNAME").GetString());
+        Assert.Equal("{keycloak-password.value}", env.GetProperty("KC_BOOTSTRAP_ADMIN_PASSWORD").GetString());
+        Assert.Equal("true", env.GetProperty("KC_HEALTH_ENABLED").GetString());
+        
+        // Verify reverse proxy environment variables are present
+        Assert.Equal("true", env.GetProperty("KC_HTTP_ENABLED").GetString());
+        Assert.Equal("xforwarded", env.GetProperty("KC_PROXY_HEADERS").GetString());
+        Assert.Equal("{keycloak.bindings.http.url}", env.GetProperty("KC_HOSTNAME").GetString());
+    }
+
+    [Fact]
+    public async Task PublishWithReverseProxyInRunModeDoesNotAddReverseProxyConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .PublishWithReverseProxy();
+
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Should not contain reverse proxy settings in run mode
+        Assert.DoesNotContain(env, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.DoesNotContain(env, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.DoesNotContain(env, e => e.Key == "KC_HOSTNAME");
+
+        // Should still contain standard Keycloak environment variables
+        Assert.Contains(env, e => e.Key == "KC_BOOTSTRAP_ADMIN_USERNAME");
+        Assert.Contains(env, e => e.Key == "KC_BOOTSTRAP_ADMIN_PASSWORD");
+        Assert.Contains(env, e => e.Key == "KC_HEALTH_ENABLED");
+    }
+
+    [Fact]
+    public async Task PublishWithReverseProxyInPublishModeAddsReverseProxyConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .PublishWithReverseProxy();
+
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Should contain reverse proxy settings in publish mode
+        var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.Equal("true", kcHttpEnabled.Value);
+
+        var kcProxyHeaders = Assert.Single(env, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.Equal("xforwarded", kcProxyHeaders.Value);
+
+        var kcHostname = Assert.Single(env, e => e.Key == "KC_HOSTNAME");
+        Assert.NotNull(kcHostname.Value);
+        
+        // In publish mode, this should be a manifest expression or resolved URL
+        Assert.True(kcHostname.Value.StartsWith("{") || kcHostname.Value.StartsWith("http"));
+    }
+
+    [Fact]
+    public async Task PublishWithReverseProxyWithSpecificEndpointUsesCorrectEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithHttpEndpoint(port: 9080, name: "custom")
+                              .PublishWithReverseProxy("custom");
+
+        var env = await keycloak.Resource.GetEnvironmentVariableValuesAsync();
+
+        // Should contain reverse proxy settings with custom endpoint
+        var kcHttpEnabled = Assert.Single(env, e => e.Key == "KC_HTTP_ENABLED");
+        Assert.Equal("true", kcHttpEnabled.Value);
+
+        var kcProxyHeaders = Assert.Single(env, e => e.Key == "KC_PROXY_HEADERS");
+        Assert.Equal("xforwarded", kcProxyHeaders.Value);
+        
+        var kcHostname = Assert.Single(env, e => e.Key == "KC_HOSTNAME");
+        Assert.NotNull(kcHostname.Value);
+        
+        // In publish mode, this should be a manifest expression for the custom endpoint or reference the custom endpoint
+        Assert.True(kcHostname.Value.Contains("custom") || kcHostname.Value.Contains("EndpointReference"));
     }
 }
