@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
@@ -92,6 +94,79 @@ internal static class DashboardUIHelpers
                 return Task.CompletedTask;
             };
         }).ConfigureAwait(false);
+    }
+
+    public static bool TryGetAsset(ComponentBase component, string path, [NotNullWhen(true)] out object? asset)
+    {
+        var assetProperty = typeof(ComponentBase).GetProperty("Assets", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (assetProperty != null)
+        {
+            var assets = assetProperty.GetValue(component);
+            if (assets != null)
+            {
+                // Find the indexer property (default property with string parameter)
+                var indexer = assets.GetType().GetProperty("Item", types: [typeof(string)]);
+
+                if (indexer != null)
+                {
+                    asset = indexer.GetValue(assets, [path]);
+                    return asset != null;
+                }
+            }
+        }
+
+        asset = null;
+        return false;
+    }
+
+    public static void CallMapStaticAssets(IEndpointRouteBuilder endpoints)
+    {
+        //Debugger.Launch();
+
+        Assembly.Load("Microsoft.AspNetCore.StaticAssets");
+
+        // 1. Find the assembly containing StaticAssetsEndpointRouteBuilderExtensions
+        //    (it may vary depending on SDK version, often "Microsoft.AspNetCore.StaticAssets" or similar)
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+        Type? extensionsType = null;
+        foreach (var asm in assemblies)
+        {
+            if (asm.GetName().Name == "Microsoft.AspNetCore.StaticAssets")
+            {
+                var allTypes = asm.GetTypes();
+                _ = allTypes;
+            }
+            extensionsType = asm.GetType("Microsoft.AspNetCore.Builder.StaticAssetsEndpointRouteBuilderExtensions");
+            if (extensionsType != null)
+            {
+                Console.WriteLine($"Found extensions in assembly: {asm.FullName}");
+                break;
+            }
+        }
+
+        if (extensionsType == null)
+        {
+            return;
+        }
+
+        // 2. Find the MapStaticAssets method
+        var method = extensionsType.GetMethod(
+            "MapStaticAssets",
+            BindingFlags.Public | BindingFlags.Static,
+            binder: null,
+            types: new[] { typeof(IEndpointRouteBuilder), typeof(string) }, // overload resolution
+            modifiers: null
+        );
+
+        if (method == null)
+        {
+            return;
+        }
+
+        // 3. Invoke the method
+        method.Invoke(null, [endpoints, null]);
     }
 }
 

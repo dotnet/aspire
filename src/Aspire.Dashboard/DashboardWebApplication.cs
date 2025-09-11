@@ -241,7 +241,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                 // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
                 // being enabled by explicit configuration.
+#pragma warning disable ASPDEPR005 // Type or member is obsolete
                 options.KnownNetworks.Clear();
+#pragma warning restore ASPDEPR005 // Type or member is obsolete
                 options.KnownProxies.Clear();
             });
         }
@@ -466,6 +468,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
+        _app.MapStaticAssets();
+        //DashboardUIHelpers.CallMapStaticAssets(_app);
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
