@@ -185,8 +185,8 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertLinks(string text)
     {
-        // Convert [text](url) to Spectre.Console link format [link=url]text[/]
-        return LinkRegex().Replace(text, "[link=$2]$1[/]");
+        // Convert [text](url) to Spectre.Console link format with cyan color
+        return LinkRegex().Replace(text, "[cyan link=$2]$1[/]");
     }
 
     private static string EscapeRemainingSquareBrackets(string text)
@@ -201,7 +201,7 @@ internal static partial class MarkdownToSpectreConverter
 
         // First, temporarily replace all Spectre markup with placeholders
         var spectreMarkups = new List<string>();
-        var spectrePattern = @"\[(?:/?(?:bold|italic|grey|blue|green|yellow|underline|strikethrough)\s?)+\]|\[/\]|\[link=[^\]]+\]";
+        var spectrePattern = @"\[(?:/?(?:bold|italic|grey|blue|green|yellow|cyan|underline|strikethrough)\s?)+\]|\[/\]|\[link=[^\]]+\]|\[cyan\s+link=[^\]]+\]";
         var spectreRegex = new Regex(spectrePattern);
 
         var textWithPlaceholders = spectreRegex.Replace(text, match =>
