@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
@@ -39,6 +39,24 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             // Extract resource name from imageName for the file name
             var resourceName = imageName.Split('/').Last().Split(':').First();
             arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
+        }
+
+        // Add build arguments if specified
+        foreach (var buildArg in buildArguments)
+        {
+            arguments += $" --build-arg \"{buildArg.Key}={buildArg.Value}\"";
+        }
+
+        // Add build secrets if specified
+        foreach (var buildSecret in buildSecrets)
+        {
+            arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Value}\"";
+        }
+
+        // Add stage if specified
+        if (!string.IsNullOrEmpty(stage))
+        {
+            arguments += $" --target \"{stage}\"";
         }
 
         arguments += $" \"{contextPath}\"";
@@ -80,11 +98,19 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
 
     public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
+        await BuildImageAsync(contextPath, dockerfilePath, imageName, options, [], [], null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
+    {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
             options,
+            buildArguments,
+            buildSecrets,
+            stage,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)
