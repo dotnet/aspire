@@ -339,6 +339,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_dataGrid != null && FluentDataGridHelper<ResourceGridViewModel>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
         if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph && !_graphInitialized)
         {
             // Before any awaits, set a flag to indicate the graph is initialized. This prevents the graph being initialized multiple times.

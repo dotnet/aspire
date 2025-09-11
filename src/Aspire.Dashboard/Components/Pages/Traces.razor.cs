@@ -248,6 +248,11 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_dataGrid != null && FluentDataGridHelper<OtlpTrace>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
         if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");

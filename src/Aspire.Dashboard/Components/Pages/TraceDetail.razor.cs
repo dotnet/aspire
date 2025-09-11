@@ -239,6 +239,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
     }
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_dataGrid != null && FluentDataGridHelper<SpanWaterfallViewModel>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+    }
+
     private void UpdateDetailViewData()
     {
         _resources = TelemetryRepository.GetResources();

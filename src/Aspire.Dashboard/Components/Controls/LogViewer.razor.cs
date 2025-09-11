@@ -44,6 +44,19 @@ public sealed partial class LogViewer
     [Parameter]
     public bool NoWrapLogs { get; set; }
 
+    private Virtualize<LogEntry>? VirtualizeRef
+    {
+        get => field;
+        set
+        {
+            field = value;
+            if (field != null)
+            {
+                VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10000);
+            }
+        }
+    }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)
