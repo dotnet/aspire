@@ -343,8 +343,9 @@ td .long-inner-content {
 
     /* right/bottom align the inner version text */
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column-reverse;
     align-items: flex-end;
+    row-gap: 8px;
 }
 
 .anchor-no-padding::part(control) {

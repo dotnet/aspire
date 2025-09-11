@@ -352,6 +352,11 @@
         <target state="translated">Kaynak günlükleri ve telemetri</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="new">Runtime: {0}</target>
+        <note>{0} is the .NET runtime version</note>
+      </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
         <target state="translated">Dil</target>
