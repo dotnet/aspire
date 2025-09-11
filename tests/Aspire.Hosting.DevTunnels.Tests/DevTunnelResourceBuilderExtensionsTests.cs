@@ -35,6 +35,32 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.Equal(expectedValue, values[expectedKey]);
     }
 
+    [Fact]
+    public void AddDevTunnel_WithAnonymousAccess_SetsAllowAnonymousOption()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithAnonymousAccess();
+
+        Assert.True(tunnel.Resource.Options.AllowAnonymous);
+    }
+
+    [Fact]
+    public void WithReference_WithAnonymousAccess_SetsPortAllowAnonymousOption()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint();
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target, allowAnonymous: true);
+
+        Assert.Single(tunnel.Resource.Ports);
+        var port = tunnel.Resource.Ports.First();
+        Assert.True(port.Options.AllowAnonymous);
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
