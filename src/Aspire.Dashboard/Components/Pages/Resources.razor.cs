@@ -339,6 +339,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
         if (_dataGrid != null && FluentDataGridHelper<ResourceGridViewModel>.TrySetMaxItemCount(_dataGrid, 10_000))
         {
             StateHasChanged();

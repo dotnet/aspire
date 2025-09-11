@@ -7,6 +7,8 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Utils;
 
+// Temporary work around to set MaxItemCount on Virtualize component via reflection.
+// Required because dashboard currently targets .NET 8 and MaxItemCount isn't available.
 public static class VirtualizeHelper<TItem>
 {
     private static readonly PropertyInfo? s_setMaxItemCountPropertyInfo = GetSetMaxItemCountMethodInfo();

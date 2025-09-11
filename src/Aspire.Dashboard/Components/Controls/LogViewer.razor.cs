@@ -52,6 +52,8 @@ public sealed partial class LogViewer
         set
         {
             field = value;
+
+            // Set max item count when the Virtualize component is set.
             if (field != null)
             {
                 VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10_000);

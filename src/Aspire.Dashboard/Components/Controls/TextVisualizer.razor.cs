@@ -13,7 +13,6 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
 {
     private IJSObjectReference? _jsModule;
     private ElementReference _containerElement;
-    private Virtualize<StringLogLine> _virtualizeRef = default!;
     private bool _isObserving;
 
     [Inject]
@@ -31,10 +30,23 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     [Parameter]
     public bool DisplayUnformatted { get; set; }
 
+    private Virtualize<StringLogLine>? VirtualizeRef
+    {
+        get => field;
+        set
+        {
+            field = value;
+
+            // Set max item count when the Virtualize component is set.
+            if (field != null)
+            {
+                VirtualizeHelper<StringLogLine>.TrySetMaxItemCount(field, 10_000);
+            }
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        VirtualizeHelper<StringLogLine>.TrySetMaxItemCount(_virtualizeRef, 10_000);
-
         await ThemeManager.EnsureInitializedAsync();
     }
 
