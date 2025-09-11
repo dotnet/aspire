@@ -705,6 +705,19 @@ public class WithUrlsTests
     }
 
     [Fact]
+    public void WithUrlThrowsForRelativeUrl()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        Assert.Throws<ArgumentException>(() =>
+        {
+            var projectA = builder.AddProject<ProjectA>("projecta")
+                .WithHttpEndpoint(name: "test")
+                .WithUrl("/test", "Example");
+        }, ex => ex.ParamName == "url" && ex.Message.Contains("Relative URLs are not supported") ? null : "Unexpected exception message");
+    }
+
+    [Fact]
     public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
