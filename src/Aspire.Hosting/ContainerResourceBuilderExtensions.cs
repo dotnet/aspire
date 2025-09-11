@@ -703,6 +703,74 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Changes the build stage for a Dockerfile build.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildStage{T}(IResourceBuilder{T}, string)"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildStage{T}(IResourceBuilder{T}, string)"/> extension method
+    /// changes the build stage for a container resource that has been configured to build from a Dockerfile. This method must be called after
+    /// <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/> or
+    /// <see cref="ContainerResourceBuilderExtensions.AddDockerfile(IDistributedApplicationBuilder, string, string, string?, string?)"/>.
+    /// </para>
+    /// <example>
+    /// Using a different build stage conditionally based on execution context.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// var pythonInference = builder.AddDockerfile("python-inference", "../PythonInference")
+    ///     .WithHttpEndpoint(targetPort: 62394, env: "UVICORN_PORT")
+    ///     .WithContainerRuntimeArgs("--gpus=all")
+    ///     .WithLifetime(ContainerLifetime.Persistent);
+    /// 
+    /// if (builder.ExecutionContext.IsRunMode)
+    /// {
+    ///     pythonInference
+    ///         .WithBuildStage("base")
+    ///         .WithBindMount("../PythonInference", "/app")
+    ///         .WithArgs("--reload");
+    /// }
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithBuildStage<T>(this IResourceBuilder<T> builder, string stage) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(stage);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile or AddDockerfile before calling WithBuildStage.");
+        }
+
+        var newAnnotation = new DockerfileBuildAnnotation(annotation.ContextPath, annotation.DockerfilePath, stage);
+
+        // Copy over the existing build arguments and secrets
+        foreach (var kvp in annotation.BuildArguments)
+        {
+            newAnnotation.BuildArguments[kvp.Key] = kvp.Value;
+        }
+
+        foreach (var kvp in annotation.BuildSecrets)
+        {
+            newAnnotation.BuildSecrets[kvp.Key] = kvp.Value;
+        }
+
+        return builder.WithAnnotation(newAnnotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
     /// Creates or updates files and/or folders at the destination path in the container.
     /// </summary>
     /// <typeparam name="T">The type of container resource.</typeparam>
