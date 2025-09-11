@@ -85,6 +85,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+        services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
@@ -213,7 +214,8 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext);
+        var fallbackParser = serviceProvider.GetRequiredService<FallbackProjectParser>();
+        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
     };
 
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
