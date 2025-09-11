@@ -11,15 +11,15 @@ public static class KnownResourceCommands
     /// <summary>
     /// The command name for starting a resource.
     /// </summary>
-    public const string StartCommand = "resource-start";
+    public static readonly string StartCommand = "resource-start";
 
     /// <summary>
     /// The command name for stopping a resource.
     /// </summary>
-    public const string StopCommand = "resource-stop";
+    public static readonly string StopCommand = "resource-stop";
 
     /// <summary>
     /// The command name for restarting a resource.
     /// </summary>
-    public const string RestartCommand = "resource-restart";
+    public static readonly string RestartCommand = "resource-restart";
 }
