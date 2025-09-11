@@ -11,17 +11,17 @@ public static class KnownResourceCommands
     /// <summary>
     /// The command name for starting a resource.
     /// </summary>
-    public const string StartCommand = "resource-start";
+    public static readonly string StartCommand = "resource-start";
 
     /// <summary>
     /// The command name for stopping a resource.
     /// </summary>
-    public const string StopCommand = "resource-stop";
+    public static readonly string StopCommand = "resource-stop";
 
     /// <summary>
     /// The command name for restarting a resource.
     /// </summary>
-    public const string RestartCommand = "resource-restart";
+    public static readonly string RestartCommand = "resource-restart";
 
     /// <summary>
     /// Determines whether the specified command is a known resource command.
@@ -30,6 +30,6 @@ public static class KnownResourceCommands
     /// <returns><see langword="true"/> if the command is a known resource command; otherwise, <see langword="false"/>.</returns>
     public static bool IsKnownCommand(string command)
     {
-        return command is StartCommand or StopCommand or RestartCommand;
+        return command == StartCommand || command == StopCommand || command == RestartCommand;
     }
 }

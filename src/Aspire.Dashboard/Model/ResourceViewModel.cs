@@ -8,7 +8,6 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -251,24 +250,36 @@ public sealed class CommandViewModel
 
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
-        return Name switch
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StartCommand)
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
-            _ => DisplayName
-        };
+            return loc[nameof(Commands.StartCommandDisplayName)];
+        }
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StopCommand)
+        {
+            return loc[nameof(Commands.StopCommandDisplayName)];
+        }
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand)
+        {
+            return loc[nameof(Commands.RestartCommandDisplayName)];
+        }
+        return DisplayName;
     }
 
     public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
-        return Name switch
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StartCommand)
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription is { Length : > 0 } ? DisplayDescription : null
-        };
+            return loc[nameof(Commands.StartCommandDisplayDescription)];
+        }
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.StopCommand)
+        {
+            return loc[nameof(Commands.StopCommandDisplayDescription)];
+        }
+        if (Name == Aspire.Hosting.ApplicationModel.KnownResourceCommands.RestartCommand)
+        {
+            return loc[nameof(Commands.RestartCommandDisplayDescription)];
+        }
+        return DisplayDescription is { Length : > 0 } ? DisplayDescription : null;
     }
 }
 
