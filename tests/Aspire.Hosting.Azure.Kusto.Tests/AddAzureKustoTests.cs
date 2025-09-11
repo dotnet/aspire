@@ -313,7 +313,7 @@ public class AddAzureKustoTests
         var kusto = builder.AddAzureKustoCluster("kusto");
 
         // Act
-        var database = kusto.AddDatabase(name);
+        var database = kusto.AddReadWriteDatabase(name);
 
         // Assert
         Assert.Single(database.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");

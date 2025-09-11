@@ -156,19 +156,6 @@ public static class AzureKustoBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Kusto database to the application model.
-    /// </summary>
-    /// <param name="builder">The Kusto server resource builder.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddReadWriteDatabase)} instead.")]
-    public static IResourceBuilder<AzureKustoReadWriteDatabaseResource> AddDatabase(this IResourceBuilder<AzureKustoClusterResource> builder, [ResourceName] string name, string? databaseName = null)
-    {
-        return builder.AddReadWriteDatabase(name, databaseName);
-    }
-
-    /// <summary>
     /// Configures the Kusto resource to run as an emulator using the Kustainer container.
     /// </summary>
     /// <remarks>
