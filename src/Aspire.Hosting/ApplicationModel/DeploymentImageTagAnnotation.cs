@@ -9,12 +9,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation for a deployment-specific tag that can be applied to resources during deployment.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Tag = {Tag}")]
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class DeploymentImageTagAnnotation : IResourceAnnotation
+/// <remarks>
+/// Initializes a new instance of the <see cref="DeploymentImageTagAnnotation"/> class.
+/// </remarks>
+/// <param name="callback">The callback that returns the deployment tag name.</param>
+[DebuggerDisplay("Type = {GetType().Name,nq}")]
+[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class DeploymentImageTagAnnotation(Func<string> callback) : IResourceAnnotation
 {
     /// <summary>
-    /// Gets or sets the tag for the deployment.
+    /// The callback that returns the deployment tag name.
     /// </summary>
-    public required string Tag { get; set; }
+    public Func<string> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
 }
