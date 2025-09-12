@@ -6,6 +6,8 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
+    <Compile Include="..\Aspire.MongoDB.Driver.Tests\MongoDbContainerFixture.cs" />
+    <None Include="$(RepoRoot)src\Components\Aspire.MongoDB.EntityFrameworkCore\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="TestContainers.MongoDb" />
