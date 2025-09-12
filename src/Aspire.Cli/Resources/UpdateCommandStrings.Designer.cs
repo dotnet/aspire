@@ -80,5 +80,6 @@ namespace Aspire.Cli.Resources {
     internal static string FailedUpdatePackageReferenceFormat => ResourceManager.GetString("FailedUpdatePackageReferenceFormat", resourceCulture);
     internal static string UnexpectedCodePath => ResourceManager.GetString("UnexpectedCodePath", resourceCulture);
     internal static string CentralPackageManagementNotSupported => ResourceManager.GetString("CentralPackageManagementNotSupported", resourceCulture);
+    internal static string CouldNotFindPackageVersionInDirectoryPackagesProps => ResourceManager.GetString("CouldNotFindPackageVersionInDirectoryPackagesProps", resourceCulture);
     }
 }

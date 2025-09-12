@@ -12,8 +12,6 @@ namespace Aspire.Azure.AI.Inference;
 /// </summary>
 public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
 {
-    private bool? _disableTracing;
-
     /// <summary>
     /// Gets or sets the connection string used to connect to the AI Foundry account.
     /// </summary>
@@ -46,44 +44,37 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <remarks>
-    /// /// Azure AI Inference telemetry follows the pattern of Azure SDKs Diagnostics.
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
     public bool DisableMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
-    /// Azure AI Inference client library ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
-    /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
-    /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
-    public bool DisableTracing
-    {
-        get { return _disableTracing ??= !GetTracingDefaultValue(); }
-        set { _disableTracing = value; }
-    }
+    public bool DisableTracing { get; set; }
 
-    // Defaults DisableTracing to false if the experimental switch is set
-    // TODO: remove this when ActivitySource support is no longer experimental
-    private static bool GetTracingDefaultValue()
-    {
-        if (AppContext.TryGetSwitch("Azure.Experimental.EnableActivitySource", out var enabled))
-        {
-            return enabled;
-        }
-
-        var envVar = Environment.GetEnvironmentVariable("AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE");
-        if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
-        {
-            return true;
-        }
-
-        return false;
-    }
+    /// <summary>
+    /// Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if potentially sensitive information should be included in telemetry;
+    /// <see langword="false"/> if telemetry shouldn't include raw inputs and outputs.
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    /// <remarks>
+    /// By default, telemetry includes metadata, such as token counts, but not raw inputs
+    /// and outputs, such as message content, function call arguments, and function call results.
+    /// </remarks>
+    public bool EnableSensitiveTelemetryData { get; set; }
 
     /// <summary>
     /// Parses a connection string and populates the settings properties.

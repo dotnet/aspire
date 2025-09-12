@@ -243,7 +243,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
 
         // Simulate CTRL-C.
         cts.Cancel();
@@ -299,7 +299,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
 
         // Simulate CTRL-C.
         cts.Cancel();
@@ -465,7 +465,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
         cts.Cancel();
         var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
 

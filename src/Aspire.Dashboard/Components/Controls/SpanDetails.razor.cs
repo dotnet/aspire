@@ -24,6 +24,9 @@ public partial class SpanDetails : IDisposable
     [Parameter, EditorRequired]
     public required EventCallback CloseCallback { get; set; }
 
+    [Parameter]
+    public bool HideToolbar { get; set; }
+
     [Inject]
     public required IDialogService DialogService { get; init; }
 

@@ -490,4 +490,25 @@
   <data name="PlotlyChartExemplar" xml:space="preserve">
     <value>Exemplar</value>
   </data>
+  <data name="GenAIDetailsTitle" xml:space="preserve">
+    <value>GenAI details</value>
+  </data>
+  <data name="LabelOther" xml:space="preserve">
+    <value>(Other)</value>
+  </data>
+  <data name="SpanTypeHttp" xml:space="preserve">
+    <value>HTTP</value>
+  </data>
+  <data name="SpanTypeDatabase" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="SpanTypeMessaging" xml:space="preserve">
+    <value>Messaging</value>
+  </data>
+  <data name="SpanTypeRpc" xml:space="preserve">
+    <value>RPC</value>
+  </data>
+  <data name="SpanTypeGenAI" xml:space="preserve">
+    <value>Gen AI</value>
+  </data>
 </root>

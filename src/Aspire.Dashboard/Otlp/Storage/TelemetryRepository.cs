@@ -237,7 +237,7 @@ public sealed class TelemetryRepository : IDisposable
         resource = _resources.GetOrAdd(key, _ =>
         {
             newResource = true;
-            return new OtlpResource(key.Name, key.InstanceId!, uninstrumentedPeer, _otlpContext);
+            return new OtlpResource(key.Name, key.InstanceId, uninstrumentedPeer, _otlpContext);
         });
         if (!newResource)
         {
@@ -1100,6 +1100,19 @@ public sealed class TelemetryRepository : IDisposable
             trace = null;
             return false;
         }
+    }
+
+    public OtlpResource? GetPeerResource(OtlpSpan span)
+    {
+        var peer = ResolveUninstrumentedPeerResource(span, _outgoingPeerResolvers);
+        if (peer == null)
+        {
+            return null;
+        }
+
+        var resourceKey = ResourceKey.Create(name: peer.DisplayName, instanceId: peer.Name);
+        var (resource, _) = GetOrAddResource(resourceKey, uninstrumentedPeer: true);
+        return resource;
     }
 
     private void CalculateTraceUninstrumentedPeers(OtlpTrace trace)

@@ -563,8 +563,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var promptCall = promptCalls[0];
 
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
-        // should be converted to Spectre markup with URL instead of text
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [blue underline]https://portal.azure.com[/]:[/]";
+        // should be converted to Spectre markup preserving both link text and URL
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
@@ -590,6 +590,50 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         };
 
         return runner;
+    }
+
+    [Fact]
+    public async Task PublishCommand_DebugMode_HandlesPromptsWithoutProgressUI()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt that will be sent from AppHost
+        promptBackchannel.AddPrompt("debug-prompt-1", "Environment Name", InputTypes.Text, "Enter environment name:", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("debug-env");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act - use the --debug flag
+        var result = command.Parse("publish --debug");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was still handled correctly in debug mode
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+        var receivedPrompt = promptBackchannel.ReceivedPrompts[0];
+        Assert.Equal("debug-prompt-1", receivedPrompt.PromptId);
+
+        // Verify the response was sent back
+        Assert.Single(promptBackchannel.CompletedPrompts);
+        var completedPrompt = promptBackchannel.CompletedPrompts[0];
+        Assert.Equal("debug-prompt-1", completedPrompt.PromptId);
+        Assert.Equal("debug-env", completedPrompt.Answers[0].Value);
     }
 }
 

@@ -10,6 +10,7 @@ readonly BUILT_NUGETS_ARTIFACT_NAME="built-nugets"
 readonly BUILT_NUGETS_RID_ARTIFACT_NAME="built-nugets-for"
 readonly CLI_ARCHIVE_ARTIFACT_NAME_PREFIX="cli-native-archives"
 readonly ASPIRE_CLI_ARTIFACT_NAME_PREFIX="aspire-cli"
+readonly EXTENSION_ARTIFACT_NAME="aspire-extension"
 
 # Repository: Allow override via ASPIRE_REPO env var (owner/name). Default: dotnet/aspire
 readonly REPO="${ASPIRE_REPO:-dotnet/aspire}"
@@ -32,6 +33,8 @@ VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
 HIVE_ONLY=false
+SKIP_EXTENSION_INSTALL=false
+USE_INSIDERS=false
 HOST_OS="unset"
 
 # Function to show help
@@ -45,6 +48,8 @@ DESCRIPTION:
 
     The script queries the GitHub API to find the latest successful run of the 'ci.yml' workflow
     for the specified PR, then downloads and extracts the CLI archive for your platform using 'gh run download'.
+
+    Optionally downloads and installs the VS Code Aspire extension as well.
 
     Alternatively, you can specify a workflow run ID directly to download from a specific build.
 
@@ -60,6 +65,8 @@ USAGE:
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
     --arch ARCH                 Override architecture detection (x64, x86, arm64)
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
+    --skip-extension.           Skip VS Code extension download and installation
+    --use-insiders              Install extension to VS Code Insiders instead of VS Code
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -71,6 +78,8 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --install-path ~/my-aspire
     ./get-aspire-cli-pr.sh 1234 --os linux --arch arm64 --verbose
     ./get-aspire-cli-pr.sh 1234 --hive-only
+    ./get-aspire-cli-pr.sh 1234 --skip-extension
+    ./get-aspire-cli-pr.sh 1234 --use-insiders
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
     curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
@@ -78,6 +87,7 @@ EXAMPLES:
 REQUIREMENTS:
     - GitHub CLI (gh) must be installed and authenticated
     - Permissions to download artifacts from the target repository
+    - VS Code extension installation requires VS Code CLI (code) to be available in PATH
 
 ENVIRONMENT VARIABLES:
     ASPIRE_REPO            Override repository (owner/name). Default: dotnet/aspire
@@ -172,6 +182,14 @@ parse_args() {
                 HIVE_ONLY=true
                 shift
                 ;;
+            --skip-extension)
+                SKIP_EXTENSION_INSTALL=true
+                shift
+                ;;
+            --use-insiders)
+                USE_INSIDERS=true
+                shift
+                ;;
             --dry-run)
                 DRY_RUN=true
                 shift
@@ -210,6 +228,10 @@ say_warn() {
 
 say_info() {
     echo -e "$1" >&2
+}
+
+say_success() {
+    echo -e "${GREEN}$1${RESET}" >&2
 }
 
 detect_os() {
@@ -728,6 +750,94 @@ download_aspire_cli() {
     return 0
 }
 
+# Function to check if VS Code CLI is available
+check_vscode_cli_dependency() {
+    local vscode_cmd="code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+    fi
+
+    if ! command -v "$vscode_cmd" >/dev/null 2>&1; then
+        if [[ "$USE_INSIDERS" == true ]]; then
+            say_warn "VS Code Insiders CLI (code-insiders) is not available in PATH. Extension installation will be skipped."
+            say_info "To install VS Code Insiders extensions, ensure VS Code Insiders is installed and the 'code-insiders' command is available."
+        else
+            say_warn "VS Code CLI (code) is not available in PATH. Extension installation will be skipped."
+            say_info "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available."
+        fi
+        return 1
+    fi
+    return 0
+}
+
+# Function to download VS Code extension artifact
+download_aspire_extension() {
+    local workflow_run_id="$1"
+    local temp_dir="$2"
+    local download_dir="$temp_dir/extension"
+
+    say_info "Downloading VS Code extension from GitHub - $EXTENSION_ARTIFACT_NAME ..."
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would download extension artifact: $EXTENSION_ARTIFACT_NAME"
+        echo "$download_dir"
+        return 0
+    fi
+
+    mkdir -p "$download_dir"
+    if ! gh run download "$workflow_run_id" --name "$EXTENSION_ARTIFACT_NAME" --dir "$download_dir" --repo "$REPO"; then
+        say_warn "Failed to download VS Code extension artifact"
+        say_info "This could mean the extension artifact is not available for this build."
+        return 1
+    fi
+
+    echo "$download_dir"
+    return 0
+}
+
+# Function to install VS Code extension
+install_aspire_extension() {
+    local download_dir="$1"
+    local vscode_cmd="code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would install VS Code extension from: $download_dir using $vscode_cmd"
+        return 0
+    fi
+
+    # Find the .vsix file directly (the artifact contains the .vsix file, not a zip)
+    local vsix_file
+    vsix_file=$(find "$download_dir" -name "*.vsix" | head -n 1)
+
+    if [[ -z "$vsix_file" ]]; then
+        say_warn "No .vsix file found in downloaded artifact"
+        if [[ "$VERBOSE" == true ]]; then
+            say_verbose "Files found in download directory:"
+            find "$download_dir" -type f | while read -r file; do
+                say_verbose "  $(basename "$file")"
+            done
+        fi
+        return 1
+    fi
+
+    local extension_target="VS Code"
+    if [[ "$USE_INSIDERS" == true ]]; then
+        extension_target="VS Code Insiders"
+    fi
+
+    say_info "Installing $extension_target extension: $(basename "$vsix_file")"
+    if "$vscode_cmd" --install-extension "$vsix_file"; then
+        say_success "$extension_target extension successfully installed"
+        return 0
+    else
+        say_warn "Failed to install $extension_target extension (exit code: $?)"
+        return 1
+    fi
+}
+
 # Function to install downloaded CLI
 install_aspire_cli() {
     local cli_archive_path="$1"
@@ -807,6 +917,19 @@ download_and_install_from_pr() {
         return 1
     fi
 
+    # Download VS Code extension if not skipped
+    local extension_download_dir=""
+    if [[ "$SKIP_EXTENSION_INSTALL" != true ]]; then
+        if extension_download_dir=$(download_aspire_extension "$workflow_run_id" "$temp_dir"); then
+            say_verbose "Extension downloaded to: $extension_download_dir"
+        else
+            say_verbose "Extension download failed, will skip installation"
+            extension_download_dir=""
+        fi
+    else
+        say_info "Skipping VS Code extension download due to --skip-extension flag"
+    fi
+
     # Then, install both artifacts
     say_info "Installing artifacts..."
     if [[ "$HIVE_ONLY" == true ]]; then
@@ -820,6 +943,13 @@ download_and_install_from_pr() {
     if ! install_built_nugets "$nuget_download_dir" "$nuget_hive_dir"; then
         say_error "Failed to install nuget packages"
         return 1
+    fi
+
+    # Install VS Code extension if downloaded
+    if [[ -n "$extension_download_dir" && "$SKIP_EXTENSION_INSTALL" != true ]]; then
+        if check_vscode_cli_dependency; then
+            install_aspire_extension "$extension_download_dir"
+        fi
     fi
 }
 

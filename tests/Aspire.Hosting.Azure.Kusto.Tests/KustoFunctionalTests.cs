@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Polly;
 
 namespace Aspire.Hosting.Azure.Kusto.Tests;
@@ -96,13 +98,11 @@ public class KustoFunctionalTests
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
         var kustoDb = kusto.AddDatabase("TestDb");
 
-        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
-
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
         hb.Configuration["ConnectionStrings:KustoTestDbConnection"] = await kustoDb.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
@@ -164,6 +164,62 @@ public class KustoFunctionalTests
 
     [Fact]
     [RequiresDocker]
+    public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
+    {
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
+
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
+        builder.Services.AddFakeLogging();
+
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        kusto.AddDatabase("TestDb1", "TestDb");
+        kusto.AddDatabase("TestDb2", "TestDb");
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cts.Token);
+
+        // Assert no warnings or errors were logged about the database already existing
+        var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
+        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
+        Assert.Empty(logs);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
+    {
+        using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
+
+        using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
+        builder.Services.AddFakeLogging();
+
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        var db1 = kusto.AddDatabase("TestDb1", "TestDb");
+        var db2 = kusto.AddDatabase("TestDb2", "__invalid");
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceHealthyAsync(kusto.Resource.Name, cts.Token);
+
+        // Assert the valid database is healthy and the invalid database failed to start
+        await rns.WaitForResourceHealthyAsync(db1.Resource.Name, cts.Token);
+        await rns.WaitForResourceAsync(db2.Resource.Name, KnownResourceStates.FailedToStart, cts.Token);
+
+        // Assert an error was logged about the invalid database
+        var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
+        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
+        Assert.Single(logs);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -187,8 +243,6 @@ public class KustoFunctionalTests
             )
             """);
 
-        var waiter = builder.AddResource(new WaiterResource("waiter")).WaitFor(kusto);
-
         // Ensure the directory is empty before starting the application
         Assert.Empty(GetFilesInMount());
 
@@ -196,7 +250,7 @@ public class KustoFunctionalTests
         await app.StartAsync(cts.Token);
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForDependenciesAsync(waiter.Resource, cancellationToken: cts.Token);
+        await rns.WaitForResourceHealthyAsync(kustoDb.Resource.Name, cts.Token);
 
         // Ensure the directory has dbs
         Assert.NotEmpty(GetFilesInMount());
@@ -213,11 +267,9 @@ public class KustoFunctionalTests
         }
     }
 
-    /// <summary>
-    /// A simple / fake resource who's only job is to wait for other resources to be ready.
-    /// </summary>
-    private sealed class WaiterResource(string name) : Resource(name), IResourceWithWaitSupport
+    private static bool IsResourceLog(FakeLogRecord record)
     {
+        return (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

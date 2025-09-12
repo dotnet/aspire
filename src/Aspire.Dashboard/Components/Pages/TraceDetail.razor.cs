@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -43,6 +44,8 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string _filter = string.Empty;
     private readonly List<MenuButtonItem> _traceActionsMenuItems = [];
     private AspirePageContentLayout? _layout;
+    private List<SelectViewModel<SpanType>> _spanTypes = default!;
+    private SelectViewModel<SpanType> _selectedSpanType = default!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -79,7 +82,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required IStringLocalizer<ControlsStrings> ControlStringsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Aspire.Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -106,6 +115,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
 
         UpdateTraceActionsMenu();
+
+        _spanTypes = SpanType.CreateKnownSpanTypes(ControlStringsLoc);
+        _selectedSpanType = _spanTypes[0];
     }
 
     private void UpdateTraceActionsMenu()
@@ -151,27 +163,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     // Internal to be used in unit tests
     internal ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
-        Debug.Assert(_spanWaterfallViewModels != null);
-
-        var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
-        foreach (var viewModel in _spanWaterfallViewModels)
-        {
-            if (viewModel.IsHidden || visibleViewModels.Contains(viewModel))
-            {
-                continue;
-            }
-
-            if (viewModel.MatchesFilter(_filter, GetResourceName, out var matchedDescendents))
-            {
-                visibleViewModels.Add(viewModel);
-                foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))
-                {
-                    visibleViewModels.Add(descendent);
-                }
-            }
-        }
-
-        var page = _spanWaterfallViewModels.Where(visibleViewModels.Contains).AsEnumerable();
+        var page = GetVisibleSpanViewModels();
         var totalItemCount = page.Count();
         if (request.StartIndex > 0)
         {
@@ -184,6 +176,31 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             Items = page.ToList(),
             TotalItemCount = totalItemCount
         });
+    }
+
+    private IEnumerable<SpanWaterfallViewModel> GetVisibleSpanViewModels()
+    {
+        Debug.Assert(_spanWaterfallViewModels != null);
+
+        var visibleViewModels = new HashSet<SpanWaterfallViewModel>();
+        foreach (var viewModel in _spanWaterfallViewModels)
+        {
+            if (viewModel.IsHidden || visibleViewModels.Contains(viewModel))
+            {
+                continue;
+            }
+
+            if (viewModel.MatchesFilter(_filter, _selectedSpanType.Id?.Filter, GetResourceName, out var matchedDescendents))
+            {
+                visibleViewModels.Add(viewModel);
+                foreach (var descendent in matchedDescendents.Where(d => !d.IsHidden))
+                {
+                    visibleViewModels.Add(descendent);
+                }
+            }
+        }
+
+        return _spanWaterfallViewModels.Where(visibleViewModels.Contains);
     }
 
     private string? GetPageTitle()
@@ -247,7 +264,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             ResourceKey = null,
             Count = int.MaxValue,
             StartIndex = 0,
-            Filters = [new TelemetryFilter
+            Filters = [new FieldTelemetryFilter
             {
                 Field = KnownStructuredLogFields.TraceIdField,
                 Condition = FilterCondition.Equals,
@@ -275,6 +292,14 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     }
 
     private async Task HandleAfterFilterBindAsync()
+    {
+        SelectedData = null;
+        await InvokeAsync(StateHasChanged);
+
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private async Task HandleSelectedSpanTypeChangedAsync()
     {
         SelectedData = null;
         await InvokeAsync(StateHasChanged);
@@ -376,47 +401,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
         else
         {
-            var entryProperties = viewModel.Span.AllProperties()
-                .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
-                .ToList();
-
-            var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
-
-            var links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
-            var backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
-
-            var spanDetailsViewModel = new SpanDetailsViewModel
-            {
-                Span = viewModel.Span,
-                Resources = _resources,
-                Properties = entryProperties,
-                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _resources),
-                Links = links,
-                Backlinks = backlinks,
-            };
+            var spanDetailsViewModel = SpanDetailsViewModel.Create(viewModel.Span, TelemetryRepository, _resources);
 
             SelectedData = new TraceDetailSelectedDataViewModel
             {
                 SpanViewModel = spanDetailsViewModel
             };
         }
-    }
-
-    private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
-    {
-        ref var trace = ref CollectionsMarshal.GetValueRefOrAddDefault(traceCache, traceId, out _);
-        // Adds to dictionary if not present.
-        trace ??= TelemetryRepository.GetTrace(traceId);
-
-        var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
-
-        return new SpanLinkViewModel
-        {
-            TraceId = traceId,
-            SpanId = spanId,
-            Attributes = attributes,
-            Span = linkSpan,
-        };
     }
 
     private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
@@ -504,6 +495,33 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
                 LogEntryViewModel = new StructureLogsDetailsViewModel { LogEntry = logEntry }
             };
         }
+    }
+
+    private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
+    {
+        return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
+    }
+
+    private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
+    {
+        await GenAIVisualizerDialog.OpenDialogAsync(
+            ViewportInformation,
+            DialogService,
+            DialogsLoc,
+            spanViewModel.Span,
+            selectedLogEntryId: null,
+            TelemetryRepository,
+            _resources,
+            () =>
+            {
+                var genAISpans = new List<OtlpSpan>();
+                var visibleSpanViewModels = GetVisibleSpanViewModels();
+                foreach (var vm in visibleSpanViewModels.Where(IsGenAISpan))
+                {
+                    genAISpans.Add(vm.Span);
+                }
+                return genAISpans;
+            });
     }
 
     public void Dispose()

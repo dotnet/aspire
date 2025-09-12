@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" LinkBase="shared" />
     <Compile Include="$(TestsSharedDir)TestModuleInitializer.cs" LinkBase="shared" />
   </ItemGroup>

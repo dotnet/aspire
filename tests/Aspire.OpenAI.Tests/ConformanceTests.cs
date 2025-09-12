@@ -3,15 +3,15 @@
 
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OpenAI;
 using Xunit;
 
 namespace Aspire.OpenAI.Tests;
 
-public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
+public class ConformanceTests : ConformanceTests<IChatClient, OpenAISettings>
 {
     protected const string ConnectionString = "Endpoint=https://api.openai.com/;Key=fake";
 
@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
             ("""{"Aspire": { "OpenAI": {"Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => "OpenAI.ChatClient";
+    protected override string ActivitySourceName => "Experimental.Microsoft.Extensions.AI";
 
     protected override string[] RequiredLogCategories => [];
 
@@ -49,28 +49,29 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key, "Key"), "fake")
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key, "Key"), "fake"),
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:OpenAI", key, "Deployment"), "DEPLOYMENT_NAME")
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OpenAISettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
-            builder.AddOpenAIClient("openai", configure);
+            builder.AddOpenAIClient("openai", configure).AddChatClient();
         }
         else
         {
-            builder.AddKeyedOpenAIClient(key, configure);
+            builder.AddKeyedOpenAIClient(key, configure).AddKeyedChatClient(key);
         }
     }
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
     protected override void SetHealthCheck(OpenAISettings options, bool enabled)
         => throw new NotImplementedException();
@@ -81,12 +82,8 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
     protected override void SetTracing(OpenAISettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(OpenAIClient service)
-        => service.GetChatClient("dummy").CompleteChat("dummy gpt");
-
-    private static RemoteInvokeOptions EnableTelemetry()
-        => new()
-        {
-            RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
-        };
+    protected override void TriggerActivity(IChatClient service)
+    {
+        service.GetResponseAsync(new ChatMessage()).GetAwaiter().GetResult();
+    }
 }

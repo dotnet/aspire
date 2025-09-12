@@ -284,7 +284,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private SelectViewModel<ResourceTypeDetails> GetSelectedOption()
     {
         Debug.Assert(_resources is not null);
-        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallback: _allResource);
+        return _resources.GetResource(Logger, ResourceName, canSelectGrouping: true, fallbackViewModel: _allResource);
     }
 
     private void SetStatus(ConsoleLogsViewModel viewModel, string statusName)
@@ -996,7 +996,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             else if (TryGetSingleResource() is { } r)
             {
                 // If there is no resource selected and there is only one resource available, select it.
-                viewModel.SelectedResource = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallback: _allResource);
+                viewModel.SelectedResource = _resources.GetResource(Logger, r.Name, canSelectGrouping: false, fallbackViewModel: _allResource);
                 return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
             }
         }

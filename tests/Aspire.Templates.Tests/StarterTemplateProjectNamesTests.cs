@@ -21,6 +21,8 @@ public abstract class StarterTemplateProjectNamesTests : TemplateTestsBase
     [Theory]
     [MemberData(nameof(ProjectNames_TestData))]
     [RequiresSSLCertificate("Needs dashboard, web front end access")]
+    [RequiresPlaywright]
+    [OuterLoop("playwright test")]
     public async Task StarterTemplateWithTest_ProjectNames(string prefix)
     {
         string id = $"{prefix}-{_testType}";
@@ -33,7 +35,7 @@ public abstract class StarterTemplateProjectNamesTests : TemplateTestsBase
             BuildEnvironment.ForDefaultFramework,
             $"-t {_testType}");
 
-        await using var context = BuildEnvironment.ShouldRunPlaywrightTests ? await CreateNewBrowserContextAsync() : null;
+        await using var context = await CreateNewBrowserContextAsync();
         _testOutput.WriteLine($"Checking the starter template project");
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
 

@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">Der Ausgabepfad für die generierten Artefakte.</target>
+        <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
+        <target state="needs-review-translation">Der Ausgabepfad für die generierten Artefakte.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">

@@ -51,6 +51,13 @@
 
             <DesktopToolbarDivider />
 
+            <SpanTypeSelect slot="end"
+                            @bind-SpanType="@PageViewModel.SelectedSpanType"
+                            SpanTypes="@_spanTypes"
+                            HandleSelectedSpanTypeChangedAsync="@HandleSelectedSpanTypeChangedAsync" />
+
+            <DesktopToolbarDivider />
+
             @if (TracesViewModel.Filters.Count == 0)
             {
                 if (ViewportInformation.IsDesktop)
