@@ -19,13 +19,15 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     public const string MinimumSdkVersion = "9.0.302";
 
+    /// <summary>
+    /// The minimum .NET SDK version required for Aspire when single-file apphost is enabled.
+    /// </summary>
+    public const string MinimumSdkVersionSingleFileAppHost = "10.0.100";
+
     /// <inheritdoc />
     public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
     {
-        // Check for configuration override first
-        var overrideVersion = configuration["overrideMinimumSdkVersion"];
-        var minimumVersion = !string.IsNullOrEmpty(overrideVersion) ? overrideVersion : MinimumSdkVersion;
-        
+        var minimumVersion = GetEffectiveMinimumSdkVersion();
         return CheckAsync(minimumVersion, cancellationToken);
     }
 
@@ -121,5 +123,92 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             Architecture.Arm => "arm",
             _ => "x64" // Default to x64 for unknown architectures
         };
+    }
+
+    /// <summary>
+    /// Gets the highest installed .NET SDK version, or null if none found.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The highest SDK version string, or null if none found.</returns>
+    public async Task<string?> GetInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Add --arch flag to ensure we only get SDKs that match the current architecture
+            var currentArch = GetCurrentArchitecture();
+            var arguments = $"--list-sdks --arch {currentArch}";
+
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode != 0)
+            {
+                return null;
+            }
+
+            // Parse each line of the output to find SDK versions
+            var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            SemVersion? highestVersion = null;
+
+            foreach (var line in lines)
+            {
+                // Each line is in format: "version [path]"
+                var spaceIndex = line.IndexOf(' ');
+                if (spaceIndex > 0)
+                {
+                    var versionString = line[..spaceIndex];
+                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
+                    {
+                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
+                        {
+                            highestVersion = sdkVersion;
+                        }
+                    }
+                }
+            }
+
+            return highestVersion?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the effective minimum SDK version based on configuration and feature flags.
+    /// </summary>
+    /// <returns>The minimum SDK version string.</returns>
+    public string GetEffectiveMinimumSdkVersion()
+    {
+        // Check for configuration override first
+        var overrideVersion = configuration["overrideMinimumSdkVersion"];
+        
+        if (!string.IsNullOrEmpty(overrideVersion))
+        {
+            return overrideVersion;
+        }
+        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            return MinimumSdkVersionSingleFileAppHost;
+        }
+        else
+        {
+            return MinimumSdkVersion;
+        }
     }
 }

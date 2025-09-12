@@ -112,9 +112,9 @@
         <target state="translated">指定された拡張ソケット パスには、2 つの有効な部分が必要です。</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">.NET SDK の最小バージョン ({0}) がインストールされていません。https://get.dot.net にアクセスして、.NET SDK をダウンロードしてインストールします。</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI{0} requires .NET SDK version {1} or later. Detected: {2}.</source>
+        <target state="new">The Aspire CLI{0} requires .NET SDK version {1} or later. Detected: {2}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">

@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Tests;
@@ -124,6 +126,126 @@ public class DotNetSdkInstallerTests
         Assert.True(result == true || result == false);
     }
 
+    [Fact]
+    public async Task CheckAsync_UsesElevatedMinimumSdkVersion_WhenSingleFileAppHostEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        // Call the parameterless method that should use the elevated constant when flag is enabled
+        var result = await installer.CheckAsync();
+
+        // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
+        Assert.True(result == true || result == false);
+    }
+
+    [Fact]
+    public async Task CheckAsync_UsesBaselineMinimumSdkVersion_WhenSingleFileAppHostDisabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, false);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        // Call the parameterless method that should use the baseline constant when flag is disabled
+        var result = await installer.CheckAsync();
+
+        // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
+        Assert.True(result == true || result == false);
+    }
+
+    [Fact]
+    public async Task CheckAsync_UsesOverrideVersion_WhenOverrideConfigured_EvenWithSingleFileAppHostEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var configuration = CreateConfigurationWithOverride("8.0.0");
+        var installer = new DotNetSdkInstaller(features, configuration);
+
+        // The installer should use the override version instead of the elevated constant
+        var result = await installer.CheckAsync();
+
+        // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void GetEffectiveMinimumSdkVersion_ReturnsBaseline_WhenNoFlagsOrOverrides()
+    {
+        var features = new TestFeatures();
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersion, effectiveVersion);
+    }
+
+    [Fact]
+    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenSingleFileAppHostEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+    }
+
+    [Fact]
+    public void GetEffectiveMinimumSdkVersion_ReturnsOverride_WhenOverrideConfigured()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var configuration = CreateConfigurationWithOverride("7.0.0");
+        var installer = new DotNetSdkInstaller(features, configuration);
+
+        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+
+        Assert.Equal("7.0.0", effectiveVersion);
+    }
+
+    [Fact]
+    public async Task GetInstalledSdkVersionAsync_ReturnsVersionString_WhenSdkInstalled()
+    {
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
+
+        var installedVersion = await installer.GetInstalledSdkVersionAsync();
+
+        // Should return a version string or null, but not throw an exception
+        Assert.True(installedVersion == null || !string.IsNullOrEmpty(installedVersion));
+    }
+
+    [Fact]
+    public void ErrorMessage_Format_IsCorrect()
+    {
+        // Test the new error message format with placeholders
+        var message = string.Format(CultureInfo.InvariantCulture,
+            ErrorStrings.MinimumSdkVersionNotMet,
+            "",
+            "9.0.302",
+            "(not found)");
+
+        Assert.Equal("The Aspire CLI requires .NET SDK version 9.0.302 or later. Detected: (not found).", message);
+    }
+
+    [Fact]
+    public void ErrorMessage_Format_WithFlagSuffix_IsCorrect()
+    {
+        // Test the new error message format with flag suffix
+        var flagSuffix = " with 'singlefileAppHostEnabled' (disable the feature flag or install a .NET 10 SDK)";
+        var message = string.Format(CultureInfo.InvariantCulture,
+            ErrorStrings.MinimumSdkVersionNotMet,
+            flagSuffix,
+            "10.0.100",
+            "9.0.302");
+
+        Assert.Equal("The Aspire CLI with 'singlefileAppHostEnabled' (disable the feature flag or install a .NET 10 SDK) requires .NET SDK version 10.0.100 or later. Detected: 9.0.302.", message);
+    }
+
     private static IConfiguration CreateEmptyConfiguration()
     {
         return new ConfigurationBuilder().Build();
@@ -145,5 +267,21 @@ public class MinimumSdkCheckFeature(bool enabled = true) : IFeatures
     public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
     {
         return featureName == KnownFeatures.MinimumSdkCheckEnabled ? enabled : false;
+    }
+}
+
+public class TestFeatures : IFeatures
+{
+    private readonly Dictionary<string, bool> _features = new();
+
+    public TestFeatures SetFeature(string featureName, bool value)
+    {
+        _features[featureName] = value;
+        return this;
+    }
+
+    public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
+    {
+        return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
     }
 }

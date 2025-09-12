@@ -15,12 +15,15 @@ internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
     private readonly CliExecutionContext _executionContext;
+    private readonly IFeatures _features;
     
     protected CliExecutionContext ExecutionContext => _executionContext;
+    protected IFeatures Features => _features;
 
     protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base(name, description)
     {
         _executionContext = executionContext;
+        _features = features;
         
         SetAction(async (parseResult, cancellationToken) =>
         {
@@ -31,7 +34,7 @@ internal abstract class BaseCommand : Command
 
             var exitCode = await ExecuteAsync(parseResult, cancellationToken);
 
-            if (UpdateNotificationsEnabled && features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
+            if (UpdateNotificationsEnabled && _features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
             {
                 try
                 {

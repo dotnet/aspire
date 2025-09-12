@@ -112,9 +112,9 @@
         <target state="translated">Sağlanan uzantı yuva yolunun iki geçerli bileşeni olmalıdır.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">Minimum .NET SDK sürümü ({0}) yüklü değildir. https://get.dot.net adresini ziyaret ederek .NET SDK'yı indirin ve yükleyin.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI{0} requires .NET SDK version {1} or later. Detected: {2}.</source>
+        <target state="new">The Aspire CLI{0} requires .NET SDK version {1} or later. Detected: {2}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">

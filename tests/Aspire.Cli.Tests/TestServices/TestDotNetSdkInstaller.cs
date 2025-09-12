@@ -10,6 +10,8 @@ internal sealed class TestDotNetSdkInstaller : IDotNetSdkInstaller
     public Func<CancellationToken, bool>? CheckAsyncCallback { get; set; }
     public Func<string, CancellationToken, bool>? CheckAsyncWithVersionCallback { get; set; }
     public Func<CancellationToken, Task>? InstallAsyncCallback { get; set; }
+    public Func<CancellationToken, string?>? GetInstalledSdkVersionAsyncCallback { get; set; }
+    public Func<string>? GetEffectiveMinimumSdkVersionCallback { get; set; }
 
     public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -30,5 +32,17 @@ internal sealed class TestDotNetSdkInstaller : IDotNetSdkInstaller
         return InstallAsyncCallback != null
             ? InstallAsyncCallback(cancellationToken)
             : throw new NotImplementedException();
+    }
+
+    public Task<string?> GetInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
+    {
+        return GetInstalledSdkVersionAsyncCallback != null
+            ? Task.FromResult(GetInstalledSdkVersionAsyncCallback(cancellationToken))
+            : Task.FromResult<string?>("9.0.302"); // Default version
+    }
+
+    public string GetEffectiveMinimumSdkVersion()
+    {
+        return GetEffectiveMinimumSdkVersionCallback?.Invoke() ?? "9.0.302"; // Default version
     }
 }
