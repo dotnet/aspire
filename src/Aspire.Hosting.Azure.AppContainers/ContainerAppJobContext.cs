@@ -74,6 +74,7 @@ internal sealed class ContainerAppJobContext(IResource resource, ContainerAppEnv
 
         infra.Add(containerAppResource);
 
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         if (Resource.TryGetAnnotationsOfType<AzureContainerAppJobCustomizationAnnotation>(out var annotations))
         {
             foreach (var a in annotations)
@@ -81,6 +82,7 @@ internal sealed class ContainerAppJobContext(IResource resource, ContainerAppEnv
                 a.Configure(infra, containerAppResource);
             }
         }
+#pragma warning restore ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     private ContainerAppJob CreateContainerAppJob()

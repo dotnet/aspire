@@ -48,7 +48,9 @@ internal sealed class ContainerAppEnvironmentContext(
 
     private BaseContainerAppContext CreateContainerAppContext(IResource resource)
     {
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         bool hasJobCustomization = resource.HasAnnotationOfType<AzureContainerAppJobCustomizationAnnotation>();
+#pragma warning restore ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         bool hasAppCustomization = resource.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>();
 
         if (hasJobCustomization && hasAppCustomization)
