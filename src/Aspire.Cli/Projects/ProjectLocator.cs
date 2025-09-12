@@ -3,8 +3,8 @@
 
 using System.Globalization;
 using System.Text.Json;
+using System.Xml;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -19,7 +19,7 @@ internal interface IProjectLocator
     Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
@@ -31,7 +31,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
+        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, () =>
         {
             var appHostProjects = new List<FileInfo>();
             var unbuildableSuspectedAppHostProjects = new List<FileInfo>();
@@ -53,12 +53,14 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
+            Parallel.ForEach(projectFiles, parallelOptions, (projectFile, ct) =>
             {
                 logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-                var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
+                
+                // Use XML-based detection instead of MSBuild interrogation
+                var information = GetAppHostInformationFromXml(projectFile);
 
-                if (information.ExitCode == 0 && information.IsAspireHost)
+                if (information.IsAspireHost)
                 {
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
@@ -84,7 +86,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
-            return (appHostProjects, unbuildableSuspectedAppHostProjects);
+            return Task.FromResult((appHostProjects, unbuildableSuspectedAppHostProjects));
         });
     }
 
@@ -93,6 +95,77 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
         var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
         return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
+    }
+
+    private static (bool IsAspireHost, string? AspireHostingVersion) GetAppHostInformationFromXml(FileInfo projectFile)
+    {
+        try
+        {
+            var xmlDocument = new XmlDocument();
+            xmlDocument.Load(projectFile.FullName);
+
+            // Check for IsAspireHost property
+            var isAspireHostElement = xmlDocument.SelectSingleNode("//PropertyGroup/IsAspireHost");
+            if (isAspireHostElement?.InnerText?.Equals("true", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                return (false, null);
+            }
+
+            // Try to find Aspire.Hosting version from AspireProjectOrPackageReference or PackageReference
+            string? aspireHostingVersion = null;
+
+            // First check AspireProjectOrPackageReference
+            var aspireProjectOrPackageReferences = xmlDocument.SelectNodes("//AspireProjectOrPackageReference[@Include='Aspire.Hosting.AppHost' or starts-with(@Include, 'Aspire.Hosting')]");
+            if (aspireProjectOrPackageReferences != null)
+            {
+                foreach (XmlNode reference in aspireProjectOrPackageReferences)
+                {
+                    var include = reference.Attributes?["Include"]?.Value;
+                    if (include == "Aspire.Hosting.AppHost" || include == "Aspire.Hosting")
+                    {
+                        var versionAttr = reference.Attributes?["Version"]?.Value;
+                        if (!string.IsNullOrEmpty(versionAttr))
+                        {
+                            aspireHostingVersion = versionAttr;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback to PackageReference
+            if (aspireHostingVersion == null)
+            {
+                var packageReferences = xmlDocument.SelectNodes("//PackageReference[@Include='Aspire.Hosting']");
+                if (packageReferences != null)
+                {
+                    foreach (XmlNode reference in packageReferences)
+                    {
+                        var versionAttr = reference.Attributes?["Version"]?.Value;
+                        if (!string.IsNullOrEmpty(versionAttr))
+                        {
+                            aspireHostingVersion = versionAttr;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback to AspireHostingSDKVersion property
+            if (aspireHostingVersion == null)
+            {
+                var aspireHostingSdkVersionElement = xmlDocument.SelectSingleNode("//PropertyGroup/AspireHostingSDKVersion");
+                aspireHostingVersion = aspireHostingSdkVersionElement?.InnerText;
+            }
+
+            return (true, aspireHostingVersion);
+        }
+        catch
+        {
+            // If we can't parse the XML, fall back to heuristics or return false
+            // Log the exception but don't fail the entire operation
+            return (false, null);
+        }
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
