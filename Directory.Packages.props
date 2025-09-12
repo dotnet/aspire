@@ -75,6 +75,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
     <!-- NuGet dependencies -->
+    <PackageVersion Include="MongoDB.EntityFrameworkCore" Version="8.3.1" />
     <PackageVersion Include="NuGet.ProjectModel" Version="6.14.0" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.11.1" />
@@ -101,7 +102,8 @@
     <PackageVersion Include="NATS.Net" Version="2.6.7" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.3" />
     <PackageVersion Include="OpenAI" Version="2.3.0" />
-    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.90" /> <!-- Can't update to 9.x versions as those lift up LTS versions when targeting net8 -->
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.90" />
+    <!-- Can't update to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.9.0" />
     <PackageVersion Include="Polly.Core" Version="8.6.3" />
     <PackageVersion Include="Polly.Extensions" Version="8.6.3" />
@@ -235,7 +237,6 @@
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonVersion)" />
     <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
   </ItemGroup>
-
   <!-- These are 9.x versions which are STS so should ONLY be referenced by netfx projects -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageVersion Include="Microsoft.Bcl.Memory" Version="$(MicrosoftBclMemoryVersion)" />

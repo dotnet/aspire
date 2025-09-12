@@ -27,6 +27,7 @@
     <Project Path="src/Components/Aspire.Milvus.Client/Aspire.Milvus.Client.csproj" />
     <Project Path="src/Components/Aspire.MongoDB.Driver.v3/Aspire.MongoDB.Driver.v3.csproj" />
     <Project Path="src/Components/Aspire.MongoDB.Driver/Aspire.MongoDB.Driver.csproj" />
+    <Project Path="src/Components/Aspire.MongoDB.EntityFrameworkCore/Aspire.MongoDB.EntityFrameworkCore.csproj" Id="61b0efc4-439c-4d09-a336-b4c5763c6bd7" />
     <Project Path="src/Components/Aspire.MySqlConnector/Aspire.MySqlConnector.csproj" />
     <Project Path="src/Components/Aspire.NATS.Net/Aspire.NATS.Net.csproj" />
     <Project Path="src/Components/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
