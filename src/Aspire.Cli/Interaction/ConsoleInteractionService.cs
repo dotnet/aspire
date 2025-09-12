@@ -177,7 +177,6 @@ internal class ConsoleInteractionService : IInteractionService
     {
         _ansiConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
-        _ansiConsole.WriteLine();
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
@@ -202,6 +201,5 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
-        _ansiConsole.WriteLine();
     }
 }
