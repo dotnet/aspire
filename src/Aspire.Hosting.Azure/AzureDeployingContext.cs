@@ -137,6 +137,17 @@ internal sealed class AzureDeployingContext(
             return false;
         }
 
+        // Generate a deployment-scoped timestamp tag for all resources
+        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        foreach (var resource in computeResources)
+        {
+            if (resource.TryGetLastAnnotation<DeploymentImageTagAnnotation>(out _))
+            {
+                continue;
+            }
+            resource.Annotations.Add(new DeploymentImageTagAnnotation(() => deploymentTag));
+        }
+
         // Step 1: Build ALL images at once regardless of destination registry
         await containerImageBuilder.BuildImagesAsync(
             computeResources,
