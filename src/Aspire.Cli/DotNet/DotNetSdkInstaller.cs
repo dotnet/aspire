@@ -25,10 +25,12 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkVersionSingleFileAppHost = "10.0.100";
 
     /// <inheritdoc />
-    public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion();
-        return CheckAsync(minimumVersion, cancellationToken);
+        var success = await CheckAsync(minimumVersion, cancellationToken);
+        var highestVersion = await GetInstalledSdkVersionAsync(cancellationToken);
+        return (success, highestVersion, minimumVersion);
     }
 
     /// <inheritdoc />
@@ -130,7 +132,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The highest SDK version string, or null if none found.</returns>
-    public async Task<string?> GetInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
+    private static async Task<string?> GetInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
     {
         try
         {

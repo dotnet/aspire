@@ -124,7 +124,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, Features, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

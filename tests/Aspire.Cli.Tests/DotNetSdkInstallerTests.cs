@@ -17,9 +17,9 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
 
         // This test assumes the test environment has .NET SDK installed
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
-        Assert.True(result);
+        Assert.True(success);
     }
 
     [Fact]
@@ -108,10 +108,10 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration);
 
         // The installer should use the override version instead of the constant
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 9.0.302, which should be available in test environment
-        Assert.True(result);
+        Assert.True(success);
     }
 
     [Fact]
@@ -120,10 +120,10 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the default constant
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
-        Assert.True(result == true || result == false);
+        Assert.True(success == true || success == false);
     }
 
     [Fact]
@@ -135,10 +135,10 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the elevated constant when flag is enabled
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
-        Assert.True(result == true || result == false);
+        Assert.True(success == true || success == false);
     }
 
     [Fact]
@@ -150,10 +150,10 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the baseline constant when flag is disabled
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
-        Assert.True(result == true || result == false);
+        Assert.True(success == true || success == false);
     }
 
     [Fact]
@@ -166,10 +166,10 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration);
 
         // The installer should use the override version instead of the elevated constant
-        var result = await installer.CheckAsync();
+        var (success, _, _) = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
-        Assert.True(result);
+        Assert.True(success);
     }
 
     [Fact]
@@ -209,17 +209,6 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public async Task GetInstalledSdkVersionAsync_ReturnsVersionString_WhenSdkInstalled()
-    {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
-
-        var installedVersion = await installer.GetInstalledSdkVersionAsync();
-
-        // Should return a version string or null, but not throw an exception
-        Assert.True(installedVersion == null || !string.IsNullOrEmpty(installedVersion));
-    }
-
-    [Fact]
     public void ErrorMessage_Format_IsCorrect()
     {
         // Test the new error message format with placeholders
@@ -230,20 +219,6 @@ public class DotNetSdkInstallerTests
             "(not found)");
 
         Assert.Equal("The Aspire CLI requires .NET SDK version 9.0.302 or later. Detected: (not found).", message);
-    }
-
-    [Fact]
-    public void ErrorMessage_Format_WithFlagSuffix_IsCorrect()
-    {
-        // Test the new error message format with flag suffix
-        var flagSuffix = " with 'singlefileAppHostEnabled' (disable the feature flag or install a .NET 10 SDK)";
-        var message = string.Format(CultureInfo.InvariantCulture,
-            ErrorStrings.MinimumSdkVersionNotMet,
-            flagSuffix,
-            "10.0.100",
-            "9.0.302");
-
-        Assert.Equal("The Aspire CLI with 'singlefileAppHostEnabled' (disable the feature flag or install a .NET 10 SDK) requires .NET SDK version 10.0.100 or later. Detected: 9.0.302.", message);
     }
 
     private static IConfiguration CreateEmptyConfiguration()
