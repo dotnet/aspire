@@ -63,12 +63,12 @@ public sealed partial class LogViewer
 
     public async Task RefreshDataAsync()
     {
-        if (_virtualizeRef == null)
+        if (VirtualizeRef == null)
         {
             return;
         }
 
-        await _virtualizeRef.RefreshDataAsync();
+        await VirtualizeRef.RefreshDataAsync();
         StateHasChanged();
     }
 
