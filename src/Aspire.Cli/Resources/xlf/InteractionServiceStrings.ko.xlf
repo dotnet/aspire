@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">앱 호스트가 호환되지 않습니다. 앱 호스트 또는 Aspire CLI를 업그레이드하는 것을 고려해 보세요.</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="translated">앱 호스트 빌드</target>
+        <source>Building apphost...</source>
+        <target state="new">Building apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">앱 호스트를 찾는 중...</target>
+        <source>Finding apphosts...</source>
+        <target state="new">Finding apphosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -113,13 +113,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="translated">사용할 앱 호스트 선택:</target>
+        <source>Select an apphost to use:</source>
+        <target state="new">Select an apphost to use:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">지정한 프로젝트 파일은 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="new">The specified project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
