@@ -74,7 +74,7 @@ internal sealed class ContainerAppJobContext(IResource resource, ContainerAppEnv
 
         infra.Add(containerAppResource);
 
-        if (Resource.TryGetAnnotationsOfType<AzureContainerJobCustomizationAnnotation>(out var annotations))
+        if (Resource.TryGetAnnotationsOfType<AzureContainerAppJobCustomizationAnnotation>(out var annotations))
         {
             foreach (var a in annotations)
             {

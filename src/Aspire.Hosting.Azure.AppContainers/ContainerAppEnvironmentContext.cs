@@ -48,7 +48,7 @@ internal sealed class ContainerAppEnvironmentContext(
 
     private BaseContainerAppContext CreateContainerAppContext(IResource resource)
     {
-        bool hasJobCustomization = resource.HasAnnotationOfType<AzureContainerJobCustomizationAnnotation>();
+        bool hasJobCustomization = resource.HasAnnotationOfType<AzureContainerAppJobCustomizationAnnotation>();
         bool hasAppCustomization = resource.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>();
 
         if (hasJobCustomization && hasAppCustomization)
