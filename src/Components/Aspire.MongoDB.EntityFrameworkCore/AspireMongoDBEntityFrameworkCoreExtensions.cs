@@ -17,7 +17,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:MongoDB:EntityFrameworkCore";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
-
+    private const string ActivityNameSource = "MongoDB.Driver.Core.Extensions.DiagnosticSources";
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
@@ -56,6 +56,8 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
+        ConfigureInstrumentation<TContext>(builder, settings);
+
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
@@ -66,6 +68,26 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
             }
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+        }
+    }
+
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MongoDBEntityFrameworkCoreSettings settings) where TContext : DbContext
+    {
+        if (!settings.DisableHealthChecks)
+        {
+            // calling MapHealthChecks is the responsibility of the app, not Component
+            builder.TryAddHealthCheck(
+                name: typeof(TContext).Name,
+                static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
+        }
+
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(tracerProviderBuilder =>
+                {
+                    tracerProviderBuilder.AddSource(ActivityNameSource);
+                });
         }
     }
 }
