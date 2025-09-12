@@ -64,9 +64,9 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
         {
             ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
-            if (settings.ConnectionString is not null)
+            if (settings is { ConnectionString: not null, DatabaseName: not null })
             {
-                dbContextOptionsBuilder.UseMongoDB(settings.ConnectionString);
+                dbContextOptionsBuilder.UseMongoDB(settings.ConnectionString, settings.DatabaseName);
             }
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);

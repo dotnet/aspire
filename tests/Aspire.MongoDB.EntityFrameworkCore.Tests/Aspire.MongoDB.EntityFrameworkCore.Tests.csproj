@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
