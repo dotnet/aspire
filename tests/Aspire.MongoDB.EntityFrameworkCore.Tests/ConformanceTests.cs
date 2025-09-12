@@ -20,7 +20,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
     protected string ConnectionString { get; private set; }
     protected string DatabaseName { get; private set; }
     protected override ServiceLifetime ServiceLifetime { get; }
-    protected override string ActivitySourceName => "mongodb";
+    protected override string ActivitySourceName => "MongoDB.Driver.Core.Extensions.DiagnosticSources";
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string[] RequiredLogCategories => new string[]
