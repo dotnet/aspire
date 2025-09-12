@@ -41,7 +41,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
     {
         "MongoDB.SDAM",
         "MongoDB.ServerSelection",
-        "MongoDB.Connection",
+        "MongoDB.Connection"
     };
 
     protected override string ValidJsonConfig => """
@@ -85,11 +85,11 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
             new("Aspire:MongoDB:EntityFrameworkCore:DatabaseName", DatabaseName),
         });
 
-    protected override void TriggerActivity(TestDbContext service)
+    protected override async void TriggerActivity(TestDbContext service)
     {
-        if (service.Database.CanConnect())
+        if (await service.Database.CanConnectAsync())
         {
-            service.Database.EnsureCreated();
+            await service.Database.EnsureCreatedAsync();
         }
     }
 
