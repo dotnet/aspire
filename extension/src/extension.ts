@@ -19,6 +19,7 @@ import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
 import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
+import { openTerminalCommand } from './commands/openTerminal';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -29,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const debuggerExtensions = getResourceDebuggerExtensions();
 
     const terminalProvider = new AspireTerminalProvider(context.subscriptions);
+	terminalProvider.closeAllOpenAspireTerminals();
 
 	const rpcServer = await AspireRpcServer.create(
 		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => {
@@ -47,9 +49,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	const cliConfigCommandRegistration = vscode.commands.registerCommand('aspire-vscode.config', () => tryExecuteCommand('aspire-vscode.config', terminalProvider, configCommand));
 	const cliDeployCommandRegistration = vscode.commands.registerCommand('aspire-vscode.deploy', () => tryExecuteCommand('aspire-vscode.deploy', terminalProvider, deployCommand));
 	const cliPublishCommandRegistration = vscode.commands.registerCommand('aspire-vscode.publish', () => tryExecuteCommand('aspire-vscode.publish', terminalProvider, publishCommand));
+	const openTerminalCommandRegistration = vscode.commands.registerCommand('aspire-vscode.openTerminal', () => tryExecuteCommand('aspire-vscode.openTerminal', terminalProvider, openTerminalCommand));
 	const configureLaunchJsonCommandRegistration = vscode.commands.registerCommand('aspire-vscode.configureLaunchJson', () => tryExecuteCommand('aspire-vscode.configureLaunchJson', terminalProvider, configureLaunchJsonCommand));
 
-	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, configureLaunchJsonCommandRegistration);
+	context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliConfigCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
 
 	const debugConfigProvider = new AspireDebugConfigurationProvider();
 	context.subscriptions.push(

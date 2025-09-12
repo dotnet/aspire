@@ -1,7 +1,7 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
@@ -301,23 +301,39 @@ export class InteractionService implements IInteractionService {
     }
 }
 
+function tryExecuteEndpoint(withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
+    return (name: string, handler: (...args: any[]) => any) => withAuthentication(async (...args: any[]) => {
+        try {
+            return await Promise.resolve(handler(...args));
+        }
+        catch (err) {
+            const message = (err && (((err as any).message) ?? String(err))) || 'An unknown error occurred';
+            extensionLogOutputChannel.error(`Interaction service endpoint '${name}' failed: ${message}`);
+            vscode.window.showErrorMessage(errorMessage(message));
+            throw err;
+        }
+    });
+}
+
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
-    connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
-    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
-    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
-    connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
-    connection.onRequest("displayIncompatibleVersionError", withAuthentication((requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
-    connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
-    connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
-    connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
-    connection.onRequest("displaySubtleMessage", withAuthentication(interactionService.displaySubtleMessage.bind(interactionService)));
-    connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
-    connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
-    connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
-    connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
-    connection.onRequest("openProject", withAuthentication(interactionService.openProject.bind(interactionService)));
-    connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
-    connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
-    connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
+    const middleware = tryExecuteEndpoint(withAuthentication);
+
+    connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
+    connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
+    connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
+    connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
+    connection.onRequest("displayIncompatibleVersionError", middleware('displayIncompatibleVersionError', (requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
+    connection.onRequest("displayError", middleware('displayError', interactionService.displayError.bind(interactionService)));
+    connection.onRequest("displayMessage", middleware('displayMessage', interactionService.displayMessage.bind(interactionService)));
+    connection.onRequest("displaySuccess", middleware('displaySuccess', interactionService.displaySuccess.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", middleware('displaySubtleMessage', interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displayEmptyLine", middleware('displayEmptyLine', interactionService.displayEmptyLine.bind(interactionService)));
+    connection.onRequest("displayDashboardUrls", middleware('displayDashboardUrls', interactionService.displayDashboardUrls.bind(interactionService)));
+    connection.onRequest("displayLines", middleware('displayLines', interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayCancellationMessage", middleware('displayCancellationMessage', interactionService.displayCancellationMessage.bind(interactionService)));
+    connection.onRequest("openProject", middleware('openProject', interactionService.openProject.bind(interactionService)));
+    connection.onRequest("logMessage", middleware('logMessage', interactionService.logMessage.bind(interactionService)));
+    connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
+    connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
+    connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
 }

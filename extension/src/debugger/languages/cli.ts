@@ -8,6 +8,7 @@ export interface SpawnProcessOptions {
     stdoutCallback?: (data: string) => void;
     stderrCallback?: (data: string) => void;
     exitCallback?: (code: number | null) => void;
+    errorCallback?: (error: Error) => void;
     env?: EnvVar[];
     workingDirectory?: string;
     debugSessionId: string | null
@@ -32,6 +33,10 @@ export function spawnCliProcess(terminalProvider: AspireTerminalProvider, comman
 
     child.stderr.on("data", (data) => {
         options?.stderrCallback?.(new String(data).toString());
+    });
+
+    child.on('error', (error) => {
+        options?.errorCallback?.(error);
     });
 
     child.on("close", (code) => {

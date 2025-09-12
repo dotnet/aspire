@@ -91,6 +91,11 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.openTerminal",
+        "title": "%command.openTerminal%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.config",
         "title": "%command.config%",
         "category": "Aspire"
