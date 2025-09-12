@@ -111,6 +111,21 @@ public interface IResourceContainerImageBuilder
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
     Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tags an existing container image with a new target name.
+    /// </summary>
+    /// <param name="localImageName">The name of the local image to tag.</param>
+    /// <param name="targetImageName">The target name for the image tag.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pushes a container image to a registry.
+    /// </summary>
+    /// <param name="imageName">The name of the image to push.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task PushImageAsync(string imageName, CancellationToken cancellationToken = default);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -385,6 +400,16 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+    {
+        await ContainerRuntime.TagImageAsync(localImageName, targetImageName, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+    {
+        await ContainerRuntime.PushImageAsync(imageName, cancellationToken).ConfigureAwait(false);
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime

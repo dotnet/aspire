@@ -133,4 +133,80 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             }
         }
     }
+
+    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
+
+        var spec = new ProcessSpec("podman")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("podman tag (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("podman tag (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Podman tag with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("podman tag for {LocalImageName} -> {TargetImageName} failed with exit code {ExitCode}.", localImageName, targetImageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Podman tag failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("podman tag for {LocalImageName} -> {TargetImageName} succeeded.", localImageName, targetImageName);
+        }
+    }
+
+    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"push \"{imageName}\"";
+
+        var spec = new ProcessSpec("podman")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("podman push (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("podman push (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Podman push with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("podman push for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Podman push failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("podman push for {ImageName} succeeded.", imageName);
+        }
+    }
 }
