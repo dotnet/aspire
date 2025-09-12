@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="translated">Connessione all'host delle app in corso...</target>
+        <source>Connecting to apphost...</source>
+        <target state="needs-review-translation">Connessione all'host delle app in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Esegui un host dell'app Aspire in modalità di sviluppo.</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="needs-review-translation">Esegui un host dell'app Aspire in modalità di sviluppo.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -58,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Percorso del file di un progetto host dell'app Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="needs-review-translation">Percorso del file di un progetto host dell'app Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Avvio dell'host dell'app Aspire in corso...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="needs-review-translation">Avvio dell'host dell'app Aspire in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
