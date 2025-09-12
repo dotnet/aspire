@@ -52,33 +52,23 @@
             "EntityFrameworkCore": {
               "type": "object",
               "properties": {
-                "CommandTimeout": {
-                  "type": "integer",
-                  "description": "Gets or sets the time in seconds to wait for the command to execute."
-                },
                 "ConnectionString": {
                   "type": "string",
                   "description": "Gets or sets the connection string of the MongoDB database to connect to."
                 },
                 "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
-                  "default": false
-                },
-                "DisableMetrics": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.",
-                  "default": false
-                },
-                "DisableRetry": {
-                  "type": "boolean",
-                  "description": "Gets or sets whether retries should be disabled.",
+                  "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is disabled or not.",
                   "default": false
                 },
                 "DisableTracing": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
                   "default": false
+                },
+                "HealthCheckTimeout": {
+                  "type": "integer",
+                  "description": "Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds."
                 }
               },
               "description": "Provides the client configuration settings for connecting to a MongoDB database using EntityFrameworkCore."

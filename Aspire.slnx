@@ -381,6 +381,7 @@
     <Project Path="tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.Driver.Tests/Aspire.MongoDB.Driver.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.Driver.v3.Tests/Aspire.MongoDB.Driver.v3.Tests.csproj" />
+    <Project Path="tests/Aspire.MongoDB.EntityFrameworkCore.Tests/Aspire.MongoDB.EntityFrameworkCore.Tests.csproj" Id="79ef6bd3-8f2b-4b42-8993-6707fd8be598" />
     <Project Path="tests/Aspire.MySqlConnector.Tests/Aspire.MySqlConnector.Tests.csproj" />
     <Project Path="tests/Aspire.NATS.Net.Tests/Aspire.NATS.Net.Tests.csproj" />
     <Project Path="tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj" />

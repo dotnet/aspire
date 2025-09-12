@@ -33,9 +33,4 @@ public sealed class MongoDBEntityFrameworkCoreSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the MongoDB driver's warnings should be configured to be logged.
-    /// </summary>
-    public bool ConfigureWarnings { get; set; }
 }
