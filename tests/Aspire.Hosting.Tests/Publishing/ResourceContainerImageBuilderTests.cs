@@ -383,6 +383,43 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [RequiresDocker]
+    public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        
+        // Add trailing slashes to simulate the issue scenario
+        var contextPathWithTrailingSlash = tempContextPath + Path.DirectorySeparatorChar;
+        var servicea = builder.AddDockerfile("container", contextPathWithTrailingSlash, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        
+        // This should not fail even with trailing slash in context path
+        await imageBuilder.BuildImageAsync(servicea.Resource, options: null, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+        // Ensure no error logs were produced during the build process
+        Assert.DoesNotContain(logs, log => log.Level >= LogLevel.Error &&
+            log.Message.Contains("Failed to build container image"));
+    }
+
+    [Fact]
     public async Task TagImageAsync_CallsContainerRuntimeTagImage()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
@@ -533,6 +570,48 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task BuildImageAsync_NormalizesContextPathWithTrailingSlashes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime that captures the actual context path used
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+        
+        // Add trailing slashes to context path to test normalization
+        var contextPathWithTrailingSlash = tempContextPath + Path.DirectorySeparatorChar + Path.DirectorySeparatorChar;
+        var dockerfileResource = builder.AddDockerfile("test-dockerfile", contextPathWithTrailingSlash, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        await imageBuilder.BuildImagesAsync([dockerfileResource.Resource], options: null, cts.Token);
+
+        // Verify that the fake runtime was called to build the image
+        Assert.True(fakeContainerRuntime.WasBuildImageCalled);
+        Assert.Single(fakeContainerRuntime.BuildImageCalls);
+        
+        var buildCall = fakeContainerRuntime.BuildImageCalls[0];
+        
+        // The context path should be normalized (no trailing slashes)
+        Assert.False(buildCall.contextPath.EndsWith(Path.DirectorySeparatorChar.ToString()));
+        Assert.False(buildCall.contextPath.EndsWith(Path.AltDirectorySeparatorChar.ToString()));
+        
+        // It should still point to the same directory
+        Assert.Equal(Path.GetFullPath(tempContextPath), Path.GetFullPath(buildCall.contextPath));
+    }
+
+    [Fact]
     public async Task BuildImageAsync_ThrowsInvalidOperationException_WhenDockerRuntimeNotAvailable()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -570,8 +649,10 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         public bool WasHealthCheckCalled { get; private set; }
         public bool WasTagImageCalled { get; private set; }
         public bool WasPushImageCalled { get; private set; }
+        public bool WasBuildImageCalled { get; private set; }
         public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
         public List<string> PushImageCalls { get; } = [];
+        public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
 
         public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
         {
@@ -581,7 +662,14 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
         {
-            // For testing, we don't need to actually build anything
+            WasBuildImageCalled = true;
+            BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
+            
+            if (shouldFail)
+            {
+                throw new InvalidOperationException("Fake container runtime is configured to fail");
+            }
+            
             return Task.CompletedTask;
         }
 

@@ -118,8 +118,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
     public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
+        // Normalize the context path to handle trailing slashes and relative paths
+        var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        
         var exitCode = await RunDockerBuildAsync(
-            contextPath,
+            normalizedContextPath,
             dockerfilePath,
             imageName,
             options,
