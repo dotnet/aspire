@@ -226,6 +226,7 @@ public sealed class CommandViewModel
     public const string StartCommand = "resource-start";
     public const string StopCommand = "resource-stop";
     public const string RestartCommand = "resource-restart";
+    private static readonly string[] s_knownResourceCommands = [StartCommand, StopCommand, RestartCommand];
 
     public string Name { get; }
     public CommandViewModelState State { get; }
@@ -256,7 +257,7 @@ public sealed class CommandViewModel
 
     public static bool IsKnownCommand(string command)
     {
-        return command == StartCommand || command == StopCommand || command == RestartCommand;
+        return s_knownResourceCommands.Contains(command);
     }
 
     public string GetDisplayName(IStringLocalizer<Commands> loc)
