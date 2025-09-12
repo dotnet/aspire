@@ -20,7 +20,6 @@ public sealed partial class LogViewer
     private static readonly MarkupString s_spaceMarkup = new MarkupString("&#32;");
 
     private LogEntries? _logEntries;
-    private Virtualize<LogEntry>? _virtualizeRef;
     private bool _logsChanged;
 
     [Inject]
