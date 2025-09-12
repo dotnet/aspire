@@ -863,26 +863,16 @@ public static class ContainerResourceBuilderExtensions
             throw new InvalidOperationException($"The source path '{sourceFullPath}' does not exist. Ensure the path is correct and accessible.");
         }
 
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        var annotation = new ContainerFileSystemCallbackAnnotation
         {
-            // In run mode, use copied files as they allow us to configure permissions and ownership and support
-            // remote execution scenarios where the source path may not be accessible from the container runtime.
-            var annotation = new ContainerFileSystemCallbackAnnotation
-            {
-                DestinationPath = destinationPath,
-                Callback = (_, _) => Task.FromResult(ContainerDirectory.GetFileSystemItemsFromPath(sourceFullPath, searchOptions: SearchOption.AllDirectories)),
-                DefaultOwner = defaultOwner,
-                DefaultGroup = defaultGroup,
-                Umask = umask,
-            };
+            DestinationPath = destinationPath,
+            Callback = (_, _) => Task.FromResult(ContainerDirectory.GetFileSystemItemsFromPath(sourceFullPath, searchOptions: SearchOption.AllDirectories)),
+            DefaultOwner = defaultOwner,
+            DefaultGroup = defaultGroup,
+            Umask = umask,
+        };
 
-            builder.Resource.Annotations.Add(annotation);
-        }
-        else
-        {
-            // In publish mode, use a bind mount as it is better supported by publish targets
-            builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
-        }
+        builder.Resource.Annotations.Add(annotation);
 
         return builder;
     }
