@@ -391,7 +391,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         testInteractionService.ShowStatusCallback = (statusText) =>
         {
             Assert.Contains(
-                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                $":hammer_and_wrench:  Building apphost... src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
                 statusText);
         };
 
