@@ -12,20 +12,20 @@ public sealed class MongoDBEntityFrameworkCoreSettings
     /// Gets or sets the connection string of the MongoDB database to connect to.
     /// </summary>
     public string? ConnectionString { get; set; }
+
     /// <summary>
-    /// Gets or sets whether retries should be disabled.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="false"/>.
-    /// </value>
-    public bool DisableRetry { get; set; }
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the database health check is disabled or not.
+    /// Gets or sets a boolean value that indicates whether the MongoDB health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
+    /// Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds.
+    /// </summary>
+    public int? HealthCheckTimeout { get; set; }
+
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
@@ -33,15 +33,9 @@ public sealed class MongoDBEntityFrameworkCoreSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
+
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.
+    /// Gets or sets a boolean value that indicates whether the MongoDB driver's warnings should be configured to be logged.
     /// </summary>
-    /// <value>
-    /// The default value is <see langword="false"/>.
-    /// </value>
-    public bool DisableMetrics { get; set; }
-    /// <summary>
-    /// Gets or sets the time in seconds to wait for the command to execute.
-    /// </summary>
-    public int? CommandTimeout { get; set; }
+    public bool ConfigureWarnings { get; set; }
 }
