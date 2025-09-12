@@ -221,7 +221,8 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
-    // Known resource command constants
+    // Known resource command constants.
+    // Keep in sync with KnownResourceCommands in Aspire.Hosting.
     public const string StartCommand = "resource-start";
     public const string StopCommand = "resource-stop";
     public const string RestartCommand = "resource-restart";

@@ -8,6 +8,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public static class KnownResourceCommands
 {
+    // Keep in sync with CommandViewModel in Aspire.Dashboard.
+
     /// <summary>
     /// The command name for starting a resource.
     /// </summary>
