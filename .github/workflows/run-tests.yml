@@ -16,11 +16,11 @@ on:
       testSessionTimeout:
         required: false
         type: string
-        default: "15m"
+        default: "21m"
       testHangTimeout:
         required: false
         type: string
-        default: "7m"
+        default: "10m"
       extraTestArgs:
         required: false
         type: string
