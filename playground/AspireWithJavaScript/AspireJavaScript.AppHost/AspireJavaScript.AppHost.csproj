@@ -18,7 +18,7 @@
     <ProjectReference Include="..\AspireJavaScript.MinimalApi\AspireJavaScript.MinimalApi.csproj" />
   </ItemGroup>
 
-  <Target Name="RestoreNpm" BeforeTargets="Build" Condition=" '$(DesignTimeBuild)' != 'true' ">
+  <Target Name="RestoreNpm" BeforeTargets="Build" Condition="!('$(ContinuousIntegrationBuild)' == 'true') and '$(DesignTimeBuild)' != 'true' ">
     <ItemGroup>
       <PackageJsons Include="..\*\package.json" />
     </ItemGroup>
