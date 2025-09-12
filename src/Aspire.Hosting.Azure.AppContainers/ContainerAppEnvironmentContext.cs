@@ -53,7 +53,7 @@ internal sealed class ContainerAppEnvironmentContext(
 
         if (hasJobCustomization && hasAppCustomization)
         {
-            throw new InvalidOperationException($"Resource '{resource.Name}' cannot have both AzureContainerAppCustomizationAnnotation and AzureContainerJobCustomizationAnnotation.");
+            throw new InvalidOperationException($"Resource '{resource.Name}' cannot have both AzureContainerAppCustomizationAnnotation and AzureContainerAppJobCustomizationAnnotation.");
         }
 
         if (hasJobCustomization)

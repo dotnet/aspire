@@ -9,6 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an annotation for customizing an Azure Container App Job.
 /// </summary>
+[Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class AzureContainerAppJobCustomizationAnnotation(Action<AzureResourceInfrastructure, ContainerAppJob> configure)
     : IResourceAnnotation
 {
