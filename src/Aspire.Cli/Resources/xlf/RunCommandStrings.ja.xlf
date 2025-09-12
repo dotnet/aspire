@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="translated">アプリ ホストに接続しています...</target>
+        <source>Connecting to apphost...</source>
+        <target state="new">Connecting to apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">開発モードで Aspire アプリ ホスティング プロセスを実行します。</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="new">Run an Aspire apphost in development mode.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -58,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire アプリ ホスティング プロセス プロジェクト ファイルへのパスです。</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="new">The path to the Aspire AppHost project file.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire アプリ ホスティング プロセスを開始しています...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="new">Starting Aspire apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
