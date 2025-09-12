@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Model.ResourceGraph;
 
 public static class ResourceGraphMapper
 {
-    public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc, bool showHiddenResources)
+    public static ResourceDto MapResource(ResourceViewModel r, IDictionary<string, ResourceViewModel> resourcesByName, IStringLocalizer<Columns> columnsLoc, bool showHiddenResources, ColorGenerator? colorGenerator = null)
     {
         var resolvedNames = new List<string>();
 
@@ -37,7 +37,10 @@ public static class ResourceGraphMapper
             ?? ResourceUrlHelpers.GetUrls(r, includeInternalUrls: false, includeNonEndpointUrls: true).FirstOrDefault();
         var resolvedEndpointText = ResolvedEndpointText(endpoint);
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
-        var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
+        
+        // Use injected ColorGenerator if available, otherwise fall back to singleton
+        var colorGen = colorGenerator ?? ColorGenerator.Instance;
+        var color = colorGen.GetColorHexByKey(resourceName);
 
         var icon = GetIconPathData(ResourceIconHelpers.GetIconForResource(r, IconSize.Size24));
 
