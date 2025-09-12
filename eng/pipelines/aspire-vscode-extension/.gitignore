@@ -1,0 +1,5 @@
+obj/
+bin/
+*.log
+launchSettings.json
+*.binlog
