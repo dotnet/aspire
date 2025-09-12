@@ -198,13 +198,12 @@ internal sealed class CliServiceCollectionTestOptions
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
+        return new ProjectLocator(logger, executionContext, interactionService, configurationService, telemetry, features);
     }
 
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
