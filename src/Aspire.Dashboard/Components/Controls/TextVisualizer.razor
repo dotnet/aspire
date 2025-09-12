@@ -5,7 +5,7 @@
 
 <div class="log-overflow">
     <div class="log-container" @ref="_containerElement">
-        <Virtualize Items="@(!DisplayUnformatted ? ViewModel.FormattedLines : ViewModel.Lines)" ItemSize="20" OverscanCount="200">
+        <Virtualize @ref="VirtualizeRef" Items="@(!DisplayUnformatted ? ViewModel.FormattedLines : ViewModel.Lines)" ItemSize="20" OverscanCount="200">
             <div class="log-line-row-container">
                 <div class="log-line-row">
                     <span class="log-line-area">

@@ -4,8 +4,10 @@
 using System.Globalization;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -43,6 +45,21 @@ public sealed partial class LogViewer
 
     [Parameter]
     public bool NoWrapLogs { get; set; }
+
+    private Virtualize<LogEntry>? VirtualizeRef
+    {
+        get => field;
+        set
+        {
+            field = value;
+
+            // Set max item count when the Virtualize component is set.
+            if (field != null)
+            {
+                VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10_000);
+            }
+        }
+    }
 
     protected override void OnParametersSet()
     {

@@ -43,7 +43,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
-    private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
+    private FluentDataGrid<OtlpLogEntry>? _dataGrid;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
 
@@ -380,6 +380,13 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
+        if (_dataGrid != null && FluentDataGridHelper<OtlpLogEntry>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
         if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
