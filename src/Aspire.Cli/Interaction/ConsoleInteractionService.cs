@@ -176,8 +176,8 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayCancellationMessage()
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
+        _ansiConsole.WriteLine();
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
