@@ -222,9 +222,9 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 public sealed class CommandViewModel
 {
     // Known resource command constants
-    private const string StartCommand = "resource-start";
-    private const string StopCommand = "resource-stop"; 
-    private const string RestartCommand = "resource-restart";
+    public const string StartCommand = "resource-start";
+    public const string StopCommand = "resource-stop";
+    public const string RestartCommand = "resource-restart";
 
     public string Name { get; }
     public CommandViewModelState State { get; }
@@ -255,36 +255,24 @@ public sealed class CommandViewModel
 
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
-        if (Name == StartCommand)
+        return Name switch
         {
-            return loc[nameof(Commands.StartCommandDisplayName)];
-        }
-        if (Name == StopCommand)
-        {
-            return loc[nameof(Commands.StopCommandDisplayName)];
-        }
-        if (Name == RestartCommand)
-        {
-            return loc[nameof(Commands.RestartCommandDisplayName)];
-        }
-        return DisplayName;
+            StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            _ => DisplayName
+        };
     }
 
     public string? GetDisplayDescription(IStringLocalizer<Commands> loc)
     {
-        if (Name == StartCommand)
+        return Name switch
         {
-            return loc[nameof(Commands.StartCommandDisplayDescription)];
-        }
-        if (Name == StopCommand)
-        {
-            return loc[nameof(Commands.StopCommandDisplayDescription)];
-        }
-        if (Name == RestartCommand)
-        {
-            return loc[nameof(Commands.RestartCommandDisplayDescription)];
-        }
-        return DisplayDescription is { Length : > 0 } ? DisplayDescription : null;
+            StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription is { Length: > 0 } ? DisplayDescription : null
+        };
     }
 }
 
