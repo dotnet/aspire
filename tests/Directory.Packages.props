@@ -10,7 +10,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitV3Extensions" Version="$(MicrosoftDotNetXUnitV3ExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.52.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.53.0" />
     <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
