@@ -26,7 +26,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DashboardLifecycleHook(IConfiguration configuration,
+internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
                                              IDashboardEndpointProvider dashboardEndpointProvider,
@@ -38,7 +38,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
                                              CodespacesUrlRewriter codespaceUrlRewriter
-                                             ) : IDistributedApplicationLifecycleHook, IAsyncDisposable
+                                             ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
     internal const string OtlpGrpcEndpointName = "otlp-grpc";
@@ -58,21 +58,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
     private CancellationTokenSource? _dashboardLogsCts;
     private string? _customRuntimeConfigPath;
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
-        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        if (@event.Model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);
 
             // Make the dashboard first in the list so it starts as fast as possible.
-            appModel.Resources.Remove(dashboardResource);
-            appModel.Resources.Insert(0, dashboardResource);
+            @event.Model.Resources.Remove(dashboardResource);
+            @event.Model.Resources.Insert(0, dashboardResource);
         }
         else
         {
-            AddDashboardResource(appModel);
+            AddDashboardResource(@event.Model);
         }
 
         // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.
@@ -83,41 +83,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         _dashboardLogsTask = WatchDashboardLogsAsync(_dashboardLogsCts.Token);
 
         return Task.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
-        _dashboardLogsCts?.Cancel();
-
-        if (_dashboardLogsTask is not null)
-        {
-            try
-            {
-                await _dashboardLogsTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when the application is shutting down.
-            }
-            catch (Exception ex)
-            {
-                distributedApplicationLogger.LogError(ex, "Unexpected error while watching dashboard logs.");
-            }
-        }
-
-        // Clean up the temporary runtime config file
-        if (_customRuntimeConfigPath is not null)
-        {
-            try
-            {
-                File.Delete(_customRuntimeConfigPath);
-            }
-            catch (Exception ex)
-            {
-                distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
-            }
-        }
     }
 
     private static (string NetCoreVersion, string AspNetCoreVersion) GetAppHostFrameworkVersions()
@@ -246,7 +211,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // In test environments or when the dashboard runtime config doesn't exist,
             // create a default configuration using the AppHost's framework versions
             var (appHostNetCoreVersion, appHostAspNetCoreVersion) = GetAppHostFrameworkVersions();
-            
+
             var defaultConfig = new
             {
                 runtimeOptions = new
@@ -259,10 +224,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     }
                 }
             };
-            
+
             var customConfigPath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
-            
+
             _customRuntimeConfigPath = customConfigPath;
             return customConfigPath;
         }
@@ -335,7 +300,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // Handle Windows (.exe), Unix (no extension), and direct DLL cases
             var directory = Path.GetDirectoryName(fullyQualifiedDashboardPath)!;
             var fileName = Path.GetFileName(fullyQualifiedDashboardPath);
-            
+
             string baseName;
             if (fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
@@ -357,9 +322,9 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 // Unix executable (no extension) or other: use full filename as base
                 baseName = fileName;
             }
-            
+
             dashboardDll = Path.Combine(directory, $"{baseName}.dll");
-            
+
             if (!File.Exists(dashboardDll))
             {
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
@@ -792,6 +757,51 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 logMessage.Message,
                 null,
                 (s, _) => (logMessage.Exception is { } e) ? s + Environment.NewLine + e : s);
+        }
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)
+    {
+        if (execContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Stop listening to logs if the lifecycle hook is disposed without the app being shutdown.
+        _dashboardLogsCts?.Cancel();
+
+        if (_dashboardLogsTask is not null)
+        {
+            try
+            {
+                await _dashboardLogsTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the application is shutting down.
+            }
+            catch (Exception ex)
+            {
+                distributedApplicationLogger.LogError(ex, "Unexpected error while watching dashboard logs.");
+            }
+        }
+
+        // Clean up the temporary runtime config file
+        if (_customRuntimeConfigPath is not null)
+        {
+            try
+            {
+                File.Delete(_customRuntimeConfigPath);
+            }
+            catch (Exception ex)
+            {
+                distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
+            }
         }
     }
 }
