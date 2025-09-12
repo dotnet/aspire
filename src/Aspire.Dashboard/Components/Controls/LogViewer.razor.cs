@@ -61,6 +61,17 @@ public sealed partial class LogViewer
         }
     }
 
+    public async Task RefreshDataAsync()
+    {
+        if (VirtualizeRef == null)
+        {
+            return;
+        }
+
+        await VirtualizeRef.RefreshDataAsync();
+        StateHasChanged();
+    }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)
@@ -72,6 +83,17 @@ public sealed partial class LogViewer
         }
 
         base.OnParametersSet();
+    }
+
+    private ValueTask<ItemsProviderResult<LogEntry>> GetItems(ItemsProviderRequest r)
+    {
+        var entries = _logEntries?.GetEntries();
+        if (entries == null)
+        {
+            return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(Enumerable.Empty<LogEntry>(), 0));
+        }
+
+        return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(entries.Skip(r.StartIndex).Take(r.Count), entries.Count));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
