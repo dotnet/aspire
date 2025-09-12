@@ -40,7 +40,6 @@ public interface IYarpConfigurationBuilder
     /// <returns></returns>
     public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService);
 
-
     /// <summary>
     /// Add a new cluster to YARP based on a collection of urls.
     /// </summary>
