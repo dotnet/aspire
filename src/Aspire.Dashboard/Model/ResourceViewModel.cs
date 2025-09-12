@@ -254,6 +254,11 @@ public sealed class CommandViewModel
         IconVariant = iconVariant;
     }
 
+    public static bool IsKnownCommand(string command)
+    {
+        return command == StartCommand || command == StopCommand || command == RestartCommand;
+    }
+
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
         return Name switch

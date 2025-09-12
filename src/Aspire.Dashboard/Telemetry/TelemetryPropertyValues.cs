@@ -12,14 +12,9 @@ public static class TelemetryPropertyValues
 
     public static string GetCommandNameTelemetryValue(string commandName)
     {
-        return IsKnownCommand(commandName)
+        return CommandViewModel.IsKnownCommand(commandName)
             ? commandName
             : CustomResourceCommand;
-    }
-
-    private static bool IsKnownCommand(string command)
-    {
-        return command == CommandViewModel.StartCommand || command == CommandViewModel.StopCommand || command == CommandViewModel.RestartCommand;
     }
 
     public static string GetResourceTypeTelemetryValue(string resourceType, bool supportsDetailedTelemetry)
