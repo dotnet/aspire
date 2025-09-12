@@ -32,8 +32,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
-            var highestVersionWhenDisabled = await GetHighestInstalledSdkVersionAsync(cancellationToken);
-            return (true, highestVersionWhenDisabled, minimumVersion);
+            return (true, null, minimumVersion);
         }
 
         try
@@ -129,70 +128,6 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             Architecture.Arm => "arm",
             _ => "x64" // Default to x64 for unknown architectures
         };
-    }
-
-    /// <summary>
-    /// Gets the highest installed .NET SDK version, or null if none found.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The highest SDK version string, or null if none found.</returns>
-    private static async Task<string?> GetHighestInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Add --arch flag to ensure we only get SDKs that match the current architecture
-            var currentArch = GetCurrentArchitecture();
-            var arguments = $"--list-sdks --arch {currentArch}";
-
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode != 0)
-            {
-                return null;
-            }
-
-            // Parse each line of the output to find SDK versions
-            var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            SemVersion? highestVersion = null;
-
-            foreach (var line in lines)
-            {
-                // Each line is in format: "version [path]"
-                var spaceIndex = line.IndexOf(' ');
-                if (spaceIndex > 0)
-                {
-                    var versionString = line[..spaceIndex];
-                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
-                    {
-                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
-                        {
-                            highestVersion = sdkVersion;
-                        }
-                    }
-                }
-            }
-
-            return highestVersion?.ToString();
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     /// <summary>
