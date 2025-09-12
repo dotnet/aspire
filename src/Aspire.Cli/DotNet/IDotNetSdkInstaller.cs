@@ -16,14 +16,6 @@ internal interface IDotNetSdkInstaller
     Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Checks if the .NET SDK is available on the system PATH and meets the minimum version requirement.
-    /// </summary>
-    /// <param name="minimumVersion">The minimum SDK version required.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if the SDK is available and meets the minimum version, false otherwise.</returns>
-    Task<bool> CheckAsync(string minimumVersion, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Installs the .NET SDK. This method is reserved for future extensibility.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

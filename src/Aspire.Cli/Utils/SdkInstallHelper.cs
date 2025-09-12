@@ -36,7 +36,6 @@ internal static class SdkInstallHelper
             
             var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
                 ErrorStrings.MinimumSdkVersionNotMet, 
-                "", 
                 minimumRequiredVersion, 
                 detectedVersion);
             interactionService.DisplayError(sdkErrorMessage);

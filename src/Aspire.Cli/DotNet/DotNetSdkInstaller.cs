@@ -28,18 +28,12 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion();
-        var success = await CheckAsync(minimumVersion, cancellationToken);
-        var highestVersion = await GetInstalledSdkVersionAsync(cancellationToken);
-        return (success, highestVersion, minimumVersion);
-    }
-
-    /// <inheritdoc />
-    public async Task<bool> CheckAsync(string minimumVersion, CancellationToken cancellationToken = default)
-    {
+        
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
-            return true;
+            var highestVersionWhenDisabled = await GetHighestInstalledSdkVersionAsync(cancellationToken);
+            return (true, highestVersionWhenDisabled, minimumVersion);
         }
 
         try
@@ -67,17 +61,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             if (process.ExitCode != 0)
             {
-                return false;
+                return (false, null, minimumVersion);
             }
 
             // Parse the minimum version requirement
             if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
             {
-                return false;
+                return (false, null, minimumVersion);
             }
 
             // Parse each line of the output to find SDK versions
             var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            SemVersion? highestVersion = null;
+            bool meetsMinimum = false;
+
             foreach (var line in lines)
             {
                 // Each line is in format: "version [path]"
@@ -87,20 +84,27 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                     var versionString = line[..spaceIndex];
                     if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
                     {
+                        // Track the highest version
+                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
+                        {
+                            highestVersion = sdkVersion;
+                        }
+
+                        // Check if this version meets the minimum requirement
                         if (SemVersion.ComparePrecedence(sdkVersion, minVersion) >= 0)
                         {
-                            return true;
+                            meetsMinimum = true;
                         }
                     }
                 }
             }
 
-            return false;
+            return (meetsMinimum, highestVersion?.ToString(), minimumVersion);
         }
         catch
         {
             // If we can't start the process, the SDK is not available
-            return false;
+            return (false, null, minimumVersion);
         }
     }
 
@@ -132,7 +136,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The highest SDK version string, or null if none found.</returns>
-    private static async Task<string?> GetInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
+    private static async Task<string?> GetHighestInstalledSdkVersionAsync(CancellationToken cancellationToken = default)
     {
         try
         {
