@@ -1,4 +1,5 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -17,7 +18,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <para/> 
 /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
 /// </remarks>
-public class ExecutableResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport,
+public class ExecutableResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource
 {
     /// <param name="name">The name of the resource.</param>
