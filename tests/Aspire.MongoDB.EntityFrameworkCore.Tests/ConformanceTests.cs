@@ -18,6 +18,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
     protected string ConnectionString { get; private set; }
     protected override ServiceLifetime ServiceLifetime { get; }
     protected override string ActivitySourceName => "MongoDB.Driver.Core.Extensions.DiagnosticSources";
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
+
     protected override string[] RequiredLogCategories => new string[]
     {
         "Microsoft.EntityFrameworkCore.Infrastructure",
@@ -31,6 +33,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
         "Microsoft.EntityFrameworkCore.Model.Validation",
         "Microsoft.EntityFrameworkCore.Update",
         "Microsoft.EntityFrameworkCore.Migrations"
+    };
+
+    // we don't want to have both EF and MongoDB loggers to be enabled
+    protected override string[] NotAcceptableLogCategories => new string[]
+    {
+        "MongoDB.SDAM",
+        "MongoDB.ServerSelection",
+        "MongoDB.Connection",
     };
 
     protected override string ValidJsonConfig => """
