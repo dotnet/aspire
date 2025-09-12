@@ -8,7 +8,6 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -222,6 +221,13 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
 [DebuggerDisplay("Name = {Name}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
+    // Known resource command constants.
+    // Keep in sync with KnownResourceCommands in Aspire.Hosting.
+    public const string StartCommand = "resource-start";
+    public const string StopCommand = "resource-stop";
+    public const string RestartCommand = "resource-restart";
+    private static readonly string[] s_knownResourceCommands = [StartCommand, StopCommand, RestartCommand];
+
     public string Name { get; }
     public CommandViewModelState State { get; }
     private string DisplayName { get; }
@@ -249,13 +255,18 @@ public sealed class CommandViewModel
         IconVariant = iconVariant;
     }
 
+    public static bool IsKnownCommand(string command)
+    {
+        return s_knownResourceCommands.Contains(command);
+    }
+
     public string GetDisplayName(IStringLocalizer<Commands> loc)
     {
         return Name switch
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
+            StartCommand => loc[nameof(Commands.StartCommandDisplayName)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayName)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayName)],
             _ => DisplayName
         };
     }
@@ -264,10 +275,10 @@ public sealed class CommandViewModel
     {
         return Name switch
         {
-            KnownResourceCommands.StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
-            KnownResourceCommands.StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
-            KnownResourceCommands.RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
-            _ => DisplayDescription is { Length : > 0 } ? DisplayDescription : null
+            StartCommand => loc[nameof(Commands.StartCommandDisplayDescription)],
+            StopCommand => loc[nameof(Commands.StopCommandDisplayDescription)],
+            RestartCommand => loc[nameof(Commands.RestartCommandDisplayDescription)],
+            _ => DisplayDescription is { Length: > 0 } ? DisplayDescription : null
         };
     }
 }

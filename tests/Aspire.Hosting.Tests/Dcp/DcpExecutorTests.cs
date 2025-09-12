@@ -7,7 +7,6 @@ using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
