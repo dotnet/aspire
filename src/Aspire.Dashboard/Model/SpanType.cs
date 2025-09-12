@@ -53,7 +53,8 @@ public class SpanType
             "messaging.system",
             "rpc.system",
             "gen_ai.system",
-            "gen_ai.provider.name"
+            "gen_ai.provider.name",
+            "gen_ai.operation.name"
         ]));
 
     public static List<SelectViewModel<SpanType>> CreateKnownSpanTypes(IStringLocalizer<ControlsStrings> loc)
