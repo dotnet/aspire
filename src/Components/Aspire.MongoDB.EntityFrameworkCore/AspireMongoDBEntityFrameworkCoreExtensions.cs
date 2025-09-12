@@ -18,6 +18,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     private const string DefaultConfigSectionName = "Aspire:MongoDB:EntityFrameworkCore";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
     private const string ActivityNameSource = "MongoDB.Driver.Core.Extensions.DiagnosticSources";
+
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
@@ -25,6 +26,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="databaseName">A required string so that the efcore provider can connect to the database</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <remarks>Reads the configuration from "Aspire:Oracle:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:Oracle:EntityFrameworkCore" if former does not exist.</remarks>
@@ -33,6 +35,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     public static void AddMongoDBDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
+        string databaseName,
         Action<MongoDBEntityFrameworkCoreSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
@@ -47,11 +50,10 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
             (settings, section) => section.Bind(settings)
         );
 
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        if (builder.Configuration.GetConnectionString(connectionName) is { } connectionString)
         {
             settings.ConnectionString = connectionString;
         }
-
         configureSettings?.Invoke(settings);
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);

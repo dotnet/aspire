@@ -14,6 +14,11 @@ public sealed class MongoDBEntityFrameworkCoreSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
+    /// Gets or sets the name of the MongoDB database to connect to.
+    /// </summary>
+    public string? DatabaseName { get; set; }
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the MongoDB health check is disabled or not.
     /// </summary>
     /// <value>

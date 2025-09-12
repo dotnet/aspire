@@ -12,6 +12,10 @@ public class ConfigurationTests
         => Assert.Null(new MongoDBEntityFrameworkCoreSettings().ConnectionString);
 
     [Fact]
+    public void DatabaseNameStringIsNullByDefault()
+            => Assert.Null(new MongoDBEntityFrameworkCoreSettings().DatabaseName);
+
+    [Fact]
     public void HealthCheckIsEnabledByDefault()
         => Assert.False(new MongoDBEntityFrameworkCoreSettings().DisableHealthChecks);
 

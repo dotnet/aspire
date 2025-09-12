@@ -56,6 +56,10 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the MongoDB database to connect to."
                 },
+                "DatabaseName": {
+                  "type": "string",
+                  "description": "Gets or sets the name of the MongoDB database to connect to."
+                },
                 "DisableHealthChecks": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is disabled or not.",

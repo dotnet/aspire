@@ -4,6 +4,8 @@
 using Aspire.Components.ConformanceTests;
 using Aspire.MongoDB.Driver.Tests;
 using Aspire.TestUtilities;
+using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,8 +18,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
     // in the future it can become a static property that reads the value from Env Var
     private readonly MongoDbContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
+    protected string DatabaseName { get; private set; }
     protected override ServiceLifetime ServiceLifetime { get; }
-    protected override string ActivitySourceName => "MongoDB.Driver.Core.Extensions.DiagnosticSources";
+    protected override string ActivitySourceName => "mongodb";
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string[] RequiredLogCategories => new string[]
@@ -28,11 +31,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
         "Microsoft.EntityFrameworkCore.Database.Command",
         "Microsoft.EntityFrameworkCore.Query",
         "Microsoft.EntityFrameworkCore.Database.Transaction",
-        "Microsoft.EntityFrameworkCore.Database.Connection",
         "Microsoft.EntityFrameworkCore.Model",
         "Microsoft.EntityFrameworkCore.Model.Validation",
-        "Microsoft.EntityFrameworkCore.Update",
-        "Microsoft.EntityFrameworkCore.Migrations"
+        "Microsoft.EntityFrameworkCore.Update"
     };
 
     // we don't want to have both EF and MongoDB loggers to be enabled
@@ -49,6 +50,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
              "MongoDB": {
                "EntityFrameworkCore": {
                  "ConnectionString": "YOUR_CONNECTION_STRING",
+                 "DatabaseName": "YOUR_DATABASE_NAME",
                  "DisableHealthChecks": false,
                  "HealthCheckTimeout": 100,
                  "DisableTracing": false
@@ -64,21 +66,23 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
         ("""{"Aspire": { "MongoDB":{ "EntityFrameworkCore": { "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
     };
 
-    public ConformanceTests(MongoDbContainerFixture containerFixture)
+    public ConformanceTests(MongoDbContainerFixture? containerFixture)
     {
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
             ? _containerFixture.GetConnectionString()
             : "mongodb://localhost:27017/test_aspire_mongodb";
+        DatabaseName = "test_db";
     }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MongoDBEntityFrameworkCoreSettings>? configure = null, string? key = null)
-        => builder.AddMongoDBDatabaseDbContext<TestDbContext>(key ?? "mongodb", configure);
+        => builder.AddMongoDBDatabaseDbContext<TestDbContext>(key ?? "mongodb","test_db" ,configure);
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
-        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
+        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new("Aspire:MongoDB:EntityFrameworkCore:ConnectionString", ConnectionString)
+            new("Aspire:MongoDB:EntityFrameworkCore:ConnectionString", ConnectionString),
+            new("Aspire:MongoDB:EntityFrameworkCore:DatabaseName", DatabaseName),
         });
 
     protected override void TriggerActivity(TestDbContext service)
@@ -96,4 +100,37 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
         => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MongoDBEntityFrameworkCoreSettings options, bool enabled) => throw new NotImplementedException();
+
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
+    public void DbContextPoolingRegistersIDbContextPool()
+    {
+        using IHost host = CreateHostWithComponent();
+
+        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
+
+        Assert.NotNull(pool);
+    }
+
+    [Fact]
+    public void DbContextCanBeAlwaysResolved()
+    {
+        using IHost host = CreateHostWithComponent();
+
+        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
+
+        Assert.NotNull(dbContext);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(
+            static (connectionStringToUse, databaseNameToUse) => RunWithConnectionString(connectionStringToUse, databaseNameToUse, obj => obj.ActivitySourceTest(key: null)),
+            ConnectionString,
+            DatabaseName
+        ).Dispose();
+
+    private static void RunWithConnectionString(string connectionString,string databaseName, Action<ConformanceTests> test)
+        => test(new ConformanceTests(null) { ConnectionString = connectionString, DatabaseName = databaseName});
 }
