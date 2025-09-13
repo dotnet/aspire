@@ -349,6 +349,43 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         Assert.Contains('/', settings.AppHostPath); // Ensure forward slashes
     }
 
+    [Fact]
+    public async Task FindAppHostProjectFilesAsyncDetectsAspireAppHostSdk()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an AppHost project file using Aspire.AppHost.Sdk pattern
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "SdkBasedAppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, @"<Project Sdk=""Microsoft.NET.Sdk"">
+
+  <Sdk Name=""Aspire.AppHost.Sdk"" Version=""8.0.0"" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Aspire.Hosting.AppHost"" Version=""8.0.0"" />
+  </ItemGroup>
+
+</Project>");
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var foundProjects = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Single(foundProjects);
+        Assert.Equal(projectFile.FullName, foundProjects[0].FullName);
+    }
+
     private sealed class CliSettings
     {
         [JsonPropertyName("appHostPath")]
