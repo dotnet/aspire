@@ -6,7 +6,7 @@ import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } 
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
-import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
+import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
@@ -135,8 +135,11 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", processExitedWithCode(code ?? '?'));
-          // if the process failed, we want to stop the debug session
           this.dispose();
+        },
+        errorCallback: (error) => {
+          extensionLogOutputChannel.error(`Error spawning aspire process: ${error}`);
+          vscode.window.showErrorMessage(processExceptionOccurred(error.message, 'aspire run'));
         },
         workingDirectory: workingDirectory,
         debugSessionId: this.debugSessionId
