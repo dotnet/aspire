@@ -176,8 +176,6 @@ internal sealed class BicepProvisioner(
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
         });
-        // Set the location and use timestamped deployment name for all resources
-        deploymentName = $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete
