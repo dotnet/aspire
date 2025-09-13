@@ -27,13 +27,17 @@
                 }
                 @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, formattedStartTime))
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                           Immediate="true"
                           Autofocus="true"
                           @bind-Value="_filter"
                           slot="end" />
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.Options())"
+                              Items="@_spanActionsMenuItems"
+                              Title="@Loc[nameof(ControlsStrings.ActionsButtonText)]"
+                              slot="end" />
         </FluentToolbar>
     }
     <div class="property-grid-container">
