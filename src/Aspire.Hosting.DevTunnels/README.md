@@ -125,7 +125,7 @@ Example:
 services__web__https__0 = https://myweb-1234.westeurope.devtunnels.ms/
 ```
 
-This lets downstream components use the tunneled address exactly like any other Aspire service discovery entry.
+This lets downstream resources use the tunneled address exactly like any other Aspire service discovery entry.
 
 > Referencing a tunnel delays the consumer resource's start until the tunnel has started and its endpoint is fully allocated.
 
@@ -162,7 +162,7 @@ When dev tunnel ports are successfully allocated, they log detailed information 
 
 Each port resource logs its forwarding configuration when it becomes available:
 
-```
+```text
 Forwarding from https://37tql9l1-7023.usw2.devtunnels.ms to https://localhost:7023/ (webfrontend/https)
 ```
 
@@ -171,20 +171,20 @@ Forwarding from https://37tql9l1-7023.usw2.devtunnels.ms to https://localhost:70
 Port resources also log their effective anonymous access policy, showing both the current access level and the configuration that led to it:
 
 **When anonymous access is allowed:**
-```
+```text
 !! Anonymous access is allowed (port explicitly allows it) !!
 ```
 
-```
+```text
 !! Anonymous access is allowed (inherited from tunnel) !!
 ```
 
 **When anonymous access is denied:**
-```
+```text
 Anonymous access is not allowed (tunnel does not allow it and port does not explicitly allow or deny it)
 ```
 
-```
+```text
 Anonymous access is not allowed (tunnel allows it but port explicitly denies it)
 ```
 
