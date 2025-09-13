@@ -635,7 +635,7 @@ Aspire 9.5 introduces first-class support for Azure Dev Tunnels, enabling seamle
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add a basic Dev Tunnel resource
+// Add a basic Dev Tunnel resource (default: private access)
 var tunnel = builder.AddDevTunnel("dev-tunnel");
 
 // Add your web application
@@ -654,13 +654,15 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.WebApi>("api");
 
-// Create a tunnel with custom options
+// Create a tunnel with custom options; choose anonymous OR keep private
 var tunnel = builder.AddDevTunnel("api-tunnel", options: new DevTunnelOptions
 {
     Description = "API development tunnel",
     Labels = ["development", "api"]
-})
-.WithAnonymousAccess(); // Allow anonymous access
+});
+
+// Uncomment to allow anonymous (public) access instead of private authenticated access
+// tunnel.WithAnonymousAccess();
 
 // Connect the tunnel to the API endpoint
 tunnel.WithReference(api.GetEndpoint("https"));
@@ -677,7 +679,7 @@ builder.Build().Run();
 **Webhook Development**: Test webhooks from external services (GitHub, Stripe, etc.) against your locally running API:
 
 ```csharp
-// Webhook API with public tunnel
+// Webhook API with public tunnel (anonymous access for external service callbacks)
 var webhookApi = builder.AddProject<Projects.WebhookApi>("webhook-api");
 
 var publicTunnel = builder.AddDevTunnel("webhook-tunnel")
@@ -688,14 +690,14 @@ var publicTunnel = builder.AddDevTunnel("webhook-tunnel")
 **Mobile App Testing**: Enable mobile devices to connect to your local development server:
 
 ```csharp
-// Mobile backend with public tunnel for device testing
+// Mobile backend with private tunnel (authenticated access only)
 var mobileBackend = builder.AddProject<Projects.MobileBackend>("mobile-backend");
 
 var mobileTunnel = builder.AddDevTunnel("mobile-tunnel")
     .WithReference(mobileBackend.GetEndpoint("http"));
 ```
 
-The Dev Tunnels integration automatically handles Azure authentication, tunnel lifecycle management, and provides the public URLs to connected resources, making it easy to expose local development services securely to external consumers.
+The Dev Tunnels integration automatically handles Azure authentication, tunnel lifecycle management, and provides public or private URLs (depending on configuration) to connected resources, making it easy to expose local development services securely to external consumers.
 
 ## App model enhancements
 
