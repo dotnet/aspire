@@ -1,14 +1,14 @@
 ---
-title: What's new in .NET Aspire 9.5
-description: Learn what's new in .NET Aspire 9.5.
+title: What's new in Aspire 9.5
+description: Learn what's new in Aspire 9.5.
 ms.date: 08/21/2025
 ---
 
-# What's new in .NET Aspire 9.5
+## What's new in Aspire 9.5
 
 ## Table of contents
 
-- [Upgrade to .NET Aspire 9.5](#upgrade-to-net-aspire-95)
+- [Upgrade to Aspire 9.5](#upgrade-to-aspire-95)
 - [CLI improvements](#cli-improvements)
   - [`aspire exec` command enhancements](#aspire-exec-command-enhancements)
   - [Parameter prompting during deploy](#parameter-prompting-during-deploy)
@@ -80,20 +80,20 @@ ms.date: 08/21/2025
 - [Reliability & diagnostics](#reliability--diagnostics)
 - [Minor enhancements](#minor-enhancements)
 
-📢 .NET Aspire 9.5 is the next minor version release of .NET Aspire. It supports:
+📢 Aspire 9.5 is the next minor version release of Aspire. It supports:
 
 - .NET 8.0 Long Term Support (LTS)
 - .NET 9.0 Standard Term Support (STS)
 - .NET 10.0 Preview 6
 
-If you have feedback, questions, or want to contribute to .NET Aspire, collaborate with us on [:::image type="icon" source="../media/github-mark.svg" border="false"::: GitHub](https://github.com/dotnet/aspire) or join us on our new [:::image type="icon" source="../media/discord-icon.svg" border="false"::: Discord](https://aka.ms/aspire-discord) to chat with the team and other community members.
+If you have feedback, questions, or want to contribute to Aspire, collaborate with us on [:::image type="icon" source="../media/github-mark.svg" border="false"::: GitHub](https://github.com/dotnet/aspire) or join us on our new [:::image type="icon" source="../media/discord-icon.svg" border="false"::: Discord](https://aka.ms/aspire-discord) to chat with the team and other community members.
 
-It's important to note that .NET Aspire releases out-of-band from .NET releases. While major versions of Aspire align with major .NET versions, minor versions are released more frequently. For more information on .NET and .NET Aspire version support, see:
+It's important to note that Aspire releases out-of-band from .NET releases. While major versions of Aspire align with major .NET versions, minor versions are released more frequently. For more information on .NET and Aspire version support, see:
 
 - [.NET support policy](https://dotnet.microsoft.com/platform/support/policy): Definitions for LTS and STS.
-- [.NET Aspire support policy](https://dotnet.microsoft.com/platform/support/policy/aspire): Important unique product lifecycle details.
+- [Aspire support policy](https://dotnet.microsoft.com/platform/support/policy/aspire): Important unique product lifecycle details.
 
-## Upgrade to .NET Aspire 9.5
+## Upgrade to Aspire 9.5
 
 Moving between minor releases of Aspire is simple:
 
@@ -103,11 +103,11 @@ Moving between minor releases of Aspire is simple:
     <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
     ```
 
-    For more information, see [.NET Aspire SDK](xref:dotnet/aspire/sdk).
+    For more information, see [Aspire SDK](xref:dotnet/aspire/sdk).
 
 2. Check for any NuGet package updates, either using the NuGet Package Manager in Visual Studio or the **Update NuGet Package** command from C# Dev Kit in VS Code.
 
-3. Update to the latest [.NET Aspire templates](../fundamentals/aspire-sdk-templates.md) by running the following .NET command line:
+3. Update to the latest [Aspire templates](../fundamentals/aspire-sdk-templates.md) by running the following .NET command line:
 
     ```dotnetcli
     dotnet new install Aspire.ProjectTemplates
@@ -116,7 +116,7 @@ Moving between minor releases of Aspire is simple:
   > [!NOTE]
   > The `dotnet new install` command will update existing Aspire templates to the latest version if they are already installed.
 
-If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using .NET Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
+If your AppHost project file doesn't have the `Aspire.AppHost.Sdk` reference, you might still be using Aspire 8. To upgrade to 9, follow [the upgrade guide](../get-started/upgrade-to-aspire-9.md).
 
 ## CLI improvements
 
@@ -161,7 +161,7 @@ aspire exec --start-resource my-worker -- npm run build
 
 ### Parameter prompting during deploy
 
-.NET Aspire 9.5 enhances the deployment experience by automatically prompting for unresolved parameters during `aspire deploy` operations, eliminating the need to manually specify all parameter values upfront.
+Aspire 9.5 enhances the deployment experience by automatically prompting for unresolved parameters during `aspire deploy` operations, eliminating the need to manually specify all parameter values upfront.
 
 #### Interactive parameter resolution
 
@@ -300,7 +300,7 @@ Extended markdown rendering support (#10815) with improved developer experience:
 
 ### Single-file AppHost feature flag
 
-.NET Aspire 9.5 introduces infrastructure preparation for future single-file AppHost capabilities through a new feature flag `features.singlefileAppHostEnabled`. When enabled, this flag elevates the minimum .NET SDK requirement to prepare for upcoming single-file execution scenarios.
+Aspire 9.5 introduces infrastructure preparation for future single-file AppHost capabilities through a new feature flag `features.singlefileAppHostEnabled`. When enabled, this flag elevates the minimum .NET SDK requirement to prepare for upcoming single-file execution scenarios.
 
 #### Feature flag configuration
 
@@ -621,7 +621,7 @@ This reduces magic strings, enables code navigation to model definitions, and al
 
 ### Dev Tunnels hosting integration
 
-.NET Aspire 9.5 introduces first-class support for Azure Dev Tunnels, enabling seamless integration of secure public tunnels for your applications during development and testing scenarios.
+Aspire 9.5 introduces first-class support for Azure Dev Tunnels, enabling seamless integration of secure public tunnels for your applications during development and testing scenarios.
 
 #### Dev Tunnels integration features
 
@@ -1016,7 +1016,7 @@ builder.Build().Run();
 
 ### Resource lifecycle event APIs
 
-.NET Aspire 9.5 introduces new resource lifecycle event APIs that allow you to hook into resource state transitions for custom logic execution.
+Aspire 9.5 introduces new resource lifecycle event APIs that allow you to hook into resource state transitions for custom logic execution.
 
 #### OnResourceStopped event API
 
@@ -1096,7 +1096,7 @@ These APIs provide fine-grained control over executable resource configuration, 
 
 ### Interactive parameter processing APIs
 
-.NET Aspire 9.5 introduces the `ParameterProcessor` API for programmatic parameter resolution with interactive prompting capabilities.
+Aspire 9.5 introduces the `ParameterProcessor` API for programmatic parameter resolution with interactive prompting capabilities.
 
 #### ParameterProcessor API
 
@@ -1190,7 +1190,7 @@ var localFoundry = builder.AddAzureAIFoundry("local-ai")
 
 ### Azure Container App Jobs support
 
-.NET Aspire 9.5 introduces comprehensive support for Azure Container App Jobs, allowing you to deploy both project and container resources as background job workloads that can run on schedules, in response to events, or be triggered manually.
+Aspire 9.5 introduces comprehensive support for Azure Container App Jobs, allowing you to deploy both project and container resources as background job workloads that can run on schedules, in response to events, or be triggered manually.
 
 Container App Jobs complement the existing Container Apps functionality by providing a dedicated way to run finite workloads like data processing, ETL operations, batch jobs, and scheduled maintenance tasks.
 
@@ -1274,7 +1274,7 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 
 ### Azure Redis Enterprise support
 
-.NET Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
+Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
 
 #### Azure Redis Enterprise integration
 
@@ -1300,7 +1300,6 @@ For local development, Redis Enterprise can run as a container with the same API
 ```csharp
 var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
     .RunAsContainer(container => container
-        .WithMemoryLimit("2GB")
         .WithHostPort(6379));
 ```
 
