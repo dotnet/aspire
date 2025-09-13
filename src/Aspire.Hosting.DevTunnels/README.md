@@ -154,6 +154,44 @@ Unsupported schemes (e.g., non-HTTP(S)) will throw an exception.
 
 ---
 
+## Tunnel logging and diagnostics
+
+When dev tunnel ports are successfully allocated, they log detailed information about their forwarding configuration and access level. This helps you understand which URLs are available and their security settings.
+
+### Port forwarding logs
+
+Each port resource logs its forwarding configuration when it becomes available:
+
+```
+Forwarding from https://37tql9l1-7023.usw2.devtunnels.ms to https://localhost:7023/ (webfrontend/https)
+```
+
+### Anonymous access logging
+
+Port resources also log their effective anonymous access policy, showing both the current access level and the configuration that led to it:
+
+**When anonymous access is allowed:**
+```
+!! Anonymous access is allowed (port explicitly allows it) !!
+```
+
+```
+!! Anonymous access is allowed (inherited from tunnel) !!
+```
+
+**When anonymous access is denied:**
+```
+Anonymous access is not allowed (tunnel does not allow it and port does not explicitly allow or deny it)
+```
+
+```
+Anonymous access is not allowed (tunnel allows it but port explicitly denies it)
+```
+
+The logging helps you verify that your tunnel configuration is working as expected and troubleshoot access issues.
+
+---
+
 ## Security considerations
 
 * Prefer authenticated tunnels during normal development.
