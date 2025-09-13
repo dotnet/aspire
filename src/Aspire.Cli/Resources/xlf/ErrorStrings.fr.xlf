@@ -112,9 +112,9 @@
         <target state="translated">Le chemin d’accès de socket d’extension fourni nécessite deux parties valides.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">La version minimale du Kit de développement logiciel (SDK) .NET ({0}) n’est pas installée. Visitez https://get.dot.net pour télécharger et installer le Kit de développement logiciel (SDK) .NET.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
