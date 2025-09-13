@@ -522,6 +522,11 @@
         <target state="translated">開始時刻 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="new">Cloud</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
         <target state="translated">データベース</target>
