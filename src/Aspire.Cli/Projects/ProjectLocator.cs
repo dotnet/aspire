@@ -176,30 +176,48 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutio
             var xmlDocument = new XmlDocument();
             xmlDocument.Load(projectFile.FullName);
 
-            // Check for IsAspireHost property
-            var isAspireHostElement = xmlDocument.SelectSingleNode("//PropertyGroup/IsAspireHost");
-            if (isAspireHostElement?.InnerText?.Equals("true", StringComparison.OrdinalIgnoreCase) != true)
+            // Check for Aspire.AppHost.Sdk first (primary detection method as per original prompt)
+            var aspireAppHostSdk = xmlDocument.SelectSingleNode("//Sdk[@Name='Aspire.AppHost.Sdk']");
+            bool isAspireHost = aspireAppHostSdk != null;
+
+            // Fallback to IsAspireHost property for backward compatibility
+            if (!isAspireHost)
+            {
+                var isAspireHostElement = xmlDocument.SelectSingleNode("//PropertyGroup/IsAspireHost");
+                isAspireHost = isAspireHostElement?.InnerText?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+            }
+
+            if (!isAspireHost)
             {
                 return (false, null);
             }
 
-            // Try to find Aspire.Hosting version from AspireProjectOrPackageReference or PackageReference
+            // Try to find Aspire.Hosting version from multiple sources
             string? aspireHostingVersion = null;
 
-            // First check AspireProjectOrPackageReference
-            var aspireProjectOrPackageReferences = xmlDocument.SelectNodes("//AspireProjectOrPackageReference[@Include='Aspire.Hosting.AppHost' or starts-with(@Include, 'Aspire.Hosting')]");
-            if (aspireProjectOrPackageReferences != null)
+            // First check if we found Aspire.AppHost.Sdk - get version from it
+            if (aspireAppHostSdk != null)
             {
-                foreach (XmlNode reference in aspireProjectOrPackageReferences)
+                aspireHostingVersion = aspireAppHostSdk.Attributes?["Version"]?.Value;
+            }
+
+            // Then check AspireProjectOrPackageReference
+            if (aspireHostingVersion == null)
+            {
+                var aspireProjectOrPackageReferences = xmlDocument.SelectNodes("//AspireProjectOrPackageReference[@Include='Aspire.Hosting.AppHost' or starts-with(@Include, 'Aspire.Hosting')]");
+                if (aspireProjectOrPackageReferences != null)
                 {
-                    var include = reference.Attributes?["Include"]?.Value;
-                    if (include == "Aspire.Hosting.AppHost" || include == "Aspire.Hosting")
+                    foreach (XmlNode reference in aspireProjectOrPackageReferences)
                     {
-                        var versionAttr = reference.Attributes?["Version"]?.Value;
-                        if (!string.IsNullOrEmpty(versionAttr))
+                        var include = reference.Attributes?["Include"]?.Value;
+                        if (include == "Aspire.Hosting.AppHost" || include == "Aspire.Hosting")
                         {
-                            aspireHostingVersion = versionAttr;
-                            break;
+                            var versionAttr = reference.Attributes?["Version"]?.Value;
+                            if (!string.IsNullOrEmpty(versionAttr))
+                            {
+                                aspireHostingVersion = versionAttr;
+                                break;
+                            }
                         }
                     }
                 }

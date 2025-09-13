@@ -22,8 +22,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-    var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
-        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(null);
         });
 
@@ -305,7 +305,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
     }
 
-        [Fact]
+    [Fact]
     public async Task CreateSettingsFileIfNotExistsAsync_UsesForwardSlashPathSeparator()
     {
         // Arrange
@@ -689,6 +689,43 @@ builder.Build().Run();");
         // Should be one of the two valid candidates
         Assert.True(result.FullName == csprojFile.FullName || result.FullName == appHostFile.FullName);
     }
+    
+    [Fact]
+    public async Task FindAppHostProjectFilesAsyncDetectsAspireAppHostSdk()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an AppHost project file using Aspire.AppHost.Sdk pattern
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "SdkBasedAppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, @"<Project Sdk=""Microsoft.NET.Sdk"">
+
+  <Sdk Name=""Aspire.AppHost.Sdk"" Version=""8.0.0"" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Aspire.Hosting.AppHost"" Version=""8.0.0"" />
+  </ItemGroup>
+
+</Project>");
+
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var foundProjects = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        Assert.Single(foundProjects);
+        Assert.Equal(projectFile.FullName, foundProjects[0].FullName);
+}
 
     private sealed class CliSettings
     {
