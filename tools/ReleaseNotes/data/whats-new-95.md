@@ -513,6 +513,38 @@ Smart notifications appear when Docker/Podman is installed but unhealthy, with a
 - Launch profile support with localized display names (#10906)
 - Forwarded headers support for proxy/container scenarios (#10388)
 
+### GenAI insights
+
+New dialog and UI components make GenAI interactions easier to inspect and understand (#11227, #11286).
+
+### Richer markdown rendering
+
+Enhanced markdown rendering with syntax highlighting and better code block handling improves readability of generated or diagnostic content (#11286).
+
+### Trace filtering
+
+New span type filter lets you focus on specific kinds of spans for faster investigation (#11262).
+
+### Trace detail improvements
+
+Expand/collapse all, clearer exemplars, added resource column, preserved root span visibility, and more reliable span linking (#9474, #11089, #11085, #11078, #10747).
+
+### Logging usability
+
+Cleaner unified All view, removed redundant None option, clearer error log styling (#11087, #10725, #10481).
+
+### Navigation & accessibility
+
+Better toolbar/menu overflow handling, improved keyboard navigation, semantic headings, mobile navigation scroll fixes (#10740, #10708, #10729, #11317, #10893, #9827).
+
+### Resource menus
+
+Streamlined resource action menus and clearer command labeling (#10869, #11328).
+
+### Runtime visibility
+
+Always shows the .NET runtime version and improves framework detection (#11330, #11095).
+
 ## Integration changes and additions
 
 ### OpenAI hosting integration
