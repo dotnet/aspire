@@ -44,27 +44,19 @@ ms.date: 08/21/2025
 - [App model enhancements](#app-model-enhancements)
   - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
-  - [ExternalService WaitFor behavior change](#externalservice-waitfor-behavior-change)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
 - [API changes and enhancements](#api-changes-and-enhancements)
   - [OTLP telemetry protocol selection](#otlp-telemetry-protocol-selection)
-  - [Enhanced resource waiting patterns](#enhanced-resource-waiting-patterns)
-  - [ExternalService WaitFor behavior improvements](#externalservice-waitfor-behavior-improvements)
-  - [Enhanced resource lifetime support](#enhanced-resource-lifetime-support)
-  - [Annotation-based executable configuration](#annotation-based-executable-configuration)
-  - [InteractionInput API improvements](#interactioninput-api-improvements)
-  - [Resource icon customization](#resource-icon-customization)
-  - [MySQL password handling improvements](#mysql-password-handling-improvements)
-  - [Resource lifetime behavior](#resource-lifetime-behavior)
-  - [InteractionInput API changes](#interactioninput-api-changes)
-  - [Resource lifecycle event APIs](#resource-lifecycle-event-apis)
-  - [Executable resource configuration APIs](#executable-resource-configuration-apis)
-  - [Interactive parameter processing APIs](#interactive-parameter-processing-apis)
-  - [MySQL password improvements](#mysql-password-improvements)
-  - [Remote & debugging experience](#remote--debugging-experience)
-  - [SSH remote auto port forwarding](#ssh-remote-auto-port-forwarding)
-  - [AppHost debugging in VS Code](#apphost-debugging-in-vs-code)
-  - [Extension modernization](#extension-modernization)
+    - [Resource waiting patterns & ExternalService changes](#enhanced-resource-waiting-patterns)
+    - [Resource lifetime enhancements](#enhanced-resource-lifetime-support)
+    - [InteractionInput API updates](#interactioninput-api-improvements)
+    - [Custom resource icons](#resource-icon-customization)
+    - [MySQL password improvements](#mysql-password-improvements)
+    - [Resource lifecycle event APIs](#resource-lifecycle-event-apis)
+    - [Executable resource configuration APIs](#executable-resource-configuration-apis)
+    - [Interactive parameter processing APIs](#interactive-parameter-processing-apis)
+    - [Remote & debugging experience](#remote--debugging-experience)
+    - [Extension modernization](#extension-modernization)
 - [Azure](#azure)
   - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
   - [Azure Container App Jobs support](#azure-container-app-jobs-support)
@@ -838,12 +830,12 @@ builder.Build().Run();
 
 ### Enhanced resource waiting patterns
 
-New `WaitForStart` method provides more granular control over resource startup dependencies, complementing the existing `WaitFor` behavior (#10948).
+New `WaitForStart` method provides granular control over startup ordering, complementing existing `WaitFor` semantics (#10948). It also pairs with improved `ExternalService` health honoring (#10827) which ensures dependents truly wait for external resources to be healthy.
 
 #### Understanding wait behaviors
 
-- **`WaitFor`**: Waits for dependency to be Running AND pass all health checks
-- **`WaitForStart`**: Waits only for dependency to reach Running state (ignores health checks)
+- **`WaitFor`**: Waits for dependency to be Running AND pass all health checks.
+- **`WaitForStart`**: Waits only for dependency to reach Running (ignores health checks).
 
 #### Basic example
 
@@ -852,93 +844,89 @@ var postgres = builder.AddPostgres("postgres");
 var redis = builder.AddRedis("redis");
 
 var api = builder.AddProject<Projects.Api>("api")
-    .WaitForStart(postgres)  // Wait for startup only
-    .WaitFor(redis)          // Wait for healthy state
+    .WaitForStart(postgres)  // New: startup only
+    .WaitFor(redis)          // Healthy state
     .WithReference(postgres)
     .WithReference(redis);
 ```
 
-#### Migration scenario
+#### Migration scenario (database initialization)
 
 ```csharp
-// Database initialization pattern
 var database = builder.AddPostgres("postgres");
 
 var migrator = builder.AddProject<Projects.Migrator>("migrator")
-    .WaitForStart(database)  // Start as soon as DB container is running
+    .WaitForStart(database)  // Start as soon as container is running
     .WithReference(database);
 
 var api = builder.AddProject<Projects.Api>("api")
-    .WaitFor(database)       // Wait for healthy database
-    .WaitFor(migrator)       // Wait for migration completion
+    .WaitFor(database)       // Healthy database
+    .WaitFor(migrator)       // Migration completed
     .WithReference(database);
 ```
 
-### ExternalService WaitFor behavior improvements
+#### ExternalService health integration
 
-**Breaking change**: `WaitFor` operations now properly honor `ExternalService` health checks, ensuring dependent resources wait for external services to be healthy before starting (#10827).
-
-#### Before vs After
+`WaitFor` now honors `ExternalService` health checks (#10827). Previously a dependent could start even if the external target failed its readiness probe.
 
 ```csharp
 var externalApi = builder.AddExternalService("backend-api", "http://api.company.com")
     .WithHttpHealthCheck("/health/ready");
 
-// Previously: Frontend would start even if external API health check failed
-// Now: Frontend waits for external API to be healthy
 var frontend = builder.AddProject<Projects.Frontend>("frontend")
-    .WaitFor(externalApi)
+    .WaitFor(externalApi)    // Now waits for healthy external API
     .WithReference(externalApi);
 ```
 
-#### Migration guidance
-
-If you need the old behavior (start without waiting for health):
+If you need the old (lenient) behavior:
 
 ```csharp
-// Option 1: Remove WaitFor if dependency isn't critical
+// Do not wait for health
 var frontend = builder.AddProject<Projects.Frontend>("frontend")
-    .WithReference(externalApi); // Reference but don't wait
+    .WithReference(externalApi);
 
-// Option 2: Use WaitForStart for startup-only dependency
-var frontend = builder.AddProject<Projects.Frontend>("frontend")
-    .WaitForStart(externalApi) // Wait for external service to start trying
+// Or only wait for startup
+var frontend2 = builder.AddProject<Projects.Frontend>("frontend2")
+    .WaitForStart(externalApi)
     .WithReference(externalApi);
 ```
+
+> [!TIP]
+> Former headings "ExternalService WaitFor behavior improvements" and similar have been consolidated here.
 
 ### Enhanced resource lifetime support
 
-**Breaking change**: Resources like `ParameterResource`, `ConnectionStringResource`, and model resources now support lifecycle operations and can be used with `WaitFor` (#10851, #10842).
+**Breaking change**: Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Model resources now participate in lifecycle operations and support `WaitFor` (#10851, #10842). This section merges prior duplicate "Resource lifetime behavior" content.
 
 #### Enhanced lifecycle capabilities
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Parameters and connection strings now support WaitFor
 var connectionString = builder.AddConnectionString("database");
 var apiKey = builder.AddParameter("api-key", secret: true);
 
 var api = builder.AddProject<Projects.Api>("api")
-    .WaitFor(connectionString)  // Wait for connection string to be resolved
-    .WaitFor(apiKey)           // Wait for parameter to be available
+    .WaitFor(connectionString)
+    .WaitFor(apiKey)
     .WithEnvironment("DB_CONNECTION", connectionString)
     .WithEnvironment("API_KEY", apiKey);
 
-// GitHub Models also support lifecycle operations
 var github = builder.AddGitHubModels("github");
 var model = github.AddModel("gpt4", GitHubModel.OpenAI.Gpt4o);
 
 var aiService = builder.AddProject<Projects.AIService>("ai-service")
-    .WaitFor(model)  // Wait for model resource to be ready
+    .WaitFor(model)
     .WithReference(model);
 
 builder.Build().Run();
 ```
 
+These resources no longer implement `IResourceWithoutLifetime`; they surface as Running and can be waited on just like services.
+
 ### InteractionInput API improvements
 
-**Breaking change**: The `InteractionInput` API has been updated to require a `Name` property while making `Label` optional for better form handling (#10835).
+**Breaking change**: `InteractionInput` now requires `Name`; `Label` is optional (#10835). Consolidated from duplicate "InteractionInput API changes" heading.
 
 #### Migration example
 
@@ -951,17 +939,17 @@ var input = new InteractionInput
     Required = true
 };
 
-// After (9.5+) 
+// After (9.5+)
 var input = new InteractionInput
 {
-    Name = "database_password",    // Required: Form field name
-    Label = "Database Password",   // Optional: Display label (defaults to Name)
+    Name = "database_password", // Required field identifier
+    Label = "Database Password", // Optional (defaults to Name)
     InputType = InputType.SecretText,
     Required = true
 };
 ```
 
-This change improves form processing and enables better integration with web-based interactions.
+This enables better form serialization and integration with interactive parameter processing.
 
 ### Resource icon customization
 
@@ -999,9 +987,9 @@ var api = builder.AddProject<Projects.Api>("api")
 > [!NOTE]
 > The default icon variant is `Filled` if not specified.
 
-### MySQL password handling improvements
+### MySQL password improvements
 
-Enhanced password management for MySQL resources with consistent patterns across database integrations:
+Enhanced and standardized password handling for MySQL resources (consolidates former "MySQL password handling improvements"):
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -1025,35 +1013,6 @@ if (!string.IsNullOrEmpty(devPassword))
 builder.Build().Run();
 ```
 
-### Resource lifetime behavior
-
-Breaking change: Several resources now support `WaitFor` operations that were previously not supported ([#10851](https://github.com/dotnet/aspire/pull/10851), [#10842](https://github.com/dotnet/aspire/pull/10842)):
-
-```csharp
-var connectionString = builder.AddConnectionString("db");
-var apiKey = builder.AddParameter("api-key", secret: true);
-
-builder.AddProject<Projects.Api>("api")
-  .WaitFor(connectionString)
-  .WaitFor(apiKey);
-```
-
-Resources like `ParameterResource`, `ConnectionStringResource`, and GitHub Models no longer implement `IResourceWithoutLifetime`. They now show as "Running" and can be used with `WaitFor` operations.
-
-### InteractionInput API changes
-
-Breaking change: The `InteractionInput` API now requires `Name` and makes `Label` optional ([#10835](https://github.com/dotnet/aspire/pull/10835)):
-
-```csharp
-var input = new InteractionInput
-{
-  Name = "username",
-  Label = "Username",
-  InputType = InputType.Text
-};
-```
-
-All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
 
 ### Resource lifecycle event APIs
 
@@ -1197,27 +1156,9 @@ public async Task<InteractionResult<InteractionInputCollection>> ProcessParamete
 
 The `InteractionInputCollection` provides indexed access by name and improved type safety for parameter processing workflows.
 
-### MySQL password improvements
-
-Consistent password handling across database resources:
-
-```csharp
-var mysql = builder.AddMySql("mysql")
-  .WithPassword(builder.AddParameter("mysql-password", secret: true));
-
-// Password can be modified during configuration
-mysql.Resource.PasswordParameter = builder.AddParameter("new-password", secret: true);
-```
 
 ### Remote & debugging experience
 
-### SSH remote auto port forwarding
-
-VS Code SSH sessions now get automatic port forwarding configuration just like Dev Containers and Codespaces:
-
-```text
-Remote SSH environment detected – configuring forwarded ports (dashboard, api, postgres).
-```
 
 ### AppHost debugging in VS Code
 
