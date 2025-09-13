@@ -112,6 +112,16 @@
         <target state="translated">{0} 종료 코드를 이용하여 프로젝트 만들기에 실패했습니다. 자세한 내용을 보려면 --debug 스위치를 이용하여 실행하세요.</target>
         <note>{0} is a number, --debug should not be localized</note>
       </trans-unit>
+      <trans-unit id="PromptForFramework_Prompt">
+        <source>Select a target framework</source>
+        <target state="new">Select a target framework</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PromptForFramework_UsingFramework">
+        <source>Using {0} as target framework.</source>
+        <target state="new">Using {0} as target framework.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
         <source>Configures whether to create a project for integration tests using MSTest, NUnit, or xUnit.net.</source>
         <target state="translated">MSTest, NUnit, xUnit.net을 사용하여 통합 테스트용 프로젝트를 만들지 여부를 구성합니다.</target>
