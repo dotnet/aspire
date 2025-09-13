@@ -193,4 +193,18 @@ public class AzureAIFoundryExtensionsTests
         // Assert - Both calls should return the same resource instance, not duplicates
         Assert.Same(firstResult, secondResult);
     }
+
+    [Fact]
+    public void Phi35MiniInstruct_ModelName_ShouldMatchFoundryLocalExpectation()
+    {
+        // This test validates that the Phi35MiniInstruct model has the correct name
+        // that matches what foundry local service expects: "Phi-3.5-mini" not "Phi-3.5-mini-instruct"
+        var model = AIFoundryModel.Microsoft.Phi35MiniInstruct;
+        
+        // The foundry local service expects "Phi-3.5-mini" as shown in the GitHub issue
+        // where the command line uses: foundry model info Phi-3.5-mini
+        Assert.Equal("Phi-3.5-mini", model.Name);
+        Assert.Equal("6", model.Version);
+        Assert.Equal("Microsoft", model.Format);
+    }
 }
