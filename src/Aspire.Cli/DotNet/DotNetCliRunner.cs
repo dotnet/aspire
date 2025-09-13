@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -25,7 +26,7 @@ namespace Aspire.Cli.DotNet;
 internal interface IDotNetCliRunner
 {
     Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, JsonObject? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> CheckHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -67,59 +68,59 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         // Get both properties and PackageReference items to determine Aspire.Hosting version
-        var (exitCode, jsonDocument) = await GetProjectItemsAndPropertiesAsync(
+        var (exitCode, jsonObject) = await GetProjectItemsAndPropertiesAsync(
             projectFile,
             ["PackageReference", "AspireProjectOrPackageReference"],
             ["IsAspireHost", "AspireHostingSDKVersion"],
             options,
             cancellationToken);
 
-        if (exitCode == 0 && jsonDocument != null)
+        if (exitCode == 0 && jsonObject != null)
         {
-            var rootElement = jsonDocument.RootElement;
-
-            if (!rootElement.TryGetProperty("Properties", out var properties))
+            if (!jsonObject.TryGetPropertyValue("Properties", out var propertiesNode) || propertiesNode is not JsonObject properties)
             {
                 return (exitCode, false, null);
             }
 
-            if (!properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
+            if (!properties.TryGetPropertyValue("IsAspireHost", out var isAspireHostNode) || isAspireHostNode is null)
             {
                 return (exitCode, false, null);
             }
 
-            if (isAspireHostElement.GetString() == "true")
+            if (isAspireHostNode.GetValue<string>() == "true")
             {
                 // Try to get Aspire.Hosting version from PackageReference items
                 string? aspireHostingVersion = null;
 
-                if (rootElement.TryGetProperty("Items", out var items))
+                if (jsonObject.TryGetPropertyValue("Items", out var itemsNode) && itemsNode is JsonObject items)
                 {
                     // Check PackageReference items first
-                    if (items.TryGetProperty("PackageReference", out var packageReferences))
+                    if (items.TryGetPropertyValue("PackageReference", out var packageReferencesNode) && packageReferencesNode is JsonArray packageReferences)
                     {
-                        foreach (var packageRef in packageReferences.EnumerateArray())
+                        foreach (var packageRefNode in packageReferences)
                         {
-                            if (packageRef.TryGetProperty("Identity", out var identity) &&
-                                identity.GetString() == "Aspire.Hosting" &&
-                                packageRef.TryGetProperty("Version", out var version))
+                            if (packageRefNode is JsonObject packageRef &&
+                                packageRef.TryGetPropertyValue("Identity", out var identityNode) &&
+                                identityNode?.GetValue<string>() == "Aspire.Hosting" &&
+                                packageRef.TryGetPropertyValue("Version", out var versionNode))
                             {
-                                aspireHostingVersion = version.GetString();
+                                aspireHostingVersion = versionNode?.GetValue<string>();
                                 break;
                             }
                         }
                     }
 
                     // Fallback to AspireProjectOrPackageReference items if not found
-                    if (aspireHostingVersion == null && items.TryGetProperty("AspireProjectOrPackageReference", out var aspireProjectOrPackageReferences))
+                    if (aspireHostingVersion == null && items.TryGetPropertyValue("AspireProjectOrPackageReference", out var aspireProjectOrPackageReferencesNode) && aspireProjectOrPackageReferencesNode is JsonArray aspireProjectOrPackageReferences)
                     {
-                        foreach (var aspireRef in aspireProjectOrPackageReferences.EnumerateArray())
+                        foreach (var aspireRefNode in aspireProjectOrPackageReferences)
                         {
-                            if (aspireRef.TryGetProperty("Identity", out var identity) &&
-                                identity.GetString() == "Aspire.Hosting" &&
-                                aspireRef.TryGetProperty("Version", out var version))
+                            if (aspireRefNode is JsonObject aspireRef &&
+                                aspireRef.TryGetPropertyValue("Identity", out var identityNode) &&
+                                identityNode?.GetValue<string>() == "Aspire.Hosting" &&
+                                aspireRef.TryGetPropertyValue("Version", out var versionNode))
                             {
-                                aspireHostingVersion = version.GetString();
+                                aspireHostingVersion = versionNode?.GetValue<string>();
                                 break;
                             }
                         }
@@ -127,9 +128,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 }
 
                 // If no package version found, fallback to SDK version
-                if (aspireHostingVersion == null && properties.TryGetProperty("AspireHostingSDKVersion", out var aspireHostingSdkVersionElement))
+                if (aspireHostingVersion == null && properties.TryGetPropertyValue("AspireHostingSDKVersion", out var aspireHostingSdkVersionNode))
                 {
-                    aspireHostingVersion = aspireHostingSdkVersionElement.GetString();
+                    aspireHostingVersion = aspireHostingSdkVersionNode?.GetValue<string>();
                 }
 
                 return (exitCode, true, aspireHostingVersion);
@@ -145,7 +146,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    public async Task<(int ExitCode, JsonDocument? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<(int ExitCode, JsonObject? Output)> GetProjectItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -210,8 +211,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
         else
         {
-            var json = JsonDocument.Parse(stdout!);
-            return (exitCode, json);
+            var jsonObject = JsonNode.Parse(stdout!)?.AsObject();
+            return (exitCode, jsonObject);
         }
     }
 

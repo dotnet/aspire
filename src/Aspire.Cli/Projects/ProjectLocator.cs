@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -106,9 +106,11 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             if (settingsFile.Exists)
             {
                 using var stream = settingsFile.OpenRead();
-                var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+                var jsonNode = await JsonNode.ParseAsync(stream, cancellationToken: cancellationToken);
 
-                if (json.RootElement.TryGetProperty("appHostPath", out var appHostPathProperty) && appHostPathProperty.GetString() is { } appHostPath)
+                if (jsonNode is JsonObject jsonObject && 
+                    jsonObject.TryGetPropertyValue("appHostPath", out var appHostPathNode) && 
+                    appHostPathNode?.GetValue<string>() is { } appHostPath)
                 {
 
                     var qualifiedAppHostPath = Path.IsPathRooted(appHostPath) ? appHostPath : Path.Combine(settingsFile.Directory!.FullName, appHostPath);
