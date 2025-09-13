@@ -112,9 +112,9 @@
         <target state="translated">Der angegebene Erweiterungssocketpfad benötigt zwei gültige Teile.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">Die minimale .NET SDK-Version ({0}) ist nicht installiert. Besuchen Sie https://get.dot.net, um das .NET SDK herunterzuladen und zu installieren.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
