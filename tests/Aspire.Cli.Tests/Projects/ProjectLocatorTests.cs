@@ -331,10 +331,14 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         // Create a valid single-file apphost
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
@@ -355,10 +359,14 @@ builder.Build().Run();");
 
         var subDir = workspace.WorkspaceRoot.CreateSubdirectory("SubProject");
         var appHostFile = new FileInfo(Path.Combine(subDir.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
@@ -381,10 +389,14 @@ builder.Build().Run();");
         // Create a subdirectory with both apphost.cs and a .csproj file (single-file apphost should be ignored)
         var dirWithBoth = workspace.WorkspaceRoot.CreateSubdirectory("WithBoth");
         var appHostFile = new FileInfo(Path.Combine(dirWithBoth.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var csprojFile = new FileInfo(Path.Combine(dirWithBoth.FullName, "RegularProject.csproj"));
         await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
@@ -392,10 +404,14 @@ builder.Build().Run();");
         // Create another subdirectory with only apphost.cs (single-file apphost should be found)
         var dirWithOnlyAppHost = workspace.WorkspaceRoot.CreateSubdirectory("OnlyAppHost");
         var validAppHostFile = new FileInfo(Path.Combine(dirWithOnlyAppHost.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(validAppHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            validAppHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         runner.GetAppHostInformationAsyncCallback = (_, _, _) => (0, false, null); // Not an AppHost
@@ -453,10 +469,14 @@ builder.Build().Run();");
         // Create a valid single-file AppHost in another subdirectory
         var subDir2 = workspace.WorkspaceRoot.CreateSubdirectory("SingleFileAppHost");
         var appHostFile = new FileInfo(Path.Combine(subDir2.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         runner.GetAppHostInformationAsyncCallback = (projectFile, _, _) =>
@@ -492,10 +512,14 @@ builder.Build().Run();");
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
@@ -541,10 +565,14 @@ builder.Build().Run();");
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         // Add sibling .csproj file
         var csprojFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "SomeProject.csproj"));
@@ -600,10 +628,14 @@ builder.Build().Run();");
         // Create a valid single-file AppHost in subdirectory (no sibling .csproj)
         var subDir = workspace.WorkspaceRoot.CreateSubdirectory("SingleFile");
         var appHostFile = new FileInfo(Path.Combine(subDir.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var runner = new TestDotNetCliRunner();
         runner.GetAppHostInformationAsyncCallback = (projectFile, _, _) =>
@@ -696,10 +728,14 @@ builder.Build().Run();");
 
         // Create a valid single-file apphost
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var logger = NullLogger<ProjectLocator>.Instance;
         var runner = new TestDotNetCliRunner();
@@ -722,10 +758,14 @@ builder.Build().Run();");
 
         // Create a valid single-file apphost
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
-        await File.WriteAllTextAsync(appHostFile.FullName, @"#:sdk Aspire.AppHost.Sdk
-using Aspire.Hosting;
-var builder = DistributedApplication.CreateBuilder(args);
-builder.Build().Run();");
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """        
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
 
         var logger = NullLogger<ProjectLocator>.Instance;
         var runner = new TestDotNetCliRunner();
