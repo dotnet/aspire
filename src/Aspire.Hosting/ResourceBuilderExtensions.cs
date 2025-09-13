@@ -919,25 +919,53 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
-    /// <param name="url">An absolute URL to show for the resource.</param>
+    /// <param name="url">A URL to show for the resource.</param>
     /// <param name="displayText">The display text to show when the link is displayed.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// Use this method to add a URL to be displayed for the resource.<br/>
-    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them. This method does not replace those URLs, it adds an additional URL.<br/>
-    /// To modify the URL for an endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
+    /// If the URL is relative, it will be applied to all URLs for the resource, replacing the path portion of the URL.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.<br/>
+    /// To modify the URL for a specific endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
     /// </remarks>
+    /// <example>
+    /// Add a static URL to be displayed for the resource:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrl("https://example.com/", "Home");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Update all displayed URLs to use the specified path and (optional) display text:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrl("/home", "Home");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+        if (Uri.TryCreate(url, UriKind.Relative, out var relativeUri))
         {
-            throw new ArgumentException("The URL must be absolute and include the scheme (e.g. https://example.com/path). Relative URLs are not supported.", nameof(url));
+            // Apply relative URL to all URLs for the resource
+            return builder.WithUrls(c =>
+            {
+                foreach (var u in c.Urls)
+                {
+                    if (Uri.TryCreate(u.Url, UriKind.Absolute, out var absoluteUri)
+                        && Uri.TryCreate(absoluteUri, relativeUri, out var uri))
+                    {
+                        u.Url = uri.ToString();
+                        u.DisplayText = displayText ?? u.DisplayText;
+                    }
+                }
+            });
         }
 
+        // Treat as a static URL
         return builder.WithAnnotation(new ResourceUrlAnnotation { Url = url, DisplayText = displayText });
     }
 
