@@ -19,7 +19,7 @@ internal interface IProjectLocator
     Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
 {
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
@@ -44,6 +44,8 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             };
 
             interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
+            
+            // Scan for *.csproj files (existing logic)
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
 
@@ -80,6 +82,38 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
             });
 
+            // Scan for single-file apphosts (new logic)
+            if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+            {
+                logger.LogDebug("Searching for single-file apphosts in {SearchDirectory}", searchDirectory.FullName);
+                var candidateAppHostFiles = searchDirectory.GetFiles("apphost.cs", enumerationOptions);
+                logger.LogDebug("Found {CandidateFileCount} single-file apphost candidates in {SearchDirectory}", candidateAppHostFiles.Length, searchDirectory.FullName);
+
+                await Parallel.ForEachAsync(candidateAppHostFiles, parallelOptions, async (candidateFile, ct) =>
+                {
+                    logger.LogDebug("Checking single-file apphost candidate {CandidateFile}", candidateFile.FullName);
+                    
+                    if (await IsValidSingleFileAppHostAsync(candidateFile, ct))
+                    {
+                        logger.LogDebug("Found single-file apphost candidate {CandidateFile} in {SearchDirectory}", candidateFile.FullName, searchDirectory.FullName);
+                        var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                        interactionService.DisplaySubtleMessage(relativePath);
+                        lock (lockObject)
+                        {
+                            appHostProjects.Add(candidateFile);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogTrace("Single-file candidate {CandidateFile} in {SearchDirectory} is not a valid apphost", candidateFile.FullName, searchDirectory.FullName);
+                    }
+                });
+            }
+            else
+            {
+                logger.LogTrace("Single-file apphost feature is disabled, skipping single-file apphost discovery");
+            }
+
             // This sort is done here to make results deterministic since we get all the app
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
@@ -93,6 +127,44 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
         var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
         return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
+    }
+
+    private static async Task<bool> IsValidSingleFileAppHostAsync(FileInfo candidateFile, CancellationToken cancellationToken)
+    {
+        // Check if file is named apphost.cs (case-insensitive)
+        if (!candidateFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Check if directory contains no *.csproj files
+        var siblingCsprojFiles = candidateFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
+        if (siblingCsprojFiles.Any())
+        {
+            return false;
+        }
+
+        // Check for '#:sdk Aspire.AppHost.Sdk' directive
+        try
+        {
+            using var reader = candidateFile.OpenText();
+            string? line;
+            while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
+            {
+                var trimmedLine = line.TrimStart();
+                if (trimmedLine.StartsWith("#:sdk Aspire.AppHost.Sdk", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            // If we can't read the file, it's not a valid candidate
+            return false;
+        }
+
+        return false;
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
@@ -144,15 +216,44 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (projectFile is not null)
         {
-            // If the project file is passed, just use it.
+            // If the project file is passed, validate it.
             if (!projectFile.Exists)
             {
                 logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
                 throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
 
-            logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
-            return projectFile;
+            // Handle explicit apphost.cs files
+            if (projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
+            {
+                if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+                {
+                    if (await IsValidSingleFileAppHostAsync(projectFile, cancellationToken))
+                    {
+                        logger.LogDebug("Using single-file apphost {ProjectFile}", projectFile.FullName);
+                        return projectFile;
+                    }
+                    else
+                    {
+                        throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    }
+                }
+                else
+                {
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                }
+            }
+            // Handle .csproj files
+            else if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
+                return projectFile;
+            }
+            // Reject other extensions
+            else
+            {
+                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+            }
         }
 
         projectFile = await GetAppHostProjectFileFromSettingsAsync(cancellationToken);
