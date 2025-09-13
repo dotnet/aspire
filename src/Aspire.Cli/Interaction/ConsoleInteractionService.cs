@@ -176,7 +176,6 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayCancellationMessage()
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.WriteLine();
         DisplayMessage("stop_sign", $"[teal bold]{InteractionServiceStrings.StoppingAspire}[/]");
     }
 
@@ -202,6 +201,5 @@ internal class ConsoleInteractionService : IInteractionService
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
-        _ansiConsole.WriteLine();
     }
 }

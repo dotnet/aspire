@@ -17,11 +17,10 @@ internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
     private readonly IConfigurationService _configurationService;
-    private readonly IInteractionService _interactionService;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -30,13 +29,12 @@ internal sealed class ConfigCommand : BaseCommand
 
         _configuration = configuration;
         _configurationService = configurationService;
-        _interactionService = interactionService;
         _sdkInstaller = sdkInstaller;
 
-        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
-        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
-        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier, executionContext);
+        var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -55,13 +53,11 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class GetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
 
         public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, executionContext)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, executionContext, interactionService)
         {
             _configurationService = configurationService;
-            _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -77,7 +73,7 @@ internal sealed class ConfigCommand : BaseCommand
             var key = parseResult.GetValue<string>("key");
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return ExitCodeConstants.InvalidCommand;
             }
 
@@ -85,12 +81,12 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (value is not null)
             {
-                _interactionService.DisplayPlainText(value);
+                InteractionService.DisplayPlainText(value);
                 return ExitCodeConstants.Success;
             }
             else
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
                 return ExitCodeConstants.ConfigNotFound;
             }
         }
@@ -99,13 +95,11 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class SetCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
 
         public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, executionContext)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, executionContext, interactionService)
         {
             _configurationService = configurationService;
-            _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -136,20 +130,20 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return ExitCodeConstants.InvalidCommand;
             }
 
             if (value is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationValueRequired);
                 return ExitCodeConstants.InvalidCommand;
             }
 
             try
             {
                 await _configurationService.SetConfigurationAsync(key, value, isGlobal, cancellationToken);
-                _interactionService.DisplaySuccess(isGlobal
+                InteractionService.DisplaySuccess(isGlobal
                     ? string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetGlobally, key,
                         value)
                     : string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeySetLocally, key,
@@ -159,7 +153,7 @@ internal sealed class ConfigCommand : BaseCommand
             }
             catch (Exception ex)
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
         }
@@ -168,13 +162,11 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class ListCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
 
         public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, executionContext)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, executionContext, interactionService)
         {
             _configurationService = configurationService;
-            _interactionService = interactionService;
         }
 
         protected override bool UpdateNotificationsEnabled => false;
@@ -185,7 +177,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (allConfig.Count == 0)
             {
-                _interactionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
+                InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
@@ -201,13 +193,11 @@ internal sealed class ConfigCommand : BaseCommand
     private sealed class DeleteCommand : BaseCommand
     {
         private readonly IConfigurationService _configurationService;
-        private readonly IInteractionService _interactionService;
 
         public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, executionContext)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, executionContext, interactionService)
         {
             _configurationService = configurationService;
-            _interactionService = interactionService;
 
             var keyArgument = new Argument<string>("key")
             {
@@ -231,7 +221,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (key is null)
             {
-                _interactionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
+                InteractionService.DisplayError(ErrorStrings.ConfigurationKeyRequired);
                 return ExitCodeConstants.InvalidCommand;
             }
 
@@ -244,24 +234,24 @@ internal sealed class ConfigCommand : BaseCommand
                     var scope = isGlobal ? "globally" : "locally";
                     if (isGlobal)
                     {
-                        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedGlobally, key));
+                        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedGlobally, key));
                     }
                     else
                     {
-                        _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
+                        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.ConfigurationKeyDeletedLocally, key));
                     }
 
                     return ExitCodeConstants.Success;
                 }
                 else
                 {
-                    _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationKeyNotFound, key));
                     return ExitCodeConstants.InvalidCommand;
                 }
             }
             catch (Exception ex)
             {
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
         }
