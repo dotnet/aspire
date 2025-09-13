@@ -478,7 +478,8 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(contextPath);
 
-        var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory);
+        var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
+                                           .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         dockerfilePath ??= "Dockerfile";
 
