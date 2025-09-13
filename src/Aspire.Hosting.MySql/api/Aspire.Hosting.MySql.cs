@@ -27,6 +27,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithInitFiles(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, string source) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> WithPassword(this ApplicationModel.IResourceBuilder<ApplicationModel.MySqlServerResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> password) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithPhpMyAdmin<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<ApplicationModel.IResourceBuilder<MySql.PhpMyAdminContainerResource>>? configureContainer = null, string? containerName = null)
             where T : ApplicationModel.MySqlServerResource { throw null; }
     }
@@ -53,7 +55,7 @@ namespace Aspire.Hosting.ApplicationModel
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
-        public ParameterResource PasswordParameter { get { throw null; } }
+        public ParameterResource PasswordParameter { get { throw null; } set { } }
 
         public EndpointReference PrimaryEndpoint { get { throw null; } }
     }
