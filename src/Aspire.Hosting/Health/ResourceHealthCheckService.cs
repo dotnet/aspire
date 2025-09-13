@@ -51,6 +51,13 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                             _resourceMonitoringStates[resourceName] = state;
                         }
 
+                        // Fire the ResourceStartedEvent before health check monitoring begins
+                        _ = Task.Run(async () =>
+                        {
+                            var resourceStartedEvent = new ResourceStartedEvent(resourceEvent.Resource, services);
+                            await eventing.PublishAsync(resourceStartedEvent, stoppingToken).ConfigureAwait(false);
+                        }, stoppingToken);
+
                         _ = Task.Run(async () =>
                         {
                             try
