@@ -1255,24 +1255,27 @@ Container App Jobs complement the existing Container Apps functionality by provi
 
 #### Publishing resources as Container App Jobs
 
-Use the new `PublishAsAzureContainerAppJob` extension methods to publish resources as jobs:
+Use the new `PublishAsAzureContainerAppJob` extension method to publish resources as jobs:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Publish a project as a Container App Job
 var dataProcessor = builder.AddProject<Projects.DataProcessor>("data-processor")
-    .PublishAsAzureContainerAppJob();
+    .PublishAsAzureContainerAppJob((infrastructure, job) => {
+        // Configure job-specific settings using Azure Provisioning APIs
+        job.Configuration.TriggerType = TriggerType.Schedule;
+        // Run daily at 2 AM
+        job.Configuration.ScheduleTriggerConfig.CronExpression = "0 0 2 * * *";
+    });
 
 // Publish a container as a Container App Job  
 var batchJob = builder.AddContainer("batch-job", "my-batch-image")
-    .PublishAsAzureContainerAppJob(job => {
-        // Configure job-specific settings
-        job.ScheduleTriggerConfig = new ScheduleTriggerConfig
-        {
-            CronExpression = "0 0 2 * * *", // Run daily at 2 AM
-            ReplicaCompletionCount = 1
-        };
+    .PublishAsAzureContainerAppJob((infrastructure, job) => {
+        // Configure manual trigger job
+        job.Configuration.TriggerType = TriggerType.Manual;
+        job.Configuration.ReplicaRetryLimit = 3;
+        job.Configuration.ReplicaTimeout = 1800; // 30 minutes
     });
 
 builder.Build().Run();
@@ -1280,25 +1283,24 @@ builder.Build().Run();
 
 #### Job customization and configuration
 
-The new `AzureContainerJobCustomizationAnnotation` enables fine-grained control over job behavior:
+The new `AzureContainerAppJobCustomizationAnnotation` enables fine-grained control over job behavior:
 
 ```csharp
 var scheduledJob = builder.AddProject<Projects.ScheduledWorker>("scheduled-worker")
-    .PublishAsAzureContainerAppJob(job => {
+    .PublishAsAzureContainerAppJob((infrastructure, job) => {
         // Event-driven job configuration
-        job.EventTriggerConfig = new EventTriggerConfig
+        job.Configuration.TriggerType = TriggerType.Event;
+        job.Configuration.EventTriggerConfig = new EventTriggerConfiguration
         {
             Scale = new JobScale
             {
                 MinExecutions = 0,
                 MaxExecutions = 10,
-                PollingInterval = TimeSpan.FromSeconds(30)
+                PollingInterval = 30 // seconds
             }
         };
-        
-        // Resource allocation
-        job.ReplicaRetryLimit = 3;
-        job.ReplicaTimeoutInSeconds = 1800; // 30 minutes
+        job.Configuration.ReplicaRetryLimit = 3;
+        job.Configuration.ReplicaTimeout = 1800; // 30 minutes
     });
 ```
 
