@@ -33,7 +33,7 @@ export async function createDebugSessionConfiguration(launchConfig: LaunchConfig
         stopAtEntry: false,
         noDebug: !launchOptions.debug,
         runId: launchOptions.runId,
-        dcpId: launchOptions.dcpId,
+        debugSessionId: launchOptions.debugSessionId,
         console: 'internalConsole'
     };
 

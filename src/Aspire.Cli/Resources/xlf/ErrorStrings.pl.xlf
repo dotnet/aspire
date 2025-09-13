@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
         <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
-        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <target state="translated">Nie znaleziono hostów aplikacji z możliwością kompilacji, ale mogły istnieć hosty aplikacji, których nie można było skompilować.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
         <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <target state="translated">Nie można pobrać wszystkich pakietów Aspire za pośrednictwem pamięci podręcznej.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
@@ -112,9 +112,9 @@
         <target state="translated">Podana ścieżka gniazda rozszerzenia wymaga dwóch prawidłowych części.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">Minimalna wersja zestawu .NET SDK ({0}) nie jest zainstalowana. Odwiedź stronę https://get.dot.net, aby pobrać i zainstalować zestaw .NET SDK.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -144,17 +144,17 @@
       </trans-unit>
       <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
         <source>Could not build: {0}</source>
-        <target state="new">Could not build: {0}</target>
+        <target state="translated">Nie można skompilować: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Plik projektu nie jest projektem hosta aplikacji platformy Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="needs-review-translation">Plik projektu nie jest projektem hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Projekt nie jest projektem hosta aplikacji platformy Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="needs-review-translation">Projekt nie jest projektem hosta aplikacji platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

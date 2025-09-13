@@ -13,6 +13,8 @@
 
     <_QuarantinedTestRunAdditionalArgs>--filter-trait "quarantined=true"</_QuarantinedTestRunAdditionalArgs>
     <_NonQuarantinedTestRunAdditionalArgs>--filter-not-trait "quarantined=true"</_NonQuarantinedTestRunAdditionalArgs>
+    <_OuterloopTestRunAdditionalArgs>--filter-trait "outerloop=true"</_OuterloopTestRunAdditionalArgs>
+    <_NonOuterloopTestRunAdditionalArgs>--filter-not-trait "outerloop=true"</_NonOuterloopTestRunAdditionalArgs>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,7 +27,8 @@
          https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-exit-codes -->
     <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) --ignore-exit-code 8</TestRunnerAdditionalArguments>
 
-    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' != 'true'">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' != 'true' and '$(RunOuterloopTests)' != 'true'">$(TestRunnerAdditionalArguments) $(_NonQuarantinedTestRunAdditionalArgs) $(_NonOuterloopTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
     <TestRunnerAdditionalArguments Condition="'$(RunQuarantinedTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_QuarantinedTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    <TestRunnerAdditionalArguments Condition="'$(RunOuterloopTests)' == 'true'">$(TestRunnerAdditionalArguments) $(_OuterloopTestRunAdditionalArgs) $(_BlameArgs)</TestRunnerAdditionalArguments>
   </PropertyGroup>
 </Project>

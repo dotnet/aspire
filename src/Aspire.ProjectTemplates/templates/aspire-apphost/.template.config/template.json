@@ -3,12 +3,12 @@
   "author": "Microsoft",
   "classifications": [
     "Common",
-    ".NET Aspire",
+    "Aspire",
     "Cloud"
   ],
-  "name": ".NET Aspire App Host",
+  "name": "Aspire AppHost",
   "defaultName": "AppHost",
-  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "description": "A project template for creating an Aspire AppHost (orchestrator) project.",
   "shortName": "aspire-apphost",
   "sourceName": "Aspire.AppHost1",
   "preferNameDirectory": true,
@@ -59,78 +59,78 @@
     },
     "AspireVersionCli": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
       "choices": [
         {
           "choice": "9.5",
           "displayName": "9.5",
-          "description": "Chooses .NET Aspire 9.5"
+          "description": "Chooses Aspire 9.5"
         },
         {
           "choice": "9.4",
           "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "9.5"
     },
     "AspireVersion": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
       "isEnabled": "Framework == net8.0",
       "choices": [
         {
           "choice": "9.5",
           "displayName": "9.5",
-          "description": "Chooses .NET Aspire 9.5"
+          "description": "Chooses Aspire 9.5"
         },{
           "choice": "9.4",
           "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "9.5"
     },
     "AspireVersionNet9": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
       "isEnabled": "Framework == net9.0",
       "choices": [
         {
           "choice": "9.5",
           "displayName": "9.5",
-          "description": "Chooses .NET Aspire 9.5"
+          "description": "Chooses Aspire 9.5"
         },
         {
           "choice": "9.4",
           "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "9.5"
     },
     "AspireVersionNet10": {
       "type": "parameter",
-      "description": "The version of .NET Aspire to use.",
-      "displayName": ".NET Aspire version",
+      "description": "The version of Aspire to use.",
+      "displayName": "Aspire version",
       "datatype": "choice",
       "isEnabled": "Framework == net10.0",
       "choices": [
         {
           "choice": "9.5",
           "displayName": "9.5",
-          "description": "Chooses .NET Aspire 9.5"
+          "description": "Chooses Aspire 9.5"
         },
         {
           "choice": "9.4",
           "displayName": "9.4",
-          "description": "Chooses .NET Aspire 9.4"
+          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "9.5"

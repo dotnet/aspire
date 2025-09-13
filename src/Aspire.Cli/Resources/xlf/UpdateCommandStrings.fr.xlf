@@ -4,127 +4,122 @@
     <body>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
-        <target state="new">Analyze App Host</target>
+        <target state="translated">Analyser l’hôte d’application</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHostSdk">
         <source>Analyze App Host SDK</source>
-        <target state="new">Analyze App Host SDK</target>
+        <target state="translated">Analyser le SDK hôte d’application</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeProjectFormat">
         <source>Analyze project: {0}</source>
-        <target state="new">Analyze project: {0}</target>
+        <target state="translated">Analyser le projet : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzingProjectStatus">
         <source>Analyzing project...</source>
-        <target state="new">Analyzing project...</target>
+        <target state="translated">Analyse en cours du projet... Merci de patienter.</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
-        <target state="new">Central package management is currently not supported by 'aspire update'.</target>
+        <target state="translated">Actuellement, la gestion centralisée des packages n’est pas prise en charge par « aspire update ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Élément PackageVersion introuvable pour « {0} » dans {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
         <source>Could not find root &lt;Project&gt; element in {0}</source>
-        <target state="new">Could not find root &lt;Project&gt; element in {0}</target>
+        <target state="translated">Élément racine &lt;Project&gt; introuvable dans {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindSdkElementFormat">
         <source>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</source>
-        <target state="new">Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</target>
+        <target state="translated">Élément &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; introuvable dans {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
-        <target state="new">Update integrations in the Aspire project. (Preview)</target>
+        <target state="translated">Mettre à jour les intégrations dans le projet Aspire. (Préversion)</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
-        <target state="new">Executing: {0}</target>
+        <target state="translated">Exécution : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedDiscoverNuGetConfig">
         <source>Failed to discover NuGet.config files.</source>
-        <target state="new">Failed to discover NuGet.config files.</target>
+        <target state="translated">Échec de la découverte des fichiers NuGet.config.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedFetchItemsAndPropertiesFormat">
         <source>Failed to fetch items and properties for project: {0}</source>
-        <target state="new">Failed to fetch items and properties for project: {0}</target>
+        <target state="translated">Échec de la récupération des éléments et des propriétés du projet : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedUpdatePackageReferenceFormat">
         <source>Failed to update package reference for {0} in project {1}.</source>
-        <target state="new">Failed to update package reference for {0} in project {1}.</target>
+        <target state="translated">Échec de la mise à jour de la référence de package pour {0} dans le projet {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
-        <target state="new">No package found with ID '{0}' in channel '{1}'.</target>
+        <target state="translated">Aucun package trouvé avec l’ID « {0} » dans le canal « {1} ».</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
-        <target state="new">Package reference does not have Identity.</target>
+        <target state="translated">La référence de package n’a pas d’identité.</target>
         <note />
       </trans-unit>
       <trans-unit id="PackageReferenceNoVersion">
         <source>Package reference does not have Version.</source>
-        <target state="new">Package reference does not have Version.</target>
+        <target state="translated">La référence de package n’a pas de version.</target>
         <note />
       </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
-        <target state="new">Perform updates?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ProjectHasUpdatesMessage">
-        <source>Project has updates!</source>
-        <target state="new">Project has updates!</target>
+        <target state="translated">Voulez-vous exécuter la mise à jour maintenant ?</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
-        <target state="new">Project reference does not have FullPath.</target>
+        <target state="translated">Désolé, la référence de projet n’a pas de chemin complet.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
-        <target state="new">Project is up to date! (no updates necessary)</target>
+        <target state="translated">Le projet est à jour ! (aucune mise à jour nécessaire)</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
-        <target state="new">Select a channel:</target>
+        <target state="translated">Sélectionnez un canal :</target>
         <note />
       </trans-unit>
       <trans-unit id="UnxpectedCodePath">
         <source>Unexpected code path.</source>
-        <target state="new">Unexpected code path.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UpdateAppHostSdkFormat">
-        <source>Update AppHost SDK from {0} to {1}</source>
-        <target state="new">Update AppHost SDK from {0} to {1}</target>
+        <target state="translated">Chemin de code inattendu.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdatePackageFormat">
         <source>Update package {0} from {1} to {2}</source>
-        <target state="new">Update package {0} from {1} to {2}</target>
+        <target state="translated">Mettre à jour le package {0} de {1} à {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateSuccessfulMessage">
         <source>Update successful!</source>
-        <target state="new">Update successful!</target>
+        <target state="translated">Mise à jour correcte !</target>
         <note />
       </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">
         <source>Which directory for NuGet.config file?</source>
-        <target state="new">Which directory for NuGet.config file?</target>
+        <target state="translated">Quel répertoire pour le fichier NuGet.config ?</target>
         <note />
       </trans-unit>
     </body>

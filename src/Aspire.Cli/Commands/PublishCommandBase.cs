@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
@@ -61,10 +60,9 @@ internal abstract class PublishCommandBase : BaseCommand
         };
         Options.Add(projectOption);
 
-        var outputPath = new Option<string>("--output-path", "-o")
+        var outputPath = new Option<string?>("--output-path", "-o")
         {
-            Description = GetOutputPathDescription(),
-            DefaultValueFactory = GetDefaultOutputPath
+            Description = GetOutputPathDescription()
         };
         Options.Add(outputPath);
 
@@ -74,8 +72,7 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string GetDefaultOutputPath(ArgumentResult result);
-    protected abstract string[] GetRunArguments(string fullyQualifiedOutputPath, string[] unmatchedTokens);
+    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
@@ -134,8 +131,8 @@ internal abstract class PublishCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            var outputPath = parseResult.GetValue<string>("--output-path");
-            var fullyQualifiedOutputPath = Path.GetFullPath(outputPath ?? ".");
+            var outputPath = parseResult.GetValue<string?>("--output-path");
+            var fullyQualifiedOutputPath = outputPath != null ? Path.GetFullPath(outputPath) : null;
 
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
@@ -165,7 +162,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async ()=>
+            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
@@ -176,7 +173,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var noFailuresReported = debugMode switch
             {
-                true => await ProcessPublishingActivitiesAsync(publishingActivities, cancellationToken),
+                true => await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, cancellationToken),
                 false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
             };
 
@@ -224,17 +221,71 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
-    public static async Task<bool> ProcessPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, CancellationToken cancellationToken)
+    public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
-        await foreach (var publishingActivity in publishingActivities.WithCancellation(cancellationToken))
+        var stepCounter = 1;
+        var steps = new Dictionary<string, string>();
+        PublishingActivity? publishingActivity = null;
+
+        await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
-            if (publishingActivity.Type == PublishingActivityTypes.PublishComplete)
+            if (activity.Type == PublishingActivityTypes.PublishComplete)
             {
-                return !IsCompletionStateError(publishingActivity.Data.CompletionState);
+                publishingActivity = activity;
+                break;
+            }
+            else if (activity.Type == PublishingActivityTypes.Step)
+            {
+                if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
+                {
+                    // New step - log it
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    steps[activity.Data.Id] = activity.Data.CompletionState;
+                }
+                else if (IsCompletionStateComplete(activity.Data.CompletionState))
+                {
+                    // Step completed - log completion
+                    var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
+                        IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    steps[activity.Data.Id] = activity.Data.CompletionState;
+                }
+            }
+            else if (activity.Type == PublishingActivityTypes.Prompt)
+            {
+                await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+            }
+            else
+            {
+                // Task activity - log it
+                var stepId = activity.Data.StepId;
+                if (IsCompletionStateComplete(activity.Data.CompletionState))
+                {
+                    var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
+                        IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
+                    {
+                        _interactionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
+                    }
+                }
+                else
+                {
+                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                }
             }
         }
 
-        return true;
+        var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
+        var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
+
+        if (publishingActivity is not null)
+        {
+            var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
+            _interactionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+        }
+
+        return !hasErrors;
     }
 
     public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
@@ -444,7 +495,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 var basePromptText = inputs.Count > 1
                     ? $"{input.Label}: "
                     : activity.Data.StatusText;
-                
+
                 var promptText = inputs.Count > 1
                     ? MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)
                     : $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)}[/]";

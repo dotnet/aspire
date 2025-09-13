@@ -56,3 +56,4 @@ export const aspireConfigAdded = localize('aspire-vscode.strings.aspireConfigAdd
 export const openLaunchJson = localize('aspire-vscode.strings.openLaunchJson', 'Open launch.json');
 export const failedToConfigureLaunchJson = (error: any) => localize('aspire-vscode.strings.failedToConfigureLaunchJson', 'Failed to configure launch.json: {0}', error);
 export const defaultConfigurationName = localize('extension.debug.defaultConfiguration.name', 'Aspire: Launch Default AppHost');
+export const debugSessionAlreadyExists = (id: string) => localize('aspire-vscode.strings.debugSessionAlreadyExists', 'A debug session is already active for id {0}.', id);

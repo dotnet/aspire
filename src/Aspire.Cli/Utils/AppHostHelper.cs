@@ -69,7 +69,7 @@ internal static class AppHostHelper
     {
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         return await interactionService.ShowStatusAsync(
-            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost}: {relativePath}",
+            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost} {relativePath}",
             () => runner.BuildAsync(
                 projectFile,
                 options,

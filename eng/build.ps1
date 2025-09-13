@@ -43,6 +43,7 @@ function Get-Help() {
 
   Write-Host "Libraries settings:"
   Write-Host "  -testnobuild            Skip building tests when invoking -test."
+  Write-Host "  -buildExtension         Build the VS Code extension."
   Write-Host ""
 
   Write-Host "Command-line arguments not listed above are passed through to MSBuild."

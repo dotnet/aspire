@@ -155,7 +155,7 @@
     <value>Update now</value>
   </data>
   <data name="ContainerRuntimeUnhealthyTitle" xml:space="preserve">
-    <value>Container Runtime Unhealthy</value>
+    <value>Container runtime unhealthy</value>
   </data>
   <data name="ContainerRuntimeUnhealthyMessage" xml:space="preserve">
     <value>Container runtime '{0}' was found but appears to be unhealthy. </value>
@@ -173,7 +173,7 @@
     <value>Learn more</value>
   </data>
   <data name="ContainerRuntimeNotInstalledTitle" xml:space="preserve">
-    <value>Container Runtime Not Installed</value>
+    <value>Container runtime not installed</value>
   </data>
   <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
     <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>

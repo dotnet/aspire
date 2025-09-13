@@ -101,7 +101,8 @@ public static class ContainerAppExtensions
         };
 
         var existingCustomDomain = app.Configuration.Ingress.CustomDomains
-            .FirstOrDefault(cd => {
+            .FirstOrDefault(cd =>
+            {
                 // This is a cautionary tale to anyone who reads this code as to the dangers
                 // of using implicit conversions in C#. BicepValue<T> uses some implicit conversions
                 // which means we need to explicitly cast to IBicepValue so that we can get at the
@@ -121,5 +122,48 @@ public static class ContainerAppExtensions
         }
 
         app.Configuration.Ingress.CustomDomains.Add(containerAppCustomDomain);
+    }
+
+    /// <summary>
+    /// Allows configuring the specified compute resource as an Azure Container App Job.
+    /// </summary>
+    /// <typeparam name="T">The type of the compute resource.</typeparam>
+    /// <param name="resource">The compute resource builder.</param>
+    /// <param name="configure">The configuration action for the container app job.</param>
+    /// <returns>The updated compute resource builder.</returns>
+    /// <remarks>
+    /// This method adds the necessary infrastructure for container app jobs to the application builder
+    /// and applies the specified configuration to the container app job.
+    /// 
+    /// Note that the default trigger type for the job is set to Manual, and the default replica timeout is set to 1800 seconds (30 minutes).
+    /// 
+    /// <example>
+    /// <code>
+    /// builder.AddProject&lt;Projects.Api&gt;.PublishAsAzureContainerAppJob((infrastructure, job) =>
+    /// {
+    ///     // Configure the container app job here
+    ///     job.Configuration.TriggerType = ContainerAppJobTriggerType.Schedule;
+    ///     job.Configuration.ScheduleTriggerConfig.CronExpression = "0 0 * * *"; // every day at midnight
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this IResourceBuilder<T> resource, Action<AzureResourceInfrastructure, ContainerAppJob> configure)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return resource;
+        }
+
+        resource.ApplicationBuilder.AddAzureContainerAppsInfrastructureCore();
+
+        resource.WithAnnotation(new AzureContainerAppJobCustomizationAnnotation(configure));
+
+        return resource;
     }
 }

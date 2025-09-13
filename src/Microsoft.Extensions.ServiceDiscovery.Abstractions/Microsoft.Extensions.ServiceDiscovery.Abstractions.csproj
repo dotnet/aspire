@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(DefaultTargetFramework);netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net462;$(DefaultTargetFramework)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible Condition=" '$(TargetFramework)' != 'netstandard2.0' ">true</IsAotCompatible>
+    <IsAotCompatible Condition=" '$(TargetFramework)' == '$(DefaultTargetFramework)' ">true</IsAotCompatible>
     <Description>Provides abstractions for service discovery. Interfaces defined in this package are implemented in Microsoft.Extensions.ServiceDiscovery and other service discovery packages.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
     <RootNamespace>Microsoft.Extensions.ServiceDiscovery</RootNamespace>
@@ -19,10 +19,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="Microsoft.Bcl.Memory" /> 
   </ItemGroup>
   
-  <Import Condition=" '$(TargetFramework)' == 'netstandard2.0' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
+  <Import Condition=" '$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'netstandard2.0' " Project="$(SharedDir)FxPolyfills\FxPolyfills.targets" />
 
 </Project>

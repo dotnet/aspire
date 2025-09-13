@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="CollapseAllSpansText">
         <source>Collapse all</source>
-        <target state="new">Collapse all</target>
+        <target state="translated">Zwiń wszystko</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ExpandAllSpansText">
         <source>Expand all</source>
-        <target state="new">Expand all</target>
+        <target state="translated">Rozwiń wszystko</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
@@ -217,6 +217,11 @@
         <target state="translated">Ustaw szerokości kolumn</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="new">GenAI details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Skopiowano!</target>
@@ -255,6 +260,11 @@
       <trans-unit id="LabelNone">
         <source>(None)</source>
         <target state="translated">(Brak)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelOther">
+        <source>(Other)</source>
+        <target state="translated">(Inne)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -512,6 +522,31 @@
         <target state="translated">Czas rozpoczęcia: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeDatabase">
+        <source>Database</source>
+        <target state="translated">Baza danych</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeGenAI">
+        <source>Gen AI</source>
+        <target state="translated">Generatywna AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeHttp">
+        <source>HTTP</source>
+        <target state="translated">HTTP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeMessaging">
+        <source>Messaging</source>
+        <target state="translated">Obsługa wiadomości</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeRpc">
+        <source>RPC</source>
+        <target state="translated">Zdalne wywołanie procedury</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StateColumnHeader">
         <source>State</source>
         <target state="translated">Stan</target>
@@ -589,7 +624,7 @@
       </trans-unit>
       <trans-unit id="ViewStructuredLogsText">
         <source>View structured logs</source>
-        <target state="new">View structured logs</target>
+        <target state="translated">Wyświetlanie dzienników strukturalnych</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

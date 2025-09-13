@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Chart
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Interaction
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -10,8 +11,6 @@
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
-
-@inject IStringLocalizer<Dialogs> Loc
 
 <FluentDialogHeader ShowDismiss="@Dialog.Instance.Parameters.ShowDismiss">
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
@@ -138,7 +137,7 @@
 </FluentDialogFooter>
 
 @code {
-    private static RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
+    private RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
     {
         @if (!string.IsNullOrEmpty(vm.Description))
         {
@@ -146,7 +145,7 @@
             @<div class="input-description" id="@id">
                 @if (vm.EnableDescriptionMarkdown)
                 {
-                    @InteractionMarkdownHelper.ToMarkupString(vm.Description)
+                    <MarkdownRenderer MarkdownProcessor="@_markdownProcessor" Markdown="@vm.Description" SuppressParagraphOnNewLines="true" />
                 }
                 else
                 {

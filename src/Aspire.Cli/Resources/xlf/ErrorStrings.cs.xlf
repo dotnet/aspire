@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
         <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
-        <target state="new">No buildable app hosts were found, but there may have been unbuildable app hosts.</target>
+        <target state="translated">Nenašli se žádní hostitelé aplikací, které lze sestavit, ale je možné, že existují hostitelé aplikací, které nelze sestavit.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
         <source>Failed to retrieve all Aspire packages via cache.</source>
-        <target state="new">Failed to retrieve all Aspire packages via cache.</target>
+        <target state="translated">Nepovedlo se načíst všechny balíčky Aspire prostřednictvím mezipaměti.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
@@ -112,9 +112,9 @@
         <target state="translated">Zadaná cesta k soketu rozšíření potřebuje dvě platné části.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">Minimální verze sady .NET SDK ({0}) není nainstalovaná. Navštivte https://get.dot.net a stáhněte si a nainstalujte sadu .NET SDK.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -144,17 +144,17 @@
       </trans-unit>
       <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
         <source>Could not build: {0}</source>
-        <target state="new">Could not build: {0}</target>
+        <target state="translated">Nepovedlo se sestavit: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Soubor projektu není projekt hostitele aplikací Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="needs-review-translation">Soubor projektu není projekt hostitele aplikací Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Projekt není projekt hostitele aplikací Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="needs-review-translation">Projekt není projekt hostitele aplikací Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

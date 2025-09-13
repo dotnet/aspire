@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace Aspire.Cli.Interaction;
 
@@ -46,8 +47,11 @@ internal class SpectreConsoleLogger(IServiceProvider serviceProvider, string cat
         // Extract the last token from the category name to reduce noise
         var shortCategoryName = GetShortCategoryName(categoryName);
         
+        // Format timestamp to show only time (HH:mm:ss) for debugging purposes
+        var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        
         // Use DisplaySubtleMessage for clean debug output
-        InteractionService.DisplaySubtleMessage($"[{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
+        InteractionService.DisplaySubtleMessage($"[{timestamp}] [{GetLogLevelString(logLevel)}] {shortCategoryName}: {formattedMessage}");
     }
 
     private static string GetLogLevelString(LogLevel logLevel) => logLevel switch

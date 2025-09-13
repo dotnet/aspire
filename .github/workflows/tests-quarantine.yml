@@ -1,0 +1,20 @@
+# Executes quarantined tests
+name: Quarantined Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2,14 * * *' # Twice daily at 02:00 and 14:00 UTC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quarantine_tests:
+    uses: ./.github/workflows/specialized-test-runner.yml
+    with:
+      testRunnerName: "QuarantinedTestRunsheetBuilder"
+      extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
+      extraTestArgs: "--filter-trait quarantined=true"
+      enablePlaywrightInstall: true

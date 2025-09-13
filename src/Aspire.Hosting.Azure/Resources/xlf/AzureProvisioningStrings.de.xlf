@@ -16,6 +16,11 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
         <target state="translated">Azure-Bereitstellung</target>
         <note />
       </trans-unit>
+      <trans-unit id="LocationDialogTitle">
+        <source>Azure location and resource group</source>
+        <target state="translated">Azure-Standort und -Ressourcengruppe</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LocationLabel">
         <source>Location</source>
         <target state="translated">Standort</target>
@@ -24,6 +29,11 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
       <trans-unit id="LocationPlaceholder">
         <source>Select location</source>
         <target state="translated">Standort auswählen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocationSelectionMessage">
+        <source>Select your Azure location and specify resource group:</source>
+        <target state="translated">Wählen Sie Ihren Azure-Standort aus und geben Sie die Ressourcengruppe an:</target>
         <note />
       </trans-unit>
       <trans-unit id="NotificationMessage">
@@ -46,6 +56,11 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
         <target state="translated">Ressourcengruppe</target>
         <note />
       </trans-unit>
+      <trans-unit id="SubscriptionDialogTitle">
+        <source>Azure subscription</source>
+        <target state="translated">Azure-Abonnement</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionIdLabel">
         <source>Subscription ID</source>
         <target state="translated">Abonnement-ID</target>
@@ -54,6 +69,16 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
       <trans-unit id="SubscriptionIdPlaceholder">
         <source>Select subscription ID</source>
         <target state="translated">Abonnement-ID auswählen</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionManualEntryMessage">
+        <source>Enter your Azure subscription ID:</source>
+        <target state="translated">Geben Sie die ID Ihres Azure-Abonnements ein:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SubscriptionSelectionMessage">
+        <source>Select your Azure subscription:</source>
+        <target state="translated">Wählen Sie Ihr Azure-Abonnement aus:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">

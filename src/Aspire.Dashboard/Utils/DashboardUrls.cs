@@ -112,12 +112,16 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TracesUrl(string? resource = null, string? filters = null)
+    public static string TracesUrl(string? resource = null, string? type = null, string? filters = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (type != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "type", type);
         }
         if (filters != null)
         {

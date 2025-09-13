@@ -4,33 +4,44 @@ import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
 import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
-import AspireDcpServer from "../dcp/AspireDcpServer";
+import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
+import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
+import { ICliRpcClient } from "../server/rpcClient";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
   private _messageSeq = 1;
 
   private readonly _session: vscode.DebugSession;
-  private _appHostDebugSession: AspireResourceDebugSession | undefined = undefined;
-  private _resourceDebugSessions: AspireResourceDebugSession[] = [];
-  private _trackedDebugAdapters: string[] = [];
-
   private readonly _rpcServer: AspireRpcServer;
   private readonly _dcpServer: AspireDcpServer;
+  private readonly _terminalProvider: AspireTerminalProvider;
 
+  private _appHostDebugSession?: AspireResourceDebugSession = undefined;
+  private _resourceDebugSessions: AspireResourceDebugSession[] = [];
+  private _trackedDebugAdapters: string[] = [];
+  private _rpcClient?: ICliRpcClient;
   private readonly _disposables: vscode.Disposable[] = [];
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
+  public readonly debugSessionId: string;
 
-  constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer) {
+  constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider, removeAspireDebugSession: (session: AspireDebugSession) => void) {
     this._session = session;
     this._rpcServer = rpcServer;
     this._dcpServer = dcpServer;
+    this._terminalProvider = terminalProvider;
+
+    this.debugSessionId = generateDcpIdPrefix();
+
+    this._disposables.push({
+      dispose: () => removeAspireDebugSession(this)
+    });
   }
 
   handleMessage(message: any): void {
@@ -100,8 +111,15 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   spawnRunCommand(args: string[], workingDirectory: string | undefined) {
+    const disposable = this._rpcServer.onNewConnection((client: ICliRpcClient) => {
+      if (client.debugSessionId === this.debugSessionId) {
+        this._rpcClient = client;
+        disposable.dispose();
+      }
+    });
+
     spawnCliProcess(
-      this._rpcServer.connectionInfo,
+      this._terminalProvider,
       'aspire',
       args,
       {
@@ -120,14 +138,14 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           // if the process failed, we want to stop the debug session
           this.dispose();
         },
-        dcpServerConnectionInfo: this._dcpServer.connectionInfo,
-        workingDirectory: workingDirectory
-      }
+        workingDirectory: workingDirectory,
+        debugSessionId: this.debugSessionId
+      },
     );
 
     this._disposables.push({
       dispose: () => {
-        this._rpcServer.requestStopCli();
+        this._rpcClient?.stopCli();
         extensionLogOutputChannel.info(`Requested Aspire CLI exit with args: ${args.join(' ')}`);
       }
     });
@@ -154,7 +172,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
     extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
-    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', dcpId: null }, projectDebuggerExtension);
+    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', debugSessionId: this.debugSessionId }, projectDebuggerExtension);
     const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
     if (!appHostDebugSession) {

@@ -156,4 +156,19 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
   <data name="ValidationResourceGroupNameInvalid" xml:space="preserve">
     <value>Resource group name must be a valid Azure resource group name.</value>
   </data>
+  <data name="SubscriptionDialogTitle" xml:space="preserve">
+    <value>Azure subscription</value>
+  </data>
+  <data name="SubscriptionSelectionMessage" xml:space="preserve">
+    <value>Select your Azure subscription:</value>
+  </data>
+  <data name="SubscriptionManualEntryMessage" xml:space="preserve">
+    <value>Enter your Azure subscription ID:</value>
+  </data>
+  <data name="LocationDialogTitle" xml:space="preserve">
+    <value>Azure location and resource group</value>
+  </data>
+  <data name="LocationSelectionMessage" xml:space="preserve">
+    <value>Select your Azure location and specify resource group:</value>
+  </data>
 </root>

@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">應用程式主機不相容。請考慮升級應用程式主機或 Aspire CLI。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="needs-review-translation">應用程式主機不相容。請考慮升級應用程式主機或 Aspire CLI。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="needs-review-translation">正在建置應用程式主機...</target>
+        <source>Building apphost...</source>
+        <target state="needs-review-translation">正在建置應用程式主機</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">正在尋找應用程式主機...</target>
+        <source>Finding apphosts...</source>
+        <target state="needs-review-translation">正在尋找應用程式主機...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -113,13 +113,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="new">Select app host to use:</target>
+        <source>Select an apphost to use:</source>
+        <target state="new">Select an apphost to use:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定的專案檔案不是 Aspire 應用程式主機專案。</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="needs-review-translation">指定的專案檔案不是 Aspire 應用程式主機專案。</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="UnbuildableAppHostsDetected">
         <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
-        <target state="new">No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</target>
+        <target state="translated">找不到應用程式主機 (可能有應用程式主機專案檔案具有語法錯誤/無效的 SDK 版本)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

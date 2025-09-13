@@ -25,7 +25,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 {
     [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/11105")]
-    public void DeployAsync_EmitsPublishedResources()
+    public void DeployAsync_DoesNotEmitPublishedResources()
     {
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory(".azure-deployer-test");
@@ -36,19 +36,15 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
-        // Add a container that will use the container app environment
-        builder.AddContainer("api", "my-api-image:latest")
-            .WithHttpEndpoint();
-
         // Act
         using var app = builder.Build();
         app.Run();
 
         // Assert files exist but don't verify contents
         var mainBicepPath = Path.Combine(tempDir.FullName, "main.bicep");
-        Assert.True(File.Exists(mainBicepPath));
+        Assert.False(File.Exists(mainBicepPath));
         var envBicepPath = Path.Combine(tempDir.FullName, "env", "env.bicep");
-        Assert.True(File.Exists(envBicepPath));
+        Assert.False(File.Exists(envBicepPath));
 
         tempDir.Delete(recursive: true);
     }
@@ -69,31 +65,35 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var runTask = Task.Run(app.Run);
 
-        // Assert - Wait for the first interaction (message bar)
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
-        Assert.Contains("Azure resources that require an Azure Subscription", messageBarInteraction.Message ?? "");
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+        Assert.False(subscriptionInteraction.Options!.EnableMessageMarkdown);
 
-        // Complete the message bar interaction to proceed to inputs dialog
-        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
+        // Verify the expected input for subscription selection (fallback to manual entry)
+        Assert.Collection(subscriptionInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Subscription ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
 
-        // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Azure provisioning", inputsInteraction.Title);
-        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
 
-        // Verify the expected inputs for Azure provisioning
-        Assert.Collection(inputsInteraction.Inputs,
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+        Assert.False(locationInteraction.Options!.EnableMessageMarkdown);
+
+        // Verify the expected inputs for location and resource group (fallback to manual entry)
+        Assert.Collection(locationInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
-                Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
@@ -103,12 +103,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 Assert.False(input.Required);
             });
 
-        // Complete the inputs interaction with valid values
-        inputsInteraction.Inputs[0].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[1].Value = "12345678-1234-1234-1234-123456789012";
-        inputsInteraction.Inputs[2].Value = "test-rg";
-
-        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
@@ -120,15 +118,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -144,15 +141,21 @@ public class AzureDeployerTests(ITestOutputHelper output)
         await app.StartAsync();
         await app.WaitForShutdownAsync();
 
-        // Assert that provisioning context values are passed into parameters on resource
-        Assert.Equal(azureEnv.Resource.Parameters["location"], "westus2");
-        Assert.Equal(azureEnv.Resource.Parameters["resourceGroupName"], "test-rg");
-        Assert.Equal(azureEnv.Resource.Parameters["principalId"], "11111111-2222-3333-4444-555555555555");
-
         // Assert that ACR login command was not executed given no compute resources
         Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
+
+        // Assert - Verify MockImageBuilder was NOT called when there are no compute resources
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImagesCalled);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+        Assert.Empty(mockImageBuilder.BuildImageResources);
+        Assert.Empty(mockImageBuilder.TagImageCalls);
+        Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
     [Fact]
@@ -161,15 +164,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -194,16 +196,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push not called for existing container image
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
-
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were NOT called for existing container image
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+        Assert.Empty(mockImageBuilder.TagImageCalls);
+        Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
     [Fact]
@@ -212,15 +211,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -245,16 +243,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for Dockerfile
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "api" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     [Fact]
@@ -263,15 +264,14 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -296,16 +296,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for project resources
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "api" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     [Fact]
@@ -314,20 +317,29 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
-            ["aca_env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "acaregistry" },
-            ["aca_env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "acaregistry.azurecr.io" },
-            ["aca_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aca-identity" },
-            ["aca_env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "aca.westus.azurecontainerapps.io" },
-            ["aca_env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/acaenv" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "aasregistry" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "aasregistry.azurecr.io" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aas-identity" },
-            ["aas_env_planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/aasplan" },
-            ["aas_env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "aas-client-id" }
-        };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+            return deploymentName switch
+            {
+                string name when name.StartsWith("aca-env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "acaregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "acaregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aca-identity" },
+                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "aca.westus.azurecontainerapps.io" },
+                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/acaenv" }
+                },
+                string name when name.StartsWith("aas-env") => new Dictionary<string, object>
+                {
+                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "aasregistry" },
+                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "aasregistry.azurecr.io" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aas-identity" },
+                    ["planId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.Web/serverfarms/aasplan" },
+                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID"] = new { type = "String", value = "aas-client-id" }
+                },
+                _ => []
+            };
+        });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
@@ -370,31 +382,167 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name aasregistry");
 
-        // Assert Docker operations for project resource deployed to AAS environment
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api-service aasregistry.azurecr.io/"));
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push aasregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called for multiple registries
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Assert Docker operations NOT performed for existing container image deployed to ACA environment
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag cache acaregistry.azurecr.io/"));
+        // Verify tag calls were made for both registries
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api-service" && call.targetImageName.StartsWith("aasregistry.azurecr.io/"));
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "python-app" && call.targetImageName.StartsWith("acaregistry.azurecr.io/"));
 
-        // Assert Docker operations for project resource deployed to ACA environment
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag python-app acaregistry.azurecr.io/"));
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push acaregistry.azurecr.io/"));
+        // Verify push calls were made for both registries
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("aasregistry.azurecr.io/"));
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("acaregistry.azurecr.io/"));
+
+        // Verify that redis (existing container) was not tagged/pushed
+        Assert.DoesNotContain(mockImageBuilder.TagImageCalls, call => call.localImageName == "cache");
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithUnresolvedParameters_PromptsForParameterValues()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter that will be unresolved
+        var param = builder.AddParameter("test-param");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", notificationInteraction.Message);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the parameter input (should include save to secrets option)
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("test-param", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal("Enter value for test-param", input.Placeholder);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "test-value";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.GetValueAsync(default);
+        Assert.Equal("test-value", setValue);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithResolvedParameters_SkipsPrompting()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+        builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
+
+        // Add a parameter with a resolved value
+        var param = builder.AddParameter("test-param", () => "resolved-value");
+        var secondParam = builder.AddParameter("test-param-2");
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithCustomInputGeneratorParameter_RespectsInputGenerator()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testInteractionService = new TestInteractionService();
+        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+
+        // Add a parameter with a custom input generator
+        var param = builder.AddParameter("custom-param")
+            .WithCustomInput(p => new InteractionInput
+            {
+                Name = p.Name,
+                InputType = InputType.Number,
+                Label = "Custom Port Number",
+                Description = "Enter a custom port number for the service",
+                EnableDescriptionMarkdown = false,
+                Placeholder = "8080"
+            });
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the notification interaction first
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
+
+        // Complete the notification interaction to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the parameter inputs interaction
+        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
+
+        // Verify the custom input generator is respected (should include save to secrets option)
+        Assert.Collection(parameterInputs.Inputs,
+            input =>
+            {
+                Assert.Equal("custom-param", input.Name);
+                Assert.Equal("Custom Port Number", input.Label);
+                Assert.Equal("Enter a custom port number for the service", input.Description);
+                Assert.Equal(InputType.Number, input.InputType);
+                Assert.Equal("8080", input.Placeholder);
+                Assert.False(input.EnableDescriptionMarkdown);
+            },
+            input =>
+            {
+                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InputType.Boolean, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Complete the parameter inputs interaction
+        parameterInputs.Inputs[0].Value = "9090";
+        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var setValue = await param.Resource.GetValueAsync(default);
+        Assert.Equal("9090", setValue);
     }
 
     [Fact]
@@ -403,29 +551,43 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var deploymentOutputs = new Dictionary<string, object>
+        var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
-            // ACA Environment outputs (needed for containerAppEnv)
-            ["env_AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-            ["env_AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-            ["env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-            ["env_AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" },
-
-            // Storage outputs for funcstorage
-            ["funcstorage_blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
-            ["funcstorage_queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
-            ["funcstorage_tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" },
-
-            // Storage outputs for hoststorage
-            ["hoststorage_blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
-            ["hoststorage_queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
-            ["hoststorage_tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" },
-
-            ["funcapp_identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-            ["funcapp_identity_clientId"] = new { type = "String", value = "test-client-id" }
+            string name when name.StartsWith("env") => new Dictionary<string, object>
+            {
+                ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+            },
+            string name when name.StartsWith("funcstorage") => new Dictionary<string, object>
+            {
+                ["name"] = new { type = "String", value = "testfuncstorage" },
+                ["blobEndpoint"] = new { type = "String", value = "https://testfuncstorage.blob.core.windows.net/" },
+                ["queueEndpoint"] = new { type = "String", value = "https://testfuncstorage.queue.core.windows.net/" },
+                ["tableEndpoint"] = new { type = "String", value = "https://testfuncstorage.table.core.windows.net/" }
+            },
+            string name when name.StartsWith("hoststorage") => new Dictionary<string, object>
+            {
+                ["name"] = new { type = "String", value = "testhoststorage" },
+                ["blobEndpoint"] = new { type = "String", value = "https://testhoststorage.blob.core.windows.net/" },
+                ["queueEndpoint"] = new { type = "String", value = "https://testhoststorage.queue.core.windows.net/" },
+                ["tableEndpoint"] = new { type = "String", value = "https://testhoststorage.table.core.windows.net/" }
+            },
+            string name when name.StartsWith("funcapp-identity") => new Dictionary<string, object>
+            {
+                ["principalId"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            },
+            string name when name.StartsWith("funcapp") => new Dictionary<string, object>
+            {
+                ["identity_id"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+                ["identity_clientId"] = new { type = "String", value = "test-client-id" }
+            },
+            _ => []
         };
-        var armClientProvider = new TestArmClientProvider(deploymentOutputs);
+
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
         ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
@@ -464,16 +626,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for Azure Functions project
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag funcapp testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "funcapp" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "funcapp" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
@@ -499,7 +664,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         {
             builder.Services.AddSingleton(interactionService);
         }
-        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         if (bicepProvisioner is not null)
         {

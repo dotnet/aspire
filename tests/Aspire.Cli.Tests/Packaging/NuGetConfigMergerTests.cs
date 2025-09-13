@@ -290,5 +290,257 @@ public class NuGetConfigMergerTests
     Assert.False(NuGetConfigMerger.HasMissingSources(root, channel));
     }
 
+    [Fact]
+    public async Task CreateOrUpdateAsync_ReusesExistingSourceKeys_WhenMappingToExistingSourcesByUrl()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Existing config with custom key names (like "nuget" instead of URL)
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget" value="https://api.nuget.org/v3/index.json" />
+                    <add key="dotnet9" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """);
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://example.com/aspire-feed"),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json") // Should map to existing "nuget" key
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // Existing sources should still be present with their original keys
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget" && (string?)e.Attribute("value") == "https://api.nuget.org/v3/index.json");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "dotnet9" && (string?)e.Attribute("value") == "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json");
+
+        // New source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-feed");
+
+        // Package source mapping should use existing key "nuget" instead of URL
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        // Should NOT create a mapping with the URL as key when existing key exists
+        var urlMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://api.nuget.org/v3/index.json");
+        Assert.Null(urlMapping);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_PreservesAllExistingSources_WhenCreatingPackageSourceMappingForFirstTime()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Scenario from @mitchdenny: config has multiple sources but NO packageSourceMapping
+        // This means all sources can serve all packages (implicit behavior)
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                    <add key="custom" value="https://example.com/custom/nuget/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """);
+
+        // aspire update adds specific mappings but doesn't include a wildcard
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // All original sources should still be present
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget.org");
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "custom");
+
+        // New aspire source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-daily");
+
+        // Debug: Print the XML to understand what's happening
+        _outputHelper.WriteLine("Generated XML:");
+        _outputHelper.WriteLine(xml.ToString());
+
+        // Package source mapping should preserve the original behavior:
+        // Since the original config had NO packageSourceMapping, all existing sources should get "*" patterns
+        // so they can continue to serve packages
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // The aspire source should have its specific pattern
+        var aspireMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://example.com/aspire-daily");
+        Assert.NotNull(aspireMapping);
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+
+        // The existing sources should get wildcard patterns to preserve their original functionality
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget.org");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        var customMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "custom");
+        Assert.NotNull(customMapping);
+        Assert.Contains(customMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_AddsSpecificMappings_WhenExistingWildcardMappingPresent()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Scenario: existing config already has a wildcard mapping on nuget.org
+        // When we add explicit mappings for Aspire packages to a new source,
+        // the code should add the new mappings without interfering with the existing wildcard
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """);
+
+        // aspire update adds specific mappings for Aspire packages to a new channel
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://example.com/aspire-daily"),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://example.com/aspire-daily")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // Original source should still be present
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("key") == "nuget.org");
+
+        // New aspire source should be added
+        Assert.Contains(packageSources.Elements("add"), e => (string?)e.Attribute("value") == "https://example.com/aspire-daily");
+
+        // Debug: Print the XML to understand what's happening
+        _outputHelper.WriteLine("Generated XML:");
+        _outputHelper.WriteLine(xml.ToString());
+
+        // Package source mapping should have both the original wildcard and the new specific mappings
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // Original nuget.org should still have the wildcard pattern
+        var nugetMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "nuget.org");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+
+        // The aspire source should have its specific patterns
+        var aspireMapping = psm.Elements("packageSource").FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://example.com/aspire-daily");
+        Assert.NotNull(aspireMapping);
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+        Assert.Contains(aspireMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_RemovesUnrequiredSources_InsteadOfAddingWildcardPattern()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Existing config with a PR hive source that should be removed and a user-defined source that should be preserved
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <packageSources>
+                    <add key="https://valid.example" value="https://valid.example" />
+                    <add key="C:\Users\user\.aspire\hives\invalid-pr" value="C:\Users\user\.aspire\hives\invalid-pr" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="https://valid.example">
+                        <package pattern="ValidPkg*" />
+                    </packageSource>
+                    <packageSource key="C:\Users\user\.aspire\hives\invalid-pr">
+                        <package pattern="Aspire*" />
+                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """);
+
+        // New mappings that remap Aspire patterns to nuget.org and add a wildcard
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json"),
+            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://api.nuget.org/v3/index.json"),
+            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
+        };
+
+        var channel = CreateChannel(mappings);
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "NuGet.config"));
+        var packageSources = xml.Root!.Element("packageSources")!;
+        
+        // The PR hive source should be removed because it's safe to remove and no longer needed
+        Assert.DoesNotContain(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
+        
+        // The user-defined source should be preserved even though its patterns were remapped
+        Assert.Contains(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "https://valid.example");
+        
+        // NuGet.org should be added for all the patterns
+        Assert.Contains(packageSources.Elements("add"), 
+            e => (string?)e.Attribute("value") == "https://api.nuget.org/v3/index.json");
+
+        var psm = xml.Root!.Element("packageSourceMapping")!;
+        
+        // The PR hive source should not have any mapping entries (removed entirely)
+        Assert.DoesNotContain(psm.Elements("packageSource"), 
+            ps => (string?)ps.Attribute("key") == "C:\\Users\\user\\.aspire\\hives\\invalid-pr");
+        
+        // The user-defined source should get a wildcard pattern to remain functional
+        var validExampleMapping = psm.Elements("packageSource")
+            .FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://valid.example");
+        Assert.NotNull(validExampleMapping);
+        Assert.Contains(validExampleMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+        
+        // NuGet.org should have all the patterns
+        var nugetMapping = psm.Elements("packageSource")
+            .FirstOrDefault(ps => (string?)ps.Attribute("key") == "https://api.nuget.org/v3/index.json");
+        Assert.NotNull(nugetMapping);
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Aspire*");
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "Microsoft.Extensions.ServiceDiscovery*");
+        Assert.Contains(nugetMapping.Elements("package"), p => (string?)p.Attribute("pattern") == "*");
+        
+        // There should be two packageSource elements (nuget.org and valid.example)
+        Assert.Equal(2, psm.Elements("packageSource").Count());
+    }
+
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
 }

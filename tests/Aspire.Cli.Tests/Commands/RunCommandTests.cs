@@ -9,6 +9,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -242,7 +243,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
 
         // Simulate CTRL-C.
         cts.Cancel();
@@ -298,7 +299,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
 
         // Simulate CTRL-C.
         cts.Cancel();
@@ -390,7 +391,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         testInteractionService.ShowStatusCallback = (statusText) =>
         {
             Assert.Contains(
-                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                $":hammer_and_wrench:  Building apphost... src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
                 statusText);
         };
 
@@ -409,6 +410,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11169")]
     public async Task RunCommand_SkipsBuild_WhenExtensionDevKitCapabilityIsAvailable()
     {
         var buildCalled = false;
@@ -463,7 +465,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var result = command.Parse("run");
 
         using var cts = new CancellationTokenSource();
-        var pendingRun = result.InvokeAsync(cts.Token);
+        var pendingRun = result.InvokeAsync(cancellationToken: cts.Token);
         cts.Cancel();
         var exitCode = await pendingRun.WaitAsync(CliTestConstants.DefaultTimeout);
 
