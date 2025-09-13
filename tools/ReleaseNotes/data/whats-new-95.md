@@ -11,10 +11,14 @@ ms.date: 08/21/2025
 - [Upgrade to .NET Aspire 9.5](#upgrade-to-net-aspire-95)
 - [CLI improvements](#cli-improvements)
   - [`aspire exec` command enhancements](#aspire-exec-command-enhancements)
+  - [Parameter prompting during deploy](#parameter-prompting-during-deploy)
+  - [SSH Remote support for port forwarding](#ssh-remote-support-for-port-forwarding)
   - [Robust orphan detection](#robust-orphan-detection)
   - [Package channel & templating enhancements](#package-channel--templating-enhancements)
   - [Improved cancellation & CTRL-C UX](#improved-cancellation--ctrl-c-ux)
   - [New aspire update command (preview)](#new-aspire-update-command-preview)
+  - [Enhanced markdown and styling support](#enhanced-markdown-and-styling-support)
+  - [Single-file AppHost feature flag](#single-file-apphost-feature-flag)
   - [Channel-aware aspire add & templating](#channel-aware-aspire-add--templating)
   - [Smarter package prefetching](#smarter-package-prefetching)
   - [Orphan & runtime diagnostics](#orphan--runtime-diagnostics)
@@ -36,20 +40,38 @@ ms.date: 08/21/2025
 - [Integration changes and additions](#integration-changes-and-additions)
   - [OpenAI hosting integration](#openai-hosting-integration)
   - [GitHub Models typed catalog](#github-models-typed-catalog)
+  - [Dev Tunnels hosting integration](#dev-tunnels-hosting-integration)
 - [App model enhancements](#app-model-enhancements)
   - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
   - [ExternalService WaitFor behavior change](#externalservice-waitfor-behavior-change)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
+- [API changes and enhancements](#api-changes-and-enhancements)
+  - [OTLP telemetry protocol selection](#otlp-telemetry-protocol-selection)
+  - [Enhanced resource waiting patterns](#enhanced-resource-waiting-patterns)
+  - [ExternalService WaitFor behavior improvements](#externalservice-waitfor-behavior-improvements)
+  - [Enhanced resource lifetime support](#enhanced-resource-lifetime-support)
+  - [Annotation-based executable configuration](#annotation-based-executable-configuration)
+  - [InteractionInput API improvements](#interactioninput-api-improvements)
+  - [Resource icon customization](#resource-icon-customization)
+  - [MySQL password handling improvements](#mysql-password-handling-improvements)
   - [Resource lifetime behavior](#resource-lifetime-behavior)
   - [InteractionInput API changes](#interactioninput-api-changes)
+  - [Resource lifecycle event APIs](#resource-lifecycle-event-apis)
+  - [Executable resource configuration APIs](#executable-resource-configuration-apis)
+  - [Interactive parameter processing APIs](#interactive-parameter-processing-apis)
   - [MySQL password improvements](#mysql-password-improvements)
   - [Remote & debugging experience](#remote--debugging-experience)
+  - [SSH remote auto port forwarding](#ssh-remote-auto-port-forwarding)
+  - [AppHost debugging in VS Code](#apphost-debugging-in-vs-code)
+  - [Extension modernization](#extension-modernization)
 - [Azure](#azure)
   - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
+  - [Azure Container App Jobs support](#azure-container-app-jobs-support)
   - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
   - [Azure Storage emulator improvements](#azure-storage-emulator-improvements)
   - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure Redis Enterprise support](#azure-redis-enterprise-support)
   - [Azure resource reference properties](#azure-resource-reference-properties)
   - [Azure provisioning & deployer](#azure-provisioning--deployer)
   - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
@@ -145,6 +167,77 @@ aspire exec --start-resource my-worker -- npm run build
 > aspire config set features.execCommandEnabled true
 > ```
 
+### Parameter prompting during deploy
+
+.NET Aspire 9.5 enhances the deployment experience by automatically prompting for unresolved parameters during `aspire deploy` operations, eliminating the need to manually specify all parameter values upfront.
+
+#### Interactive parameter resolution
+
+When deploying your Aspire application, any parameters without values are now automatically detected and prompted for interactively:
+
+```bash
+# Deploy command detects missing parameters and prompts automatically
+aspire deploy
+
+🔧 Resolving deployment parameters...
+
+Enter value for 'database-password' (secret): ********
+Enter value for 'api-key' (secret): **********************
+Enter value for 'environment-name': production
+
+✅ All parameters resolved, proceeding with deployment...
+```
+
+#### Benefits of interactive parameter prompting
+
+- **Secure credential entry**: Sensitive parameters are masked during input
+- **Deployment-time flexibility**: No need to pre-configure all parameter values
+- **Error prevention**: Missing parameters are caught before deployment begins
+- **Better developer experience**: Clear prompts with parameter descriptions
+
+#### Parameter types supported
+
+- **Secret parameters**: Automatically masked input for sensitive values
+- **Standard parameters**: Regular text input with validation
+- **Optional parameters**: Skipped if no value is provided
+
+This feature builds on the existing parameter infrastructure and makes deployment workflows more intuitive, especially when working with multiple environments or sharing deployment scripts across team members.
+
+### SSH Remote support for port forwarding
+
+Version 9.5 adds first-class support for SSH Remote development environments, extending automatic port forwarding configuration to VS Code SSH Remote scenarios alongside existing Devcontainer and Codespaces support.
+
+#### SSH Remote port forwarding features
+
+- **Automatic environment detection**: Detects SSH Remote scenarios via `VSCODE_IPC_HOOK_CLI` and `SSH_CONNECTION` environment variables
+- **Seamless port forwarding**: Automatically configures VS Code settings for Aspire application endpoints
+- **Consistent developer experience**: Matches existing behavior for Devcontainers and Codespaces
+- **No configuration required**: Works out-of-the-box when using VS Code SSH Remote extension
+
+#### How SSH Remote detection works
+
+SSH Remote environments are automatically detected when both environment variables are present:
+
+```bash
+# SSH Remote environment variables (automatically set)
+export SSH_CONNECTION="192.168.1.1 12345 192.168.1.2 22"
+export VSCODE_IPC_HOOK_CLI="/path/to/vscode/hook"
+
+# Aspire automatically detects and configures port forwarding
+dotnet run --project MyApp.AppHost
+```
+
+#### Development workflow integration
+
+Perfect for remote development scenarios:
+
+- **Remote server development**: Working on a remote Linux server via SSH
+- **Cloud development environments**: Using cloud-based development VMs
+- **Team development servers**: Shared development environments accessed via SSH
+- **Cross-platform development**: Developing on remote machines with different OS
+
+The SSH Remote support follows the exact same patterns as existing Devcontainer and Codespaces integration, ensuring a consistent experience across all VS Code remote development scenarios. Port forwarding settings are automatically written to `.vscode-server/data/Machine/settings.json` when SSH Remote environments are detected.
+
 ### Robust orphan detection
 
 Resilient to PID reuse via `ASPIRE_CLI_STARTED` timestamp + PID verification:
@@ -212,6 +305,36 @@ Extended markdown rendering support (#10815) with improved developer experience:
 - **Structured lists** with bullet points and numbering
 - **Safe markup escaping** to prevent XSS and rendering issues (#10462)
 - Purple styling for default values in prompts (#10474)
+
+### Single-file AppHost feature flag
+
+.NET Aspire 9.5 introduces infrastructure preparation for future single-file AppHost capabilities through a new feature flag `features.singlefileAppHostEnabled`. When enabled, this flag elevates the minimum .NET SDK requirement to prepare for upcoming single-file execution scenarios.
+
+#### Feature flag configuration
+
+```bash
+# Enable single-file AppHost support (requires .NET 10.0.100+)
+aspire config set features.singlefileAppHostEnabled true
+
+# Disable to return to baseline SDK requirements (.NET 9.0.302+)
+aspire config set features.singlefileAppHostEnabled false
+```
+
+#### SDK version requirements
+
+- **Default (flag disabled)**: Requires .NET SDK 9.0.302 or later
+- **Feature enabled**: Requires .NET SDK 10.0.100 or later
+- **Override support**: Manual SDK version overrides continue to work with highest precedence
+
+#### Enhanced error messaging
+
+The feature includes consolidated, localized error messages that provide clear guidance when SDK requirements aren't met:
+
+```text
+The Aspire CLI requires .NET SDK version 10.0.100 or later. Detected: 9.0.302.
+```
+
+This infrastructure lays the groundwork for future single-file AppHost execution capabilities while maintaining full backward compatibility. The feature defaults to disabled, ensuring no impact on existing workflows until explicitly enabled.
 
 ### Channel-aware `aspire add` & templating
 
@@ -503,6 +626,84 @@ builder.AddGitHubModel("phi4", GitHubModel.Microsoft.Phi4);
 ```
 
 This reduces magic strings, enables code navigation to model definitions, and aligns GitHub model usage with the existing Azure AI Foundry `AIFoundryModel` experience introduced in 9.5.
+
+### Dev Tunnels hosting integration
+
+.NET Aspire 9.5 introduces first-class support for Azure Dev Tunnels, enabling seamless integration of secure public tunnels for your applications during development and testing scenarios.
+
+#### Dev Tunnels integration features
+
+- **Secure public tunnels**: Create public HTTPS endpoints for applications running locally
+- **Automatic tunnel management**: Tunnels are created, configured, and cleaned up automatically
+- **Private and anonymous tunnels**: Support for both authenticated private tunnels and public anonymous access
+- **Development workflow integration**: Perfect for webhook testing, mobile app development, and external service integration
+
+#### Basic Dev Tunnels usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add a basic Dev Tunnel resource
+var tunnel = builder.AddDevTunnel("dev-tunnel");
+
+// Add your web application
+var webApp = builder.AddProject<Projects.WebApp>("webapp");
+
+// Connect the tunnel to the web application endpoint
+tunnel.WithReference(webApp.GetEndpoint("http"));
+
+builder.Build().Run();
+```
+
+#### Advanced tunnel configuration
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var api = builder.AddProject<Projects.WebApi>("api");
+
+// Create a tunnel with custom options
+var tunnel = builder.AddDevTunnel("api-tunnel", options: new DevTunnelOptions
+{
+    Description = "API development tunnel",
+    Labels = ["development", "api"]
+})
+.WithAnonymousAccess(); // Allow anonymous access
+
+// Connect the tunnel to the API endpoint
+tunnel.WithReference(api.GetEndpoint("https"));
+
+// Reference the tunnel from other resources
+var webhookProcessor = builder.AddProject<Projects.WebhookProcessor>("webhook-processor")
+    .WithReference(api, tunnel); // Gets tunneled endpoint information
+
+builder.Build().Run();
+```
+
+#### Dev Tunnels use cases
+
+**Webhook Development**: Test webhooks from external services (GitHub, Stripe, etc.) against your locally running API:
+
+```csharp
+// Webhook API with public tunnel
+var webhookApi = builder.AddProject<Projects.WebhookApi>("webhook-api");
+
+var publicTunnel = builder.AddDevTunnel("webhook-tunnel")
+    .WithAnonymousAccess()
+    .WithReference(webhookApi.GetEndpoint("http"));
+```
+
+**Mobile App Testing**: Enable mobile devices to connect to your local development server:
+
+```csharp
+// Mobile backend with public tunnel for device testing
+var mobileBackend = builder.AddProject<Projects.MobileBackend>("mobile-backend");
+
+var mobileTunnel = builder.AddDevTunnel("mobile-tunnel")
+    .WithReference(mobileBackend.GetEndpoint("http"));
+```
+
+The Dev Tunnels integration automatically handles Azure authentication, tunnel lifecycle management, and provides the public URLs to connected resources, making it easy to expose local development services securely to external consumers.
 
 ## App model enhancements
 
@@ -854,6 +1055,148 @@ var input = new InteractionInput
 
 All `InteractionInput` instances must now specify a `Name`. The `Label` property is optional and will default to the `Name` if not provided.
 
+### Resource lifecycle event APIs
+
+.NET Aspire 9.5 introduces new resource lifecycle event APIs that allow you to hook into resource state transitions for custom logic execution.
+
+#### OnResourceStopped event API
+
+The new `OnResourceStopped` extension method enables you to register callbacks that execute when a resource transitions to the stopped state:
+
+```csharp
+var database = builder.AddSqlServer("sqlserver")
+    .OnResourceStopped(async (resource, stoppedEvent, cancellationToken) =>
+    {
+        // Cleanup logic when database stops
+        logger.LogInformation("Database {ResourceName} stopped", resource.Name);
+        await PerformCleanupAsync(cancellationToken);
+    });
+```
+
+#### Complete lifecycle event coverage
+
+Combined with existing lifecycle events, you now have full coverage of resource state transitions:
+
+```csharp
+var api = builder.AddProject<Projects.Api>("api")
+    .OnResourceReady(async (resource, readyEvent, cancellationToken) =>
+    {
+        // Resource is running and healthy
+        await RegisterWithServiceDiscoveryAsync(resource, cancellationToken);
+    })
+    .OnResourceStopped(async (resource, stoppedEvent, cancellationToken) =>
+    {
+        // Resource has stopped
+        await UnregisterFromServiceDiscoveryAsync(resource, cancellationToken);
+    });
+```
+
+This provides symmetrical lifecycle management for scenarios like service registration/deregistration, resource cleanup, logging, and custom monitoring integration.
+
+### Executable resource configuration APIs
+
+Enhanced APIs for configuring executable resources with command and working directory specifications.
+
+#### WithCommand and WithWorkingDirectory APIs
+
+New extension methods allow precise control over executable resource execution:
+
+```csharp
+// Configure executable with custom command and working directory
+var processor = builder.AddExecutable("data-processor", "python")
+    .WithCommand("main.py --batch-size 100")
+    .WithWorkingDirectory("/app/data-processing")
+    .WithArgs("--config", "production.json");
+
+// Executable with specific working directory for relative paths
+var buildTool = builder.AddExecutable("build-tool", "npm")
+    .WithCommand("run build:production")
+    .WithWorkingDirectory("./frontend");
+```
+
+#### Enhanced CommandLineArgsCallbackContext
+
+The `CommandLineArgsCallbackContext` now includes resource information for context-aware argument building:
+
+```csharp
+var worker = builder.AddExecutable("worker", "dotnet")
+    .WithArgs(context =>
+    {
+        // Access to the resource instance for dynamic configuration
+        var resourceName = context.Resource.Name;
+        var environment = context.ExecutionContext.IsRunMode ? "Development" : "Production";
+        
+        context.Args.Add("--resource-name");
+        context.Args.Add(resourceName);
+        context.Args.Add("--environment");
+        context.Args.Add(environment);
+    });
+```
+
+These APIs provide fine-grained control over executable resource configuration, enabling complex deployment scenarios and dynamic argument construction based on execution context.
+
+### Interactive parameter processing APIs
+
+.NET Aspire 9.5 introduces the `ParameterProcessor` API for programmatic parameter resolution with interactive prompting capabilities.
+
+#### ParameterProcessor API
+
+The new experimental `ParameterProcessor` class enables applications to handle parameter resolution during runtime:
+
+```csharp
+// In your application startup or configuration
+services.AddSingleton<ParameterProcessor>();
+
+// Use parameter processor to initialize parameters
+public async Task ConfigureAsync(ParameterProcessor processor)
+{
+    var parameters = new[]
+    {
+        builder.AddParameter("database-password", secret: true),
+        builder.AddParameter("api-key", secret: true),
+        builder.AddParameter("environment-name")
+    };
+
+    // Initialize parameters with interactive prompting
+    await processor.InitializeParametersAsync(parameters, waitForResolution: true);
+}
+```
+
+#### InteractionInputCollection enhancements
+
+Enhanced parameter input handling with the new `InteractionInputCollection` type:
+
+```csharp
+// Enhanced interaction service with typed input collection
+public async Task<InteractionResult<InteractionInputCollection>> ProcessParametersAsync()
+{
+    var inputs = new List<InteractionInput>
+    {
+        new() { Name = "username", Label = "Username", InputType = InputType.Text },
+        new() { Name = "password", Label = "Password", InputType = InputType.Password },
+        new() { Name = "environment", Label = "Environment", InputType = InputType.Select,
+                Options = new[] { ("dev", "Development"), ("prod", "Production") } }
+    };
+
+    var result = await interactionService.PromptInputsAsync(
+        "Configure Parameters", 
+        "Enter application configuration:", 
+        inputs);
+
+    if (result.Success)
+    {
+        // Access inputs by name with type safety
+        var username = result.Value["username"].Value;
+        var password = result.Value["password"].Value;
+        var environment = result.Value["environment"].Value;
+    }
+
+    return result;
+}
+```
+
+The `InteractionInputCollection` provides indexed access by name and improved type safety for parameter processing workflows.
+
 ### MySQL password improvements
 
 Consistent password handling across database resources:
@@ -904,6 +1247,63 @@ var localFoundry = builder.AddAzureAIFoundry("local-ai")
   .RunAsFoundryLocal();
 ```
 
+### Azure Container App Jobs support
+
+.NET Aspire 9.5 introduces comprehensive support for Azure Container App Jobs, allowing you to deploy both project and container resources as background job workloads that can run on schedules, in response to events, or be triggered manually.
+
+Container App Jobs complement the existing Container Apps functionality by providing a dedicated way to run finite workloads like data processing, ETL operations, batch jobs, and scheduled maintenance tasks.
+
+#### Publishing resources as Container App Jobs
+
+Use the new `PublishAsAzureContainerAppJob` extension methods to publish resources as jobs:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Publish a project as a Container App Job
+var dataProcessor = builder.AddProject<Projects.DataProcessor>("data-processor")
+    .PublishAsAzureContainerAppJob();
+
+// Publish a container as a Container App Job  
+var batchJob = builder.AddContainer("batch-job", "my-batch-image")
+    .PublishAsAzureContainerAppJob(job => {
+        // Configure job-specific settings
+        job.ScheduleTriggerConfig = new ScheduleTriggerConfig
+        {
+            CronExpression = "0 0 2 * * *", // Run daily at 2 AM
+            ReplicaCompletionCount = 1
+        };
+    });
+
+builder.Build().Run();
+```
+
+#### Job customization and configuration
+
+The new `AzureContainerJobCustomizationAnnotation` enables fine-grained control over job behavior:
+
+```csharp
+var scheduledJob = builder.AddProject<Projects.ScheduledWorker>("scheduled-worker")
+    .PublishAsAzureContainerAppJob(job => {
+        // Event-driven job configuration
+        job.EventTriggerConfig = new EventTriggerConfig
+        {
+            Scale = new JobScale
+            {
+                MinExecutions = 0,
+                MaxExecutions = 10,
+                PollingInterval = TimeSpan.FromSeconds(30)
+            }
+        };
+        
+        // Resource allocation
+        job.ReplicaRetryLimit = 3;
+        job.ReplicaTimeoutInSeconds = 1800; // 30 minutes
+    });
+```
+
+This feature addresses issue #4366 and provides a unified development and deployment experience for both long-running services (Container Apps) and finite workloads (Container App Jobs) within your Aspire applications.
+
 ### Azure App Configuration emulator APIs
 
 Run emulators locally with full configuration support:
@@ -928,6 +1328,55 @@ Several Azure hosting resource types now implement `IResourceWithEndpoints` enab
 - `AzureKeyVaultResource`
 - `AzurePostgresFlexibleServerResource`
 - `AzureRedisCacheResource`
+
+### Azure Redis Enterprise support
+
+.NET Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
+
+#### Azure Redis Enterprise integration
+
+The new `AddAzureRedisEnterprise` extension method enables Redis Enterprise resource modeling:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add Azure Redis Enterprise resource
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise");
+
+// Use in your applications
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redisEnterprise);
+
+builder.Build().Run();
+```
+
+#### Local development with container emulation
+
+For local development, Redis Enterprise can run as a container with the same APIs:
+
+```csharp
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .RunAsContainer(container => container
+        .WithMemoryLimit("2GB")
+        .WithHostPort(6379));
+```
+
+#### Authentication options
+
+Redis Enterprise supports both access key and managed identity authentication:
+
+```csharp
+// With access key authentication (default)
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .WithAccessKeyAuthentication();
+
+// With Key Vault integration for access keys
+var keyVault = builder.AddAzureKeyVault("keyvault");
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .WithAccessKeyAuthentication(keyVault);
+```
+
+Azure Redis Enterprise provides advanced caching capabilities with clustering, high availability, and enterprise security features while maintaining compatibility with the standard Redis APIs.
 
 ### Azure resource reference properties
 
