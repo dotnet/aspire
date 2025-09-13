@@ -18,7 +18,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Kusto resource and consume th
 
 ```csharp
 var db = builder.AddAzureKustoCluster("kusto")
-                .AddDatabase("mydb")
+                .AddReadWriteDatabase("mydb")
                 .RunAsEmulator();
 
 var myService = builder.AddProject<Projects.MyService>()

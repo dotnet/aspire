@@ -96,7 +96,7 @@ public class KustoFunctionalTests
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
-        var kustoDb = kusto.AddDatabase("TestDb");
+        var kustoDb = kusto.AddReadWriteDatabase("TestDb");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -173,8 +173,8 @@ public class KustoFunctionalTests
         builder.Services.AddFakeLogging();
 
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
-        kusto.AddDatabase("TestDb1", "TestDb");
-        kusto.AddDatabase("TestDb2", "TestDb");
+        kusto.AddReadWriteDatabase("TestDb1", "TestDb");
+        kusto.AddReadWriteDatabase("TestDb2", "TestDb");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -199,8 +199,8 @@ public class KustoFunctionalTests
         builder.Services.AddFakeLogging();
 
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
-        var db1 = kusto.AddDatabase("TestDb1", "TestDb");
-        var db2 = kusto.AddDatabase("TestDb2", "__invalid");
+        var db1 = kusto.AddReadWriteDatabase("TestDb1", "TestDb");
+        var db2 = kusto.AddReadWriteDatabase("TestDb2", "__invalid");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -234,7 +234,7 @@ public class KustoFunctionalTests
         {
             container.WithBindMount(temp.Path, dbPath);
         });
-        var kustoDb = kusto.AddDatabase("TestDb")
+        var kustoDb = kusto.AddReadWriteDatabase("TestDb")
             .WithCreationScript(
             $"""
             .create database {dbName} persist (
