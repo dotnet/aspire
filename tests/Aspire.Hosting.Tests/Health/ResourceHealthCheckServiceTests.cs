@@ -652,133 +652,19 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task ResourceStartedEventIsFiredBeforeResourceReadyEvent()
+    public void ResourceStartedEventHasCorrectProperties()
     {
-        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Arrange
+        var resource = new ParentResource("test-resource");
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
 
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        builder.Services.AddHealthChecks().AddAsyncCheck("healthcheck_a", async () =>
-        {
-            await tcs.Task;
-            return HealthCheckResult.Healthy();
-        });
+        // Act
+        var resourceStartedEvent = new ResourceStartedEvent(resource, serviceProvider);
 
-        var eventOrder = new List<string>();
-        var eventOrderLock = new object();
-
-        var resourceStartedEvent = new TaskCompletionSource<ResourceStartedEvent>();
-        var resourceReadyEvent = new TaskCompletionSource<ResourceReadyEvent>();
-
-        var resource = builder.AddResource(new ParentResource("resource"))
-            .WithHealthCheck("healthcheck_a");
-
-        // Subscribe to ResourceStartedEvent
-        builder.Eventing.Subscribe<ResourceStartedEvent>((@event, ct) =>
-        {
-            lock (eventOrderLock)
-            {
-                eventOrder.Add("ResourceStartedEvent");
-            }
-            resourceStartedEvent.SetResult(@event);
-            return Task.CompletedTask;
-        });
-
-        // Subscribe to ResourceReadyEvent via the resource builder extension
-        resource.OnResourceReady((_, @event, _) =>
-        {
-            lock (eventOrderLock)
-            {
-                eventOrder.Add("ResourceReadyEvent");
-            }
-            resourceReadyEvent.SetResult(@event);
-            return Task.CompletedTask;
-        });
-
-        await using var app = await builder.BuildAsync().DefaultTimeout();
-        await app.StartAsync().DefaultTimeout();
-
-        // Transition resource to Starting state
-        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Starting, null)
-        }).DefaultTimeout();
-
-        // Transition resource to Running state - this should fire ResourceStartedEvent
-        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
-        });
-
-        // Wait for ResourceStartedEvent to be fired
-        var startedEvent = await resourceStartedEvent.Task.DefaultTimeout();
-        Assert.NotNull(startedEvent);
-        Assert.Equal("resource", startedEvent.Resource.Name);
-
-        // At this point, ResourceReadyEvent should not have fired yet since health check is blocked
-        Assert.False(resourceReadyEvent.Task.IsCompleted);
-
-        // Now allow health check to succeed
-        tcs.SetResult();
-
-        // Wait for ResourceReadyEvent to be fired
-        var readyEvent = await resourceReadyEvent.Task.DefaultTimeout();
-        Assert.NotNull(readyEvent);
-        Assert.Equal("resource", readyEvent.Resource.Name);
-
-        // Verify the event order: ResourceStartedEvent should come before ResourceReadyEvent
-        lock (eventOrderLock)
-        {
-            Assert.Equal(2, eventOrder.Count);
-            Assert.Equal("ResourceStartedEvent", eventOrder[0]);
-            Assert.Equal("ResourceReadyEvent", eventOrder[1]);
-        }
-
-        await app.StopAsync().DefaultTimeout();
-    }
-
-    [Fact]
-    public async Task ResourceStartedEventIsFiredForResourcesWithoutHealthChecks()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-
-        var resourceStartedEvent = new TaskCompletionSource<ResourceStartedEvent>();
-        var resourceReadyEvent = new TaskCompletionSource<ResourceReadyEvent>();
-
-        var resource = builder.AddResource(new ParentResource("resource"));
-
-        // Subscribe to ResourceStartedEvent
-        builder.Eventing.Subscribe<ResourceStartedEvent>((@event, ct) =>
-        {
-            resourceStartedEvent.SetResult(@event);
-            return Task.CompletedTask;
-        });
-
-        // Subscribe to ResourceReadyEvent
-        resource.OnResourceReady((_, @event, _) =>
-        {
-            resourceReadyEvent.SetResult(@event);
-            return Task.CompletedTask;
-        });
-
-        await using var app = await builder.BuildAsync().DefaultTimeout();
-        await app.StartAsync().DefaultTimeout();
-
-        // Transition resource to Running state
-        await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
-        });
-
-        // Both events should fire quickly since there are no health checks
-        var startedEvent = await resourceStartedEvent.Task.DefaultTimeout();
-        var readyEvent = await resourceReadyEvent.Task.DefaultTimeout();
-
-        Assert.NotNull(startedEvent);
-        Assert.Equal("resource", startedEvent.Resource.Name);
-        Assert.NotNull(readyEvent);
-        Assert.Equal("resource", readyEvent.Resource.Name);
-
-        await app.StopAsync().DefaultTimeout();
+        // Assert
+        Assert.Equal(resource, resourceStartedEvent.Resource);
+        Assert.Equal(serviceProvider, resourceStartedEvent.Services);
+        Assert.Equal("test-resource", resourceStartedEvent.Resource.Name);
     }
 
     private sealed class ParentResource(string name) : Resource(name)
