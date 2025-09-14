@@ -1798,7 +1798,7 @@ public class AzureContainerAppsTests
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddContainer("manual-job", "myimage")
-            .PublishAsManualAzureContainerAppJob();
+            .PublishAsAzureContainerAppJob();
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);

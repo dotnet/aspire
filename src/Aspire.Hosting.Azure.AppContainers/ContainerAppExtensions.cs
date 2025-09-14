@@ -174,19 +174,19 @@ public static class ContainerAppExtensions
     /// <param name="resource">The compute resource builder.</param>
     /// <returns>The updated compute resource builder.</returns>
     /// <remarks>
-    /// This method is a convenience wrapper around <see cref="PublishAsAzureContainerAppJob{T}(IResourceBuilder{T}, Action{AzureResourceInfrastructure, ContainerAppJob})"/>
-    /// for the common case of manually triggered jobs. Manual trigger is the default trigger type, so this method provides
-    /// a simpler API when no additional job configuration is needed.
+    /// This is a convenience overload for the common case of manually triggered jobs. Manual trigger 
+    /// is the default trigger type, so this method provides a simpler API when no additional job 
+    /// configuration is needed.
     /// 
     /// <example>
     /// <code>
     /// builder.AddProject&lt;Projects.ProcessorJob&gt;("processor-job")
-    ///        .PublishAsManualAzureContainerAppJob(); // Manual trigger (default)
+    ///        .PublishAsAzureContainerAppJob(); // Manual trigger (default)
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> PublishAsManualAzureContainerAppJob<T>(this IResourceBuilder<T> resource)
+    public static IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this IResourceBuilder<T> resource)
         where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -194,7 +194,7 @@ public static class ContainerAppExtensions
         return resource.PublishAsAzureContainerAppJob((infrastructure, job) =>
         {
             // Manual trigger is the default, so no additional configuration is needed
-            // This method exists for clarity and consistency with scheduled jobs
+            // This overload provides a simpler API for the common manual trigger case
         });
     }
 
