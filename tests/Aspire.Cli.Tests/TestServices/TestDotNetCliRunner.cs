@@ -17,11 +17,13 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool IsAspireHost, string? AspireHostingVersion)>? GetAppHostInformationAsyncCallback { get; set; }
     public Func<DirectoryInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string[] ConfigPaths)>? GetNuGetConfigPathsAsyncCallback { get; set; }
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
-    public Func<string, string, string?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
+    public Func<string, string, FileInfo?, string?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
     public Func<string, string, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
     public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, FileInfo?, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
+    public Func<DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, bool HasAspireWorkload)>? CheckWorkloadAsyncCallback { get; set; }
+    public Func<string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? UninstallWorkloadAsyncCallback { get; set; }
 
     public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -79,7 +81,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return InstallTemplateAsyncCallback != null
-            ? Task.FromResult(InstallTemplateAsyncCallback(packageName, version, nugetSource, force, options, cancellationToken))
+            ? Task.FromResult(InstallTemplateAsyncCallback(packageName, version, nugetConfigFile, nugetSource, force, options, cancellationToken))
             : Task.FromResult<(int, string?)>((0, version)); // If not overridden, just return success for the version specified.
     }
 
@@ -109,5 +111,19 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
         return TrustHttpCertificateAsyncCallback != null
             ? Task.FromResult(TrustHttpCertificateAsyncCallback(options, cancellationToken))
             : throw new NotImplementedException();
+    }
+
+    public Task<(int ExitCode, bool HasAspireWorkload)> CheckWorkloadAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return CheckWorkloadAsyncCallback != null
+            ? Task.FromResult(CheckWorkloadAsyncCallback(options, cancellationToken))
+            : Task.FromResult((0, false)); // Return success with no workload by default
+    }
+
+    public Task<int> UninstallWorkloadAsync(string workloadName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return UninstallWorkloadAsyncCallback != null
+            ? Task.FromResult(UninstallWorkloadAsyncCallback(workloadName, options, cancellationToken))
+            : Task.FromResult(0); // Return success by default
     }
 }
