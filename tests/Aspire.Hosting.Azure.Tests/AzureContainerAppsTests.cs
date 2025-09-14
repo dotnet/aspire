@@ -1758,4 +1758,36 @@ public class AzureContainerAppsTests
         Assert.Contains("Microsoft.App/jobs", batchBicep);
         Assert.Contains("Microsoft.App/containerApps", webBicep);
     }
+
+    [Fact]
+    public async Task PublishAsScheduledAzureContainerAppJobConfiguresScheduleTrigger()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        const string cronExpression = "0 0 * * *"; // Run every day at midnight
+
+        builder.AddContainer("scheduled-job", "myimage")
+            .PublishAsScheduledAzureContainerAppJob(cronExpression);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        // Verify the bicep contains job configuration
+        Assert.Contains("Microsoft.App/jobs", bicep);
+        Assert.Contains("Schedule", bicep);
+        Assert.Contains(cronExpression, bicep);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }

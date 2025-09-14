@@ -166,4 +166,36 @@ public static class ContainerAppExtensions
 
         return resource;
     }
+
+    /// <summary>
+    /// Configures the specified compute resource as a scheduled Azure Container App Job with the provided cron expression.
+    /// </summary>
+    /// <typeparam name="T">The type of the compute resource.</typeparam>
+    /// <param name="resource">The compute resource builder.</param>
+    /// <param name="cronExpression">The cron expression that defines the schedule for the job.</param>
+    /// <returns>The updated compute resource builder.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper around <see cref="PublishAsAzureContainerAppJob{T}(IResourceBuilder{T}, Action{AzureResourceInfrastructure, ContainerAppJob})"/>
+    /// that automatically configures the job with a schedule trigger using the specified cron expression.
+    /// 
+    /// <example>
+    /// <code>
+    /// builder.AddProject&lt;Projects.Api&gt;("job")
+    ///        .PublishAsScheduledAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> PublishAsScheduledAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression)
+        where T : IComputeResource
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
+
+        return resource.PublishAsAzureContainerAppJob((infrastructure, job) =>
+        {
+            job.Configuration.TriggerType = ContainerAppJobTriggerType.Schedule;
+            job.Configuration.ScheduleTriggerConfig.CronExpression = cronExpression;
+        });
+    }
 }
