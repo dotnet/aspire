@@ -211,7 +211,7 @@ public static class ContainerAppExtensions
     /// 
     /// <example>
     /// <code>
-    /// builder.AddProject&lt;Projects.Api&gt;("job")
+    /// builder.AddProject&lt;Projects.ProcessorJob&gt;("job")
     ///        .PublishAsScheduledAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
     /// </code>
     /// </example>
