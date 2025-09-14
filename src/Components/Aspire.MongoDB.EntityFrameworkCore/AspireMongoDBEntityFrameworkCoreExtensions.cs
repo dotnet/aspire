@@ -29,7 +29,7 @@ public static class AspireMongoDBEntityFrameworkCoreExtensions
     /// <param name="databaseName">A required string so that the efcore provider can connect to the database</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
-    /// <remarks>Reads the configuration from "Aspire:Oracle:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:Oracle:EntityFrameworkCore" if former does not exist.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:MongoDB:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:MongoDB:EntityFrameworkCore" if former does not exist.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MongoDBEntityFrameworkCoreSettings.ConnectionString"/> is not provided.</exception>
     public static void AddMongoDBDatabaseDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
