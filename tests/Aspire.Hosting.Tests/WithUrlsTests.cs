@@ -705,6 +705,55 @@ public class WithUrlsTests
     }
 
     [Fact]
+    public async Task WithUrlWithRelativeUrlAppliesPathToExpectedUrls()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tcs = new TaskCompletionSource();
+        var projectA = builder.AddProject<ProjectA>("projecta")
+            .WithHttpEndpoint(name: "test")
+            .WithUrl("https://static-before.com")
+            .WithUrls(c => c.Urls.Add(new() { Url = "https://callback-before.com/sub-path", DisplayText = "Example" }))
+            .WithUrl("/test", "Example") // This should update all URLs added to this point
+            .WithUrl("https://static-after.com/sub-path") // This will get updated too because it's a static URL so order doesn't matter
+            .WithUrls(c => c.Urls.Add(new() { Url = "https://callback-after.com/sub-path" })) // This won't get updated because it's added after the relative URL
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task;
+
+        var allUrls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        var endpointUrl = allUrls.FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
+        var staticBeforeUrl = allUrls.FirstOrDefault(u => u.Endpoint is null && u.Url.StartsWith("https://static-before.com"));
+        var callbackBeforeUrl = allUrls.FirstOrDefault(u => u.Endpoint is null && u.Url.StartsWith("https://callback-before.com"));
+        var staticAfter = allUrls.FirstOrDefault(u => u.Endpoint is null && u.Url.StartsWith("https://static-after.com"));
+        var callbackAfter = allUrls.FirstOrDefault(u => u.Endpoint is null && u.Url.StartsWith("https://callback-after.com"));
+
+        Assert.NotNull(endpointUrl);
+        Assert.Equal("Example", endpointUrl.DisplayText);
+        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/test"));
+
+        Assert.NotNull(staticBeforeUrl);
+        Assert.Equal("https://static-before.com/test", staticBeforeUrl.Url);
+
+        Assert.NotNull(callbackBeforeUrl);
+        Assert.Equal("https://callback-before.com/test", callbackBeforeUrl.Url);
+
+        Assert.NotNull(staticAfter);
+        Assert.Equal("https://static-after.com/test", staticAfter.Url);
+
+        Assert.NotNull(callbackAfter);
+        Assert.Equal("https://callback-after.com/sub-path", callbackAfter.Url);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
     public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
