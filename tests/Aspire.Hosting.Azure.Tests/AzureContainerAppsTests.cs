@@ -1760,7 +1760,7 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task PublishAsScheduledAzureContainerAppJobConfiguresScheduleTrigger()
+    public async Task PublishAsAzureContainerAppJobWithCronExpressionConfiguresScheduleTrigger()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
@@ -1768,7 +1768,7 @@ public class AzureContainerAppsTests
         const string cronExpression = "0 0 * * *"; // Run every day at midnight
 
         builder.AddContainer("scheduled-job", "myimage")
-            .PublishAsScheduledAzureContainerAppJob(cronExpression);
+            .PublishAsAzureContainerAppJob(cronExpression);
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);
@@ -1792,7 +1792,7 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task PublishAsManualAzureContainerAppJobConfiguresManualTrigger()
+    public async Task PublishAsAzureContainerAppJobParameterlessConfiguresManualTrigger()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");

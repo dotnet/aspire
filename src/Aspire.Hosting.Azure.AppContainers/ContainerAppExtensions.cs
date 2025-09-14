@@ -212,12 +212,12 @@ public static class ContainerAppExtensions
     /// <example>
     /// <code>
     /// builder.AddProject&lt;Projects.ProcessorJob&gt;("job")
-    ///        .PublishAsScheduledAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
+    ///        .PublishAsAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> PublishAsScheduledAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression)
+    public static IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression)
         where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(resource);
