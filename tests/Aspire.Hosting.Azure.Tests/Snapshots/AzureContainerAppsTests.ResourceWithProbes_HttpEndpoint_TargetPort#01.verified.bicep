@@ -11,8 +11,6 @@ param env_outputs_azure_container_registry_managed_identity_id string
 
 param project1_containerimage string
 
-param project1_containerport string
-
 resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'project1'
   location: location
@@ -21,7 +19,7 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: false
-        targetPort: int(project1_containerport)
+        targetPort: 1111
         transport: 'http'
       }
       registries: [
@@ -44,22 +42,9 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               failureThreshold: 3
               httpGet: {
-                path: '/ready'
-                port: int(project1_containerport)
-                scheme: 'HTTPS'
-              }
-              initialDelaySeconds: 60
-              periodSeconds: 5
-              successThreshold: 1
-              timeoutSeconds: 1
-              type: 'Readiness'
-            }
-            {
-              failureThreshold: 3
-              httpGet: {
                 path: '/health'
-                port: int(project1_containerport)
-                scheme: 'HTTPS'
+                port: int('1111')
+                scheme: 'HTTP'
               }
               initialDelaySeconds: 5
               periodSeconds: 5
@@ -88,8 +73,8 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: 'true'
             }
             {
-              name: 'HTTPS_PORTS'
-              value: project1_containerport
+              name: 'HTTP_PORTS'
+              value: '1111'
             }
           ]
         }

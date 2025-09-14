@@ -13,7 +13,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: false
-        targetPort: 8080
+        targetPort: 8000
         transport: 'http'
       }
     }
@@ -26,7 +26,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               failureThreshold: 3
               httpGet: {
                 path: '/ready'
-                port: int('8080')
+                port: int('8000')
                 scheme: 'HTTP'
               }
               initialDelaySeconds: 5
@@ -39,7 +39,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
               failureThreshold: 3
               httpGet: {
                 path: '/health'
-                port: int('8080')
+                port: int('8000')
                 scheme: 'HTTP'
               }
               initialDelaySeconds: 5

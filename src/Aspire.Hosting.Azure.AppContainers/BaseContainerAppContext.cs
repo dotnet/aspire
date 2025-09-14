@@ -176,7 +176,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
         }
     }
 
-    private BicepValue<string> GetValue(EndpointMapping mapping, EndpointProperty property)
+    private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
         var (scheme, host, port, targetPort, isHttpIngress, external) = mapping;
 
@@ -219,7 +219,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
             var mapping = context._endpointMapping[ep.EndpointName];
 
-            var url = GetValue(mapping, EndpointProperty.Url);
+            var url = GetEndpointValue(mapping, EndpointProperty.Url);
 
             return (url, secretType);
         }
@@ -271,7 +271,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
             var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
 
-            var val = GetValue(mapping, epExpr.Property);
+            var val = GetEndpointValue(mapping, epExpr.Property);
 
             return (val, secretType);
         }
@@ -471,13 +471,22 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
                 && _endpointMapping.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
             {
+                // In ACA probes work on internal network only and don't go through ingress so if we have a
+                // probe associated to an endpoint used for ingress we force scheme to "http".
+                // Port is always the target port of the container.
+                var scheme = endpointMapping.Scheme;
+                if (endpointMapping.IsHttpIngress)
+                {
+                    scheme = "http";
+                }
+
                 containerAppProbe = new ContainerAppProbe()
                 {
                     HttpGet = new()
                     {
                         Path = endpointProbeAnnotation.Path,
-                        Port = AsInt(GetValue(endpointMapping, EndpointProperty.TargetPort)),
-                        Scheme = endpointMapping.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
+                        Port = AsInt(GetEndpointValue(endpointMapping, EndpointProperty.TargetPort)),
+                        Scheme = scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
                     },
                 };
             }
