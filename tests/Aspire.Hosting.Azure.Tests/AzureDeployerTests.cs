@@ -145,6 +145,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
+
+        // Assert - Verify MockImageBuilder was NOT called when there are no compute resources
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImagesCalled);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+        Assert.Empty(mockImageBuilder.BuildImageResources);
+        Assert.Empty(mockImageBuilder.TagImageCalls);
+        Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
     [Fact]
@@ -185,16 +196,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push not called for existing container image
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
-
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were NOT called for existing container image
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+        Assert.Empty(mockImageBuilder.TagImageCalls);
+        Assert.Empty(mockImageBuilder.PushImageCalls);
     }
 
     [Fact]
@@ -235,16 +243,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for Dockerfile
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "api" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     [Fact]
@@ -285,16 +296,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for project resources
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "api" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     [Fact]
@@ -368,31 +382,26 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name aasregistry");
 
-        // Assert Docker operations for project resource deployed to AAS environment
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag api-service aasregistry.azurecr.io/"));
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push aasregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called for multiple registries
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        // Assert Docker operations NOT performed for existing container image deployed to ACA environment
-        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag cache acaregistry.azurecr.io/"));
+        // Verify tag calls were made for both registries
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "api-service" && call.targetImageName.StartsWith("aasregistry.azurecr.io/"));
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "python-app" && call.targetImageName.StartsWith("acaregistry.azurecr.io/"));
 
-        // Assert Docker operations for project resource deployed to ACA environment
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag python-app acaregistry.azurecr.io/"));
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push acaregistry.azurecr.io/"));
+        // Verify push calls were made for both registries
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("aasregistry.azurecr.io/"));
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("acaregistry.azurecr.io/"));
+
+        // Verify that redis (existing container) was not tagged/pushed
+        Assert.DoesNotContain(mockImageBuilder.TagImageCalls, call => call.localImageName == "cache");
     }
 
     [Fact]
@@ -617,16 +626,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
             cmd => cmd.ExecutablePath.Contains("az") &&
                    cmd.Arguments == "acr login --name testregistry");
 
-        // Assert - Verify Docker tag and push called for Azure Functions project
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("tag funcapp testregistry.azurecr.io/"));
+        // Assert - Verify MockImageBuilder tag and push methods were called
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.True(mockImageBuilder.TagImageCalled);
+        Assert.True(mockImageBuilder.PushImageCalled);
 
-        Assert.Contains(mockProcessRunner.ExecutedCommands,
-            cmd => cmd.ExecutablePath == "docker" &&
-                   cmd.Arguments != null &&
-                   cmd.Arguments.StartsWith("push testregistry.azurecr.io/"));
+        // Verify specific tag call was made (local "funcapp" to target in testregistry)
+        Assert.Contains(mockImageBuilder.TagImageCalls, call =>
+            call.localImageName == "funcapp" && call.targetImageName.StartsWith("testregistry.azurecr.io/"));
+
+        // Verify specific push call was made
+        Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
+            imageName.StartsWith("testregistry.azurecr.io/"));
     }
 
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,

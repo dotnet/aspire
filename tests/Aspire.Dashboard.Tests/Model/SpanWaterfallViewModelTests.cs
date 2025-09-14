@@ -164,6 +164,7 @@ public sealed class SpanWaterfallViewModelTests
     [InlineData("rpc", new string[] { }, false)]
     [InlineData("genai", new string[] { "gen_ai.system" }, true)]
     [InlineData("genai", new string[] { "gen_ai.provider.name" }, true)]
+    [InlineData("genai", new string[] { "gen_ai.operation.name" }, true)]
     [InlineData("genai", new string[] { }, false)]
     public void MatchesFilter_SpanType_ReturnsExpected(string spanTypeName, string[] presentAttributeNames, bool expected)
     {

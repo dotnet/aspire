@@ -53,11 +53,11 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string MininumSdkVersionMissing
+        public static string MinimumSdkVersionNotMet
         {
             get
             {
-                return ResourceManager.GetString("MininumSdkVersionMissing", resourceCulture);
+                return ResourceManager.GetString("MinimumSdkVersionNotMet", resourceCulture);
             }
         }
 

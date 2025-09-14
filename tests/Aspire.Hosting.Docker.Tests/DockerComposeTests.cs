@@ -217,6 +217,16 @@ public class DockerComposeTests(ITestOutputHelper output)
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
+
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

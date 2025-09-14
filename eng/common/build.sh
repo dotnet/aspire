@@ -44,6 +44,7 @@ usage()
   echo "  --warnAsError <value>    Sets warnaserror msbuild parameter ('true' or 'false')"
   echo "  --buildCheck <value>     Sets /check msbuild parameter"
   echo "  --fromVMR                Set when building from within the VMR"
+  echo "  --build-extension        Build the VS Code extension"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -90,6 +91,7 @@ prepare_machine=false
 verbosity='minimal'
 runtime_source_feed=''
 runtime_source_feed_key=''
+build_extension=false
 
 properties=()
 while [[ $# > 0 ]]; do
@@ -191,6 +193,9 @@ while [[ $# > 0 ]]; do
       runtime_source_feed_key=$2
       shift
       ;;
+    -build-extension)
+      build_extension=true
+      ;;
     *)
       properties+=("$1")
       ;;
@@ -219,6 +224,68 @@ function InitializeCustomToolset {
   if [[ -a "$script" ]]; then
     . "$script"
   fi
+}
+
+function Build-Extension {
+  local extension_dir="$repo_root/extension"
+  if [[ ! -d "$extension_dir" ]]; then
+    echo "Extension directory not found at $extension_dir, skipping extension build"
+    return
+  fi
+
+  echo "Building VS Code extension..."
+
+  # Check if yarn is available
+  if ! command -v yarn &> /dev/null; then
+    echo "Warning: yarn is not installed or not available in PATH. Skipping extension build."
+    echo "To build the extension, install yarn: https://yarnpkg.com/getting-started/install"
+    return
+  fi
+
+  local yarn_version
+  yarn_version=$(yarn --version 2>/dev/null)
+  echo "Found yarn version: $yarn_version"
+
+  pushd "$extension_dir" > /dev/null
+
+  echo "Running yarn install..."
+  if ! yarn install; then
+    echo "Error: yarn install failed"
+    popd > /dev/null
+    ExitWithExitCode 1
+  fi
+
+  echo "Running yarn compile..."
+  if ! yarn compile; then
+    echo "Error: yarn compile failed"
+    popd > /dev/null
+    ExitWithExitCode 1
+  fi
+
+  # Check if vsce is available and package the extension
+  if command -v vsce &> /dev/null; then
+    local vsce_version
+    vsce_version=$(vsce --version 2>/dev/null)
+    echo "Found vsce version: $vsce_version"
+
+    # Read version from package.json
+    local package_json_path="$extension_dir/package.json"
+    if [[ -f "$package_json_path" ]]; then
+      echo "Packaging extension"
+      if vsce package --pre-release; then
+        echo "Extension packaged successfully"
+      else
+        echo "Warning: vsce package failed"
+      fi
+    else
+      echo "Warning: package.json not found, skipping vsce package"
+    fi
+  else
+    echo "vsce not found, skipping package step"
+  fi
+
+  echo "VS Code extension build completed successfully"
+  popd > /dev/null
 }
 
 function Build {
@@ -258,6 +325,11 @@ function Build {
     /p:Publish=$publish \
     /p:RestoreStaticGraphEnableBinaryLogger=$binary_log \
     ${properties[@]+"${properties[@]}"}
+
+  # Build VS Code extension if build-extension parameter is specified
+  if [[ "$build_extension" == true ]]; then
+    Build-Extension
+  fi
 
   ExitWithExitCode 0
 }

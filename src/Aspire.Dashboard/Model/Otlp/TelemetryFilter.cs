@@ -135,7 +135,7 @@ public class FieldTelemetryFilter : TelemetryFilter
             default:
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(OtlpLogEntry.GetFieldValue(x, Field), Value));
+                    return input.Where(x => func(OtlpLogEntry.GetFieldValue(x, Field) ?? string.Empty, Value));
                 }
         }
     }

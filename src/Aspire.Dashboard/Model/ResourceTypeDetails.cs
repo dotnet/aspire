@@ -52,7 +52,7 @@ public class ResourceTypeDetails : IEquatable<ResourceTypeDetails>
 
     public override string ToString()
     {
-        return $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
+        return $"Type = {Type}, InstanceId = {InstanceId ?? "(null)"}, ReplicaSetName = {ReplicaSetName ?? "(null)"}";
     }
 
     public bool Equals(ResourceTypeDetails? other)

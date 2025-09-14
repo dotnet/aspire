@@ -61,6 +61,78 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run..
+        /// </summary>
+        internal static string ContainerRuntimeDockerAdvice {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeDockerAdvice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ensure that the container runtime is running..
+        /// </summary>
+        internal static string ContainerRuntimeGenericAdvice {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeGenericAdvice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Learn more.
+        /// </summary>
+        internal static string ContainerRuntimeLinkText {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeLinkText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime not installed.
+        /// </summary>
+        internal static string ContainerRuntimeNotInstalledTitle {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeNotInstalledTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ensure that Podman is running..
+        /// </summary>
+        internal static string ContainerRuntimePodmanAdvice {
+            get {
+                return ResourceManager.GetString("ContainerRuntimePodmanAdvice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; was found but appears to be unhealthy. .
+        /// </summary>
+        internal static string ContainerRuntimeUnhealthyMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeUnhealthyMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime unhealthy.
+        /// </summary>
+        internal static string ContainerRuntimeUnhealthyTitle {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeUnhealthyTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There are unresolved parameters that need to be set. Please provide values for them..
         /// </summary>
         internal static string ParametersBarMessage {
@@ -165,78 +237,6 @@ namespace Aspire.Hosting.Resources {
         internal static string VersionCheckTitle {
             get {
                 return ResourceManager.GetString("VersionCheckTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container Runtime Unhealthy.
-        /// </summary>
-        internal static string ContainerRuntimeUnhealthyTitle {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeUnhealthyTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container runtime '{0}' was found but appears to be unhealthy. .
-        /// </summary>
-        internal static string ContainerRuntimeUnhealthyMessage {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeUnhealthyMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run..
-        /// </summary>
-        internal static string ContainerRuntimeDockerAdvice {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeDockerAdvice", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Ensure that Podman is running..
-        /// </summary>
-        internal static string ContainerRuntimePodmanAdvice {
-            get {
-                return ResourceManager.GetString("ContainerRuntimePodmanAdvice", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Ensure that the container runtime is running..
-        /// </summary>
-        internal static string ContainerRuntimeGenericAdvice {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeGenericAdvice", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Learn more.
-        /// </summary>
-        internal static string ContainerRuntimeLinkText {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeLinkText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container Runtime Not Installed.
-        /// </summary>
-        internal static string ContainerRuntimeNotInstalledTitle {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeNotInstalledTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
-        /// </summary>
-        internal static string ContainerRuntimeNotInstalledMessage {
-            get {
-                return ResourceManager.GetString("ContainerRuntimeNotInstalledMessage", resourceCulture);
             }
         }
     }

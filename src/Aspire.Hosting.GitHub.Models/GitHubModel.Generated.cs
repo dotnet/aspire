@@ -143,51 +143,6 @@ public partial class GitHubModel
         public static readonly GitHubModel MAIDSR1 = new() { Id = "microsoft/mai-ds-r1" };
 
         /// <summary>
-        /// Same Phi-3-medium model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly GitHubModel Phi3MediumInstruct128k = new() { Id = "microsoft/phi-3-medium-128k-instruct" };
-
-        /// <summary>
-        /// A 14B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
-        /// </summary>
-        public static readonly GitHubModel Phi3MediumInstruct4k = new() { Id = "microsoft/phi-3-medium-4k-instruct" };
-
-        /// <summary>
-        /// Same Phi-3-mini model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly GitHubModel Phi3MiniInstruct128k = new() { Id = "microsoft/phi-3-mini-128k-instruct" };
-
-        /// <summary>
-        /// Tiniest member of the Phi-3 family. Optimized for both quality and low latency.
-        /// </summary>
-        public static readonly GitHubModel Phi3MiniInstruct4k = new() { Id = "microsoft/phi-3-mini-4k-instruct" };
-
-        /// <summary>
-        /// Same Phi-3-small model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly GitHubModel Phi3SmallInstruct128k = new() { Id = "microsoft/phi-3-small-128k-instruct" };
-
-        /// <summary>
-        /// A 7B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
-        /// </summary>
-        public static readonly GitHubModel Phi3SmallInstruct8k = new() { Id = "microsoft/phi-3-small-8k-instruct" };
-
-        /// <summary>
-        /// Refresh of Phi-3-mini model.
-        /// </summary>
-        public static readonly GitHubModel Phi35MiniInstruct128k = new() { Id = "microsoft/phi-3.5-mini-instruct" };
-
-        /// <summary>
-        /// A new mixture of experts model
-        /// </summary>
-        public static readonly GitHubModel Phi35MoEInstruct128k = new() { Id = "microsoft/phi-3.5-moe-instruct" };
-
-        /// <summary>
-        /// Refresh of Phi-3-vision model.
-        /// </summary>
-        public static readonly GitHubModel Phi35VisionInstruct128k = new() { Id = "microsoft/phi-3.5-vision-instruct" };
-
-        /// <summary>
         /// Phi-4 14B, a highly capable model for low latency scenarios.
         /// </summary>
         public static readonly GitHubModel Phi4 = new() { Id = "microsoft/phi-4" };

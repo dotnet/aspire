@@ -9,5 +9,7 @@ internal interface IContainerRuntime
 {
     string Name { get; }
     Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
-    public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken);
+    Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken);
+    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken);
+    Task PushImageAsync(string imageName, CancellationToken cancellationToken);
 }

@@ -153,7 +153,7 @@ internal static class TelemetryTestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, Span.Types.SpanKind? kind = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null, Span.Types.SpanKind? kind = null, Status? status = null)
     {
         var span = new Span
         {
@@ -163,7 +163,8 @@ internal static class TelemetryTestHelpers
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
             Name = $"Test span. Id: {spanId}",
-            Kind = kind ?? Span.Types.SpanKind.Internal
+            Kind = kind ?? Span.Types.SpanKind.Internal,
+            Status = status
         };
         if (events != null)
         {

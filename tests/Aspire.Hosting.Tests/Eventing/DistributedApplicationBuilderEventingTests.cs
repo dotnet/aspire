@@ -6,7 +6,6 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
-using Aspire.Hosting.Dashboard;
 
 namespace Aspire.Hosting.Tests.Eventing;
 

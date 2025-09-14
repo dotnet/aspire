@@ -112,9 +112,9 @@
         <target state="translated">Il percorso del socket di estensione fornito richiede due parti valide.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">La versione minima di .NET SDK ({0}) non è installata. Visitare https://get.dot.net per scaricare e installare .NET SDK.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -148,13 +148,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Il file di progetto non è un progetto host dell'app Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="needs-review-translation">Il file di progetto non è un progetto host dell'app Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Il progetto non è un progetto host dell'app Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="needs-review-translation">Il progetto non è un progetto host dell'app Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -42,7 +43,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
-    private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
+    private FluentDataGrid<OtlpLogEntry>? _dataGrid;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
 
@@ -379,6 +380,13 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
+        if (_dataGrid != null && FluentDataGridHelper<OtlpLogEntry>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+
         if (_resourceChanged)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
@@ -468,6 +476,56 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         }
 
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+    }
+
+    private async Task LaunchGenAIVisualizerAsync(OtlpLogEntry logEntry)
+    {
+        var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
+            logEntry.TraceId,
+            logEntry.SpanId,
+            TelemetryRepository.GetSpan,
+            DialogService,
+            InvokeAsync,
+            DialogsLoc,
+            CancellationToken.None).ConfigureAwait(false);
+
+        if (available)
+        {
+            var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId)!;
+
+            await GenAIVisualizerDialog.OpenDialogAsync(
+                ViewportInformation,
+                DialogService,
+                DialogsLoc,
+                span,
+                logEntry.InternalId,
+                TelemetryRepository,
+                _resources,
+                () =>
+                {
+                    // Update the context with all visible log entries with a GenAI system property.
+                    var filters = ViewModel.GetFilters();
+                    filters.Add(new FieldTelemetryFilter
+                    {
+                        Field = GenAIHelpers.GenAISystem,
+                        Condition = FilterCondition.NotEqual,
+                        Value = string.Empty
+                    });
+
+                    var logs = TelemetryRepository.GetLogs(new GetLogsContext
+                    {
+                        ResourceKey = ViewModel.ResourceKey,
+                        StartIndex = 0,
+                        Count = int.MaxValue,
+                        Filters = filters
+                    });
+
+                    return logs.Items
+                        .DistinctBy(l => (l.SpanId, l.TraceId))
+                        .Select(l => TelemetryRepository.GetSpan(l.TraceId, l.SpanId)!)
+                        .ToList();
+                });
+        }
     }
 
     private Task ClearStructureLogs(ResourceKey? key)
