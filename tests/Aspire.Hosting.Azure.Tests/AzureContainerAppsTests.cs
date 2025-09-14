@@ -1812,10 +1812,6 @@ public class AzureContainerAppsTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
-        // Verify the bicep contains job configuration with Manual trigger (default)
-        Assert.Contains("Microsoft.App/jobs", bicep);
-        Assert.Contains("Manual", bicep);
-
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
     }
