@@ -413,6 +413,12 @@ internal sealed class ApplicationOrchestrator
     {
         foreach (var child in _parentChildLookup[resource])
         {
+            // Don't propagate state to resources that have a life of their own.
+            if (ResourceHasOwnLifetime(child))
+            {
+                continue;
+            }
+
             await _notificationService.PublishUpdateAsync(child, s => s with
             {
                 State = state,
@@ -485,6 +491,11 @@ internal sealed class ApplicationOrchestrator
             // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
+                if (ResourceHasOwnLifetime(child))
+                {
+                    continue;
+                }
+
                 await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -501,8 +512,24 @@ internal sealed class ApplicationOrchestrator
         {
             foreach (var child in children.Where(c => c is IResourceWithParent))
             {
+                if (ResourceHasOwnLifetime(child))
+                {
+                    continue;
+                }
+
                 await PublishEventToHierarchy(createEvent, child, cancellationToken).ConfigureAwait(false);
             }
         }
     }
+
+    // TODO: We need to introduce a formal way to resources to opt into propagating state and events to children.
+    // This fixes the immediate problem of not propagating to top-level resources, but there are other
+    // resources that may want to have their own lifetime, that this code will be unaware of.
+    private static bool ResourceHasOwnLifetime(IResource resource) =>
+        resource.IsContainer() ||
+        resource is ProjectResource ||
+        resource is ExecutableResource ||
+        resource is ParameterResource ||
+        resource is ConnectionStringResource ||
+        resource is ExternalServiceResource;
 }
