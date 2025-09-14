@@ -300,7 +300,8 @@ internal sealed class CliServiceCollectionTestOptions
         var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features);
         return new TemplateProvider([factory]);
     };
 
