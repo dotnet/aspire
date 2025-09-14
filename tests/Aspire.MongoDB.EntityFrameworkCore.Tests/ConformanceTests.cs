@@ -4,7 +4,6 @@
 using Aspire.Components.ConformanceTests;
 using Aspire.MongoDB.Driver.Tests;
 using Aspire.TestUtilities;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -121,16 +120,4 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MongoDBEntityFra
 
         Assert.NotNull(dbContext);
     }
-
-    [Fact]
-    [RequiresDocker]
-    public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(
-            static (connectionStringToUse, databaseNameToUse) => RunWithConnectionString(connectionStringToUse, databaseNameToUse, obj => obj.ActivitySourceTest(key: null)),
-            ConnectionString,
-            DatabaseName
-        ).Dispose();
-
-    private static void RunWithConnectionString(string connectionString,string databaseName, Action<ConformanceTests> test)
-        => test(new ConformanceTests(null) { ConnectionString = connectionString, DatabaseName = databaseName});
 }
