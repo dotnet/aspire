@@ -411,7 +411,7 @@ internal sealed class ApplicationOrchestrator
 
     private async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
-        foreach (var child in _parentChildLookup[resource])
+        foreach (var child in _parentChildLookup[resource].Where(c => c is IResourceWithParent))
         {
             // Don't propagate state to resources that have a life of their own.
             if (ResourceHasOwnLifetime(child))
