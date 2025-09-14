@@ -4,8 +4,10 @@
 using System.Globalization;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -44,6 +46,32 @@ public sealed partial class LogViewer
     [Parameter]
     public bool NoWrapLogs { get; set; }
 
+    private Virtualize<LogEntry>? VirtualizeRef
+    {
+        get => field;
+        set
+        {
+            field = value;
+
+            // Set max item count when the Virtualize component is set.
+            if (field != null)
+            {
+                VirtualizeHelper<LogEntry>.TrySetMaxItemCount(field, 10_000);
+            }
+        }
+    }
+
+    public async Task RefreshDataAsync()
+    {
+        if (VirtualizeRef == null)
+        {
+            return;
+        }
+
+        await VirtualizeRef.RefreshDataAsync();
+        StateHasChanged();
+    }
+
     protected override void OnParametersSet()
     {
         if (_logEntries != LogEntries)
@@ -55,6 +83,17 @@ public sealed partial class LogViewer
         }
 
         base.OnParametersSet();
+    }
+
+    private ValueTask<ItemsProviderResult<LogEntry>> GetItems(ItemsProviderRequest r)
+    {
+        var entries = _logEntries?.GetEntries();
+        if (entries == null)
+        {
+            return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(Enumerable.Empty<LogEntry>(), 0));
+        }
+
+        return ValueTask.FromResult(new ItemsProviderResult<LogEntry>(entries.Skip(r.StartIndex).Take(r.Count), entries.Count));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -155,6 +155,9 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.1.0-preview6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <!-- playground apps dependencies for javascript -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.20" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="8.1.1" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Azure.Core" Version="1.47.3" />
     <PackageVersion Include="Azure.Identity" Version="1.15.0" />

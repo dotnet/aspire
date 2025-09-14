@@ -255,6 +255,18 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
+        // Add static URLs
+        if (resource.TryGetUrls(out var staticUrls))
+        {
+            foreach (var staticUrl in staticUrls)
+            {
+                urls.Add(staticUrl);
+
+                // Remove it from the resource here, we'll add it back later to avoid duplicates.
+                resource.Annotations.Remove(staticUrl);
+            }
+        }
+
         // Run the URL callbacks
         if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
         {
@@ -276,20 +288,6 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
-                }
-            }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            foreach (var existingUrl in existingUrls)
-            {
-                resource.Annotations.Remove(existingUrl);
-
-                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
-                {
-                    // Add existing URLs back that aren't duplicates
-                    urls.Add(existingUrl);
                 }
             }
         }

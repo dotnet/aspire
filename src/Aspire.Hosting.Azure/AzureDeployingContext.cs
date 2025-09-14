@@ -27,6 +27,7 @@ internal sealed class AzureDeployingContext(
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor)
 {
+
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
@@ -135,6 +136,17 @@ internal sealed class AzureDeployingContext(
         if (!computeResources.Any())
         {
             return false;
+        }
+
+        // Generate a deployment-scoped timestamp tag for all resources
+        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        foreach (var resource in computeResources)
+        {
+            if (resource.TryGetLastAnnotation<DeploymentImageTagAnnotation>(out _))
+            {
+                continue;
+            }
+            resource.Annotations.Add(new DeploymentImageTagAnnotation(() => deploymentTag));
         }
 
         // Step 1: Build ALL images at once regardless of destination registry
@@ -381,22 +393,8 @@ internal sealed class AzureDeployingContext(
 
     private async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken)
     {
-        await RunDockerCommand($"tag {localTag} {targetTag}", cancellationToken).ConfigureAwait(false);
-        await RunDockerCommand($"push {targetTag}", cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task RunDockerCommand(string arguments, CancellationToken cancellationToken)
-    {
-        var dockerSpec = new ProcessSpec("docker")
-        {
-            Arguments = arguments
-        };
-
-        var (pendingResult, processDisposable) = processRunner.Run(dockerSpec);
-        await using (processDisposable.ConfigureAwait(false))
-        {
-            await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
+        await containerImageBuilder.TagImageAsync(localTag, targetTag, cancellationToken).ConfigureAwait(false);
+        await containerImageBuilder.PushImageAsync(targetTag, cancellationToken).ConfigureAwait(false);
     }
 
     private static string TryGetComputeResourceEndpoint(IResource computeResource, IAzureComputeEnvironmentResource azureComputeEnv)

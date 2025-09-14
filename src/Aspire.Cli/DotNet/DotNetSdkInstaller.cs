@@ -19,23 +19,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// </summary>
     public const string MinimumSdkVersion = "9.0.302";
 
-    /// <inheritdoc />
-    public Task<bool> CheckAsync(CancellationToken cancellationToken = default)
-    {
-        // Check for configuration override first
-        var overrideVersion = configuration["overrideMinimumSdkVersion"];
-        var minimumVersion = !string.IsNullOrEmpty(overrideVersion) ? overrideVersion : MinimumSdkVersion;
-        
-        return CheckAsync(minimumVersion, cancellationToken);
-    }
+    /// <summary>
+    /// The minimum .NET SDK version required for Aspire when single-file apphost is enabled.
+    /// </summary>
+    public const string MinimumSdkVersionSingleFileAppHost = "10.0.100";
 
     /// <inheritdoc />
-    public async Task<bool> CheckAsync(string minimumVersion, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
     {
+        var minimumVersion = GetEffectiveMinimumSdkVersion();
+        
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
-            return true;
+            return (true, null, minimumVersion);
         }
 
         try
@@ -63,17 +60,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             if (process.ExitCode != 0)
             {
-                return false;
+                return (false, null, minimumVersion);
             }
 
             // Parse the minimum version requirement
             if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
             {
-                return false;
+                return (false, null, minimumVersion);
             }
 
             // Parse each line of the output to find SDK versions
             var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            SemVersion? highestVersion = null;
+            bool meetsMinimum = false;
+
             foreach (var line in lines)
             {
                 // Each line is in format: "version [path]"
@@ -83,20 +83,27 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                     var versionString = line[..spaceIndex];
                     if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
                     {
+                        // Track the highest version
+                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
+                        {
+                            highestVersion = sdkVersion;
+                        }
+
+                        // Check if this version meets the minimum requirement
                         if (SemVersion.ComparePrecedence(sdkVersion, minVersion) >= 0)
                         {
-                            return true;
+                            meetsMinimum = true;
                         }
                     }
                 }
             }
 
-            return false;
+            return (meetsMinimum, highestVersion?.ToString(), minimumVersion);
         }
         catch
         {
             // If we can't start the process, the SDK is not available
-            return false;
+            return (false, null, minimumVersion);
         }
     }
 
@@ -121,5 +128,28 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             Architecture.Arm => "arm",
             _ => "x64" // Default to x64 for unknown architectures
         };
+    }
+
+    /// <summary>
+    /// Gets the effective minimum SDK version based on configuration and feature flags.
+    /// </summary>
+    /// <returns>The minimum SDK version string.</returns>
+    public string GetEffectiveMinimumSdkVersion()
+    {
+        // Check for configuration override first
+        var overrideVersion = configuration["overrideMinimumSdkVersion"];
+        
+        if (!string.IsNullOrEmpty(overrideVersion))
+        {
+            return overrideVersion;
+        }
+        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            return MinimumSdkVersionSingleFileAppHost;
+        }
+        else
+        {
+            return MinimumSdkVersion;
+        }
     }
 }
