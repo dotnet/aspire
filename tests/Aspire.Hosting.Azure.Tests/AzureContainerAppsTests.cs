@@ -1790,4 +1790,33 @@ public class AzureContainerAppsTests
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public async Task PublishAsManualAzureContainerAppJobConfiguresManualTrigger()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddContainer("manual-job", "myimage")
+            .PublishAsManualAzureContainerAppJob();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        // Verify the bicep contains job configuration with Manual trigger (default)
+        Assert.Contains("Microsoft.App/jobs", bicep);
+        Assert.Contains("Manual", bicep);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }
