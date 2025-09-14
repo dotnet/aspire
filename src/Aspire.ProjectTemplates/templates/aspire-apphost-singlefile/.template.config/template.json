@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    "Aspire",
+    "AppHost",
+    "SingleFile"
+  ],
+  "name": "Aspire Single-File App Host",
+  "shortName": "aspire-apphost-singlefile",
+  "sourceName": "SingleFileAppHost",
+  "defaultName": "AspireSingleFileHost",
+  "description": "A minimal Aspire AppHost for single-file scenarios (Aspire 9.5+, .NET 10+).",
+  "identity": "Aspire.AppHost.SingleFile.CSharp.10.0",
+  "groupIdentity": "Aspire.AppHost.SingleFile",
+  "precedence": "8900",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sources": [
+    {
+      "source": "./9.5",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.5 && Framework == net10.0"
+    }
+  ],
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "replaces": "net10.0",
+      "defaultValue": "net10.0",
+      "choices": [
+        { "choice": "net10.0", "description": "Target net10.0" }
+      ]
+    },
+    "AspireVersionCli": {
+      "type": "parameter",
+      "datatype": "choice",
+      "description": "Aspire version",
+      "choices": [
+        { "choice": "9.5", "displayName": "9.5", "description": "Aspire 9.5" }
+      ],
+      "defaultValue": "9.5"
+    },
+    "AspireVersionActual": {
+      "type": "generated",
+      "generator": "switch",
+      "replaces": "aspireVersion",
+      "parameters": {
+        "cases": [
+          { "condition": "AspireVersionCli == 9.5", "value": "9.5" },
+          { "condition": "", "value": "9.5" }
+        ]
+      }
+    },
+    "hostIdentifier": {
+      "type": "bind",
+      "binding": "HostIdentifier"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "If specified, skips the automatic restore after creation."
+    }
+  },
+  "primaryOutputs": [
+    { "path": "AppHost.cs" }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [ { "text": "Run 'dotnet restore'" } ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}
