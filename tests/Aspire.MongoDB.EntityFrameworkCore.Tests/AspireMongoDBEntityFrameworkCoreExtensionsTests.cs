@@ -219,7 +219,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
         builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, DatabaseName );
 
         MongoDBEntityFrameworkCoreSettings? capturedSettings = null;
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName,databaseName, settings =>
+        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, databaseName, settings =>
         {
             capturedSettings = settings;
         });
@@ -246,7 +246,7 @@ public class AspireMongoDBEntityFrameworkCoreExtensionsTests
         });
 
         MongoDBEntityFrameworkCoreSettings? capturedSettings = null;
-        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName,databaseName, settings =>
+        builder.AddMongoDBDatabaseDbContext<TestDbContext>(connectionName, databaseName, settings =>
         {
             capturedSettings = settings;
         });
