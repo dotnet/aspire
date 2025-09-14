@@ -382,49 +382,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         config.Ingress = caIngress;
     }
 
-    private void AddProbes(ContainerAppContainer containerAppContainer)
-    {
-        if (!resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
-        {
-            return;
-        }
-
-        foreach (var probeAnnotation in probeAnnotations)
-        {
-            ContainerAppProbe? containerAppProbe = null;
-            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
-                && _endpointMapping.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
-            {
-                containerAppProbe = new ContainerAppProbe()
-                {
-                    HttpGet = new()
-                    {
-                        Path = endpointProbeAnnotation.Path,
-                        Port = AsInt(GetValue(endpointMapping, EndpointProperty.TargetPort)),
-                        Scheme = endpointMapping.Scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
-                    },
-                };
-            }
-
-            if (containerAppProbe is not null)
-            {
-                containerAppProbe.ProbeType = probeAnnotation.Type switch
-                {
-                    ProbeType.Startup => ContainerAppProbeType.Startup,
-                    ProbeType.Readiness => ContainerAppProbeType.Readiness,
-                    _ => ContainerAppProbeType.Liveness,
-                };
-                containerAppProbe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
-                containerAppProbe.PeriodSeconds = probeAnnotation.PeriodSeconds;
-                containerAppProbe.TimeoutSeconds = probeAnnotation.TimeoutSeconds;
-                containerAppProbe.SuccessThreshold = probeAnnotation.SuccessThreshold;
-                containerAppProbe.FailureThreshold = probeAnnotation.FailureThreshold;
-
-                containerAppContainer.Probes.Add(new BicepValue<ContainerAppProbe>(containerAppProbe));
-            }
-        }
-    }
-
     private sealed class PortAllocator(int startPort = 8000)
     {
         private int _allocatedPortStart = startPort;
