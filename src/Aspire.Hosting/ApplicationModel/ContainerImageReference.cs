@@ -17,6 +17,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
     /// </summary>
     /// <param name="resource">The resource that this container image is associated with.</param>
+    [Obsolete("Use the constructor that accepts IServiceProvider to support async deployment image tag callbacks.")]
     public ContainerImageReference(IResource resource)
     {
         Resource = resource;
@@ -27,7 +28,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// </summary>
     /// <param name="resource">The resource that this container image is associated with.</param>
     /// <param name="serviceProvider">The service provider for accessing services during callback execution.</param>
-    public ContainerImageReference(IResource resource, IServiceProvider serviceProvider)
+    public ContainerImageReference(IResource resource, IServiceProvider? serviceProvider)
     {
         Resource = resource;
         ServiceProvider = serviceProvider;

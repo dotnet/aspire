@@ -113,7 +113,7 @@ public static class DockerComposeServiceExtensions
              imageEnvName,
              description: $"Container image name for {resourceInstance.Name}",
              defaultValue: $"{resourceInstance.Name}:latest",
-             source: new ContainerImageReference(resourceInstance)
+             source: new ContainerImageReference(resourceInstance, serviceProvider: null)
         );
     }
 
