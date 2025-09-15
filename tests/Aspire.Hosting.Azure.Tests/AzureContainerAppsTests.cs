@@ -1668,7 +1668,7 @@ public class AzureContainerAppsTests
 
         await Verify(bicep, "bicep");
     }
-    
+
     [Fact]
     public async Task PublishAsContainerAppJob_ThrowsIfBothCustomizationsAreApplied()
     {
@@ -1814,5 +1814,127 @@ public class AzureContainerAppsTests
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task ResourceWithProbes_HttpEndpoint()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder
+            .AddContainer("api", "myimage")
+            .WithHttpEndpoint()
+            .WithHttpProbe(ProbeType.Readiness, "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+
+        builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projectProvisioningResource = project.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectProvisioningResource);
+
+        var (_, containerBicep) = await GetManifestWithBicep(containerProvisioningResource);
+        var (_, projectBicep) = await GetManifestWithBicep(projectProvisioningResource);
+
+        await Verify(containerBicep, "bicep")
+              .AppendContentAsFile(projectBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task ResourceWithProbes_HttpEndpoint_TargetPort()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder
+            .AddContainer("api", "myimage")
+            .WithHttpEndpoint(targetPort: 1111)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+
+        builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint(targetPort: 1111)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projectProvisioningResource = project.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectProvisioningResource);
+
+        var (_, containerBicep) = await GetManifestWithBicep(containerProvisioningResource);
+        var (_, projectBicep) = await GetManifestWithBicep(projectProvisioningResource);
+
+        await Verify(containerBicep, "bicep")
+              .AppendContentAsFile(projectBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task ResourceWithProbes_HttpsEndpoint_TargetPort_MatchIngress()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder
+            .AddContainer("api", "myimage")
+            .WithHttpsEndpoint(targetPort: 1111)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+
+        builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort: 1111)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var project = Assert.Single(model.GetProjectResources());
+        var projectProvisioningResource = project.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(projectProvisioningResource);
+
+        var (_, containerBicep) = await GetManifestWithBicep(containerProvisioningResource);
+        var (_, projectBicep) = await GetManifestWithBicep(projectProvisioningResource);
+
+        await Verify(containerBicep, "bicep")
+              .AppendContentAsFile(projectBicep, "bicep");
     }
 }

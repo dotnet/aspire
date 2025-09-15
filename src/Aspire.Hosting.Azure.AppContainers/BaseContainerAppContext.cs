@@ -176,7 +176,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
         }
     }
 
-    private BicepValue<string> GetValue(EndpointMapping mapping, EndpointProperty property)
+    private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
         var (scheme, host, port, targetPort, isHttpIngress, external) = mapping;
 
@@ -219,7 +219,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
             var mapping = context._endpointMapping[ep.EndpointName];
 
-            var url = GetValue(mapping, EndpointProperty.Url);
+            var url = GetEndpointValue(mapping, EndpointProperty.Url);
 
             return (url, secretType);
         }
@@ -271,7 +271,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
             var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
 
-            var val = GetValue(mapping, epExpr.Property);
+            var val = GetEndpointValue(mapping, epExpr.Property);
 
             return (val, secretType);
         }
@@ -456,6 +456,60 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             }
         ]);
     }
+
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    protected void AddProbes(ContainerAppContainer containerAppContainer)
+    {
+        if (!Resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            return;
+        }
+
+        foreach (var probeAnnotation in probeAnnotations)
+        {
+            ContainerAppProbe? containerAppProbe = null;
+            if (probeAnnotation is EndpointProbeAnnotation endpointProbeAnnotation
+                && _endpointMapping.TryGetValue(endpointProbeAnnotation.EndpointReference.EndpointName, out var endpointMapping))
+            {
+                // In ACA probes work on internal network only and don't go through ingress so if we have a
+                // probe associated to an endpoint used for ingress we force scheme to "http".
+                // Port is always the target port of the container.
+                var scheme = endpointMapping.Scheme;
+                if (endpointMapping.IsHttpIngress)
+                {
+                    scheme = "http";
+                }
+
+                containerAppProbe = new ContainerAppProbe()
+                {
+                    HttpGet = new()
+                    {
+                        Path = endpointProbeAnnotation.Path,
+                        Port = AsInt(GetEndpointValue(endpointMapping, EndpointProperty.TargetPort)),
+                        Scheme = scheme is "https" ? ContainerAppHttpScheme.Https : ContainerAppHttpScheme.Http,
+                    },
+                };
+            }
+
+            if (containerAppProbe is not null)
+            {
+                containerAppProbe.ProbeType = probeAnnotation.Type switch
+                {
+                    ProbeType.Startup => ContainerAppProbeType.Startup,
+                    ProbeType.Readiness => ContainerAppProbeType.Readiness,
+                    _ => ContainerAppProbeType.Liveness,
+                };
+                containerAppProbe.InitialDelaySeconds = probeAnnotation.InitialDelaySeconds;
+                containerAppProbe.PeriodSeconds = probeAnnotation.PeriodSeconds;
+                containerAppProbe.TimeoutSeconds = probeAnnotation.TimeoutSeconds;
+                containerAppProbe.SuccessThreshold = probeAnnotation.SuccessThreshold;
+                containerAppProbe.FailureThreshold = probeAnnotation.FailureThreshold;
+
+                containerAppContainer.Probes.Add(new BicepValue<ContainerAppProbe>(containerAppProbe));
+            }
+        }
+    }
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     protected enum SecretType
     {
