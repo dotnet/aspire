@@ -63,7 +63,7 @@
                     @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
                     <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
                         <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
-                    </span>                    
+                    </span>
                 </OptionTemplate>
             </FluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />
