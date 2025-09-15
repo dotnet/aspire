@@ -140,7 +140,8 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 StandardOutputCallback = operationOutputCollector.AppendOutput,
                 StandardErrorCallback = operationOutputCollector.AppendError,
-                NoLaunchProfile = true
+                NoLaunchProfile = true,
+                NoExtensionLaunch = true
             };
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();

@@ -44,6 +44,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
 
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
+    public bool NoExtensionLaunch { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
@@ -150,7 +151,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         var cliArgsList = new List<string> { "msbuild" };
-        
+
         if (properties.Length > 0)
         {
             // HACK: MSBuildVersion here because if you ever invoke `dotnet msbuild -getproperty with just a single
@@ -161,14 +162,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             //
             cliArgsList.Add($"-getProperty:MSBuildVersion,{string.Join(",", properties)}");
         }
-        
+
         if (items.Length > 0)
         {
             cliArgsList.Add($"-getItem:{string.Join(",", items)}");
         }
-        
+
         cliArgsList.Add(projectFile.FullName);
-        
+
         string[] cliArgs = [.. cliArgsList];
 
         var stdoutBuilder = new StringBuilder();
@@ -512,6 +513,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
             if (backchannelCompletionSource is not null
                 && projectFile is not null
+                && !options.NoExtensionLaunch
                 && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
             {
                 await extensionInteractionService.LaunchAppHostAsync(
