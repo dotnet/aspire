@@ -668,7 +668,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var goVersionParam = builder.AddParameter("goversion");
         var secretParam = builder.AddParameter("secret", secret: true);
 
-        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath, stage: "runner")
                               .WithBuildArg("GO_VERSION", goVersionParam)
                               .WithBuildArg("STATIC_ARG", "static-value")
                               .WithBuildSecret("SECRET_ASENV", secretParam);
@@ -699,6 +699,9 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.NotNull(fakeContainerRuntime.CapturedBuildSecrets);
         Assert.Single(fakeContainerRuntime.CapturedBuildSecrets);
         Assert.Equal("mysecret", fakeContainerRuntime.CapturedBuildSecrets["SECRET_ASENV"]);
+
+        // Verify that the correct stage was passed
+        Assert.Equal("runner", fakeContainerRuntime.CapturedStage);
     }
 
     [Fact]
@@ -788,6 +791,50 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
                 File.Delete(tempFile);
             }
         }
+    }
+
+    [Fact]
+    public async Task CanResolveBuildSecretsWithDifferentValueTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime to capture build secrets
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        // Add parameters for different value types
+        builder.Configuration["Parameters:stringsecret"] = "secret-value";
+        builder.Configuration["Parameters:nullsecret"] = null;
+        var stringSecret = builder.AddParameter("stringsecret", secret: true);
+        var nullSecret = builder.AddParameter("nullsecret", secret: true);
+
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+                              .WithBuildSecret("STRING_SECRET", stringSecret)
+                              .WithBuildSecret("NULL_SECRET", nullSecret);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        await imageBuilder.BuildImageAsync(container.Resource, options: null, cts.Token);
+
+        // Verify that different value types are resolved correctly
+        Assert.NotNull(fakeContainerRuntime.CapturedBuildSecrets);
+        Assert.Equal(2, fakeContainerRuntime.CapturedBuildSecrets.Count);
+
+        // Parameter should resolve to its configured value
+        Assert.Equal("secret-value", fakeContainerRuntime.CapturedBuildSecrets["STRING_SECRET"]);
+
+        // Null parameter should resolve to null
+        Assert.Null(fakeContainerRuntime.CapturedBuildSecrets["NULL_SECRET"]);
     }
 
     private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime

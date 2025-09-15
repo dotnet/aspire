@@ -409,15 +409,24 @@ internal sealed class ResourceContainerImageBuilder(
 
     private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
-        return value switch
+        try
         {
-            FileInfo filePath => filePath.FullName,
-            string stringValue => stringValue,
-            IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-            bool boolValue => boolValue ? "true" : "false",
-            null => null,
-            _ => value.ToString()
-        };
+            return value switch
+            {
+                FileInfo filePath => filePath.FullName,
+                string stringValue => stringValue,
+                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                bool boolValue => boolValue ? "true" : "false",
+                null => null,
+                _ => value.ToString()
+            };
+        }
+        catch (MissingParameterValueException)
+        {
+            // If a parameter value is missing, we return null to indicate that the build argument or secret cannot be resolved
+            // and we should fallback to resolving it from environment variables.
+            return null;
+        }
     }
 
     private static async Task<IPublishingTask?> CreateTaskAsync(
