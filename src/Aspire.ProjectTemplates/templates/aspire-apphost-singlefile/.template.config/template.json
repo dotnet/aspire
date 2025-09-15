@@ -68,7 +68,7 @@
     }
   },
   "primaryOutputs": [
-    { "path": "AppHost.cs" }
+    { "path": "apphost.cs" }
   ],
   "postActions": [
     {
