@@ -193,6 +193,17 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         return false;
     }
 
+    private static bool IsSupportedImageScheme(string imageContent)
+    {
+        if (Uri.TryCreate(imageContent, UriKind.Absolute, out var result))
+        {
+            // Only attempt to display image if it is an http/https address, or an inline data image.
+            return result.Scheme.ToLowerInvariant() is "http" or "https" or "data";
+        }
+
+        return false;
+    }
+
     public void Dispose()
     {
         _resourcesSubscription?.Dispose();
