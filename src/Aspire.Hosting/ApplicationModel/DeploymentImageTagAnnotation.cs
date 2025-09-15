@@ -7,18 +7,59 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an annotation for a deployment-specific tag that can be applied to resources during deployment.
+/// Context information for deployment image tag callback functions.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class.
-/// </remarks>
-/// <param name="callback">The callback that returns the deployment tag name.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}")]
 [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class DeploymentImageTagCallbackAnnotation(Func<string> callback) : IResourceAnnotation
+public sealed class DeploymentImageTagCallbackAnnotationContext
 {
     /// <summary>
-    /// The callback that returns the deployment tag name.
+    /// Gets the resource associated with the deployment image tag.
     /// </summary>
-    public Func<string> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
+    public required IResource Resource { get; init; }
+
+    /// <summary>
+    /// Gets the service provider for accessing services during callback execution.
+    /// </summary>
+    public required IServiceProvider Services { get; init; }
+}
+
+/// <summary>
+/// Represents an annotation for a deployment-specific tag that can be applied to resources during deployment.
+/// </summary>
+[DebuggerDisplay("Type = {GetType().Name,nq}")]
+[Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback.
+    /// </summary>
+    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
+    public DeploymentImageTagCallbackAnnotation(Func<string> callback)
+    {
+        SyncCallback = callback ?? throw new ArgumentNullException(nameof(callback));
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with an asynchronous callback.
+    /// </summary>
+    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
+    public DeploymentImageTagCallbackAnnotation(Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback)
+    {
+        AsyncCallback = callback ?? throw new ArgumentNullException(nameof(callback));
+    }
+
+    /// <summary>
+    /// Gets the synchronous callback that returns the deployment tag name, or null if an async callback was provided.
+    /// </summary>
+    public Func<string>? SyncCallback { get; }
+
+    /// <summary>
+    /// Gets the asynchronous callback that returns the deployment tag name, or null if a sync callback was provided.
+    /// </summary>
+    public Func<DeploymentImageTagCallbackAnnotationContext, Task<string>>? AsyncCallback { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this annotation uses an asynchronous callback.
+    /// </summary>
+    public bool IsAsync => AsyncCallback is not null;
 }

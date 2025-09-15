@@ -85,7 +85,8 @@ public sealed class AzureEnvironmentResource : Resource
             activityPublisher,
             containerImageBuilder,
             processRunner,
-            parameterProcessor);
+            parameterProcessor,
+            context.Services);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }

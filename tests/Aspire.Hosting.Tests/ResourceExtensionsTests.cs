@@ -5,6 +5,7 @@
 
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
@@ -328,7 +329,7 @@ public class ResourceExtensionsTests
             .WithDeploymentImageTag(callback);
 
         var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
-        Assert.Equal("test-tag", annotation.Callback());
+        Assert.Equal("test-tag", annotation.SyncCallback!());
     }
 
     [Fact]
@@ -347,7 +348,7 @@ public class ResourceExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var containerResource = builder.AddContainer("test-container", "nginx");
 
-        var ex = Assert.Throws<ArgumentNullException>(() => containerResource.WithDeploymentImageTag(null!));
+        var ex = Assert.Throws<ArgumentNullException>(() => containerResource.WithDeploymentImageTag((Func<string>)null!));
         Assert.Equal("callback", ex.ParamName);
     }
 
@@ -364,8 +365,8 @@ public class ResourceExtensionsTests
 
         var annotations = containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>().ToList();
         Assert.Equal(2, annotations.Count);
-        Assert.Equal("tag1", annotations[0].Callback());
-        Assert.Equal("tag2", annotations[1].Callback());
+        Assert.Equal("tag1", annotations[0].SyncCallback!());
+        Assert.Equal("tag2", annotations[1].SyncCallback!());
     }
 
     [Fact]
@@ -403,9 +404,38 @@ public class ResourceExtensionsTests
         var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
         
         // Callback should return different values when called multiple times
-        Assert.Equal("tag-1", annotation.Callback());
-        Assert.Equal("tag-2", annotation.Callback());
-        Assert.Equal("tag-3", annotation.Callback());
+        Assert.Equal("tag-1", annotation.SyncCallback!());
+        Assert.Equal("tag-2", annotation.SyncCallback!());
+        Assert.Equal("tag-3", annotation.SyncCallback!());
+    }
+
+    [Fact]
+    public async Task WithDeploymentImageTag_WithAsyncCallback_AddsCorrectAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callback = async (DeploymentImageTagCallbackAnnotationContext context) =>
+        {
+            await Task.Delay(1);
+            return $"async-tag-{context.Resource.Name}";
+        };
+        
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback);
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+        Assert.True(annotation.IsAsync);
+        Assert.NotNull(annotation.AsyncCallback);
+        Assert.Null(annotation.SyncCallback);
+        
+        // Test the async callback
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider
+        };
+        var result = await annotation.AsyncCallback!(context);
+        Assert.Equal("async-tag-test-container", result);
     }
 
     private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource

@@ -25,7 +25,8 @@ internal sealed class AzureDeployingContext(
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
-    ParameterProcessor parameterProcessor)
+    ParameterProcessor parameterProcessor,
+    IServiceProvider serviceProvider)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
@@ -354,7 +355,7 @@ internal sealed class AzureDeployingContext(
                         .Select(async resource =>
                         {
                             var localImageName = resource.Name.ToLowerInvariant();
-                            IValueProvider cir = new ContainerImageReference(resource);
+                            IValueProvider cir = new ContainerImageReference(resource, serviceProvider);
                             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
                             var pushTask = await pushStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", cancellationToken).ConfigureAwait(false);
