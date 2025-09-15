@@ -759,6 +759,66 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
+
+        string? cacheFilePath = null;
+        string? rawKey = null;
+        bool cacheEnabled = features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: false);
+        if (cacheEnabled)
+        {
+            try
+            {
+                // Compute optional hash of the nuget.config file contents (if any)
+                string nugetConfigHash = string.Empty;
+                if (nugetConfigFile is not null && nugetConfigFile.Exists)
+                {
+                    using var stream = nugetConfigFile.OpenRead();
+                    using var sha256 = System.Security.Cryptography.SHA256.Create();
+                    var bytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
+                    nugetConfigHash = Convert.ToHexString(bytes);
+                }
+
+                // Build a cache key using the main discriminators.
+                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}";
+                using var keySha = System.Security.Cryptography.SHA256.Create();
+                var keyBytes = Encoding.UTF8.GetBytes(rawKey);
+                var keyHash = Convert.ToHexString(keySha.ComputeHash(keyBytes));
+
+                // Use a subdirectory for nuget package search cache to allow future cleanup/policies.
+                var nugetCacheDir = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, "nuget-search"));
+                if (!nugetCacheDir.Exists)
+                {
+                    nugetCacheDir.Create();
+                }
+
+                cacheFilePath = Path.Combine(nugetCacheDir.FullName, keyHash + ".json");
+
+                if (File.Exists(cacheFilePath))
+                {
+                    logger.LogDebug("Package search disk cache hit for key {RawKey} (file: {CacheFilePath})", rawKey, cacheFilePath);
+                    try
+                    {
+                        var json = await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false);
+                        var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(json);
+                        return (0, foundPackages.ToArray());
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or JsonException)
+                    {
+                        logger.LogDebug(ex, "Failed to read/parse package search cache file; falling back to live search.");
+                    }
+                }
+                else
+                {
+                    logger.LogDebug("Package search disk cache miss for key {RawKey} (expected file: {CacheFilePath})", rawKey, cacheFilePath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                // Fail open – treat as cache miss.
+                logger.LogDebug(ex, "Failed to probe package search disk cache; proceeding without cache.");
+                cacheEnabled = false; // disable write attempt as well
+            }
+        }
+
         List<string> cliArgs = [
             "package",
             "search",
@@ -828,6 +888,29 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             try
             {
                 var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(stdout);
+
+                // Attempt to persist the raw stdout JSON for future lookups when cache enabled
+                if (cacheEnabled && cacheFilePath is not null && rawKey is not null)
+                {
+                    try
+                    {
+                        // Write atomically: write to temp then move
+                        var tempFile = cacheFilePath + ".tmp";
+                        await File.WriteAllTextAsync(tempFile, stdout, cancellationToken).ConfigureAwait(false);
+                        if (File.Exists(cacheFilePath))
+                        {
+                            // In case of race, overwrite
+                            File.Delete(cacheFilePath);
+                        }
+                        File.Move(tempFile, cacheFilePath);
+                        logger.LogDebug("Stored package search results in disk cache for key {RawKey} (file: {CacheFilePath})", rawKey, cacheFilePath);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                    {
+                        logger.LogDebug(ex, "Failed to write package search cache file; continuing without caching.");
+                    }
+                }
+
                 return (result, foundPackages.ToArray());
             }
             catch (JsonException ex)

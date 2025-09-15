@@ -122,7 +122,8 @@ internal sealed class CliServiceCollectionTestOptions
     private CliExecutionContext CreateDefaultCliExecutionContextFactory(IServiceProvider provider)
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory);
+        var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }

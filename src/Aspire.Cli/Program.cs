@@ -160,7 +160,15 @@ public class Program
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
+        var cacheDirectory = GetCacheDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+    }
+
+    private static DirectoryInfo GetCacheDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var cacheDirectoryPath = Path.Combine(homeDirectory, "cache");
+        return new DirectoryInfo(cacheDirectoryPath);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
