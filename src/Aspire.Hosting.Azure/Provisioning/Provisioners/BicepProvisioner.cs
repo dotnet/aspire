@@ -17,7 +17,8 @@ internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
-     ISecretClientProvider secretClientProvider) : IBicepProvisioner
+    ISecretClientProvider secretClientProvider,
+    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
     /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
@@ -168,7 +169,7 @@ internal sealed class BicepProvisioner(
         var deployments = resource.Scope?.Subscription != null
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
-        var deploymentName = resource.Name;
+        var deploymentName = executionContext.IsPublishMode ? $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}" : resource.Name;
 
         var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
