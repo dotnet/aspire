@@ -1585,13 +1585,26 @@ public class AzureContainerAppsTests
                 .PublishAsAzureContainerApp((_, _) => { }));
 
         await RunTest(builder =>
+            builder.AddProject<Projects.ServiceA>("ServiceA", launchProfileName: null)
+                .PublishAsAzureContainerAppJob());
+
+        await RunTest(builder =>
             builder.AddContainer("api", "myimage")
                 .PublishAsAzureContainerApp((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddContainer("api", "myimage")
+                .PublishAsAzureContainerAppJob());
 
         await RunTest(builder =>
             builder.AddExecutable("exe", "path/to/executable", ".")
                 .PublishAsDockerFile()
                 .PublishAsAzureContainerApp((_, _) => { }));
+
+        await RunTest(builder =>
+            builder.AddExecutable("exe", "path/to/executable", ".")
+                .PublishAsDockerFile()
+                .PublishAsAzureContainerAppJob());
     }
 
     [Fact]
