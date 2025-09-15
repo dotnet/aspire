@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="AddingAspireIntegration">
         <source>Adding Aspire hosting integration...</source>
-        <target state="needs-review-translation">正在新增 Aspire 整合...</target>
+        <target state="new">Adding Aspire hosting integration...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="needs-review-translation">將整合新增至 Aspire 專案。</target>
+        <target state="new">Add a hosting integration to the Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
         <source>Searching for Aspire integrations...</source>
-        <target state="needs-review-translation">正在搜尋 Aspire 套件...</target>
+        <target state="new">Searching for Aspire integrations...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">

@@ -149,12 +149,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire AppHost project.</source>
-        <target state="needs-review-translation">Aspire アプリ ホスティング プロセスのプロジェクトではないプロジェクト ファイルです。</target>
+        <target state="new">Project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
-        <target state="needs-review-translation">このプロジェクトは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <target state="new">The project does not contain an Aspire apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
