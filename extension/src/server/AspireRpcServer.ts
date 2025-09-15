@@ -18,7 +18,7 @@ export type RpcServerConnectionInfo = {
 export default class AspireRpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
-    private _connections: ICliRpcClient[] = [];
+    public connections: ICliRpcClient[] = [];
 
     private _onNewConnection = new vscode.EventEmitter<ICliRpcClient>();
     public readonly onNewConnection = this._onNewConnection.event;
@@ -29,18 +29,18 @@ export default class AspireRpcServer {
     }
 
     public getConnection(debugSessionId: string): ICliRpcClient | null {
-        return this._connections.find(connection => connection.debugSessionId === debugSessionId) || null;
+        return this.connections.find(connection => connection.debugSessionId === debugSessionId) || null;
     }
 
     public addConnection(connection: ICliRpcClient) {
-        this._connections.push(connection);
+        this.connections.push(connection);
         this._onNewConnection.fire(connection);
     }
 
     public removeConnection(connection: ICliRpcClient) {
-        const index = this._connections.indexOf(connection);
+        const index = this.connections.indexOf(connection);
         if (index !== -1) {
-            this._connections.splice(index, 1);
+            this.connections.splice(index, 1);
         }
     }
 
@@ -111,7 +111,7 @@ export default class AspireRpcServer {
                         const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId', token);
 
                         const rpcClient = rpcClientFactory(connectionInfo, connection, token, clientDebugSessionId);
-                        addInteractionServiceEndpoints(connection,rpcClient.interactionService, rpcClient, withAuthentication);
+                        addInteractionServiceEndpoints(connection, rpcClient.interactionService, rpcClient, withAuthentication);
 
                         rpcServer.addConnection(rpcClient);
 

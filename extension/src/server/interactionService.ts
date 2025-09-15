@@ -1,11 +1,11 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
-import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage } from '../loc/strings';
+import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { EnvVar } from '../dcp/types';
+import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface IInteractionService {
@@ -27,6 +27,7 @@ export interface IInteractionService {
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
+    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -269,8 +270,8 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        const debugSession = this._getAspireDebugSession();
+    async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        let debugSession = this._getAspireDebugSession();
         if (!debugSession) {
             throw new Error(aspireDebugSessionNotInitialized);
         }
@@ -290,6 +291,23 @@ export class InteractionService implements IInteractionService {
         }
 
         debugSession.notifyAppHostStartupCompleted();
+    }
+
+    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean): Promise<void> {
+        this.clearStatusBar();
+
+        const debugConfiguration: AspireExtendedDebugConfiguration = {
+            type: 'aspire',
+            name: `Aspire: ${getRelativePathToWorkspace(projectFile ?? workingDirectory)}`,
+            request: 'launch',
+            program: projectFile ?? workingDirectory,
+            noDebug: !debug,
+        };
+
+        const didDebugStart = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], debugConfiguration);
+        if (!didDebugStart) {
+            throw new Error(failedToStartDebugSession);
+        }
     }
 
     clearStatusBar() {
@@ -336,4 +354,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
+    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
 }

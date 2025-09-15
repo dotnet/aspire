@@ -40,6 +40,7 @@ internal interface IExtensionBackchannel
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -557,6 +558,24 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         await rpc.InvokeWithCancellationAsync(
             "notifyAppHostStartupCompleted",
             [_token],
+            cancellationToken);
+    }
+
+    public async Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug,
+        CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Starting extension debugging session in directory {WorkingDirectory} for project file {ProjectFile} with debug={Debug}",
+            workingDirectory, projectFile ?? "<none>", debug);
+
+        await rpc.InvokeWithCancellationAsync(
+            "startDebugSession",
+            [_token, workingDirectory, projectFile, debug],
             cancellationToken);
     }
 

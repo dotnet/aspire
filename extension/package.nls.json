@@ -57,5 +57,6 @@
   "aspire-vscode.strings.openLaunchJson": "Open launch.json",
   "aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}",
   "aspire-vscode.strings.debugSessionAlreadyExists": "A debug session is already active for id {0}.",
-  "aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}"
+  "aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}",
+  "aspire-vscode.strings.failedToStartDebugSession": "Failed to start debug session"
 }

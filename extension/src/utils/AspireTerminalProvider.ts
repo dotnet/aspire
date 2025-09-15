@@ -3,6 +3,7 @@ import { aspireTerminalName, dcpServerNotInitialized, rpcServerNotInitialized } 
 import { extensionLogOutputChannel } from './logging';
 import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
+import { get } from 'http';
 
 export interface AspireTerminal {
     terminal: vscode.Terminal;
@@ -58,11 +59,11 @@ export class AspireTerminalProvider implements vscode.Disposable {
         }
     }
 
-    getAspireTerminal(debugSessionId: string | null): AspireTerminal {
+    getAspireTerminal(debugSessionId: string | null, forceCreate?: boolean): AspireTerminal {
         const terminalName = aspireTerminalName;
 
         const existingTerminal = this._terminalByDebugSessionId.get(debugSessionId ?? null);
-        if (existingTerminal) {
+        if (existingTerminal && !forceCreate) {
             return existingTerminal;
         }
 
@@ -130,6 +131,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             try {
                 if (term.name === aspireTerminalName) {
                     extensionLogOutputChannel.info(`Disposing unregistered Aspire terminal: ${term.name}`);
+                    this.getAspireTerminal(null, true); // Open a new one to replace it
                     term.dispose();
                 }
             }

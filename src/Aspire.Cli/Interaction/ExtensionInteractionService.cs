@@ -18,6 +18,8 @@ internal interface IExtensionInteractionService : IInteractionService
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug);
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
+    void DisplayConsolePlainText(string message);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -270,5 +272,15 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.NotifyAppHostStartupCompletedAsync(_cancellationToken));
         Debug.Assert(result);
+    }
+
+    public void DisplayConsolePlainText(string message)
+    {
+        _consoleInteractionService.DisplayPlainText(message);
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    {
+        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
     }
 }

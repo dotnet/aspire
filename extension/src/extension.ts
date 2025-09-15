@@ -20,6 +20,7 @@ import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
+import { generateToken } from './utils/security';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
@@ -30,7 +31,6 @@ export async function activate(context: vscode.ExtensionContext) {
     const debuggerExtensions = getResourceDebuggerExtensions();
 
     const terminalProvider = new AspireTerminalProvider(context.subscriptions);
-	terminalProvider.closeAllOpenAspireTerminals();
 
 	const rpcServer = await AspireRpcServer.create(
 		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => {
@@ -43,6 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     terminalProvider.rpcServerConnectionInfo = rpcServer.connectionInfo;
     terminalProvider.dcpServerConnectionInfo = dcpServer.connectionInfo;
+    terminalProvider.closeAllOpenAspireTerminals();
 
 	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', terminalProvider, addCommand));
 	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', terminalProvider, newCommand));
