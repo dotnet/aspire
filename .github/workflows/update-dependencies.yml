@@ -69,6 +69,6 @@ jobs:
               **Workflow Run:** ${workflowRunUrl}
               
               Please review the workflow logs to determine if this was expected or if there was an actual failure that needs investigation.`,
-              assignees: ['radical'],
+              assignees: ['radical', 'joperezr', 'eerhardt'],
               labels: ['area-engineering-systems', 'needs-investigation']
             });
