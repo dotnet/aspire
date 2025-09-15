@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">El host de aplicaciones no es compatible. Considere actualizar el host de aplicaciones o la CLI de Aspire.</target>
+        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building apphost...</source>
-        <target state="needs-review-translation">Compilando host de aplicaciones</target>
+        <target state="new">Building apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding apphosts...</source>
-        <target state="needs-review-translation">Buscando hosts de aplicaciones...</target>
+        <target state="new">Finding apphosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire AppHost project.</source>
-        <target state="needs-review-translation">El archivo de proyecto especificado no es un proyecto de host de aplicaciones de Aspire.</target>
+        <target state="new">The specified project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

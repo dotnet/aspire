@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="GenAIDetailsTitle">
         <source>GenAI details</source>
-        <target state="new">GenAI details</target>
+        <target state="translated">Szczegóły usługi GenAI</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
