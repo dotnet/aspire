@@ -215,6 +215,10 @@ public static class AzureContainerAppExtensions
                             AccountName = storageVolume.Name,
                             AccountKey = keyValue,
                             AccessMode = ContainerAppAccessMode.ReadWrite
+                            // TODO: Add mount options for Postgres containers when API supports it
+                            // MountOptions = IsPostgresDataVolume(output.resource, output.volume) 
+                            //     ? "uid=999,gid=999,nobrl,mfsymlinks,cache=none,dir_mode=0750,file_mode=0750"
+                            //     : null
                         }
                     };
 

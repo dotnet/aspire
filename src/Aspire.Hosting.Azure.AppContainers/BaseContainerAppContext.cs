@@ -54,6 +54,12 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                 StorageName = storageName.AsProvisioningParameter(Infra),
             };
 
+            // Set mount options for Postgres containers to fix permission issues
+            if (IsPostgresDataVolume(resource, volume))
+            {
+                containerAppVolume.MountOptions = "uid=999,gid=999,nobrl,mfsymlinks,cache=none,dir_mode=0750,file_mode=0750";
+            }
+
             volumes.Add(containerAppVolume);
 
             var containerAppVolumeMount = new ContainerAppVolumeMount
@@ -516,5 +522,12 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
         None,
         Normal,
         KeyVault,
+    }
+
+    private static bool IsPostgresDataVolume(IResource resource, ContainerMountAnnotation volume)
+    {
+        // Check if this is a Postgres server resource and the volume is mounted at the data directory
+        // We check the type name to avoid circular dependency with Aspire.Hosting.PostgreSQL
+        return resource.GetType().Name == "PostgresServerResource" && volume.Target == "/var/lib/postgresql/data";
     }
 }
