@@ -552,7 +552,6 @@ public sealed class GenAIVisualizerDialogViewModelTests
     {
         return GenAIVisualizerDialogViewModel.Create(
             spanDetailsViewModel,
-            selectedLogEntryId: null,
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
     }

@@ -27,6 +27,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private int _currentSpanContextIndex;
     private GenAIVisualizerDialogViewModel? _content;
 
+    private GenAIItemViewModel? SelectedItem { get; set; }
+
+    private OverviewViewKind OverviewActiveView { get; set; }
+    private ItemViewKind MessageActiveView { get; set; }
+
     [Parameter, EditorRequired]
     public required GenAIVisualizerDialogViewModel Content { get; set; }
 
@@ -75,13 +80,13 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private void OnViewItem(GenAIItemViewModel viewModel)
     {
-        Content.SelectedItem = viewModel;
+        SelectedItem = viewModel;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
         var selectedIndex = Content.SelectedTreeItem?.Data as int?;
-        Content.SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
+        SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -97,7 +102,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             return;
         }
 
-        Content.OverviewActiveView = viewKind;
+        OverviewActiveView = viewKind;
     }
 
     private void OnMessageTabChange(FluentTab newTab)
@@ -111,7 +116,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             return;
         }
 
-        Content.MessageActiveView = viewKind;
+        MessageActiveView = viewKind;
     }
 
     private void OnPreviousGenAISpan()
@@ -138,10 +143,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private bool TryUpdateViewedGenAISpan(OtlpSpan newSpan)
     {
+        var selectedIndex = SelectedItem?.Index;
+
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, TelemetryRepository, Content.GetContextGenAISpans);
-        dialogViewModel.OverviewActiveView = Content.OverviewActiveView;
-        dialogViewModel.MessageActiveView = Content.MessageActiveView;
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, TelemetryRepository, Content.GetContextGenAISpans);
+
+        if (selectedIndex != null)
+        {
+            SelectedItem = dialogViewModel.Items.SingleOrDefault(e => e.Index == selectedIndex);
+        }
 
         Content = dialogViewModel;
         _currentSpanContextIndex = _contextSpans.IndexOf(newSpan);
@@ -187,7 +197,12 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, telemetryRepository, getContextGenAISpans);
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, telemetryRepository, getContextGenAISpans);
+
+        //if (selectedLogEntryId != null)
+        //{
+        //    dialogViewModel.SelectedItem = dialogViewModel.Items.SingleOrDefault(e => e.InternalId == selectedLogEntryId);
+        //}
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }
