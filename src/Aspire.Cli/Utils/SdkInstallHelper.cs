@@ -28,11 +28,16 @@ internal static class SdkInstallHelper
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var isSdkAvailable = await sdkInstaller.CheckAsync(cancellationToken);
+        var (success, highestVersion, minimumRequiredVersion) = await sdkInstaller.CheckAsync(cancellationToken);
 
-        if (!isSdkAvailable)
+        if (!success)
         {
-            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, ErrorStrings.MininumSdkVersionMissing, DotNetSdkInstaller.MinimumSdkVersion);
+            var detectedVersion = highestVersion ?? "(not found)";
+            
+            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
+                ErrorStrings.MinimumSdkVersionNotMet, 
+                minimumRequiredVersion, 
+                detectedVersion);
             interactionService.DisplayError(sdkErrorMessage);
             return false;
         }

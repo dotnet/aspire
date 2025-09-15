@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -225,6 +225,13 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
                         // Verify that the --deploy flag is included in the arguments
                         Assert.Contains("--deploy", args);
+                        
+                        // Verify the complete set of expected arguments for deploy command
+                        Assert.Contains("--operation", args);
+                        Assert.Contains("publish", args);
+                        Assert.Contains("--publisher", args);
+                        Assert.Contains("default", args);
+                        Assert.Contains("true", args); // The value for --deploy flag
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel

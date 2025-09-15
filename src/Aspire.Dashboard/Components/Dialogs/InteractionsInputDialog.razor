@@ -85,7 +85,15 @@
                                           OptionText="@(vm => vm.Name)"
                                           Height="250px"
                                           Position="SelectPosition.Below"
-                                          aria-describedby="@descriptionId" />
+                                          aria-describedby="@descriptionId">
+                                <OptionTemplate Context="optionContext">
+                                    @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+                                    @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+                                    <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
+                                        @optionContext.Name
+                                    </span>
+                                </OptionTemplate>
+                            </FluentSelect>
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;

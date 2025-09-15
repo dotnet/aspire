@@ -255,6 +255,18 @@ internal sealed class ApplicationOrchestrator
             }
         }
 
+        // Add static URLs
+        if (resource.TryGetUrls(out var staticUrls))
+        {
+            foreach (var staticUrl in staticUrls)
+            {
+                urls.Add(staticUrl);
+
+                // Remove it from the resource here, we'll add it back later to avoid duplicates.
+                resource.Annotations.Remove(staticUrl);
+            }
+        }
+
         // Run the URL callbacks
         if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
         {
@@ -276,20 +288,6 @@ internal sealed class ApplicationOrchestrator
                 if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                 {
                     url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
-                }
-            }
-        }
-
-        if (resource.TryGetUrls(out var existingUrls))
-        {
-            foreach (var existingUrl in existingUrls)
-            {
-                resource.Annotations.Remove(existingUrl);
-
-                if (!urls.Any(url => url.Url.Equals(existingUrl.Url, StringComparison.OrdinalIgnoreCase) && url.Endpoint == existingUrl.Endpoint))
-                {
-                    // Add existing URLs back that aren't duplicates
-                    urls.Add(existingUrl);
                 }
             }
         }
@@ -413,8 +411,14 @@ internal sealed class ApplicationOrchestrator
 
     private async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
-        foreach (var child in _parentChildLookup[resource])
+        foreach (var child in _parentChildLookup[resource].Where(c => c is IResourceWithParent))
         {
+            // Don't propagate state to resources that have a life of their own.
+            if (ResourceHasOwnLifetime(child))
+            {
+                continue;
+            }
+
             await _notificationService.PublishUpdateAsync(child, s => s with
             {
                 State = state,
@@ -487,6 +491,11 @@ internal sealed class ApplicationOrchestrator
             // only dispatch the event for children that have a connection string and are IResourceWithParent, not parented by annotations.
             foreach (var child in children.OfType<IResourceWithConnectionString>().Where(c => c is IResourceWithParent))
             {
+                if (ResourceHasOwnLifetime(child))
+                {
+                    continue;
+                }
+
                 await PublishConnectionStringAvailableEvent(child, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -503,8 +512,24 @@ internal sealed class ApplicationOrchestrator
         {
             foreach (var child in children.Where(c => c is IResourceWithParent))
             {
+                if (ResourceHasOwnLifetime(child))
+                {
+                    continue;
+                }
+
                 await PublishEventToHierarchy(createEvent, child, cancellationToken).ConfigureAwait(false);
             }
         }
     }
+
+    // TODO: We need to introduce a formal way to resources to opt into propagating state and events to children.
+    // This fixes the immediate problem of not propagating to top-level resources, but there are other
+    // resources that may want to have their own lifetime, that this code will be unaware of.
+    private static bool ResourceHasOwnLifetime(IResource resource) =>
+        resource.IsContainer() ||
+        resource is ProjectResource ||
+        resource is ExecutableResource ||
+        resource is ParameterResource ||
+        resource is ConnectionStringResource ||
+        resource is ExternalServiceResource;
 }

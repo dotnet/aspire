@@ -112,9 +112,9 @@
         <target state="translated">제공된 확장 소켓 경로에는 두 개의 유효한 부분이 필요합니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">최소 .NET SDK 버전({0})이 설치되어 있지 않습니다. .NET SDK를 다운로드하고 설치하려면 https://get.dot.net에 방문하세요.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
