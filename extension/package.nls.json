@@ -7,6 +7,7 @@
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",
 	"command.publish": "Publish deployment artifacts",
+	"command.update": "Update Aspire CLI",
 	"command.openTerminal": "Open Aspire terminal",
 	"command.config": "Manage configuration settings",
 	"command.deploy": "Deploy app host",

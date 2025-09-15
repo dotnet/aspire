@@ -91,6 +91,11 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.update",
+        "title": "%command.update%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.openTerminal",
         "title": "%command.openTerminal%",
         "category": "Aspire"
