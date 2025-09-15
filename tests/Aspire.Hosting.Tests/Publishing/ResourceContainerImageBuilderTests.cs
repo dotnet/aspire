@@ -720,37 +720,74 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         // Add parameters for different value types
         builder.Configuration["Parameters:stringparam"] = "test-value";
+        builder.Configuration["Parameters:valueprovider"] = "provider-value";
         var stringParam = builder.AddParameter("stringparam");
+        var valueProviderParam = builder.AddParameter("valueprovider");
+
+        // Create a temporary file to test FileInfo handling
+        var tempFile = Path.GetTempFileName();
+        var fileInfo = new FileInfo(tempFile);
 
         var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
                               .WithBuildArg("STRING_ARG", stringParam)
                               .WithBuildArg("BOOL_TRUE_ARG", true)
                               .WithBuildArg("BOOL_FALSE_ARG", false)
                               .WithBuildArg("NULL_ARG", (string?)null)
-                              .WithBuildArg("DIRECT_STRING_ARG", "direct-string");
+                              .WithBuildArg("DIRECT_STRING_ARG", "direct-string")
+                              .WithBuildArg("EMPTY_STRING_ARG", "")
+                              .WithBuildArg("FILEINFO_ARG", fileInfo)
+                              .WithBuildArg("VALUEPROVIDER_ARG", valueProviderParam)
+                              .WithBuildArg("INT_ARG", 42)
+                              .WithBuildArg("DECIMAL_ARG", 3.14);
 
         using var app = builder.Build();
 
-        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        await imageBuilder.BuildImageAsync(container.Resource, options: null, cts.Token);
+        try
+        {
+            using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+            var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+            await imageBuilder.BuildImageAsync(container.Resource, options: null, cts.Token);
 
-        // Verify that different value types are resolved correctly
-        Assert.NotNull(fakeContainerRuntime.CapturedBuildArguments);
-        Assert.Equal(5, fakeContainerRuntime.CapturedBuildArguments.Count);
+            // Verify that different value types are resolved correctly
+            Assert.NotNull(fakeContainerRuntime.CapturedBuildArguments);
+            Assert.Equal(10, fakeContainerRuntime.CapturedBuildArguments.Count);
 
-        // Parameter should resolve to its configured value
-        Assert.Equal("test-value", fakeContainerRuntime.CapturedBuildArguments["STRING_ARG"]);
+            // Parameter should resolve to its configured value (IValueProvider)
+            Assert.Equal("test-value", fakeContainerRuntime.CapturedBuildArguments["STRING_ARG"]);
 
-        // Boolean values should be converted to strings
-        Assert.Equal("true", fakeContainerRuntime.CapturedBuildArguments["BOOL_TRUE_ARG"]);
-        Assert.Equal("false", fakeContainerRuntime.CapturedBuildArguments["BOOL_FALSE_ARG"]);
+            // Boolean values should be converted to strings
+            Assert.Equal("true", fakeContainerRuntime.CapturedBuildArguments["BOOL_TRUE_ARG"]);
+            Assert.Equal("false", fakeContainerRuntime.CapturedBuildArguments["BOOL_FALSE_ARG"]);
 
-        // Null should be converted to empty string
-        Assert.Equal("", fakeContainerRuntime.CapturedBuildArguments["NULL_ARG"]);
+            // Null should be converted to null (not empty string)
+            Assert.Null(fakeContainerRuntime.CapturedBuildArguments["NULL_ARG"]);
 
-        // Direct string should be passed through
-        Assert.Equal("direct-string", fakeContainerRuntime.CapturedBuildArguments["DIRECT_STRING_ARG"]);
+            // Direct string should be passed through
+            Assert.Equal("direct-string", fakeContainerRuntime.CapturedBuildArguments["DIRECT_STRING_ARG"]);
+
+            // Empty string should be passed through
+            Assert.Equal("", fakeContainerRuntime.CapturedBuildArguments["EMPTY_STRING_ARG"]);
+
+            // FileInfo should resolve to its FullName
+            Assert.Equal(tempFile, fakeContainerRuntime.CapturedBuildArguments["FILEINFO_ARG"]);
+
+            // IValueProvider (parameter) should resolve to its configured value
+            Assert.Equal("provider-value", fakeContainerRuntime.CapturedBuildArguments["VALUEPROVIDER_ARG"]);
+
+            // Integer should be converted to string via ToString()
+            Assert.Equal("42", fakeContainerRuntime.CapturedBuildArguments["INT_ARG"]);
+
+            // Decimal should be converted to string via ToString()
+            Assert.Equal("3.14", fakeContainerRuntime.CapturedBuildArguments["DECIMAL_ARG"]);
+        }
+        finally
+        {
+            // Clean up the temporary file
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
     }
 
     private sealed class FakeContainerRuntime(bool shouldFail) : IContainerRuntime
@@ -763,8 +800,8 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
         public List<string> PushImageCalls { get; } = [];
         public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
-        public Dictionary<string, string>? CapturedBuildArguments { get; private set; }
-        public Dictionary<string, string>? CapturedBuildSecrets { get; private set; }
+        public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
+        public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
         public string? CapturedStage { get; private set; }
 
         public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
@@ -795,7 +832,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             return Task.CompletedTask;
         }
 
-        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
+        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
         {
             // Capture the arguments for verification in tests
             CapturedBuildArguments = buildArguments;

@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
@@ -73,7 +73,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             // Add build arguments if specified
             foreach (var buildArg in buildArguments)
             {
-                arguments += $" --build-arg \"{buildArg.Key}={buildArg.Value}\"";
+                arguments += buildArg.Value is not null
+                    ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
+                    : $" --build-arg \"{buildArg.Key}\"";
             }
 
             // Add build secrets if specified
@@ -136,7 +138,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 

@@ -345,33 +345,17 @@ internal sealed class ResourceContainerImageBuilder(
             ).ConfigureAwait(false);
 
         // Resolve build arguments
-        var resolvedBuildArguments = new Dictionary<string, string>();
+        var resolvedBuildArguments = new Dictionary<string, string?>();
         foreach (var buildArg in dockerfileBuildAnnotation.BuildArguments)
         {
-            var valueString = buildArg.Value switch
-            {
-                string stringValue => stringValue,
-                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                bool boolValue => boolValue ? "true" : "false",
-                null => null,
-                _ => buildArg.Value.ToString()
-            };
-
-            resolvedBuildArguments[buildArg.Key] = valueString ?? "";
+            resolvedBuildArguments[buildArg.Key] = await ResolveValue(buildArg.Value, cancellationToken).ConfigureAwait(false);
         }
 
         // Resolve build secrets
-        var resolvedBuildSecrets = new Dictionary<string, string>();
+        var resolvedBuildSecrets = new Dictionary<string, string?>();
         foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
         {
-            var valueString = buildSecret.Value switch
-            {
-                FileInfo filePath => filePath.FullName,
-                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                _ => throw new InvalidOperationException("Build secret can only be a parameter or a file.")
-            };
-
-            resolvedBuildSecrets[buildSecret.Key] = valueString ?? "";
+            resolvedBuildSecrets[buildSecret.Key] = await ResolveValue(buildSecret.Value, cancellationToken).ConfigureAwait(false);
         }
 
         if (publishingTask is not null)
@@ -421,6 +405,19 @@ internal sealed class ResourceContainerImageBuilder(
                 throw;
             }
         }
+    }
+
+    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    {
+        return value switch
+        {
+            FileInfo filePath => filePath.FullName,
+            string stringValue => stringValue,
+            IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            bool boolValue => boolValue ? "true" : "false",
+            null => null,
+            _ => value.ToString()
+        };
     }
 
     private static async Task<IPublishingTask?> CreateTaskAsync(
