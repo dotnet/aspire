@@ -23,11 +23,11 @@ public partial class SpanDetails : IDisposable
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
 
-    [Parameter, EditorRequired]
-    public required EventCallback CloseCallback { get; set; }
+    [Parameter]
+    public EventCallback CloseCallback { get; set; }
 
-    [Parameter, EditorRequired]
-    public required EventCallback<OtlpSpan> LaunchGenAICallback { get; set; }
+    [Parameter]
+    public EventCallback<OtlpSpan> LaunchGenAICallback { get; set; }
 
     [Parameter]
     public bool HideToolbar { get; set; }

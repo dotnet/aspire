@@ -187,7 +187,7 @@
                         @if (Content.OverviewActiveView == OverviewViewKind.Details)
                         {
                             <div class="tab-container">
-                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" LaunchGenAICallback="@(() => {})" HideToolbar="true" />
+                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" HideToolbar="true" />
                             </div>
                         }
                     }
