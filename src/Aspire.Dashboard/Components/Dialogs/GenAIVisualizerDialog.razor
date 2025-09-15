@@ -89,9 +89,9 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    if (itemPart.MessagePart?.Type == "image" && itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content") is { } imageContent)
+                                    if (IsImagePart(itemPart, out var imageContent))
                                     {
-                                        <img src="@imageContent.Value" />
+                                        <img src="@imageContent" />
                                     }
                                     else if (itemPart.AdditionalProperties is { } additionalProperties && additionalProperties.Count > 0)
                                     {

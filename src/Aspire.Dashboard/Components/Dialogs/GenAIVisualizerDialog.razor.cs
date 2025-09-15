@@ -177,6 +177,22 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
+    private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
+    {
+        // Image part is a generic part with type "image" and content in additional properties.
+        // An image part currently isn't in the GenAI semantic conventions. This follows what MEAI does.
+        // This code will likely need to change to support a future standard.
+        if (itemPart.MessagePart?.Type == "image")
+        {
+            var contentType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content");
+            imageContent = contentType?.Value;
+            return !string.IsNullOrEmpty(imageContent);
+        }
+
+        imageContent = null;
+        return false;
+    }
+
     public void Dispose()
     {
         _resourcesSubscription?.Dispose();
@@ -203,11 +219,6 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
         var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, telemetryRepository, getContextGenAISpans);
-
-        //if (selectedLogEntryId != null)
-        //{
-        //    dialogViewModel.SelectedItem = dialogViewModel.Items.SingleOrDefault(e => e.InternalId == selectedLogEntryId);
-        //}
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }
