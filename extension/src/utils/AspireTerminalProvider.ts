@@ -3,7 +3,6 @@ import { aspireTerminalName, dcpServerNotInitialized, rpcServerNotInitialized } 
 import { extensionLogOutputChannel } from './logging';
 import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
-import { get } from 'http';
 
 export interface AspireTerminal {
     terminal: vscode.Terminal;
@@ -50,8 +49,8 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    sendToAspireTerminal(command: string, debugSessionId: string | null, showTerminal: boolean = true) {
-        const aspireTerminal = this.getAspireTerminal(debugSessionId);
+    sendToAspireTerminal(command: string, showTerminal: boolean = true) {
+        const aspireTerminal = this.getAspireTerminal();
         extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
         aspireTerminal.terminal.sendText(command);
         if (showTerminal) {
@@ -59,34 +58,37 @@ export class AspireTerminalProvider implements vscode.Disposable {
         }
     }
 
-    getAspireTerminal(debugSessionId: string | null, forceCreate?: boolean): AspireTerminal {
+    getAspireTerminal(forceCreate?: boolean): AspireTerminal {
         const terminalName = aspireTerminalName;
 
-        const existingTerminal = this._terminalByDebugSessionId.get(debugSessionId ?? null);
-        if (existingTerminal && !forceCreate) {
-            return existingTerminal;
+        const existingTerminal = this._terminalByDebugSessionId.get(null);
+        if (existingTerminal) {
+            if (!forceCreate) {
+                return existingTerminal;
+            }
+            else {
+                existingTerminal.dispose();
+            }
         }
 
         extensionLogOutputChannel.info(`Creating new Aspire terminal`);
         const terminal = vscode.window.createTerminal({
             name: terminalName,
-            env: this.createEnvironment(debugSessionId),
+            env: this.createEnvironment(null),
         });
 
         const aspireTerminal: AspireTerminal = {
             terminal,
             dispose: () => {
                 terminal.dispose();
-                this._terminalByDebugSessionId.delete(debugSessionId);
+                this._terminalByDebugSessionId.delete(null);
             }
         };
 
-        this._terminalByDebugSessionId.set(debugSessionId ?? null, aspireTerminal);
+        this._terminalByDebugSessionId.set(null, aspireTerminal);
 
         return aspireTerminal;
-    }
-
-    createEnvironment(debugSessionId: string | null): any {
+    }    createEnvironment(debugSessionId: string | null): any {
         const env: any = {
             ...process.env,
 
@@ -131,7 +133,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             try {
                 if (term.name === aspireTerminalName) {
                     extensionLogOutputChannel.info(`Disposing unregistered Aspire terminal: ${term.name}`);
-                    this.getAspireTerminal(null, true); // Open a new one to replace it
+                    this.getAspireTerminal(true); // Open a new one to replace it
                     term.dispose();
                 }
             }

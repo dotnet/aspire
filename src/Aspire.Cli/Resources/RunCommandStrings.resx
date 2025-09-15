@@ -182,6 +182,6 @@
     <value>AppHost</value>
   </data>
   <data name="StartingDebugSessionInExtension" xml:space="preserve">
-    <value>Detected aspire run inside the Aspire extension, a debug session in VS Code...</value>
+    <value>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</value>
   </data>
 </root>

@@ -213,7 +213,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Detected aspire run inside the Aspire extension, a debug session in VS Code....
+        ///   Looks up a localized string similar to Detected aspire run inside the Aspire extension, starting a debug session in VS Code....
         /// </summary>
         public static string StartingDebugSessionInExtension {
             get {

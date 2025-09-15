@@ -88,8 +88,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StartingDebugSessionInExtension">
-        <source>Detected aspire run inside the Aspire extension, a debug session in VS Code...</source>
-        <target state="new">Detected aspire run inside the Aspire extension, a debug session in VS Code...</target>
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
