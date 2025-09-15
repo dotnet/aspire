@@ -23,5 +23,18 @@ public class ContainerPortReference(IResource resource) : IManifestExpressionPro
     public IEnumerable<object> References => [Resource];
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
-        => ValueTask.FromResult<string?>("8080");
+    {
+        // If the resource has endpoints defined, try to get the target port from the first endpoint
+        if (Resource is IResourceWithEndpoints resourceWithEndpoints)
+        {
+            var endpointAnnotation = resourceWithEndpoints.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+            if (endpointAnnotation?.TargetPort is int targetPort)
+            {
+                return ValueTask.FromResult<string?>(targetPort.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        // Fall back to a default port if no endpoint is defined or no target port is specified
+        return ValueTask.FromResult<string?>("8080");
+    }
 }

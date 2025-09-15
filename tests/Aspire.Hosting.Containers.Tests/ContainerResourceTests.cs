@@ -354,6 +354,90 @@ public class ContainerResourceTests
         Assert.False(mountAnnotation.IsReadOnly);
     }
 
+    [Fact]
+    public async Task ContainerPortReferenceResolvesTargetPortFromEndpoint()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("test-container", "nginx")
+            .WithEndpoint("http", e =>
+            {
+                e.Port = 8080;
+                e.TargetPort = 80;
+            });
+
+        using var app = appBuilder.Build();
+
+        var resource = container.Resource;
+        var portReference = new ContainerPortReference(resource);
+
+        var resolvedValue = await ((IValueProvider)portReference).GetValueAsync();
+
+        Assert.Equal("80", resolvedValue);
+    }
+
+    [Fact]
+    public async Task ContainerPortReferenceDefaultsTo8080WithoutEndpoint()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("test-container", "nginx");
+
+        using var app = appBuilder.Build();
+
+        var resource = container.Resource;
+        var portReference = new ContainerPortReference(resource);
+
+        var resolvedValue = await ((IValueProvider)portReference).GetValueAsync();
+
+        Assert.Equal("8080", resolvedValue);
+    }
+
+    [Fact]
+    public async Task ContainerPortReferenceDefaultsTo8080WithEndpointButNoTargetPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("test-container", "nginx")
+            .WithEndpoint("http", e =>
+            {
+                e.Port = 8080;
+                // No TargetPort specified
+            });
+
+        using var app = appBuilder.Build();
+
+        var resource = container.Resource;
+        var portReference = new ContainerPortReference(resource);
+
+        var resolvedValue = await ((IValueProvider)portReference).GetValueAsync();
+
+        Assert.Equal("8080", resolvedValue);
+    }
+
+    [Fact]
+    public async Task ContainerPortReferenceWithMultipleEndpointsUsesFirst()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("test-container", "nginx")
+            .WithEndpoint("http", e =>
+            {
+                e.Port = 8080;
+                e.TargetPort = 80;
+            })
+            .WithEndpoint("admin", e =>
+            {
+                e.Port = 9090;
+                e.TargetPort = 9000;
+            });
+
+        using var app = appBuilder.Build();
+
+        var resource = container.Resource;
+        var portReference = new ContainerPortReference(resource);
+
+        var resolvedValue = await ((IValueProvider)portReference).GetValueAsync();
+
+        Assert.Equal("80", resolvedValue); // Should use the first endpoint
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
