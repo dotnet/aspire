@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
 import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
+import { ProgressNotifier } from './progressNotifier';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
@@ -46,72 +47,16 @@ export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
 
     private _rpcClient?: ICliRpcClient;
-    private _currentProgress?: {
-        resolve: () => void;
-        updateMessage: (msg: string) => void;
-    };
+    private _progressNotifier: ProgressNotifier;
 
     constructor(getAspireDebugSession: () => AspireDebugSession | null, rpcClient: ICliRpcClient) {
         this._getAspireDebugSession = getAspireDebugSession;
         this._rpcClient = rpcClient;
+        this._progressNotifier = new ProgressNotifier(this._rpcClient);
     }
 
     showStatus(statusText: string | null) {
-        extensionLogOutputChannel.info(`Setting status/progress: ${statusText ?? 'null'}`);
-
-        // Complete existing progress if null
-        if (!statusText) {
-            this.clearProgressNotification();
-            return;
-        }
-
-        // If a progress notification is already active, update its message
-        if (this._currentProgress) {
-            try {
-                this._currentProgress.updateMessage(formatText(statusText));
-            }
-            catch (err) {
-                extensionLogOutputChannel.error(`Failed to update progress message: ${err}`);
-            }
-            return;
-        }
-
-        // No active progress: create one that can be cancelled by the user
-        let resolveFn: () => void;
-        const waitPromise = new Promise<void>(resolve => { resolveFn = resolve; });
-
-        this._currentProgress = {
-            resolve: () => { resolveFn(); },
-            updateMessage: (_m: string) => {}
-        };
-
-        vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: formatText(statusText),
-            cancellable: true
-        }, async (progress, token) => {
-            // Wire report function so subsequent showStatus calls can update message
-            this._currentProgress!.updateMessage = (m: string) => progress.report({ message: m });
-
-            const cancelListener = token.onCancellationRequested(() => {
-                extensionLogOutputChannel.info('User cancelled progress; attempting to stop CLI');
-                try {
-                    this._rpcClient?.stopCli();
-                }
-                catch (err) {
-                    extensionLogOutputChannel.error(`Failed to stop CLI: ${err}`);
-                }
-            });
-
-            // Keep the progress alive until showStatus(null) calls resolve
-            try {
-                return await waitPromise;
-            } finally {
-                return cancelListener.dispose();
-            }
-        }).then(undefined, (err: any) => {
-            extensionLogOutputChannel.error(`Progress failed: ${err}`);
-        });
+        this._progressNotifier.show(statusText);
     }
 
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -257,24 +202,27 @@ export class InteractionService implements IInteractionService {
             actions.push({ title: codespacesLink });
         }
 
-        // Don't await - fire and forget to avoid blocking
-        vscode.window.showInformationMessage(
-            openAspireDashboard,
-            ...actions
-        ).then(selected => {
-            if (!selected) {
-                return;
-            }
+        // Delay 1 second to allow a slight pause between progress notification and message
+        setTimeout(() => {
+            // Don't await - fire and forget to avoid blocking
+            vscode.window.showInformationMessage(
+                openAspireDashboard,
+                ...actions
+            ).then(selected => {
+                if (!selected) {
+                    return;
+                }
 
-            extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
+                extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
-            if (selected.title === directLink) {
-                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
-            }
-            else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
-                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
-            }
-        });
+                if (selected.title === directLink) {
+                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+                }
+                else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
+                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+                }
+            });
+        }, 1000);
     }
 
     displayLines(lines: ConsoleLine[]) {
@@ -357,10 +305,7 @@ export class InteractionService implements IInteractionService {
     }
 
     clearProgressNotification() {
-        if (this._currentProgress) {
-            this._currentProgress.resolve();
-            this._currentProgress = undefined;
-        }
+        this._progressNotifier.clear();
     }
 }
 
