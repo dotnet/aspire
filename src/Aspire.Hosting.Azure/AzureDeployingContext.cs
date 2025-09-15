@@ -142,11 +142,11 @@ internal sealed class AzureDeployingContext(
         var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
         foreach (var resource in computeResources)
         {
-            if (resource.TryGetLastAnnotation<DeploymentImageTagAnnotation>(out _))
+            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
             {
                 continue;
             }
-            resource.Annotations.Add(new DeploymentImageTagAnnotation(() => deploymentTag));
+            resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(() => deploymentTag));
         }
 
         // Step 1: Build ALL images at once regardless of destination registry
