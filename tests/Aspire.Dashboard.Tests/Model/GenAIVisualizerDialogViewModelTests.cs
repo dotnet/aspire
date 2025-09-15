@@ -54,7 +54,6 @@ public sealed class GenAIVisualizerDialogViewModelTests
 
         // Assert
         Assert.Empty(vm.Items);
-        Assert.Null(vm.SelectedItem);
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
@@ -210,7 +209,6 @@ public sealed class GenAIVisualizerDialogViewModelTests
                 Assert.Collection(m.ItemParts,
                     p => Assert.Equal("Assistant!", Assert.IsType<TextPart>(p.MessagePart).Content));
             });
-        Assert.Null(vm.SelectedItem);
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
@@ -297,7 +295,6 @@ public sealed class GenAIVisualizerDialogViewModelTests
                 Assert.Collection(m.ItemParts,
                     p => Assert.Equal("Assistant!", Assert.IsType<TextPart>(p.MessagePart).Content));
             });
-        Assert.Null(vm.SelectedItem);
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
@@ -420,7 +417,6 @@ public sealed class GenAIVisualizerDialogViewModelTests
                 Assert.Collection(m.ItemParts,
                     p => Assert.Equal("Output!", Assert.IsType<TextPart>(p.MessagePart).Content));
             });
-        Assert.Null(vm.SelectedItem);
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
@@ -552,6 +548,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
     {
         return GenAIVisualizerDialogViewModel.Create(
             spanDetailsViewModel,
+            selectedLogEntryId: null,
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
     }
