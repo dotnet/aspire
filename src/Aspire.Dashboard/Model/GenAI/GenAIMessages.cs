@@ -104,12 +104,6 @@ public class MessagePartConverter : JsonConverter<MessagePart>
             MessagePart.ToolCallResponseType => JsonSerializer.Deserialize<ToolCallResponsePart>(doc.RootElement.GetRawText(), options),
             _ => JsonSerializer.Deserialize<GenericPart>(doc.RootElement.GetRawText(), options),
         };
-
-        //static GenericPart CreateGenericPart(JsonElement element, string type)
-        //{
-        //    var genericPart = JsonSerializer.Deserialize<GenericPart>(doc.RootElement.GetRawText(), options);
-        //    return genericPart.T
-        //}
     }
 
     public override void Write(Utf8JsonWriter writer, MessagePart value, JsonSerializerOptions options)
