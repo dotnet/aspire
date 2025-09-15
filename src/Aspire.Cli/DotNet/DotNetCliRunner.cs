@@ -791,8 +791,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             var pattern = $"{keyHash}.*.json";
             var matchingFiles = cacheDirectory.GetFiles(pattern);
 
-            string? validCacheFile = null;
-
+            // Parse timestamps and sort files by timestamp (descending, newest first)
+            var filesWithTimestamps = new List<(FileInfo file, long timestamp)>();
+            
             foreach (var file in matchingFiles)
             {
                 // Extract timestamp from filename: {keyHash}.{timestamp}.json
@@ -801,29 +802,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 
                 if (parts.Length >= 2 && long.TryParse(parts[1], out var fileTimestamp))
                 {
-                    var fileAge = TimeSpan.FromSeconds(currentUnixTime - fileTimestamp);
-                    
-                    if (fileAge <= cacheExpiryWindow)
-                    {
-                        // File is still valid
-                        if (validCacheFile == null)
-                        {
-                            validCacheFile = file.FullName;
-                        }
-                    }
-                    else
-                    {
-                        // File is expired, delete it
-                        try
-                        {
-                            file.Delete();
-                            logger.LogDebug("Deleted expired cache file: {CacheFile}", file.FullName);
-                        }
-                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-                        {
-                            logger.LogDebug(ex, "Failed to delete expired cache file: {CacheFile}", file.FullName);
-                        }
-                    }
+                    filesWithTimestamps.Add((file, fileTimestamp));
                 }
                 else
                 {
@@ -836,6 +815,43 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
                     {
                         logger.LogDebug(ex, "Failed to delete invalid cache file: {CacheFile}", file.FullName);
+                    }
+                }
+            }
+
+            // Sort by timestamp descending (newest first)
+            filesWithTimestamps.Sort((a, b) => b.timestamp.CompareTo(a.timestamp));
+
+            string? validCacheFile = null;
+            
+            for (int i = 0; i < filesWithTimestamps.Count; i++)
+            {
+                var (file, timestamp) = filesWithTimestamps[i];
+                var fileAge = TimeSpan.FromSeconds(currentUnixTime - timestamp);
+                
+                if (i == 0 && fileAge <= cacheExpiryWindow)
+                {
+                    // This is the newest file and it's within the expiry window - use it
+                    validCacheFile = file.FullName;
+                }
+                else
+                {
+                    // Delete all other files (either not the newest, or expired)
+                    try
+                    {
+                        file.Delete();
+                        if (fileAge > cacheExpiryWindow)
+                        {
+                            logger.LogDebug("Deleted expired cache file: {CacheFile}", file.FullName);
+                        }
+                        else
+                        {
+                            logger.LogDebug("Deleted old cache file: {CacheFile}", file.FullName);
+                        }
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                    {
+                        logger.LogDebug(ex, "Failed to delete cache file: {CacheFile}", file.FullName);
                     }
                 }
             }
