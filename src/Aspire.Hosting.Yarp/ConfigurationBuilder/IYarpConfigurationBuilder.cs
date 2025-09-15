@@ -46,7 +46,18 @@ public interface IYarpConfigurationBuilder
     /// <param name="clusterName">The name of the cluster.</param>
     /// <param name="destinations">The destinations used by this cluster.</param>
     /// <returns></returns>
-    public YarpCluster AddCluster(string clusterName, params string[] destinations);
+    public YarpCluster AddCluster(string clusterName, string[] destinations);
+
+    /// <summary>
+    /// Add a new cluster to YARP based on a collection of urls.
+    /// </summary>
+    /// <param name="clusterName">The name of the cluster.</param>
+    /// <param name="destination">The destinations used by this cluster.</param>
+    /// <returns></returns>
+    public YarpCluster AddCluster(string clusterName, string destination)
+    {
+        return AddCluster(clusterName, new[] { destination });
+    }
 }
 
 /// <summary>
