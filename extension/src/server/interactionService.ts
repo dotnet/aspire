@@ -45,7 +45,6 @@ type ConsoleLine = {
 export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
 
-    private _statusBarItem: vscode.StatusBarItem | undefined;
     private _rpcClient?: ICliRpcClient;
     private _currentProgress?: {
         resolve: () => void;
@@ -62,13 +61,7 @@ export class InteractionService implements IInteractionService {
 
         // Complete existing progress if null
         if (!statusText) {
-            if (this._currentProgress) {
-                this._currentProgress.resolve();
-                this._currentProgress = undefined;
-            }
-            if (this._statusBarItem) {
-                this._statusBarItem.hide();
-            }
+            this.clearProgressNotification();
             return;
         }
 
@@ -96,7 +89,7 @@ export class InteractionService implements IInteractionService {
             location: vscode.ProgressLocation.Notification,
             title: formatText(statusText),
             cancellable: true
-        }, (progress, token) => {
+        }, async (progress, token) => {
             // Wire report function so subsequent showStatus calls can update message
             this._currentProgress!.updateMessage = (m: string) => progress.report({ message: m });
 
@@ -111,17 +104,14 @@ export class InteractionService implements IInteractionService {
             });
 
             // Keep the progress alive until showStatus(null) calls resolve
-            return waitPromise.finally(() => cancelListener.dispose());
+            try {
+                return await waitPromise;
+            } finally {
+                return cancelListener.dispose();
+            }
         }).then(undefined, (err: any) => {
             extensionLogOutputChannel.error(`Progress failed: ${err}`);
         });
-
-        // Also update status bar for backwards compatibility
-        if (!this._statusBarItem) {
-            this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-        }
-        this._statusBarItem.text = formatText(statusText);
-        this._statusBarItem.show();
     }
 
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -216,7 +206,7 @@ export class InteractionService implements IInteractionService {
 
         extensionLogOutputChannel.error(`Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
-        this.clearStatusBar();
+        this.clearProgressNotification();
     }
 
     displayMessage(emoji: string, message: string) {
@@ -336,7 +326,7 @@ export class InteractionService implements IInteractionService {
     }
 
     stopDebugging() {
-        this.clearStatusBar();
+        this.clearProgressNotification();
         this._getAspireDebugSession()?.dispose();
     }
 
@@ -350,7 +340,7 @@ export class InteractionService implements IInteractionService {
     }
 
     async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean): Promise<void> {
-        this.clearStatusBar();
+        this.clearProgressNotification();
 
         const debugConfiguration: AspireExtendedDebugConfiguration = {
             type: 'aspire',
@@ -366,16 +356,15 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    clearStatusBar() {
-        if (this._statusBarItem) {
-            this._statusBarItem.hide();
-            this._statusBarItem.dispose();
-            this._statusBarItem = undefined;
+    clearProgressNotification() {
+        if (this._currentProgress) {
+            this._currentProgress.resolve();
+            this._currentProgress = undefined;
         }
     }
 }
 
-function tryExecuteEndpoint(withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
+function tryExecuteEndpoint(interactionService: IInteractionService, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
     return (name: string, handler: (...args: any[]) => any) => withAuthentication(async (...args: any[]) => {
         try {
             return await Promise.resolve(handler(...args));
@@ -384,13 +373,14 @@ function tryExecuteEndpoint(withAuthentication: (callback: (...params: any[]) =>
             const message = (err && (((err as any).message) ?? String(err))) || 'An unknown error occurred';
             extensionLogOutputChannel.error(`Interaction service endpoint '${name}' failed: ${message}`);
             vscode.window.showErrorMessage(errorMessage(message));
+            interactionService.showStatus(null);
             throw err;
         }
     });
 }
 
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
-    const middleware = tryExecuteEndpoint(withAuthentication);
+    const middleware = tryExecuteEndpoint(interactionService, withAuthentication);
 
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
