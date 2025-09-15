@@ -60,24 +60,17 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
         string tag;
         if (Resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var deploymentTag))
         {
-            if (deploymentTag.IsAsync)
+            if (ServiceProvider is null)
             {
-                if (ServiceProvider is null)
-                {
-                    throw new InvalidOperationException($"Async deployment image tag callback requires a service provider, but none was provided to ContainerImageReference for resource '{Resource.Name}'.");
-                }
+                throw new InvalidOperationException($"Deployment image tag callback requires a service provider, but none was provided to ContainerImageReference for resource '{Resource.Name}'.");
+            }
 
-                var context = new DeploymentImageTagCallbackAnnotationContext
-                {
-                    Resource = Resource,
-                    Services = ServiceProvider
-                };
-                tag = await deploymentTag.AsyncCallback!(context).ConfigureAwait(false);
-            }
-            else
+            var context = new DeploymentImageTagCallbackAnnotationContext
             {
-                tag = deploymentTag.SyncCallback!();
-            }
+                Resource = Resource,
+                Services = ServiceProvider
+            };
+            tag = await deploymentTag.Callback(context).ConfigureAwait(false);
         }
         else if (Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var annotation))
         {

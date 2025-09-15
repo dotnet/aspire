@@ -36,7 +36,8 @@ public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
     public DeploymentImageTagCallbackAnnotation(Func<string> callback)
     {
-        SyncCallback = callback ?? throw new ArgumentNullException(nameof(callback));
+        ArgumentNullException.ThrowIfNull(callback);
+        Callback = _ => Task.FromResult(callback());
     }
 
     /// <summary>
@@ -45,21 +46,11 @@ public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
     public DeploymentImageTagCallbackAnnotation(Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback)
     {
-        AsyncCallback = callback ?? throw new ArgumentNullException(nameof(callback));
+        Callback = callback ?? throw new ArgumentNullException(nameof(callback));
     }
 
     /// <summary>
-    /// Gets the synchronous callback that returns the deployment tag name, or null if an async callback was provided.
+    /// Gets the callback that returns the deployment tag name.
     /// </summary>
-    public Func<string>? SyncCallback { get; }
-
-    /// <summary>
-    /// Gets the asynchronous callback that returns the deployment tag name, or null if a sync callback was provided.
-    /// </summary>
-    public Func<DeploymentImageTagCallbackAnnotationContext, Task<string>>? AsyncCallback { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether this annotation uses an asynchronous callback.
-    /// </summary>
-    public bool IsAsync => AsyncCallback is not null;
+    public Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> Callback { get; }
 }

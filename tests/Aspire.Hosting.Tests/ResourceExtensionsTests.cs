@@ -320,7 +320,7 @@ public class ResourceExtensionsTests
     }
 
     [Fact]
-    public void WithDeploymentImageTag_AddsDeploymentImageTagCallbackAnnotation()
+    public async Task WithDeploymentImageTag_AddsDeploymentImageTagCallbackAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var callback = () => "test-tag";
@@ -329,7 +329,16 @@ public class ResourceExtensionsTests
             .WithDeploymentImageTag(callback);
 
         var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
-        Assert.Equal("test-tag", annotation.SyncCallback!());
+        
+        // Test that the callback works by creating a mock context and calling it
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider
+        };
+        var result = await annotation.Callback(context);
+        Assert.Equal("test-tag", result);
     }
 
     [Fact]
@@ -353,7 +362,7 @@ public class ResourceExtensionsTests
     }
 
     [Fact]
-    public void WithDeploymentImageTag_CanBeCalledMultipleTimes()
+    public async Task WithDeploymentImageTag_CanBeCalledMultipleTimes()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var callback1 = () => "tag1";
@@ -365,8 +374,16 @@ public class ResourceExtensionsTests
 
         var annotations = containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>().ToList();
         Assert.Equal(2, annotations.Count);
-        Assert.Equal("tag1", annotations[0].SyncCallback!());
-        Assert.Equal("tag2", annotations[1].SyncCallback!());
+        
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider
+        };
+        
+        Assert.Equal("tag1", await annotations[0].Callback(context));
+        Assert.Equal("tag2", await annotations[1].Callback(context));
     }
 
     [Fact]
@@ -392,7 +409,7 @@ public class ResourceExtensionsTests
     }
 
     [Fact]
-    public void WithDeploymentImageTag_CallbackCanReturnDifferentValues()
+    public async Task WithDeploymentImageTag_CallbackCanReturnDifferentValues()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var counter = 0;
@@ -403,10 +420,17 @@ public class ResourceExtensionsTests
 
         var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
         
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider
+        };
+        
         // Callback should return different values when called multiple times
-        Assert.Equal("tag-1", annotation.SyncCallback!());
-        Assert.Equal("tag-2", annotation.SyncCallback!());
-        Assert.Equal("tag-3", annotation.SyncCallback!());
+        Assert.Equal("tag-1", await annotation.Callback(context));
+        Assert.Equal("tag-2", await annotation.Callback(context));
+        Assert.Equal("tag-3", await annotation.Callback(context));
     }
 
     [Fact]
@@ -423,9 +447,7 @@ public class ResourceExtensionsTests
             .WithDeploymentImageTag(callback);
 
         var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
-        Assert.True(annotation.IsAsync);
-        Assert.NotNull(annotation.AsyncCallback);
-        Assert.Null(annotation.SyncCallback);
+        Assert.NotNull(annotation.Callback);
         
         // Test the async callback
         var serviceProvider = builder.Services.BuildServiceProvider();
@@ -434,7 +456,7 @@ public class ResourceExtensionsTests
             Resource = containerResource.Resource,
             Services = serviceProvider
         };
-        var result = await annotation.AsyncCallback!(context);
+        var result = await annotation.Callback(context);
         Assert.Equal("async-tag-test-container", result);
     }
 

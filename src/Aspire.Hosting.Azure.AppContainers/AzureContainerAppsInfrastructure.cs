@@ -18,7 +18,8 @@ namespace Aspire.Hosting.Azure;
 internal sealed class AzureContainerAppsInfrastructure(
     ILogger<AzureContainerAppsInfrastructure> logger,
     IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+    DistributedApplicationExecutionContext executionContext,
+    IServiceProvider serviceProvider) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -40,7 +41,8 @@ internal sealed class AzureContainerAppsInfrastructure(
             var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
                 logger,
                 executionContext,
-                environment);
+                environment,
+                serviceProvider);
 
             foreach (var r in appModel.GetComputeResources())
             {
