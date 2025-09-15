@@ -6,6 +6,7 @@ using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
+using StackExchange.Redis.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -34,11 +35,16 @@ public static class AspireMicrosoftAzureStackExchangeRedisExtensions
             optionsName,
             configurationOptions =>
             {
-                credential ??= new DefaultAzureCredential();
+                var azureOptionsProvider = new AzureOptionsProvider();
+                if (configurationOptions.EndPoints.Any(azureOptionsProvider.IsMatch))
+                {
+                    // only set up Azure AD authentication if the endpoint indicates it's an Azure Cache for Redis instance
+                    credential ??= new DefaultAzureCredential();
 
-                // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
-                // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
-                AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(configurationOptions, credential).GetAwaiter().GetResult();
+                    // Configure Microsoft.Azure.StackExchangeRedis for Azure AD authentication
+                    // Note: Using GetAwaiter().GetResult() is acceptable here because this is configuration-time setup
+                    AzureCacheForRedis.ConfigureForAzureWithTokenCredentialAsync(configurationOptions, credential).GetAwaiter().GetResult();
+                }
             });
 
         return builder;

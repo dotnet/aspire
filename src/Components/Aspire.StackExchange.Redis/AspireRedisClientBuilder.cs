@@ -12,7 +12,7 @@ namespace Aspire.StackExchange.Redis;
 /// <param name="hostBuilder">The <see cref="IHostApplicationBuilder"/> with which services are being registered.</param>
 /// <param name="settings">The <see cref="StackExchangeRedisSettings"/> to configure the Redis client.</param>
 /// <param name="serviceKey">The service key used to register the <see cref="IConnectionMultiplexer"/> service, if any.</param>
-public class AspireRedisClientBuilder(IHostApplicationBuilder hostBuilder, StackExchangeRedisSettings settings, string? serviceKey)
+public sealed class AspireRedisClientBuilder(IHostApplicationBuilder hostBuilder, StackExchangeRedisSettings settings, string? serviceKey)
 {
     /// <summary>
     /// Gets the <see cref="IHostApplicationBuilder"/> with which services are being registered.

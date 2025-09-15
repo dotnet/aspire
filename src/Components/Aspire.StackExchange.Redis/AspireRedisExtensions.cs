@@ -68,10 +68,26 @@ public static class AspireRedisExtensions
         string name,
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
+        => AddKeyedRedisClientBuilder(builder, name, configureSettings, configureOptions);
+
+    /// <summary>
+    /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis:{name}" section.</remarks>
+    public static AspireRedisClientBuilder AddKeyedRedisClientBuilder(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<StackExchangeRedisSettings>? configureSettings = null,
+        Action<ConfigurationOptions>? configureOptions = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
+        return AddRedisClient(builder, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
     private static AspireRedisClientBuilder AddRedisClient(

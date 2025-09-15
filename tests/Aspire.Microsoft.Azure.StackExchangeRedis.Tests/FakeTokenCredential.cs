@@ -8,7 +8,7 @@ namespace Aspire.Microsoft.Azure.StackExchangeRedis.Tests;
 internal sealed class FakeTokenCredential : TokenCredential
 {
     // For Redis, Azure AD authentication uses the 'oid' claim to identify the user
-    private const string Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJJc3N1ZWQgQXQiOiIyMDI1LTAzLTIxVDAxOjM3OjAwLjE5OFoiLCJFeHBpcmF0aW9uIjoiMjAyNS0wMy0yMVQwMTozNzowMC4xOThaIiwib2lkIjoiMTIzNDU2NzgtOTBhYi1jZGVmLTEyMzQtNTY3ODkwYWJjZGVmIiwiUm9sZSI6IkFkbWluIn0.TKjH8_Ev-XNPvhkfPYm7RlKQl7n4nV-9UOKpQ3VzlZc";
+    public const string Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJJc3N1ZWQgQXQiOiIyMDI1LTAzLTIxVDAxOjM3OjAwLjE5OFoiLCJFeHBpcmF0aW9uIjoiMjAyNS0wMy0yMVQwMTozNzowMC4xOThaIiwib2lkIjoiMTIzNDU2NzgtOTBhYi1jZGVmLTEyMzQtNTY3ODkwYWJjZGVmIiwiUm9sZSI6IkFkbWluIn0.TKjH8_Ev-XNPvhkfPYm7RlKQl7n4nV-9UOKpQ3VzlZc";
     // {
     //   "Issuer": "Issuer",
     //   "Issued At": "2025-03-21T01:37:00.198Z",
