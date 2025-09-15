@@ -19,6 +19,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public required OtlpSpan Span { get; init; }
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
+    public required long? SelectedLogEntryId { get; init; }
     public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
 
     public string? PeerName { get; set; }
@@ -37,6 +38,7 @@ public sealed class GenAIVisualizerDialogViewModel
 
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
+        long? selectedLogEntryId,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
@@ -45,6 +47,7 @@ public sealed class GenAIVisualizerDialogViewModel
             Span = spanDetailsViewModel.Span,
             Title = SpanWaterfallViewModel.GetTitle(spanDetailsViewModel.Span, spanDetailsViewModel.Resources),
             SpanDetailsViewModel = spanDetailsViewModel,
+            SelectedLogEntryId = selectedLogEntryId,
             GetContextGenAISpans = getContextGenAISpans
         };
 

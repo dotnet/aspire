@@ -122,10 +122,10 @@
                         @if (selectedView == ItemViewKind.Raw)
                         {
                             <div class="tab-container">
-                                    @foreach (var itemPart in selectedItem.ItemParts)
-                                    {
-                                        <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" />
-                                    }
+                                @foreach (var itemPart in selectedItem.ItemParts)
+                                {
+                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                }
                             </div>
                         }
                         <FluentButton Id="@_copyButtonId"

@@ -62,6 +62,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             _contextSpans = Content.GetContextGenAISpans();
             _currentSpanContextIndex = _contextSpans.FindIndex(s => s.SpanId == Content.Span.SpanId);
             _content = Content;
+
+            if (Content.SelectedLogEntryId != null)
+            {
+                SelectedItem = Content.Items.SingleOrDefault(e => e.InternalId == Content.SelectedLogEntryId);
+            }
         }
     }
 
@@ -146,7 +151,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var selectedIndex = SelectedItem?.Index;
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, TelemetryRepository, Content.GetContextGenAISpans);
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, TelemetryRepository, Content.GetContextGenAISpans);
 
         if (selectedIndex != null)
         {
@@ -197,7 +202,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, telemetryRepository, getContextGenAISpans);
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, telemetryRepository, getContextGenAISpans);
 
         //if (selectedLogEntryId != null)
         //{
