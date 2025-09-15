@@ -8,6 +8,7 @@ import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
+import { timingSafeEqual } from 'crypto';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -56,7 +57,8 @@ export default class AspireRpcServer {
 
         function withAuthentication(callback: (...params: any[]) => any) {
             return (...params: any[]) => {
-                if (!params || params[0] !== token) {
+                // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
+                if (!params || params.length === 0 || Buffer.from(params[0]).length !== Buffer.from(token).length || timingSafeEqual(Buffer.from(params[0]), Buffer.from(token)) === false) {
                     throw new Error(invalidTokenProvided);
                 }
 
@@ -108,7 +110,7 @@ export default class AspireRpcServer {
 
                         connection.listen();
 
-                        const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId', token);
+                        const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId');
 
                         const rpcClient = rpcClientFactory(connectionInfo, connection, token, clientDebugSessionId);
                         addInteractionServiceEndpoints(connection,rpcClient.interactionService, rpcClient, withAuthentication);

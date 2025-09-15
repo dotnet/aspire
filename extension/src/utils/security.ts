@@ -38,6 +38,7 @@ export function createSelfSignedCert(commonName: string = 'localhost') {
 }
 
 export function generateToken(): string {
-    const key = randomBytes(16);
+    // 32 bytes is used to provide sufficient entropy for security (2^256 possibilities)
+    const key = randomBytes(32);
     return key.toString('base64');
 }

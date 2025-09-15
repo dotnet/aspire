@@ -6,6 +6,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
+import { timingSafeEqual } from 'crypto';
 
 export default class AspireDcpServer {
     private readonly app: express.Express;
@@ -55,7 +56,16 @@ export default class AspireDcpServer {
                     return;
                 }
 
-                if (auth.split('Bearer ')[1] !== token) {
+                const bearerTokenBuffer = Buffer.from(auth.split('Bearer ')[1]);
+                const expectedTokenBuffer = Buffer.from(token);
+
+                if (bearerTokenBuffer.length !== expectedTokenBuffer.length) {
+                    res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid token length in Authorization header.' } });
+                    return;
+                }
+
+                // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
+                if (timingSafeEqual(bearerTokenBuffer, expectedTokenBuffer) === false) {
                     res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid or missing token in Authorization header.' } });
                     return;
                 }
