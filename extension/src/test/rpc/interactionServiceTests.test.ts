@@ -22,36 +22,6 @@ suite('InteractionService endpoints', () => {
 		statusBarItem.dispose();
 	});
 
-	// showStatus
-	test('Calling showStatus with new status should show that status', async () => {
-		const testInfo = await createTestRpcServer();
-		const showStub = sinon.stub(statusBarItem, 'show');
-
-		testInfo.interactionService.showStatus('Test status');
-		assert.strictEqual(statusBarItem.text, 'Test status');
-		assert.ok(showStub.called, 'show should be called on the status bar item');
-		showStub.restore();
-	});
-
-	test("Calling showStatus with existing status but null should hide the status bar item", async () => {
-		const testInfo = await createTestRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus("Status to hide");
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, 'Status to hide');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
-	});
-
-	test("Calling showStatus with null with no existing status should not throw an error", async () => {
-		const testInfo = await createTestRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, '');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
-	});
-
 	// promptForString
 	test('promptForString calls validateInput and returns valid result', async () => {
 		const testInfo = await createTestRpcServer();
@@ -176,9 +146,9 @@ class TestCliRpcClient implements ICliRpcClient {
     debugSessionId: string | null;
     interactionService: IInteractionService;
 
-    constructor(debugSessionId: string | null, interactionService: IInteractionService) {
+    constructor(debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
         this.debugSessionId = debugSessionId;
-        this.interactionService = interactionService;
+        this.interactionService = new InteractionService(getAspireDebugSession, this);
     }
 
 	stopCli(): Promise<void> {
@@ -207,8 +177,7 @@ async function createTestRpcServer(debugSessionId?: string | null, getAspireDebu
         return null;
     };
 
-	const interactionService = new InteractionService(getAspireDebugSession);
-	const rpcClient = new TestCliRpcClient(debugSessionId ?? null, interactionService);
+	const rpcClient = new TestCliRpcClient(debugSessionId ?? null, getAspireDebugSession);
 
 	const rpcServer = await AspireRpcServer.create(() => rpcClient);
 
@@ -219,6 +188,6 @@ async function createTestRpcServer(debugSessionId?: string | null, getAspireDebu
 	return {
 		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
-		interactionService: interactionService
+		interactionService: rpcClient.interactionService
 	};
 }

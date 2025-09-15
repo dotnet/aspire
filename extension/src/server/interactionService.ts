@@ -46,26 +46,82 @@ export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
 
     private _statusBarItem: vscode.StatusBarItem | undefined;
+    private _rpcClient?: ICliRpcClient;
+    private _currentProgress?: {
+        resolve: () => void;
+        updateMessage: (msg: string) => void;
+    };
 
-    constructor(getAspireDebugSession: () => AspireDebugSession | null) {
+    constructor(getAspireDebugSession: () => AspireDebugSession | null, rpcClient: ICliRpcClient) {
         this._getAspireDebugSession = getAspireDebugSession;
+        this._rpcClient = rpcClient;
     }
 
     showStatus(statusText: string | null) {
-        extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
+        extensionLogOutputChannel.info(`Setting status/progress: ${statusText ?? 'null'}`);
 
+        // Complete existing progress if null
+        if (!statusText) {
+            if (this._currentProgress) {
+                this._currentProgress.resolve();
+                this._currentProgress = undefined;
+            }
+            if (this._statusBarItem) {
+                this._statusBarItem.hide();
+            }
+            return;
+        }
+
+        // If a progress notification is already active, update its message
+        if (this._currentProgress) {
+            try {
+                this._currentProgress.updateMessage(formatText(statusText));
+            }
+            catch (err) {
+                extensionLogOutputChannel.error(`Failed to update progress message: ${err}`);
+            }
+            return;
+        }
+
+        // No active progress: create one that can be cancelled by the user
+        let resolveFn: () => void;
+        const waitPromise = new Promise<void>(resolve => { resolveFn = resolve; });
+
+        this._currentProgress = {
+            resolve: () => { resolveFn(); },
+            updateMessage: (_m: string) => {}
+        };
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: formatText(statusText),
+            cancellable: true
+        }, (progress, token) => {
+            // Wire report function so subsequent showStatus calls can update message
+            this._currentProgress!.updateMessage = (m: string) => progress.report({ message: m });
+
+            const cancelListener = token.onCancellationRequested(() => {
+                extensionLogOutputChannel.info('User cancelled progress; attempting to stop CLI');
+                try {
+                    this._rpcClient?.stopCli();
+                }
+                catch (err) {
+                    extensionLogOutputChannel.error(`Failed to stop CLI: ${err}`);
+                }
+            });
+
+            // Keep the progress alive until showStatus(null) calls resolve
+            return waitPromise.finally(() => cancelListener.dispose());
+        }).then(undefined, (err: any) => {
+            extensionLogOutputChannel.error(`Progress failed: ${err}`);
+        });
+
+        // Also update status bar for backwards compatibility
         if (!this._statusBarItem) {
             this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         }
-
-        if (statusText) {
-            this._statusBarItem.text = formatText(statusText);
-            this._statusBarItem.show();
-
-            this._getAspireDebugSession()?.sendMessage(formatText(statusText));
-        } else if (this._statusBarItem) {
-            this._statusBarItem.hide();
-        }
+        this._statusBarItem.text = formatText(statusText);
+        this._statusBarItem.show();
     }
 
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
