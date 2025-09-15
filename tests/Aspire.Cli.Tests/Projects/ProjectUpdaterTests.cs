@@ -918,8 +918,8 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-    var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
     }
 
     [Fact]
