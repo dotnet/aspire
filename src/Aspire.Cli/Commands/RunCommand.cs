@@ -109,12 +109,15 @@ internal sealed class RunCommand : BaseCommand
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
-            if (effectiveAppHostProjectFile is null)
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+
+            if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
             }
+
+            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
             var env = new Dictionary<string, string>();
 
@@ -131,7 +134,7 @@ internal sealed class RunCommand : BaseCommand
 
             var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 
-            if (!watch)
+            if (!watch && !isSingleFileAppHost)
             {
                 var buildOptions = new DotNetCliRunnerInvocationOptions
                 {
@@ -143,18 +146,31 @@ internal sealed class RunCommand : BaseCommand
                 if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-                    if (buildExitCode != 0)
+                    if (!isSingleFileAppHost)
                     {
-                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                        return ExitCodeConstants.FailedToBuildArtifacts;
+                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+
+                        if (buildExitCode != 0)
+                        {
+                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                            return ExitCodeConstants.FailedToBuildArtifacts;
+                        }
                     }
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+
+            if (isSingleFileAppHost)
+            {
+                // TODO: Add logic to read SDK version from *.cs file.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            }         
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -172,8 +188,20 @@ internal sealed class RunCommand : BaseCommand
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
+            if (isSingleFileAppHost)
+            {
+                // TODO: Determine where we persist these values, we may want to 
+                //       store URLs in the .aspire/settings.json file or we may want
+                //       to deterministically compute them.
+                env["ASPNETCORE_ENVIRONMENT"] = "Development";
+                env["DOTNET_ENVIRONMENT"] = "Development";
+                env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
+                env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
+            }
+
             var pendingRun = _runner.RunAsync(
-                effectiveAppHostProjectFile,
+                effectiveAppHostFile,
                 watch,
                 !watch,
                 unmatchedTokens,
@@ -215,7 +243,7 @@ internal sealed class RunCommand : BaseCommand
 
             topGrid.Columns[0].Width = longestLocalizedLength + 1;
 
-            var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostProjectFile.FullName);
+            var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
             topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
