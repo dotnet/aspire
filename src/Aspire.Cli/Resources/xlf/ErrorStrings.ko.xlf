@@ -157,6 +157,11 @@
         <target state="translated">프로젝트에 Aspire AppHost가 포함되어 있지 않습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
         <target state="translated">어셈블리 버전을 검색할 수 없습니다.</target>

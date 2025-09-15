@@ -29,6 +29,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IFeatures _features;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -61,6 +62,7 @@ internal sealed class RunCommand : BaseCommand
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -119,6 +121,13 @@ internal sealed class RunCommand : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
+            // Validate that single file AppHost feature is enabled if we detected a .cs file
+            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+            {
+                _interactionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");
@@ -146,16 +155,13 @@ internal sealed class RunCommand : BaseCommand
                 if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
-                    if (!isSingleFileAppHost)
-                    {
-                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
-                        if (buildExitCode != 0)
-                        {
-                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                            return ExitCodeConstants.FailedToBuildArtifacts;
-                        }
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
             }

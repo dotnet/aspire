@@ -315,5 +315,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AppHostsMayNotBeBuildable", resourceCulture);
             }
         }
+        public static string SingleFileAppHostFeatureNotEnabled
+        {
+            get
+            {
+                return ResourceManager.GetString("SingleFileAppHostFeatureNotEnabled", resourceCulture);
+            }
+        }
     }
 }

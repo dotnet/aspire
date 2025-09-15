@@ -157,6 +157,11 @@
         <target state="translated">Проект не содержит хост приложений Aspire.</target>
         <note />
       </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
         <target state="translated">Не удалось получить версию сборки.</target>

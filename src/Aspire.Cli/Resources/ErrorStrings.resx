@@ -220,4 +220,7 @@
   <data name="AppHostsMayNotBeBuildable" xml:space="preserve">
     <value>No buildable app hosts were found, but there may have been unbuildable app hosts.</value>
   </data>
+  <data name="SingleFileAppHostFeatureNotEnabled" xml:space="preserve">
+    <value>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</value>
+  </data>
 </root>
