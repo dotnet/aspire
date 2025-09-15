@@ -83,12 +83,12 @@ internal sealed class RunCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-        var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
-        if (ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _)
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _)
             && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
         {
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
@@ -285,7 +285,7 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+            if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
                 _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
