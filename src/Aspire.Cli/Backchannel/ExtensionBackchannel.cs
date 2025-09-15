@@ -425,9 +425,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, choicesArray],
             cancellationToken);
 
-        return result is null
-            ? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText))
-            : choicesByFormattedValue[result];
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return choicesByFormattedValue[result];
     }
 
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
@@ -445,7 +449,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, defaultValue],
             cancellationToken);
 
-        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result.Value;
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
@@ -465,7 +475,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, defaultValue, required],
             cancellationToken);
 
-        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result;
     }
 
     public async Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)

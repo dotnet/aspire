@@ -133,7 +133,6 @@ export class AspireTerminalProvider implements vscode.Disposable {
             try {
                 if (term.name === aspireTerminalName) {
                     extensionLogOutputChannel.info(`Disposing unregistered Aspire terminal: ${term.name}`);
-                    this.getAspireTerminal(true); // Open a new one to replace it
                     term.dispose();
                 }
             }
