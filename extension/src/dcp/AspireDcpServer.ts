@@ -64,6 +64,7 @@ export default class AspireDcpServer {
                     return;
                 }
 
+                // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
                 if (timingSafeEqual(bearerTokenBuffer, expectedTokenBuffer) === false) {
                     res.status(401).json({ error: { code: 'InvalidToken', message: 'Invalid or missing token in Authorization header.' } });
                     return;

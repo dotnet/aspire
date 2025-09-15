@@ -57,6 +57,7 @@ export default class AspireRpcServer {
 
         function withAuthentication(callback: (...params: any[]) => any) {
             return (...params: any[]) => {
+                // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
                 if (!params || params.length === 0 || Buffer.from(params[0]).length !== Buffer.from(token).length || timingSafeEqual(Buffer.from(params[0]), Buffer.from(token)) === false) {
                     throw new Error(invalidTokenProvided);
                 }
