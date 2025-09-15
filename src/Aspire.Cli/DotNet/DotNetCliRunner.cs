@@ -48,6 +48,8 @@ internal sealed class DotNetCliRunnerInvocationOptions
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
 {
+    // Cache expiry window for package search results (default: 24 hours)
+    private static readonly TimeSpan s_defaultCacheExpiryWindow = TimeSpan.FromHours(24);
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -60,6 +62,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     private string GetMsBuildServerValue()
     {
         return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
+    }
+
+    private TimeSpan GetPackageSearchCacheExpiryWindow()
+    {
+        // Allow configuration override of cache expiry window
+        if (configuration["PackageSearchCacheExpiryHours"] is string hoursString 
+            && double.TryParse(hoursString, out var hours) 
+            && hours > 0)
+        {
+            return TimeSpan.FromHours(hours);
+        }
+        
+        return s_defaultCacheExpiryWindow;
     }
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -756,12 +771,92 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
+    /// <summary>
+    /// Resolves a cache file for the given key, excluding any expired entries and cleaning up old files.
+    /// </summary>
+    /// <param name="cacheDirectory">The cache directory to search in</param>
+    /// <param name="keyHash">The cache key hash</param>
+    /// <param name="cacheExpiryWindow">The cache expiry window</param>
+    /// <returns>The path to a valid (non-expired) cache file, or null if none exists</returns>
+    private string? ResolveValidCacheFile(DirectoryInfo cacheDirectory, string keyHash, TimeSpan cacheExpiryWindow)
+    {
+        try
+        {
+            if (!cacheDirectory.Exists)
+            {
+                return null;
+            }
+
+            var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var pattern = $"{keyHash}.*.json";
+            var matchingFiles = cacheDirectory.GetFiles(pattern);
+
+            string? validCacheFile = null;
+
+            foreach (var file in matchingFiles)
+            {
+                // Extract timestamp from filename: {keyHash}.{timestamp}.json
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
+                var parts = fileNameWithoutExtension.Split('.');
+                
+                if (parts.Length >= 2 && long.TryParse(parts[1], out var fileTimestamp))
+                {
+                    var fileAge = TimeSpan.FromSeconds(currentUnixTime - fileTimestamp);
+                    
+                    if (fileAge <= cacheExpiryWindow)
+                    {
+                        // File is still valid
+                        if (validCacheFile == null)
+                        {
+                            validCacheFile = file.FullName;
+                        }
+                    }
+                    else
+                    {
+                        // File is expired, delete it
+                        try
+                        {
+                            file.Delete();
+                            logger.LogDebug("Deleted expired cache file: {CacheFile}", file.FullName);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            logger.LogDebug(ex, "Failed to delete expired cache file: {CacheFile}", file.FullName);
+                        }
+                    }
+                }
+                else
+                {
+                    // Invalid filename format, delete it
+                    try
+                    {
+                        file.Delete();
+                        logger.LogDebug("Deleted invalid cache file: {CacheFile}", file.FullName);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                    {
+                        logger.LogDebug(ex, "Failed to delete invalid cache file: {CacheFile}", file.FullName);
+                    }
+                }
+            }
+
+            return validCacheFile;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            logger.LogDebug(ex, "Failed to resolve cache file for key hash: {KeyHash}", keyHash);
+            return null;
+        }
+    }
+
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string? cacheFilePath = null;
         string? rawKey = null;
+        string? keyHash = null;
+        DirectoryInfo? nugetCacheDir = null;
         bool cacheEnabled = features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: false);
         if (cacheEnabled)
         {
@@ -781,18 +876,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}";
                 using var keySha = System.Security.Cryptography.SHA256.Create();
                 var keyBytes = Encoding.UTF8.GetBytes(rawKey);
-                var keyHash = Convert.ToHexString(keySha.ComputeHash(keyBytes));
+                keyHash = Convert.ToHexString(keySha.ComputeHash(keyBytes));
 
                 // Use a subdirectory for nuget package search cache to allow future cleanup/policies.
-                var nugetCacheDir = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, "nuget-search"));
+                nugetCacheDir = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, "nuget-search"));
                 if (!nugetCacheDir.Exists)
                 {
                     nugetCacheDir.Create();
                 }
 
-                cacheFilePath = Path.Combine(nugetCacheDir.FullName, keyHash + ".json");
+                var cacheExpiryWindow = GetPackageSearchCacheExpiryWindow();
+                cacheFilePath = ResolveValidCacheFile(nugetCacheDir, keyHash, cacheExpiryWindow);
 
-                if (File.Exists(cacheFilePath))
+                if (cacheFilePath is not null)
                 {
                     logger.LogDebug("Package search disk cache hit for key {RawKey} (file: {CacheFilePath})", rawKey, cacheFilePath);
                     try
@@ -808,7 +904,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 }
                 else
                 {
-                    logger.LogDebug("Package search disk cache miss for key {RawKey} (expected file: {CacheFilePath})", rawKey, cacheFilePath);
+                    logger.LogDebug("Package search disk cache miss for key {RawKey}", rawKey);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -890,20 +986,25 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(stdout);
 
                 // Attempt to persist the raw stdout JSON for future lookups when cache enabled
-                if (cacheEnabled && cacheFilePath is not null && rawKey is not null)
+                if (cacheEnabled && nugetCacheDir is not null && keyHash is not null && rawKey is not null)
                 {
                     try
                     {
+                        // Generate cache file path with current Unix timestamp
+                        var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                        var timestampedCacheFileName = $"{keyHash}.{currentUnixTime}.json";
+                        var timestampedCacheFilePath = Path.Combine(nugetCacheDir.FullName, timestampedCacheFileName);
+                        
                         // Write atomically: write to temp then move
-                        var tempFile = cacheFilePath + ".tmp";
+                        var tempFile = timestampedCacheFilePath + ".tmp";
                         await File.WriteAllTextAsync(tempFile, stdout, cancellationToken).ConfigureAwait(false);
-                        if (File.Exists(cacheFilePath))
+                        if (File.Exists(timestampedCacheFilePath))
                         {
                             // In case of race, overwrite
-                            File.Delete(cacheFilePath);
+                            File.Delete(timestampedCacheFilePath);
                         }
-                        File.Move(tempFile, cacheFilePath);
-                        logger.LogDebug("Stored package search results in disk cache for key {RawKey} (file: {CacheFilePath})", rawKey, cacheFilePath);
+                        File.Move(tempFile, timestampedCacheFilePath);
+                        logger.LogDebug("Stored package search results in disk cache for key {RawKey} (file: {CacheFilePath})", rawKey, timestampedCacheFilePath);
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
                     {
