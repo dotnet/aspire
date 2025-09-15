@@ -1,15 +1,5 @@
 name: "Update Dependencies"
 
-# Enhanced with debugging to diagnose package update failures
-# The workflow had issues in run https://github.com/dotnet/aspire/actions/runs/17739362348
-# Key improvements:
-# - Verbose shell output (set -x) for all steps
-# - Environment variable logging for debugging
-# - Exit code capture and reporting
-# - File system validation and error analysis
-# - Enhanced git status reporting
-# - Detailed logging of dotnet-outdated command execution
-
 on:
   workflow_dispatch:
   schedule:
@@ -27,159 +17,26 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Restore solution
-        run: |
-          set -x  # Enable verbose shell output
-          echo "=== Starting solution restore ==="
-          ./build.sh -restore
-          RESTORE_EXIT_CODE=$?
-          echo "=== Solution restore completed with exit code: $RESTORE_EXIT_CODE ==="
-          if [ $RESTORE_EXIT_CODE -ne 0 ]; then
-            echo "ERROR: Solution restore failed with exit code $RESTORE_EXIT_CODE"
-            exit $RESTORE_EXIT_CODE
-          else
-            echo "SUCCESS: Solution restore completed successfully"
-          fi
+        run: ./build.sh -restore
 
       - name: Rewrite nuget.config
-        run: |
-          set -x  # Enable verbose shell output
-          echo "=== Backing up existing nuget.config if it exists ==="
-          if [ -f nuget.config ]; then
-            cp nuget.config nuget.config.backup
-            echo "Backed up existing nuget.config to nuget.config.backup"
-            cat nuget.config.backup
-          else
-            echo "No existing nuget.config found"
-          fi
-          echo "=== Creating new nuget.config ==="
-          ./dotnet.sh new nugetconfig --force
-          NUGET_EXIT_CODE=$?
-          echo "=== nuget.config creation completed with exit code: $NUGET_EXIT_CODE ==="
-          if [ $NUGET_EXIT_CODE -ne 0 ]; then
-            echo "ERROR: nuget.config creation failed with exit code $NUGET_EXIT_CODE"
-            exit $NUGET_EXIT_CODE
-          else
-            echo "SUCCESS: nuget.config created successfully"
-            echo "=== New nuget.config contents ==="
-            cat nuget.config
-          fi
+        run: ./dotnet.sh new nugetconfig --force
 
       - name: Install dotnet-outdated
-        run: |
-          set -x  # Enable verbose shell output
-          echo "=== Installing dotnet-outdated tool ==="
-          ./dotnet.sh tool install --global dotnet-outdated-tool
-          INSTALL_EXIT_CODE=$?
-          echo "=== Installation exit code: $INSTALL_EXIT_CODE ==="
-          if [ $INSTALL_EXIT_CODE -ne 0 ]; then
-            echo "ERROR: dotnet-outdated installation failed with exit code $INSTALL_EXIT_CODE"
-          else
-            echo "SUCCESS: dotnet-outdated installed successfully"
-          fi
-
-      - name: Debug environment and validate files
-        run: |
-          set -x  # Enable verbose shell output
-          echo "=== Environment Variables ==="
-          printenv | grep -E "(DOTNET|PATH|HOME|GITHUB)" | sort
-          echo "=== File System Check ==="
-          ls -la ./Aspire.slnx
-          file ./Aspire.slnx
-          echo "=== Solution file format analysis ==="
-          head -10 ./Aspire.slnx
-          echo "=== Check for alternative solution files ==="
-          find . -maxdepth 1 -name "*.sln" | head -5 || echo "No classic .sln files found at root level"
-          echo "=== dotnet-outdated tool verification ==="
-          ./dotnet.sh tool list --global | grep dotnet-outdated || echo "dotnet-outdated not found in global tools"
-          echo "=== Available .NET SDKs ==="
-          ./dotnet.sh --list-sdks
-          echo "=== Current .NET version ==="
-          ./dotnet.sh --version
-          echo "=== Test dotnet-outdated command capabilities ==="
-          ./dotnet.sh outdated --version || echo "Could not get dotnet-outdated version"
-          echo "=== Directory.Packages.props files that could be updated ==="
-          find . -name "Directory.Packages.props" -type f | head -10
+        run: ./dotnet.sh tool install --global dotnet-outdated-tool
 
       - name: Update packages
         continue-on-error: true
         env:
           DOTNET_ROOT: ${{ github.workspace }}/.dotnet  # Even when calling the tool via ./dotnet.sh, dotnet tools require DOTNET_ROOT set to use the restored framework
-        run: |
-          set -x  # Enable verbose shell output
-          set -e  # Exit on error (but continue-on-error: true will still continue the workflow)
-          echo "=== Starting package update process ==="
-          echo "Working directory: $(pwd)"
-          echo "DOTNET_ROOT: $DOTNET_ROOT"
-          echo "Target solution file: ./Aspire.slnx"
-          echo "Solution file size: $(wc -c < ./Aspire.slnx) bytes"
-          echo "Command to execute: ./dotnet.sh outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx"
-          
-          # Capture both stdout and stderr with timestamps
-          echo "=== Executing dotnet outdated command ($(date)) ==="
-          START_TIME=$(date +%s)
-          
-          # Run the command and capture detailed output
-          ./dotnet.sh outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx 2>&1 | tee outdated_output.log
-          UPDATE_EXIT_CODE=${PIPESTATUS[0]}
-          
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
-          
-          echo "=== Package update process completed ($(date)) ==="
-          echo "Duration: ${DURATION} seconds"
-          echo "Exit code: $UPDATE_EXIT_CODE"
-          
-          if [ $UPDATE_EXIT_CODE -eq 0 ]; then
-            echo "SUCCESS: Package update completed successfully"
-          else
-            echo "WARNING: Package update failed with exit code $UPDATE_EXIT_CODE"
-            echo "=== Analyzing failure ==="
-            echo "Output log size: $(wc -c < outdated_output.log) bytes"
-            echo "=== Last 50 lines of output ==="
-            tail -50 outdated_output.log
-            echo "=== First 50 lines of output ==="
-            head -50 outdated_output.log
-            echo "=== Searching for specific error patterns ==="
-            grep -i "error\|exception\|failed\|unable" outdated_output.log | head -10 || echo "No specific error patterns found"
-            echo "=== File system changes during failed operation ==="
-            git status --porcelain || echo "Could not check git status"
-            echo "This is expected to continue due to continue-on-error: true"
-          fi
-          
-          # Clean up log file
-          rm -f outdated_output.log
-          
-          # Always return success since we want continue-on-error to work
-          echo "Some dependencies could not be updated, but continuing workflow."
-          exit 0
+        run: ./dotnet.sh outdated --no-restore -u --exclude Microsoft.FluentUI.AspNetCore ./Aspire.slnx || echo "Some dependencies could not be updated, but continuing workflow."
 
       - name: Revert all changes except Directory.Packages.props files
         run: |
-          set -x  # Enable verbose shell output
-          echo "=== Git status before cleanup ==="
-          git status --porcelain
-          echo "=== Files that will be preserved (Directory.Packages.props) ==="
-          find . -name "Directory.Packages.props" -type f | head -10
-          echo "=== Adding Directory.Packages.props files to git index ==="
-          git add "**Directory.Packages.props" || echo "Failed to add **Directory.Packages.props"
-          git add "**/Directory.Packages.props" || echo "Failed to add **/Directory.Packages.props"
-          echo "=== Git status after adding Directory.Packages.props files ==="
-          git status --porcelain
-          echo "=== Removing temporary nuget.config ==="
-          if [ -f nuget.config ]; then
-            rm nuget.config
-            echo "Removed nuget.config"
-          else
-            echo "nuget.config does not exist, skipping removal"
-          fi
-          echo "=== Reverting all other changes ==="
+          git add "**Directory.Packages.props"
+          git add "**/Directory.Packages.props"
+          rm nuget.config
           git checkout -- .
-          REVERT_EXIT_CODE=$?
-          echo "=== Git checkout exit code: $REVERT_EXIT_CODE ==="
-          echo "=== Final git status after revert ==="
-          git status --porcelain
-          echo "=== Changes that will be committed ==="
-          git diff --cached --name-only || echo "No staged changes"
 
       - name: Create Pull Request
         uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1
