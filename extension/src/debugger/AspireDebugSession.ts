@@ -275,8 +275,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         output: `${message}${addNewLine ? '\n' : ''}`
       }
     });
-
-    this._terminalProvider.writeToAspireTerminal(message);
   }
 
   notifyAppHostStartupCompleted() {
