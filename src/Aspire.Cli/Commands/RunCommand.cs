@@ -22,7 +22,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
-    private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -44,10 +43,9 @@ internal sealed class RunCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext)
-        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext)
+        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
@@ -56,7 +54,6 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
-        _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
@@ -73,7 +70,7 @@ internal sealed class RunCommand : BaseCommand
         watchOption.Description = RunCommandStrings.WatchArgumentDescription;
         Options.Add(watchOption);
 
-        if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
             var startDebugOption = new Option<bool>("--start-debug-session");
             startDebugOption.Description = RunCommandStrings.StartDebugSessionArgumentDescription;
@@ -86,7 +83,7 @@ internal sealed class RunCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -120,7 +117,7 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
+            var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
             var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
 
             var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
@@ -134,21 +131,21 @@ internal sealed class RunCommand : BaseCommand
                 };
 
                 // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                if (!ExtensionHelper.IsExtensionHost(_interactionService, out _, out var extensionBackchannel)
+                if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
                     if (buildExitCode != 0)
                     {
-                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                         return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -177,18 +174,18 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await _interactionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
+            var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
             var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var dashboardUrls = await _interactionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
+            var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
             if (dashboardUrls.DashboardHealthy is false)
             {
-                _interactionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
-                _interactionService.DisplayLines(runOutputCollector.GetLines());
+                InteractionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                InteractionService.DisplayLines(runOutputCollector.GetLines());
                 return ExitCodeConstants.DashboardFailure;
             }
 
@@ -279,7 +276,7 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            if (ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _))
+            if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
             {
                 _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
@@ -291,35 +288,35 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
-            _interactionService.DisplayCancellationMessage();
+            InteractionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, _interactionService);
+            return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
