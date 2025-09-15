@@ -180,8 +180,8 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
     {
         // Image part is a generic part with type "image" and content in additional properties.
-        // An image part currently isn't in the GenAI semantic conventions. This follows what MEAI does.
-        // This code will likely need to change to support a future standard.
+        // An image part isn't in the GenAI semantic conventions. This code follows what MEAI does and will need to change to support a future standard.
+        // See https://github.com/dotnet/extensions/pull/6809.
         if (itemPart.MessagePart?.Type == "image")
         {
             var contentType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content");
