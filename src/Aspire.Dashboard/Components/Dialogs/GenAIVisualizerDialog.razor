@@ -113,7 +113,7 @@
                                         }
                                         else
                                         {
-                                            <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" />
+                                            <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
                                         }
                                     }
                                 }
@@ -124,7 +124,7 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" Virtualize="false" />
                                 }
                             </div>
                         }
@@ -242,7 +242,7 @@
                         {
                             foreach (var itemPart in itemParts)
                             {
-                                <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" />
+                                <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
                             }
                         }
                         else

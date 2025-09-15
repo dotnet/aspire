@@ -31,6 +31,9 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     [Parameter]
     public bool DisplayUnformatted { get; set; }
 
+    [Parameter]
+    public bool Virtualize { get; set; } = true;
+
     private Virtualize<StringLogLine>? VirtualizeRef
     {
         get => field;

@@ -162,10 +162,6 @@
     display: block;
 }
 
-::deep .message-container .log-overflow {
-    max-height: 300px;
-}
-
 ::deep .message-container .log-content {
     /* don't break on every word */
     word-break: normal;
