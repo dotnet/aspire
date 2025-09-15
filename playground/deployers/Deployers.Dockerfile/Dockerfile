@@ -1,8 +1,25 @@
 # Use an official Python runtime as a parent image
 FROM netaspireci.azurecr.io/library/python:3.8-slim
 
+# Build arguments for customization
+ARG BUILD_VERSION=unknown
+ARG CUSTOM_MESSAGE=Hello from Aspire!
+
 # Set the working directory in the container
 WORKDIR /app
+
+# Use build arguments to create environment variables
+ENV BUILD_VERSION=${BUILD_VERSION}
+ENV CUSTOM_MESSAGE=${CUSTOM_MESSAGE}
+
+# Use secret token during build (for demonstration - normally this would be used for auth during build)
+# The secret is mounted as a file and not exposed in the final image
+RUN --mount=type=secret,id=BUILD_SECRET,target=/run/secrets/token \
+    if [ -f /run/secrets/token ]; then \
+        echo "Secret token available during build process"; \
+    else \
+        echo "No secret token provided for build"; \
+    fi
 
 # Copy requirements.txt first to leverage Docker cache layers
 COPY requirements.txt /app/

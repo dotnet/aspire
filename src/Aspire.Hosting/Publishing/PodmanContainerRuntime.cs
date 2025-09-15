@@ -96,11 +96,6 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
-    {
-        await BuildImageAsync(contextPath, dockerfilePath, imageName, options, [], [], null, cancellationToken).ConfigureAwait(false);
-    }
-
     public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(

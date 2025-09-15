@@ -79,7 +79,9 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             // Add build secrets if specified
             foreach (var buildSecret in buildSecrets)
             {
-                arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Value}\"";
+                arguments += buildSecret.Value is not null
+                    ? $" --secret \"id={buildSecret.Key},env={buildSecret.Value}\""
+                    : $" --secret \"id={buildSecret.Key}";
             }
 
             // Add stage if specified
@@ -132,11 +134,6 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 await RemoveBuildkitInstanceAsync(builderName, cancellationToken).ConfigureAwait(false);
             }
         }
-    }
-
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
-    {
-        await BuildImageAsync(contextPath, dockerfilePath, imageName, options, [], [], null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string> buildArguments, Dictionary<string, string> buildSecrets, string? stage, CancellationToken cancellationToken)

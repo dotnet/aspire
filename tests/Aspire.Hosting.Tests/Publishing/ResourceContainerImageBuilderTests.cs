@@ -773,19 +773,6 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             return Task.FromResult(!shouldFail);
         }
 
-        public Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
-        {
-            WasBuildImageCalled = true;
-            BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
-
-            if (shouldFail)
-            {
-                throw new InvalidOperationException("Fake container runtime is configured to fail");
-            }
-
-            return Task.CompletedTask;
-        }
-
         public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
         {
             WasTagImageCalled = true;
@@ -814,6 +801,13 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             CapturedBuildArguments = buildArguments;
             CapturedBuildSecrets = buildSecrets;
             CapturedStage = stage;
+            WasBuildImageCalled = true;
+            BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
+
+            if (shouldFail)
+            {
+                throw new InvalidOperationException("Fake container runtime is configured to fail");
+            }
 
             // For testing, we don't need to actually build anything
             return Task.CompletedTask;
