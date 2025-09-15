@@ -50,6 +50,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 {
     // Cache expiry window for package search results (default: 24 hours)
     private static readonly TimeSpan s_defaultCacheExpiryWindow = TimeSpan.FromHours(24);
+    
+    // Maximum cache age before forced cleanup (default: 7 days)
+    private static readonly TimeSpan s_defaultMaxCacheAge = TimeSpan.FromDays(7);
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -75,6 +78,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
         
         return s_defaultCacheExpiryWindow;
+    }
+    
+    private TimeSpan GetPackageSearchMaxCacheAge()
+    {
+        // Allow configuration override of maximum cache age
+        if (configuration["PackageSearchMaxCacheAgeSeconds"] is string secondsString 
+            && double.TryParse(secondsString, out var seconds) 
+            && seconds > 0)
+        {
+            return TimeSpan.FromSeconds(seconds);
+        }
+        
+        return s_defaultMaxCacheAge;
     }
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
@@ -773,12 +789,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
     /// <summary>
     /// Resolves a cache file for the given key, excluding any expired entries and cleaning up old files.
+    /// Also performs global cache cleanup for files that exceed the maximum cache age.
     /// </summary>
     /// <param name="cacheDirectory">The cache directory to search in</param>
     /// <param name="keyHash">The cache key hash</param>
     /// <param name="cacheExpiryWindow">The cache expiry window</param>
+    /// <param name="maxCacheAge">The maximum cache age before forced cleanup</param>
     /// <returns>The path to a valid (non-expired) cache file, or null if none exists</returns>
-    private string? ResolveValidCacheFile(DirectoryInfo cacheDirectory, string keyHash, TimeSpan cacheExpiryWindow)
+    private string? ResolveValidCacheFile(DirectoryInfo cacheDirectory, string keyHash, TimeSpan cacheExpiryWindow, TimeSpan maxCacheAge)
     {
         try
         {
@@ -790,6 +808,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var pattern = $"{keyHash}.*.json";
             var matchingFiles = cacheDirectory.GetFiles(pattern);
+            
+            // Also get all cache files for global cleanup
+            var allCacheFiles = cacheDirectory.GetFiles("*.json");
 
             // Parse timestamps and sort files by timestamp (descending, newest first)
             var filesWithTimestamps = new List<(FileInfo file, long timestamp)>();
@@ -856,6 +877,44 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 }
             }
 
+            // Perform global cache cleanup for files exceeding maximum age
+            foreach (var file in allCacheFiles)
+            {
+                try
+                {
+                    // Skip files we already processed above
+                    if (matchingFiles.Contains(file))
+                    {
+                        continue;
+                    }
+                    
+                    // Extract timestamp from filename
+                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
+                    var parts = fileNameWithoutExtension.Split('.');
+                    
+                    if (parts.Length >= 2 && long.TryParse(parts[1], out var fileTimestamp))
+                    {
+                        var fileAge = TimeSpan.FromSeconds(currentUnixTime - fileTimestamp);
+                        
+                        if (fileAge > maxCacheAge)
+                        {
+                            file.Delete();
+                            logger.LogDebug("Deleted old cache file during global cleanup: {CacheFile}", file.FullName);
+                        }
+                    }
+                    else
+                    {
+                        // Invalid filename format, delete it
+                        file.Delete();
+                        logger.LogDebug("Deleted invalid cache file during global cleanup: {CacheFile}", file.FullName);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                {
+                    logger.LogDebug(ex, "Failed to delete cache file during global cleanup: {CacheFile}", file.FullName);
+                }
+            }
+
             return validCacheFile;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -888,8 +947,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                     nugetConfigHash = Convert.ToHexString(bytes);
                 }
 
-                // Build a cache key using the main discriminators.
-                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}";
+                // Build a cache key using the main discriminators, including CLI version.
+                var cliVersion = VersionHelper.GetDefaultTemplateVersion();
+                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}|cliVersion={cliVersion}";
                 using var keySha = System.Security.Cryptography.SHA256.Create();
                 var keyBytes = Encoding.UTF8.GetBytes(rawKey);
                 keyHash = Convert.ToHexString(keySha.ComputeHash(keyBytes));
@@ -902,7 +962,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 }
 
                 var cacheExpiryWindow = GetPackageSearchCacheExpiryWindow();
-                cacheFilePath = ResolveValidCacheFile(nugetCacheDir, keyHash, cacheExpiryWindow);
+                var maxCacheAge = GetPackageSearchMaxCacheAge();
+                cacheFilePath = ResolveValidCacheFile(nugetCacheDir, keyHash, cacheExpiryWindow, maxCacheAge);
 
                 if (cacheFilePath is not null)
                 {
