@@ -67,11 +67,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     private TimeSpan GetPackageSearchCacheExpiryWindow()
     {
         // Allow configuration override of cache expiry window
-        if (configuration["PackageSearchCacheExpiryHours"] is string hoursString 
-            && double.TryParse(hoursString, out var hours) 
-            && hours > 0)
+        if (configuration["PackageSearchCacheExpirySeconds"] is string secondsString 
+            && double.TryParse(secondsString, out var seconds) 
+            && seconds > 0)
         {
-            return TimeSpan.FromHours(hours);
+            return TimeSpan.FromSeconds(seconds);
         }
         
         return s_defaultCacheExpiryWindow;
