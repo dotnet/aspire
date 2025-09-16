@@ -48,7 +48,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -159,7 +159,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -303,7 +303,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, prerelease, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, prerelease, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -469,7 +469,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -630,7 +630,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -749,7 +749,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -851,7 +851,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -985,7 +985,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1101,7 +1101,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1222,7 +1222,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1335,7 +1335,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1431,7 +1431,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1540,7 +1540,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1625,7 +1625,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
@@ -1701,7 +1701,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             {
                 return new TestDotNetCliRunner()
                 {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _) =>
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
                     {
                         var packages = new List<NuGetPackageCli>();
 
