@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="MinimumSdkVersionNotMet">
         <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
-        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
+        <target state="translated">Aspire CLI には .NET SDK バージョン {0} 以降が必要です。以下を検出しました: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -149,12 +149,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire AppHost project.</source>
-        <target state="new">Project file is not an Aspire AppHost project.</target>
+        <target state="translated">Aspire AppHost プロジェクトではないプロジェクト ファイルです。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
-        <target state="new">The project does not contain an Aspire apphost.</target>
+        <target state="translated">プロジェクトに Aspire AppHost が含まれていません。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
