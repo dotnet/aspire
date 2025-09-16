@@ -29,6 +29,7 @@
     <PackageVersion Include="Microsoft.Azure.Kusto.Data" Version="14.0.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.31.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.31.0" />
+    <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.12.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.3.0" />
     <!-- Azure Management SDK for .NET dependencies -->
@@ -100,7 +101,7 @@
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.6.7" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="9.0.3" />
-    <PackageVersion Include="OpenAI" Version="2.3.0" />
+    <PackageVersion Include="OpenAI" Version="2.4.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.90" /> <!-- Can't update to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.9.0" />
     <PackageVersion Include="Polly.Core" Version="8.6.3" />
