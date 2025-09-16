@@ -138,7 +138,7 @@ internal sealed class DevTunnelCli
         TextWriter? errorWriter = null,
         ILogger? logger = default,
         CancellationToken cancellationToken = default)
-        => RunAsync(["delete", tunnelId, "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
+        => RunAsync(["delete", tunnelId, "--force", "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
     public Task<int> ShowTunnelAsync(
         string tunnelId,

@@ -10,54 +10,55 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTunnelClient
 {
+    private const int MaxCliAttempts = 3;
+    private readonly TimeSpan _cliRetryOnErrorDelay = TimeSpan.FromSeconds(2);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
     private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
 
     public async Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
-        logger?.LogTrace("Creating dev tunnel '{TunnelId}' with options: {Options}", tunnelId, options.ToLoggerString());
-        var (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
-            (stdout, stderr, log, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
-            "tunnel",
-            logger, cancellationToken).ConfigureAwait(false);
+        var attempts = 0;
+        var exitCode = 0;
+        string? error = null;
 
-        if (exitCode == DevTunnelCli.ResourceConflictsWithExistingExitCode)
+        while (attempts < MaxCliAttempts)
         {
-            // Tunnel already exists
-            logger?.LogTrace("Dev tunnel '{TunnelId}' already exists, reset access controls and update tunnel instead.", tunnelId);
-
-            // First, reset the access controls
-            logger?.LogTrace("Resetting access controls for dev tunnel '{TunnelId}'.", tunnelId);
-            (var access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
-                (stdout, stderr, log, ct) => _cli.ResetAccessAsync(tunnelId, /* port */ null, stdout, stderr, log, ct),
+            logger?.LogTrace("Creating dev tunnel '{TunnelId}' with options: {Options}", tunnelId, options.ToLoggerString());
+            if (attempts++ > 1)
+            {
+                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create dev tunnel '{TunnelId}'", attempts, tunnelId, MaxCliAttempts);
+            }
+            (var tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                (stdout, stderr, log, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
+                "tunnel",
                 logger, cancellationToken).ConfigureAwait(false);
 
-            if (exitCode == 0)
+            if (exitCode == 0 && tunnel is not null)
             {
-                // Set the anonymous access policy if specified
-                if (options.AllowAnonymous)
-                {
-                    var anonymous = true;
-                    var deny = false;
-                    logger?.LogTrace("Allowing anonymous access for dev tunnel '{TunnelId}'.", tunnelId);
-                    (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
-                        (stdout, stderr, log, ct) => _cli.CreateAccessAsync(tunnelId, /* port */ null, anonymous, deny, stdout, stderr, log, ct),
-                        logger, cancellationToken).ConfigureAwait(false);
-                }
+                logger?.LogTrace("Dev tunnel '{TunnelId}' created successfully.", tunnelId);
+                return tunnel;
+            }
 
-                if (exitCode == 0)
+            if (exitCode == DevTunnelCli.ResourceConflictsWithExistingExitCode)
+            {
+                // Delete the tunnel and try again
+                logger?.LogTrace("Dev tunnel '{TunnelId}' already exists, deleting and trying again.", tunnelId);
+                (var result, exitCode, error) = await CallCliAsJsonAsync<DevTunnelDeleteResult>(
+                    (stdout, stderr, log, ct) => _cli.DeleteTunnelAsync(tunnelId, stdout, stderr, log, ct),
+                    logger, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                logger?.LogError("Failed to create dev tunnel '{TunnelId}' (attempt {Attempt} of {MaxAttempts}). Exit code {ExitCode}: {Error}", tunnelId, attempts, MaxCliAttempts, exitCode, error);
+                if (attempts < MaxCliAttempts)
                 {
-                    // Do the update
-                    logger?.LogTrace("Updating dev tunnel '{TunnelId}'.", tunnelId);
-                    (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
-                        (stdout, stderr, log, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
-                        "tunnel",
-                        logger, cancellationToken).ConfigureAwait(false);
+                    logger?.LogTrace("Waiting {WaitSeconds} seconds before retrying to create dev tunnel '{TunnelId}'", _cliRetryOnErrorDelay.TotalSeconds, tunnelId);
+                    await Task.Delay(_cliRetryOnErrorDelay, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
 
-        return tunnel ?? throw new DistributedApplicationException($"Failed to create dev tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
+        throw new DistributedApplicationException($"Failed to create dev tunnel '{tunnelId}' after {attempts} attempts. Exit code {exitCode}: {error}");
     }
 
     public async Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, ILogger? logger = default, CancellationToken cancellationToken = default)
@@ -209,4 +210,6 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
             throw new DistributedApplicationException($"Failed to parse JSON output into type '{typeof(T).Name}':\n{output}", ex);
         }
     }
+
+    private record DevTunnelDeleteResult(string DeletedTunnel);
 }
