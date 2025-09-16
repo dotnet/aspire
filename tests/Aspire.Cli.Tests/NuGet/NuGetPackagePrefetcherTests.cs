@@ -14,7 +14,8 @@ public class NuGetPackagePrefetcherTests
     {
         var workingDir = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDir = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, "hives"));
-        var executionContext = new CliExecutionContext(workingDir, hivesDir);
+    var cacheDir = new DirectoryInfo(Path.Combine(workingDir.FullName, ".aspire", "cache"));
+    var executionContext = new CliExecutionContext(workingDir, hivesDir, cacheDir);
         
         Assert.Null(executionContext.Command);
         
