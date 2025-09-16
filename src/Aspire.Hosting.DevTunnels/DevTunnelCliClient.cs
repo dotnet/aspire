@@ -10,7 +10,7 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTunnelClient
 {
-    private const int MaxCliAttempts = 3;
+    private readonly int _maxCliAttempts = configuration.GetValue<int?>("ASPIRE_DEVTUNNEL_MAX_CLI_ATTEMPTS") ?? 3;
     private readonly TimeSpan _cliRetryOnErrorDelay = TimeSpan.FromSeconds(2);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
     private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
@@ -21,12 +21,12 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         var exitCode = 0;
         string? error = null;
 
-        while (attempts < MaxCliAttempts)
+        while (attempts < _maxCliAttempts)
         {
             logger?.LogTrace("Creating dev tunnel '{TunnelId}' with options: {Options}", tunnelId, options.ToLoggerString());
             if (attempts++ > 1)
             {
-                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create dev tunnel '{TunnelId}'", attempts, tunnelId, MaxCliAttempts);
+                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create dev tunnel '{TunnelId}'", attempts, tunnelId, _maxCliAttempts);
             }
             (var tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
                 (stdout, stderr, log, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
@@ -53,8 +53,8 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
                 }
             }
 
-            logger?.LogError("Failed to create dev tunnel '{TunnelId}' (attempt {Attempt} of {MaxAttempts}). Exit code {ExitCode}: {Error}", tunnelId, attempts, MaxCliAttempts, exitCode, error);
-            if (attempts < MaxCliAttempts)
+            logger?.LogError("Failed to create dev tunnel '{TunnelId}' (attempt {Attempt} of {MaxAttempts}). Exit code {ExitCode}: {Error}", tunnelId, attempts, _maxCliAttempts, exitCode, error);
+            if (attempts < _maxCliAttempts)
             {
                 logger?.LogTrace("Waiting {WaitSeconds} seconds before retrying to create dev tunnel '{TunnelId}'", _cliRetryOnErrorDelay.TotalSeconds, tunnelId);
                 await Task.Delay(_cliRetryOnErrorDelay, cancellationToken).ConfigureAwait(false);
@@ -81,12 +81,12 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         string? error = null;
         DevTunnelPortStatus? port = null;
 
-        while (attempts < MaxCliAttempts)
+        while (attempts < _maxCliAttempts)
         {
             logger?.LogTrace("Creating port '{PortNumber}' on dev tunnel '{TunnelId}' with options: {Options}", portNumber, tunnelId, options.ToLoggerString());
             if (attempts++ > 1)
             {
-                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create port '{PortNumber}' on dev tunnel '{TunnelId}'", attempts, MaxCliAttempts, portNumber, tunnelId);
+                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create port '{PortNumber}' on dev tunnel '{TunnelId}'", attempts, _maxCliAttempts, portNumber, tunnelId);
             }
 
             (port, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortStatus>(
@@ -132,8 +132,8 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
                 }
             }
 
-            logger?.LogError("Failed to create port '{PortNumber}' for dev tunnel '{TunnelId}' (attempt {Attempt} of {MaxAttempts}). Exit code {ExitCode}: {Error}", portNumber, tunnelId, attempts, MaxCliAttempts, exitCode, error);
-            if (attempts < MaxCliAttempts)
+            logger?.LogError("Failed to create port '{PortNumber}' for dev tunnel '{TunnelId}' (attempt {Attempt} of {MaxAttempts}). Exit code {ExitCode}: {Error}", portNumber, tunnelId, attempts, _maxCliAttempts, exitCode, error);
+            if (attempts < _maxCliAttempts)
             {
                 logger?.LogTrace("Waiting {WaitSeconds} seconds before retrying to create port '{PortNumber}' on dev tunnel '{TunnelId}'", _cliRetryOnErrorDelay.TotalSeconds, portNumber, tunnelId);
                 await Task.Delay(_cliRetryOnErrorDelay, cancellationToken).ConfigureAwait(false);
