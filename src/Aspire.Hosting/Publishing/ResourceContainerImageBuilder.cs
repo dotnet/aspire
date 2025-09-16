@@ -306,7 +306,8 @@ internal sealed class ResourceContainerImageBuilder(
             OnErrorData = error =>
             {
                 logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
-            }
+            },
+            ThrowOnNonZeroReturnCode = false
         };
 
         logger.LogInformation(
