@@ -1,18 +1,8 @@
 parameters:
-  - name: schedules
-    type: object
-    default: []
-  - name: trigger
-    type: string
-    default: 'none'
-  - name: pr
-    type: object
-    default: {}
   - name: testVariants
     type: string
     default: ''
 
-# Common variables used by public pipelines
 variables:
   - template: /eng/common/templates/variables/pool-providers.yml
 
