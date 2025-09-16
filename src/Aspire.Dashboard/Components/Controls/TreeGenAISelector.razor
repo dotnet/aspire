@@ -3,7 +3,7 @@
 
 <FluentTreeView Class="genai-message-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(PageViewModel.SelectedItem is null)">
+        <FluentTreeItem @key="@PageViewModel.Span" Data="@PageViewModel.Span" title="@PageViewModel.Span.Name" InitiallySelected="@(SelectedItem is null)">
             <span class="llm-badge">LLM</span> @PageViewModel.Span.Name
         </FluentTreeItem>
 
@@ -12,7 +12,7 @@
             <FluentTreeItem @key="itemVM"
                             Data="@itemVM.Index"
                             title="@itemVM.GetTitleBadge(Loc).Text"
-                            InitiallySelected="@(itemVM.Index == PageViewModel.SelectedItem?.Index)">
+                            InitiallySelected="@(itemVM.Index == SelectedItem?.Index)">
                 <div class="message-tree-item-container">
                     <GenAIItemTitle Item="itemVM" ResourceName="@itemVM.ResourceName" />
                 </div>

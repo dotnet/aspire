@@ -13,7 +13,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
-[DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Messages = {Messages.Count}")]
+[DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Items = {Items.Count}")]
 public sealed class GenAIVisualizerDialogViewModel
 {
     public required OtlpSpan Span { get; init; }
@@ -30,11 +30,6 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
-
-    public GenAIItemViewModel? SelectedItem { get; set; }
-
-    public OverviewViewKind OverviewActiveView { get; set; }
-    public ItemViewKind MessageActiveView { get; set; }
 
     public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
@@ -85,22 +80,12 @@ public sealed class GenAIVisualizerDialogViewModel
             {
                 Index = viewModel.Items.Count,
                 InternalId = null,
-                ItemParts = [new GenAIItemPartViewModel
-                {
-                    MessagePart = null,
-                    ErrorMessage = errorMessage,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(errorMessage, indentText: false)
-                }],
+                ItemParts = [GenAIItemPartViewModel.CreateErrorMessage(errorMessage)],
                 Parent = viewModel.Span,
                 ResourceName = viewModel.PeerName,
                 Type = GenAIItemType.Error
             };
             viewModel.Items.Add(viewModel.ErrorItem);
-        }
-
-        if (viewModel.SelectedLogEntryId != null)
-        {
-            viewModel.SelectedItem = viewModel.Items.SingleOrDefault(e => e.InternalId == viewModel.SelectedLogEntryId);
         }
 
         viewModel.InputMessages = viewModel.Items.Where(e => e.Type is GenAIItemType.SystemMessage or GenAIItemType.UserMessage or GenAIItemType.AssistantMessage or GenAIItemType.ToolMessage).ToList();
@@ -170,12 +155,7 @@ public sealed class GenAIVisualizerDialogViewModel
             if (systemInstructions != null)
             {
                 var instructionParts = JsonSerializer.Deserialize(systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
-                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, instructionParts.Select(p => new GenAIItemPartViewModel
-                {
-                    MessagePart = p,
-                    ErrorMessage = null,
-                    TextVisualizerViewModel = CreateMessagePartVisualizer(p)
-                }).ToList(), internalId: null));
+                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList(), internalId: null));
                 currentIndex++;
             }
             if (inputMessages != null)
@@ -226,12 +206,7 @@ public sealed class GenAIVisualizerDialogViewModel
         var inputParts = JsonSerializer.Deserialize(messages, GenAIMessagesContext.Default.ListChatMessage)!;
         foreach (var msg in inputParts)
         {
-            var parts = msg.Parts.Select(p => new GenAIItemPartViewModel
-            {
-                MessagePart = p,
-                ErrorMessage = null,
-                TextVisualizerViewModel = CreateMessagePartVisualizer(p)
-            }).ToList();
+            var parts = msg.Parts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList();
             var type = msg.Role switch
             {
                 "system" => GenAIItemType.SystemMessage,
@@ -244,24 +219,6 @@ public sealed class GenAIVisualizerDialogViewModel
         }
 
         return currentIndex;
-    }
-
-    private static TextVisualizerViewModel CreateMessagePartVisualizer(MessagePart p)
-    {
-        if (p is TextPart textPart)
-        {
-            return new TextVisualizerViewModel(textPart.Content ?? string.Empty, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
-        }
-        if (p is ToolCallRequestPart toolCallRequestPart)
-        {
-            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({toolCallRequestPart.Arguments?.ToJsonString()})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
-        }
-        if (p is ToolCallResponsePart toolCallResponsePart)
-        {
-            return new TextVisualizerViewModel(toolCallResponsePart.Response?.ToJsonString() ?? string.Empty, indentText: true);
-        }
-
-        return new TextVisualizerViewModel(string.Empty, indentText: false, knownFormat: DashboardUIHelpers.PlaintextFormat);
     }
 
     private static GenAIItemViewModel CreateMessage(GenAIVisualizerDialogViewModel viewModel, int currentIndex, GenAIItemType type, List<GenAIItemPartViewModel> parts, long? internalId)
@@ -286,12 +243,7 @@ public sealed class GenAIVisualizerDialogViewModel
             case GenAIItemType.SystemMessage:
             case GenAIItemType.UserMessage:
                 var systemOrUserEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.SystemOrUserEvent)!;
-                messagePartViewModels.Add(new()
-                {
-                    MessagePart = new TextPart { Content = systemOrUserEvent.Content },
-                    ErrorMessage = null,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(systemOrUserEvent.Content ?? string.Empty, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat)
-                });
+                messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = systemOrUserEvent.Content }));
                 break;
             case GenAIItemType.AssistantMessage:
                 var assistantEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.AssistantEvent)!;
@@ -300,12 +252,7 @@ public sealed class GenAIVisualizerDialogViewModel
             case GenAIItemType.ToolMessage:
                 var toolEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ToolEvent)!;
                 var toolResponse = ProcessJsonPayload(toolEvent.Content);
-                messagePartViewModels.Add(new()
-                {
-                    MessagePart = new ToolCallResponsePart { Id = toolEvent.Id, Response = toolResponse },
-                    ErrorMessage = null,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(toolResponse?.ToJsonString() ?? string.Empty, indentText: true)
-                });
+                messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new ToolCallResponsePart { Id = toolEvent.Id, Response = toolResponse }));
                 break;
             case GenAIItemType.OutputMessage:
                 var choiceEvent = JsonSerializer.Deserialize(message, GenAIEventsContext.Default.ChoiceEvent)!;
@@ -322,12 +269,7 @@ public sealed class GenAIVisualizerDialogViewModel
         {
             if (assistantEvent.Content != null)
             {
-                messagePartViewModels.Add(new()
-                {
-                    MessagePart = new TextPart { Content = assistantEvent.Content },
-                    ErrorMessage = null,
-                    TextVisualizerViewModel = new TextVisualizerViewModel(assistantEvent.Content, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat)
-                });
+                messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new TextPart { Content = assistantEvent.Content }));
             }
             if (assistantEvent?.ToolCalls?.Length > 0)
             {
@@ -340,14 +282,7 @@ public sealed class GenAIVisualizerDialogViewModel
                     }
 
                     var args = ProcessJsonPayload(function.Arguments);
-                    var content = $"{function.Name}({args?.ToJsonString()})";
-
-                    messagePartViewModels.Add(new()
-                    {
-                        MessagePart = new ToolCallRequestPart { Name = function.Name, Arguments = function.Arguments },
-                        ErrorMessage = null,
-                        TextVisualizerViewModel = new TextVisualizerViewModel(content, indentText: false, knownFormat: "javascript")
-                    });
+                    messagePartViewModels.Add(GenAIItemPartViewModel.CreateMessagePart(new ToolCallRequestPart { Name = function.Name, Arguments = args }));
                 }
             }
         }
