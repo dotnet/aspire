@@ -16,6 +16,8 @@ internal sealed class DevTunnelCli
     public const int ResourceConflictsWithExistingExitCode = 1;
     public const int ResourceNotFoundExitCode = 2;
 
+    public static readonly Version MinimumSupportedVersion = new(1, 0, 1435);
+
     private readonly string _cliPath;
 
     public static string GetCliPath(IConfiguration configuration) => configuration["ASPIRE_DEVTUNNEL_CLI_PATH"] ?? "devtunnel";
@@ -29,6 +31,9 @@ internal sealed class DevTunnelCli
 
         _cliPath = filePath;
     }
+
+    public Task<int> GetVersionAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
+        => RunAsync(["--version", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
     public Task<int> UserLoginMicrosoftAsync(ILogger? logger = default, CancellationToken cancellationToken = default)
         => RunAsync(["user", "login", "--entra", "--json", "--nologo"], null, null, useShellExecute: true, logger, cancellationToken);

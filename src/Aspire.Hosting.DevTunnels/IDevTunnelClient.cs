@@ -7,6 +7,8 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal interface IDevTunnelClient
 {
+    Task<Version> GetVersionAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
+
     Task<UserLoginStatus> GetUserLoginStatusAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
 
     Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, ILogger? logger = default, CancellationToken cancellationToken = default);
