@@ -138,6 +138,7 @@ public class OtlpSpan
         // Calculate destination. The destination could either be resolved from:
         // - An uninstrumented peer, or
         // - From single child span when the child span has a different resources and is a server/consumer.
+        //   This is the same situation as an uninstrumented peer except in this case the peer is recording telemetry.
         if (UninstrumentedPeer is { } peer)
         {
             return peer;
