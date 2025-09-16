@@ -15,6 +15,40 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
     private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
 
+    public async Task<Version> GetVersionAsync(ILogger? logger = default, CancellationToken cancellationToken = default)
+    {
+        using var outputWriter = new StringWriter();
+        using var errorWriter = new StringWriter();
+
+        var exitCode = await _cli.GetVersionAsync(outputWriter, errorWriter, logger, cancellationToken).ConfigureAwait(false);
+        var output = outputWriter.ToString().Trim();
+
+        if (exitCode == 0)
+        {
+            // Find the line with the version number. It will look like "Tunnel CLI version: 1.0.1435+d49a94cc24"
+            var prefix = "Tunnel CLI version:";
+            var versionLine = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault(l => l.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+            var versionString = versionLine?.Length > prefix.Length
+                ? versionLine[prefix.Length..].Trim()
+                : output;
+
+            // Trim the commit SHA suffix if present
+            if (versionString.IndexOf('+') is >= 0 and var plusIndex)
+            {
+                versionString = versionString[..plusIndex];
+            }
+
+            if (Version.TryParse(versionString, out var version))
+            {
+                return version;
+            }
+        }
+
+        var error = errorWriter.ToString().Trim();
+        throw new DistributedApplicationException($"Failed to get devtunnel CLI version. Output: '{output}'. Error: '{error}'");
+    }
+
     public async Task<DevTunnelStatus> CreateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var attempts = 0;
