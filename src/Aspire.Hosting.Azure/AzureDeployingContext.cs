@@ -346,14 +346,6 @@ internal sealed class AzureDeployingContext(
 
     private string? GetContainerRuntime()
     {
-        // Check DcpPublisher configuration first (same as DcpOptions configuration logic)
-        var dcpPublisherConfiguration = configuration.GetSection("DcpPublisher");
-        var dcpConfigValue = dcpPublisherConfiguration["ContainerRuntime"];
-        if (!string.IsNullOrEmpty(dcpConfigValue))
-        {
-            return dcpConfigValue;
-        }
-
         // Fall back to known config names (primary and legacy)
         return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
     }
