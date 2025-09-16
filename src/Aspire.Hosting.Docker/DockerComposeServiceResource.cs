@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Docker;
 /// <summary>
 /// Represents a compute resource for Docker Compose with strongly-typed properties.
 /// </summary>
-public class DockerComposeServiceResource(string name, IResource resource, DockerComposeEnvironmentResource composeEnvironmentResource) : Resource(name), IResourceWithParent<DockerComposeEnvironmentResource>
+public class DockerComposeServiceResource(string name, IResource resource, DockerComposeEnvironmentResource composeEnvironmentResource, IServiceProvider? serviceProvider = null) : Resource(name), IResourceWithParent<DockerComposeEnvironmentResource>
 {
     /// <summary>
     /// Most common shell executables used as container entrypoints in Linux containers.
@@ -45,6 +45,11 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
     /// Gets the resource that is the target of this Docker Compose service.
     /// </summary>
     internal IResource TargetResource => resource;
+
+    /// <summary>
+    /// Gets the service provider for accessing services during callback execution, if available.
+    /// </summary>
+    internal IServiceProvider? ServiceProvider { get; } = serviceProvider;
 
     /// <summary>
     /// Gets the collection of environment variables for the Docker Compose service.
@@ -96,7 +101,7 @@ public class DockerComposeServiceResource(string name, IResource resource, Docke
         // it will come as a parameter
         if (resourceInstance.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _) || resourceInstance is ProjectResource)
         {
-            containerImageName = this.AsContainerImagePlaceholder();
+            containerImageName = this.AsContainerImagePlaceholder(ServiceProvider);
             return true;
         }
 

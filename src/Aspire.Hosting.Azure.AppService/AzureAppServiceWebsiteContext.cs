@@ -211,7 +211,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
-        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource, environmentContext.ServiceProvider));
 
         var webSite = new WebSite("webapp")
         {
