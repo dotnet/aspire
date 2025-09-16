@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AspireWithMaui.MauiClient.MainPage"
+             Title="Weather Forecast">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Image
+                Source="dotnet_bot.png"
+                HeightRequest="100"
+                Aspect="AspectFit"
+                SemanticProperties.Description="dot net bot in a hovercraft number nine" />
+
+            <Label
+                Text="Weather Forecast"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Label
+                Text="Data from Aspire Weather API"
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <Button
+                x:Name="LoadWeatherBtn"
+                Text="Load Weather" 
+                SemanticProperties.Hint="Loads weather data from the API"
+                Clicked="OnLoadWeatherClicked"
+                HorizontalOptions="Fill" />
+
+            <Label
+                x:Name="StatusLabel"
+                Text="Click 'Load Weather' to get forecast"
+                HorizontalOptions="Center" />
+
+            <CollectionView x:Name="WeatherCollectionView"
+                            ItemsSource="{Binding WeatherData}"
+                            BackgroundColor="Transparent">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*">
+                            <Label Grid.Row="0" Grid.ColumnSpan="2"
+                                   Text="{Binding Date, StringFormat='{0:MMMM dd, yyyy}'}"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Center" />
+                            <Label Grid.Row="1" Grid.Column="0"
+                                   Text="{Binding TemperatureC, StringFormat='Temperature: {0}°C'}" />
+                            <Label Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding TemperatureF, StringFormat='({0}°F)'}" />
+                            <Label Grid.Row="2" Grid.ColumnSpan="2"
+                                   Text="{Binding Summary}"
+                                   FontAttributes="Italic"
+                                   HorizontalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
