@@ -61,11 +61,7 @@ export class RpcClient implements ICliRpcClient {
     }
 
     async stopCli() {
-        if (this._connectionClosed) {
-            // If connection is already closed for some reason, we cannot send a request
-            // Instead, dispose of the terminal directly.
-            this._terminalProvider.getAspireTerminal().dispose();
-        } else {
+        if (!this._connectionClosed) {
             await this._messageConnection.sendRequest('stopCli');
         }
     }
