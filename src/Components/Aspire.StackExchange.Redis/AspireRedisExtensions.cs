@@ -133,10 +133,20 @@ public static class AspireRedisExtensions
         if (serviceKey is null)
         {
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp => CreateConnection(sp, connectionName, DefaultConfigSectionName, optionsName));
+
+            if (!settings.DisableAutoActivation)
+            {
+                builder.Services.ActivateSingleton<IConnectionMultiplexer>();
+            }
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey, (sp, _) => CreateConnection(sp, connectionName, DefaultConfigSectionName, optionsName));
+
+            if (!settings.DisableAutoActivation)
+            {
+                builder.Services.ActivateKeyedSingleton<IConnectionMultiplexer>(serviceKey);
+            }
         }
 
         if (!settings.DisableTracing)

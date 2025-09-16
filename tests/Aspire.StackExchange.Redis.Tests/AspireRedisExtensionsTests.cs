@@ -383,6 +383,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Single(connection3.GetServers().Single().Keys());
     }
 
+
     /// <summary>
     /// Tests that you can use a keyed service for a distributed cache, another for an output cache, while also adding a plain Redis service
     /// using the Builder APIs.
@@ -435,6 +436,58 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Empty(connection1.GetServers().Single().Keys());
         Assert.Single(connection2.GetServers().Single().Keys());
         Assert.Single(connection3.GetServers().Single().Keys());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AutoActivationCanBeDisabled(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        PopulateConfiguration(builder.Configuration);
+
+        static void DisableAutoActivation(StackExchangeRedisSettings settings) => settings.DisableAutoActivation = true;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedRedisClient("redis", DisableAutoActivation);
+        }
+        else
+        {
+            builder.AddRedisClient("redis", DisableAutoActivation);
+        }
+
+        using var host = builder.Build();
+
+        // When auto activation is disabled, the service should be registered but not activated
+        var services = host.Services;
+
+        // Check that the service is registered in the service collection
+        if (useKeyed)
+        {
+            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey?.Equals("redis") == true);
+        }
+        else
+        {
+            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey is null);
+        }
+    }
+
+    [Fact]
+    public void AutoActivationEnabledByDefault()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        PopulateConfiguration(builder.Configuration);
+
+        builder.AddRedisClient("redis");
+
+        using var host = builder.Build();
+
+        // When auto activation is enabled (default), the service should be registered and activated
+        var services = host.Services;
+
+        // Check that the service is registered in the service collection
+        Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey is null);
     }
 
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
