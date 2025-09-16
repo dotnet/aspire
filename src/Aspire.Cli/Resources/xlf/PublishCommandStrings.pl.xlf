@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
-        <target state="new">Generates deployment artifacts for an Aspire apphost. (Preview)</target>
+        <target state="translated">Generuje artefakty wdrożenia dla hosta AppHost platformy Aspire. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
-        <target state="new">The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</target>
+        <target state="translated">Ścieżka danych wyjściowych dla wygenerowanych artefaktów. Wartością domyślną jest „./jpg-output”, jeśli nie została określona.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Ścieżka do pliku projektu hosta AppHost platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

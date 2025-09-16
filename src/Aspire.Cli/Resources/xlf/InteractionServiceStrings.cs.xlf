@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
+        <target state="translated">Verze AppHost není kompatibilní. Upgradujte prosím hostitele aplikací nebo rozhraní příkazového řádku Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building apphost...</source>
-        <target state="new">Building apphost...</target>
+        <target state="translated">Vytváří se hostitel aplikací...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding apphosts...</source>
-        <target state="new">Finding apphosts...</target>
+        <target state="translated">Hledají se hostitelé aplikací...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -114,12 +114,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select an apphost to use:</source>
-        <target state="new">Select an apphost to use:</target>
+        <target state="translated">Vyberte hostitele aplikací, kterého chcete použít:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire AppHost project.</source>
-        <target state="new">The specified project file is not an Aspire AppHost project.</target>
+        <target state="translated">Zadaný soubor projektu není projekt Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
