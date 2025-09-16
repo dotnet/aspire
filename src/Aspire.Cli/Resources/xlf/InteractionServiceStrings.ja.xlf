@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">アプリ ホスティング プロセスに互換性がありません。アプリ ホスティング プロセスまたは Aspire CLI のアップグレードをご検討ください。</target>
+        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building apphost...</source>
-        <target state="needs-review-translation">アプリ ホスティング プロセスをビルドしています</target>
+        <target state="new">Building apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding apphosts...</source>
-        <target state="needs-review-translation">アプリ ホスティング プロセスを検索しています...</target>
+        <target state="new">Finding apphosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire AppHost project.</source>
-        <target state="needs-review-translation">指定されたプロジェクト ファイルは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <target state="new">The specified project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

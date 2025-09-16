@@ -17,7 +17,8 @@ internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
-     ISecretClientProvider secretClientProvider) : IBicepProvisioner
+    ISecretClientProvider secretClientProvider,
+    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
     /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
@@ -168,7 +169,7 @@ internal sealed class BicepProvisioner(
         var deployments = resource.Scope?.Subscription != null
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
-        var deploymentName = resource.Name;
+        var deploymentName = executionContext.IsPublishMode ? $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}" : resource.Name;
 
         var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -176,8 +177,6 @@ internal sealed class BicepProvisioner(
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
         });
-        // Set the location and use timestamped deployment name for all resources
-        deploymentName = $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete

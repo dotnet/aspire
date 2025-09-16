@@ -512,13 +512,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
     }
 
-    private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
+    private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
             ViewportInformation,
             DialogService,
             DialogsLoc,
-            spanViewModel.Span,
+            span,
             selectedLogEntryId: null,
             TelemetryRepository,
             _resources,

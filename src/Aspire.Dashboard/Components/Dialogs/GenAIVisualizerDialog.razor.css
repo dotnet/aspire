@@ -20,7 +20,6 @@
 
 ::deep .message-container {
     padding: 12px;
-    margin-bottom: 16px;
     border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-hover);
     border-radius: calc(var(--layer-corner-radius) * 0.5px);
     display: flex;
@@ -35,7 +34,6 @@
 
 ::deep .section-title {
     font-size: var(--type-ramp-plus-1-font-size);
-    margin-bottom: 12px;
     font-weight: 600;
 }
 
@@ -138,16 +136,30 @@
     margin-top: 10px;
     padding-right: 8px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    /* don't stretch images */
+    align-items: flex-start;
+}
+
+::deep .tab-container img {
+    /* don't exceed available space and keep aspect ratio */
+    max-width: 100%;
+    height: auto;
+}
+
+::deep .section-container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    width: 100%;
 }
 
 ::deep .span-details-layout, ::deep .property-grid-container {
     padding: 0;
     overflow: initial;
     display: block;
-}
-
-::deep .message-container .log-overflow {
-    max-height: 300px;
 }
 
 ::deep .message-container .log-content {
