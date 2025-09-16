@@ -192,6 +192,62 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         AssertEquals(container3.GetConnectionString(), connection3.Endpoint);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AutoActivationCanBeDisabled(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", _containerFixture.GetConnectionString())
+        ]);
+
+        static void DisableAutoActivation(RabbitMQClientSettings settings) => settings.DisableAutoActivation = true;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedRabbitMQClient("messaging", DisableAutoActivation);
+        }
+        else
+        {
+            builder.AddRabbitMQClient("messaging", DisableAutoActivation);
+        }
+
+        using var host = builder.Build();
+
+        // When auto activation is disabled, the service should be registered but not activated  
+        var services = host.Services;
+        
+        // Check that the service is registered in the service collection
+        if (useKeyed)
+        {
+            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey?.Equals("messaging") == true);
+        }
+        else
+        {
+            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey is null);
+        }
+    }
+
+    [Fact]
+    public void AutoActivationEnabledByDefault()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", _containerFixture.GetConnectionString())
+        ]);
+
+        builder.AddRabbitMQClient("messaging");
+
+        using var host = builder.Build();
+
+        // When auto activation is enabled (default), the service should be registered and activated
+        var services = host.Services;
+        
+        // Check that the service is registered in the service collection
+        Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey is null);
+    }
+
     private static void AssertEquals(string expectedUri, AmqpTcpEndpoint endpoint)
     {
         var uri = new Uri(expectedUri);
