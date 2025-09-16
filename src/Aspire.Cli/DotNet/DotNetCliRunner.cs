@@ -932,7 +932,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         string? rawKey = null;
         string? keyHash = null;
         DirectoryInfo? nugetCacheDir = null;
-        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: false);
+        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
         if (cacheEnabled)
         {
             try
