@@ -118,7 +118,7 @@ public sealed class SpanWaterfallViewModel
 
     private readonly record struct SpanWaterfallViewModelState(SpanWaterfallViewModel? Parent, int Depth, bool Hidden);
 
-    public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds);
+    public sealed record TraceDetailState(IOutgoingPeerResolver[] OutgoingPeerResolvers, List<string> CollapsedSpanIds, List<OtlpResource> AllResources);
 
     public static string GetTitle(OtlpSpan span, List<OtlpResource> allResources)
     {
@@ -160,7 +160,7 @@ public sealed class SpanWaterfallViewModel
             // A span may indicate a call to another service but the service isn't instrumented.
             var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
+            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers, state.AllResources) : null;
 
             var spanLogVms = new List<SpanLogEntryViewModel>();
             if (spanLogs != null)
@@ -213,12 +213,12 @@ public sealed class SpanWaterfallViewModel
         }
     }
 
-    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers)
+    private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IOutgoingPeerResolver[] outgoingPeerResolvers, List<OtlpResource> allResources)
     {
-        if (span.UninstrumentedPeer?.ResourceName is { } peerName)
+        if (span.UninstrumentedPeer != null)
         {
             // If the span has a peer name, use it.
-            return peerName;
+            return OtlpResource.GetResourceName(span.UninstrumentedPeer, allResources);
         }
 
         // Attempt to resolve uninstrumented peer to a friendly name from the span.

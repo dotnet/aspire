@@ -25,9 +25,17 @@ public sealed class SpanDetailsViewModel
         ArgumentNullException.ThrowIfNull(telemetryRepository);
         ArgumentNullException.ThrowIfNull(resources);
 
-        var entryProperties = span.AllProperties()
-                        .Select(f => new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value })
-                        .ToList();
+        var entryProperties = span.GetKnownProperties().Select(CreateTelemetryProperty).ToList();
+        if (span.GetDestination() is { } destination)
+        {
+            entryProperties.Add(new TelemetryPropertyViewModel
+            {
+                Name = "Destination",
+                Key = KnownTraceFields.DestinationField,
+                Value = OtlpResource.GetResourceName(destination, resources)
+            });
+        }
+        entryProperties.AddRange(span.GetAttributeProperties().Select(CreateTelemetryProperty));
 
         var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
 
@@ -44,6 +52,11 @@ public sealed class SpanDetailsViewModel
             Backlinks = backlinks,
         };
         return spanDetailsViewModel;
+
+        static TelemetryPropertyViewModel CreateTelemetryProperty(OtlpDisplayField f)
+        {
+            return new TelemetryPropertyViewModel { Name = f.DisplayName, Key = f.Key, Value = f.Value };
+        }
     }
 
     private static SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, TelemetryRepository telemetryRepository, Dictionary<string, OtlpTrace> traceCache)

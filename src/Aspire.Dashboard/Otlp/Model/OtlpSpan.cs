@@ -70,6 +70,47 @@ public class OtlpSpan
         return null;
     }
 
+    /*
+    public enum PeerType
+    {
+        None,
+        ChildSpanPeer,
+        UninstrumentedPeer
+    }
+
+    public bool TryGetPeerType(out (OtlpResource? Peer, PeerType Type) result)
+    {
+        if (OtlpHelpers.GetPeerAddress(Attributes) == null)
+        {
+            result = default;
+            return false;
+        }
+        if (!(Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer))
+        {
+            result = default;
+            return false;
+        }
+        var childSpanCount = GetChildSpans().Count();
+        if (childSpanCount > 1)
+        {
+            // Multiple child spans. Can't single one out
+            result = default;
+            return false;
+        }
+        else if (childSpanCount == 0)
+        {
+            result = UninstrumentedPeer != null ? (UninstrumentedPeer, PeerType.UninstrumentedPeer) : default;
+            return result.Peer != null;
+        }
+        else
+        {
+            var childSpan = GetChildSpans().Single();
+            result = (childSpan.Source.Resource, PeerType.ChildSpanPeer);
+            return result.Peer != null;
+        }
+    }
+    */
+
     public OtlpSpan(OtlpResourceView resourceView, OtlpTrace trace, OtlpScope scope)
     {
         Source = resourceView;
@@ -98,7 +139,7 @@ public class OtlpSpan
         };
     }
 
-    public List<OtlpDisplayField> AllProperties()
+    public List<OtlpDisplayField> GetKnownProperties()
     {
         var props = new List<OtlpDisplayField>
         {
@@ -117,12 +158,42 @@ public class OtlpSpan
             props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusMessageField, Value = StatusMessage });
         }
 
+        return props;
+    }
+
+    public List<OtlpDisplayField> GetAttributeProperties()
+    {
+        var props = new List<OtlpDisplayField>();
+
         foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
             props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
         }
 
         return props;
+    }
+
+    public OtlpResource? GetDestination()
+    {
+        // Calculate destination. The destination could either be resolved from an uninstrumented peer, or from a single child span.
+        if (UninstrumentedPeer is { } peer)
+        {
+            return peer;
+        }
+        else
+        {
+            var childSpans = GetChildSpans().ToList();
+            if (childSpans.Count == 1)
+            {
+                var childSpan = childSpans[0];
+                if (childSpan.Source.ResourceKey != Source.ResourceKey && childSpan.Kind is OtlpSpanKind.Server or OtlpSpanKind.Consumer)
+                {
+                    return childSpan.Source.Resource;
+                }
+            }
+        }
+
+        return null;
     }
 
     private string DebuggerToString()

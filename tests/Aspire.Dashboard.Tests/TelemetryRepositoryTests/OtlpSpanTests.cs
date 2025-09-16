@@ -26,10 +26,11 @@ public class OtlpSpanTests
             statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")]);
 
         // Act
-        var properties = span.AllProperties();
+        var knownProperties = span.GetKnownProperties();
+        var attributeProperties = span.GetAttributeProperties();
 
         // Assert
-        Assert.Collection(properties,
+        Assert.Collection(knownProperties,
             a =>
             {
                 Assert.Equal("trace.spanid", a.Key);
@@ -54,7 +55,8 @@ public class OtlpSpanTests
             {
                 Assert.Equal("trace.statusmessage", a.Key);
                 Assert.Equal("Status message!", a.Value);
-            },
+            });
+        Assert.Collection(knownProperties,
             a =>
             {
                 Assert.Equal("unknown-trace.statusmessage", a.Key);
