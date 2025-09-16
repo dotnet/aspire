@@ -186,6 +186,15 @@ internal sealed class DevTunnelCli
         , outputWriter, errorWriter, logger, cancellationToken);
     }
 
+    public Task<int> DeletePortAsync(
+        string tunnelId,
+        int portNumber,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        ILogger? logger = default,
+        CancellationToken cancellationToken = default)
+        => RunAsync(["port", "delete", tunnelId, "--port-number", portNumber.ToString(CultureInfo.InvariantCulture), "--force", "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
+
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
         => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, logger, cancellationToken);
 
