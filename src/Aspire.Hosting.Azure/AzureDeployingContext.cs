@@ -15,6 +15,7 @@ using Azure;
 using Aspire.Hosting.ApplicationModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Dcp.Process;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Azure;
 
@@ -26,7 +27,8 @@ internal sealed class AzureDeployingContext(
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    IConfiguration configuration)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
@@ -318,6 +320,13 @@ internal sealed class AzureDeployingContext(
                 ThrowOnNonZeroReturnCode = false
             };
 
+            // Set DOCKER_COMMAND environment variable if using podman
+            var containerRuntime = GetContainerRuntime();
+            if (string.Equals(containerRuntime, "podman", StringComparison.OrdinalIgnoreCase))
+            {
+                loginSpec.EnvironmentVariables["DOCKER_COMMAND"] = "podman";
+            }
+
             var (pendingResult, processDisposable) = processRunner.Run(loginSpec);
             await using (processDisposable.ConfigureAwait(false))
             {
@@ -333,6 +342,20 @@ internal sealed class AzureDeployingContext(
                 }
             }
         }
+    }
+
+    private string? GetContainerRuntime()
+    {
+        // Check DcpPublisher configuration first (same as DcpOptions configuration logic)
+        var dcpPublisherConfiguration = configuration.GetSection("DcpPublisher");
+        var dcpConfigValue = dcpPublisherConfiguration["ContainerRuntime"];
+        if (!string.IsNullOrEmpty(dcpConfigValue))
+        {
+            return dcpConfigValue;
+        }
+
+        // Fall back to known config names (primary and legacy)
+        return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
     }
 
     private async Task PushImagesToAllRegistries(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, CancellationToken cancellationToken)
