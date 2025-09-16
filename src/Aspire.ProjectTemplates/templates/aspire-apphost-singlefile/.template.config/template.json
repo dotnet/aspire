@@ -19,6 +19,16 @@
     "language": "C#",
     "type": "project"
   },
+  "constraints": {
+   "sdk-only": {
+      "type": "host",
+      "args": [
+        {
+            "hostname": "dotnetcli"
+        }
+      ]
+   }
+  },
   "sources": [
     {
       "source": "./9.5",
@@ -69,15 +79,5 @@
   },
   "primaryOutputs": [
     { "path": "apphost.cs" }
-  ],
-  "postActions": [
-    {
-      "id": "restore",
-      "condition": "(!skipRestore)",
-      "description": "Restore NuGet packages required by this project.",
-      "manualInstructions": [ { "text": "Run 'dotnet restore'" } ],
-      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
-      "continueOnError": true
-    }
   ]
 }
