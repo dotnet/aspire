@@ -50,8 +50,8 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? PromptForStringAsyncCalled { get; set; }
     public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
 
-    public TaskCompletionSource? OpenProjectAsyncCalled { get; set; }
-    public Func<string, Task>? OpenProjectAsyncCallback { get; set; }
+    public TaskCompletionSource? OpenEditorAsyncCalled { get; set; }
+    public Func<string, Task>? OpenEditorAsyncCallback { get; set; }
 
     public TaskCompletionSource? LogMessageAsyncCalled { get; set; }
     public Func<LogLevel, string, Task>? LogMessageAsyncCallback { get; set; }
@@ -69,6 +69,9 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? StartDebugSessionAsyncCalled { get; set; }
     public Func<string, string?, bool, Task>? StartDebugSessionAsyncCallback { get; set; }
+
+    public TaskCompletionSource? DisplayPlainTextAsyncCalled { get; set; }
+    public Func<string, Task>? DisplayPlainTextAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -165,11 +168,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(defaultValue ?? string.Empty);
     }
 
-    public Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)
+    public Task OpenEditorAsync(string projectPath, CancellationToken cancellationToken)
     {
-        OpenProjectAsyncCalled?.SetResult();
-        return OpenProjectAsyncCallback != null
-            ? OpenProjectAsyncCallback.Invoke(projectPath)
+        OpenEditorAsyncCalled?.SetResult();
+        return OpenEditorAsyncCallback != null
+            ? OpenEditorAsyncCallback.Invoke(projectPath)
             : Task.CompletedTask;
     }
 
@@ -217,6 +220,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         StartDebugSessionAsyncCalled?.SetResult();
         return StartDebugSessionAsyncCallback != null
             ? StartDebugSessionAsyncCallback.Invoke(workingDirectory, projectFile, debug)
+            : Task.CompletedTask;
+    }
+
+    public Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken)
+    {
+        DisplayPlainTextAsyncCalled?.SetResult();
+        return DisplayPlainTextAsyncCallback != null
+            ? DisplayPlainTextAsyncCallback.Invoke(text)
             : Task.CompletedTask;
     }
 }

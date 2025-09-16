@@ -320,7 +320,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
     }
 
     protected ProvisioningParameter AllocateContainerImageParameter()
-        => AllocateParameter(new ContainerImageReference(resource));
+        => AllocateParameter(new ContainerImageReference(resource, _containerAppEnvironmentContext.ServiceProvider));
 
     protected BicepValue<string> AllocateContainerPortParameter()
         => AllocateParameter(new ContainerPortReference(resource));

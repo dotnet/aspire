@@ -132,7 +132,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
-            extensionInteractionService.OpenNewProject(templateResult.OutputPath);
+            extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;

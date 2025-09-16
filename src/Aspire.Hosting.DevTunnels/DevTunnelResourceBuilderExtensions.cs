@@ -85,7 +85,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         var healtCheckKey = $"{name}-check";
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource),
+            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource, services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
             failureStatus: default,
             tags: default,
             timeout: default));
@@ -124,13 +124,13 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 // Create the dev tunnel
                 try
                 {
-                    logger.LogInformation("Creating or updating dev tunnel '{TunnelId}'", tunnelResource.TunnelId);
-                    var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
-                    logger.LogDebug("Dev tunnel '{TunnelId}' created/updated", tunnelResource.TunnelId);
+                    logger.LogInformation("Creating dev tunnel '{TunnelId}'", tunnelResource.TunnelId);
+                    var tunnelStatus = await devTunnelClient.CreateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, logger, ct).ConfigureAwait(false);
+                    logger.LogDebug("Dev tunnel '{TunnelId}' created", tunnelResource.TunnelId);
                 }
                 catch (Exception ex)
                 {
-                    var exception = new DistributedApplicationException($"Error trying to create/update the dev tunnel resource '{tunnelResource.TunnelId}' that this resource has a reference to: {ex.Message}", ex);
+                    var exception = new DistributedApplicationException($"Error trying to create the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
                         portResource.TunnelEndpointAllocatedTcs.SetException(exception);
@@ -142,13 +142,12 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpointAllocatedTask)).ConfigureAwait(false);
 
                 // Start the tunnel ports
+                var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
                 await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
                     var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                    var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
 
                     // Clear any prior port status
                     portLogger.LogInformation("Tunnel starting");
@@ -157,21 +156,22 @@ public static partial class DevTunnelsResourceBuilderExtensions
                         State = KnownResourceStates.Starting
                     }).ConfigureAwait(false);
 
-                    // Create/update the tunnel port
+                    // Create the tunnel port
                     try
                     {
-                        _ = await devTunnelClient.CreateOrUpdatePortAsync(
+                        _ = await devTunnelClient.CreatePortAsync(
                                 portResource.DevTunnel.TunnelId,
                                 portResource.TargetEndpoint.Port,
                                 portResource.Options,
+                                portLogger,
                                 ct)
                             .ConfigureAwait(false);
 
-                        portLogger.LogInformation("Created/updated dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
+                        portLogger.LogInformation("Created dev tunnel port '{Port}' on tunnel '{Tunnel}' targeting endpoint '{Endpoint}' on resource '{TargetResource}'", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Resource.Name);
                     }
                     catch (Exception ex)
                     {
-                        portLogger.LogError(ex, "Error trying to create/update dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
+                        portLogger.LogError(ex, "Error trying to create dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
                         portResource.TunnelEndpointAllocatedTcs.SetException(ex);
                         throw;
                     }

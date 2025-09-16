@@ -1,7 +1,8 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { ProgressNotifier } from './progressNotifier';
 import { formatText } from '../utils/strings';
@@ -22,8 +23,9 @@ export interface IInteractionService {
     displayEmptyLine: () => void;
     displayDashboardUrls: (dashboardUrls: DashboardUrls) => Promise<void>;
     displayLines: (lines: ConsoleLine[]) => void;
+    displayPlainText: (message: string) => void;
     displayCancellationMessage: () => void;
-    openProject: (projectPath: string) => void;
+    openEditor: (path: string) => Promise<void>;
     logMessage: (logLevel: CSLogLevel, message: string) => void;
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
@@ -186,6 +188,11 @@ export class InteractionService implements IInteractionService {
         vscode.window.setStatusBarMessage(formatText(message), 5000);
     }
 
+    displayPlainText(message: string) {
+        extensionLogOutputChannel.info(`Displaying plain text: ${message}`);
+        vscode.window.showInformationMessage(formatText(message));
+    }
+
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
     displayEmptyLine() {
         extensionLogOutputChannel.append('\n');
@@ -225,25 +232,44 @@ export class InteractionService implements IInteractionService {
         }, 1000);
     }
 
-    displayLines(lines: ConsoleLine[]) {
+    async displayLines(lines: ConsoleLine[]) {
         const displayText = lines.map(line => line.Line).join('\n');
-        vscode.window.showInformationMessage(formatText(displayText));
         lines.forEach(line => extensionLogOutputChannel.info(formatText(line.Line)));
+
+        // Open a new temp file with the displayText
+        const doc = await vscode.workspace.openTextDocument({ content: displayText, language: 'plaintext' });
+        await vscode.window.showTextDocument(doc, { preview: false });
     }
 
     displayCancellationMessage() {
         extensionLogOutputChannel.info(`Cancelled Aspire operation.`);
     }
 
-    openProject(projectPath: string) {
-        extensionLogOutputChannel.info(`Opening project at path: ${projectPath}`);
+    async openEditor(path: string) {
+        extensionLogOutputChannel.info(`Opening path: ${path}`);
 
-        if (isFolderOpenInWorkspace(projectPath)) {
-            return;
+        // check if is folder
+        if (await isDirectory(path)) {
+            if (isFolderOpenInWorkspace(path)) {
+                return;
+            }
+
+            const uri = vscode.Uri.file(path);
+            vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+        }
+        else {
+            const fileUri = vscode.Uri.file(path);
+            await vscode.window.showTextDocument(fileUri, { preview: false });
         }
 
-        const uri = vscode.Uri.file(projectPath);
-        vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: false });
+        async function isDirectory(path: string): Promise<boolean> {
+            try {
+                const stat = await fs.stat(path);
+                return stat.isDirectory();
+            } catch {
+                return false;
+            }
+        }
     }
 
     logMessage(logLevel: CSLogLevel, message: string) {
@@ -339,8 +365,9 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("displayEmptyLine", middleware('displayEmptyLine', interactionService.displayEmptyLine.bind(interactionService)));
     connection.onRequest("displayDashboardUrls", middleware('displayDashboardUrls', interactionService.displayDashboardUrls.bind(interactionService)));
     connection.onRequest("displayLines", middleware('displayLines', interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayPlainText", middleware('displayPlainText', interactionService.displayPlainText.bind(interactionService)));
     connection.onRequest("displayCancellationMessage", middleware('displayCancellationMessage', interactionService.displayCancellationMessage.bind(interactionService)));
-    connection.onRequest("openProject", middleware('openProject', interactionService.openProject.bind(interactionService)));
+    connection.onRequest("openEditor", middleware('openEditor', interactionService.openEditor.bind(interactionService)));
     connection.onRequest("logMessage", middleware('logMessage', interactionService.logMessage.bind(interactionService)));
     connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));

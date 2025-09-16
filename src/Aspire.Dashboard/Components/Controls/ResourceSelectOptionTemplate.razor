@@ -17,7 +17,10 @@
     }
     else if (ViewModel.Id?.Type is OtlpResourceType.Instance)
     {
-        <span style="padding-left: 20px;" aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
+        <FluentIcon Icon="Icons.Regular.Size20.ArrowTurnDownRight"
+                    Color="Color.Accent"
+                    Style="vertical-align: text-bottom;" />
+        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
     }
     else
     {

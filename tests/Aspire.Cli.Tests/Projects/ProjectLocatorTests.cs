@@ -333,7 +333,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -361,7 +361,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(subDir.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -391,7 +391,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(dirWithBoth.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -406,7 +406,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var validAppHostFile = new FileInfo(Path.Combine(dirWithOnlyAppHost.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             validAppHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -422,11 +422,11 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 
-        // Should find the valid single-file apphost (from OnlyAppHost directory) 
+        // Should find the valid single-file apphost (from OnlyAppHost directory)
         // and the potentially unbuildable .csproj (from WithBoth directory due to sibling apphost.cs)
         // but NOT the single-file apphost from WithBoth directory (ignored due to sibling .csproj)
         Assert.Equal(2, foundFiles.Count);
-        
+
         var foundPaths = foundFiles.Select(f => f.FullName).ToHashSet();
         Assert.Contains(validAppHostFile.FullName, foundPaths);
         Assert.Contains(csprojFile.FullName, foundPaths);
@@ -471,7 +471,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(subDir2.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -500,7 +500,7 @@ builder.Build().Run();");
         Assert.Equal(2, foundFiles.Count);
         // Verify deterministic ordering (sorted by FullName)
         Assert.True(foundFiles[0].FullName.CompareTo(foundFiles[1].FullName) < 0);
-        
+
         var foundPaths = foundFiles.Select(f => f.FullName).ToHashSet();
         Assert.Contains(csprojFile.FullName, foundPaths);
         Assert.Contains(appHostFile.FullName, foundPaths);
@@ -514,7 +514,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -567,7 +567,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -630,7 +630,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(subDir.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -693,6 +693,11 @@ builder.Build().Run();");
             // For test purposes, just return null (not found)
             return Task.FromResult<string?>(null);
         }
+
+        public string GetSettingsFilePath(bool isGlobal)
+        {
+            return string.Empty;
+        }
     }
 
     public class TestFeatures : IFeatures
@@ -730,7 +735,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -760,7 +765,7 @@ builder.Build().Run();");
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(
             appHostFile.FullName,
-            """        
+            """
             #:sdk Aspire.AppHost.Sdk
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
@@ -776,7 +781,7 @@ builder.Build().Run();");
         var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // Should throw when explicitly trying to use an apphost.cs file with feature disabled
-        await Assert.ThrowsAsync<ProjectLocatorException>(() => 
+        await Assert.ThrowsAsync<ProjectLocatorException>(() =>
             projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile));
     }
 }
