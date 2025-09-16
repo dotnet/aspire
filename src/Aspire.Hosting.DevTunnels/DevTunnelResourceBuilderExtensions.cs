@@ -108,7 +108,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
             // Lifecycle
             .OnBeforeResourceStarted(static async (tunnelResource, e, ct) =>
             {
-                var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
+                var resourceLoggerService = e.Services.GetRequiredService<ResourceLoggerService>();
+                var logger = resourceLoggerService.GetLogger(tunnelResource);
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
                 var devTunnelCliInstallationManager = e.Services.GetRequiredService<DevTunnelCliInstallationManager>();
                 var devTunnelEnvironmentManager = e.Services.GetRequiredService<DevTunnelLoginManager>();
@@ -144,6 +145,25 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
                 await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
+
+                // Watch resource logs for disconnects
+                _ = Task.Run(async () =>
+                {
+                    var resourceCommandService = e.Services.GetRequiredService<ResourceCommandService>();
+                    await foreach (var logs in resourceLoggerService.WatchAsync(tunnelResource).WithCancellation(ct))
+                    {
+                        foreach (var log in logs)
+                        {
+                            if (log.Content.Contains("Connection to host tunnel relay closed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // The tunnel connection was closed, stop the tunnel
+                                logger.LogError("Dev tunnel '{TunnelId}' connection was closed, stopping the tunnel resource", tunnelResource.TunnelId);
+                                await resourceCommandService.ExecuteCommandAsync(tunnelResource, KnownResourceCommands.StopCommand, ct).ConfigureAwait(false);
+                                return;
+                            }
+                        }
+                    }
+                }, ct);
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
