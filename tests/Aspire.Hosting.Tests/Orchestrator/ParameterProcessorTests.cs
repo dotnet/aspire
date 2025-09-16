@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Tests.Orchestrator;
 public class ParameterProcessorTests
 {
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParameters_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParameters_SetsRunningState()
     {
         // Arrange
         var parameterProcessor = CreateParameterProcessor();
@@ -34,12 +34,14 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsRunningState()
     {
         // Arrange
         var interactionService = CreateInteractionService(disableDashboard: false);
@@ -58,7 +60,9 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
@@ -89,8 +93,7 @@ public class ParameterProcessorTests
         // Assert
         var (resource, snapshot) = Assert.Single(updates);
         Assert.Same(secretParam, resource);
-        Assert.Equal(KnownResourceStates.Active, snapshot.State?.Text);
-        Assert.Equal(KnownResourceStateStyles.Success, snapshot.State?.Style);
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
     }
 
     [Fact]
@@ -186,16 +189,16 @@ public class ParameterProcessorTests
 
         // Assert - Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
-        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarMessage, messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Set unresolved parameters", inputsInteraction.Title);
-        Assert.Equal("Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.", inputsInteraction.Message);
+        Assert.Equal(InteractionStrings.ParametersInputsTitle, inputsInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersInputsMessage, inputsInteraction.Message);
         Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
 
         Assert.Collection(inputsInteraction.Inputs,
@@ -219,7 +222,7 @@ public class ParameterProcessorTests
             },
             input =>
             {
-                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, input.Label);
                 Assert.Equal(InputType.Boolean, input.InputType);
                 Assert.False(input.Required);
             });
@@ -242,17 +245,17 @@ public class ParameterProcessorTests
         Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
 
         // Notification service should have received updates for each parameter
-        // Marking them as Active with the provided values
+        // Marking them as Running with the provided values
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
         Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
     }
@@ -272,14 +275,14 @@ public class ParameterProcessorTests
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", nextMessageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, nextMessageBarInteraction.Title);
 
         // Assert - Parameter should remain unresolved since user cancelled
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);

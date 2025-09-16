@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREINTERACTION001
+
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -544,5 +546,97 @@ public class ApplicationOrchestratorTests
         {
             return ValueTask.FromResult<string?>(connectionString);
         }
+    }
+
+    [Fact]
+    public async Task ContainerChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentContainer = builder.AddContainer("parent-container", "parent-image");
+        var childContainer = builder.AddContainer("child-container", "child-image")
+            .WithParentRelationship(parentContainer);
+        var customChild = builder.AddResource(new CustomChildResource("custom-child", parentContainer.Resource));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        // Initialize resources
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        // Simulate parent container state change
+        await events.PublishAsync(new OnResourceChangedContext(
+            CancellationToken.None,
+            KnownResourceTypes.Container,
+            parentContainer.Resource,
+            "parent-container-dcp",
+            new ResourceStatus(KnownResourceStates.FailedToStart, null, null),
+            snapshot => snapshot with { State = KnownResourceStates.FailedToStart }));
+
+        // Check final states
+        var parentState = resourceNotificationService.TryGetCurrentState("parent-container-dcp", out var parentEvent) ? parentEvent.Snapshot.State?.Text : null;
+        var childContainerState = resourceNotificationService.TryGetCurrentState(childContainer.Resource.Name, out var childContainerEvent) ? childContainerEvent.Snapshot.State?.Text : null;
+        var customChildState = resourceNotificationService.TryGetCurrentState(customChild.Resource.Name, out var customChildEvent) ? customChildEvent.Snapshot.State?.Text : null;
+
+        // Parent should have the new state
+        Assert.Equal(KnownResourceStates.FailedToStart, parentState);
+        
+        // Child container (has own lifetime) should NOT receive parent state
+        Assert.NotEqual(KnownResourceStates.Running, childContainerState);
+        
+        // Custom child (does not have own lifetime) SHOULD receive parent state
+        Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
+    }
+
+    [Fact]
+    public async Task ProjectChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentContainer = builder.AddContainer("parent-container", "parent-image");
+        var childProject = builder.AddProject<ProjectA>("child-project")
+            .WithParentRelationship(parentContainer);
+        var customChild = builder.AddResource(new CustomChildResource("custom-child", parentContainer.Resource));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        // Initialize resources
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        // Simulate parent container state change
+        await events.PublishAsync(new OnResourceChangedContext(
+            CancellationToken.None,
+            KnownResourceTypes.Container,
+            parentContainer.Resource,
+            "parent-container-dcp",
+            new ResourceStatus(KnownResourceStates.FailedToStart, null, null),
+            snapshot => snapshot with { State = KnownResourceStates.FailedToStart }));
+
+        // Check final states
+        var parentState = resourceNotificationService.TryGetCurrentState("parent-container-dcp", out var parentEvent) ? parentEvent.Snapshot.State?.Text : null;
+        var childProjectState = resourceNotificationService.TryGetCurrentState(childProject.Resource.Name, out var childProjectEvent) ? childProjectEvent.Snapshot.State?.Text : null;
+        var customChildState = resourceNotificationService.TryGetCurrentState(customChild.Resource.Name, out var customChildEvent) ? customChildEvent.Snapshot.State?.Text : null;
+
+        // Parent should have the new state
+        Assert.Equal(KnownResourceStates.FailedToStart, parentState);
+        
+        // Child project (has own lifetime) should NOT receive parent state
+        Assert.NotEqual(KnownResourceStates.Running, childProjectState);
+        
+        // Custom child (does not have own lifetime) SHOULD receive parent state
+        Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
     }
 }

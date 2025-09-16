@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Authentication;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -12,33 +11,43 @@ namespace Aspire.Cli.Backchannel;
 
 internal interface IExtensionRpcTarget
 {
-    Task<string> GetCliVersionAsync(string token);
-    Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input);
+    Func<string, ValidationResult>? ValidationFunction { get; set; }
+
+    [JsonRpcMethod("getCliVersion")]
+    Task<string> GetCliVersionAsync();
+
+    [JsonRpcMethod("validatePromptInputString")]
+    Task<ValidationResult?> ValidatePromptInputStringAsync(string input);
+
+    [JsonRpcMethod("stopCli")]
+    Task StopCliAsync();
+
+    [JsonRpcMethod("getDebugSessionId")]
+    Task<string?> GetDebugSessionIdAsync();
 }
 
 internal class ExtensionRpcTarget(IConfiguration configuration) : IExtensionRpcTarget
 {
     public Func<string, ValidationResult>? ValidationFunction { get; set; }
 
-    [JsonRpcMethod("getCliVersion")]
-    public Task<string> GetCliVersionAsync(string token)
+    public Task<string> GetCliVersionAsync()
     {
-        if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
-        {
-            throw new AuthenticationException();
-        }
-
         return Task.FromResult(VersionHelper.GetDefaultTemplateVersion());
     }
 
-    [JsonRpcMethod("validatePromptInputString")]
-    public Task<ValidationResult?> ValidatePromptInputStringAsync(string token, string input)
+    public Task<ValidationResult?> ValidatePromptInputStringAsync(string input)
     {
-        if (!string.Equals(token, configuration[KnownConfigNames.ExtensionToken], StringComparisons.CliInputOrOutput))
-        {
-            throw new AuthenticationException();
-        }
-
         return Task.FromResult(ValidationFunction?.Invoke(input));
+    }
+
+    public Task StopCliAsync()
+    {
+        Environment.Exit(ExitCodeConstants.Success);
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetDebugSessionIdAsync()
+    {
+        return Task.FromResult(configuration[KnownConfigNames.ExtensionDebugSessionId]);
     }
 }

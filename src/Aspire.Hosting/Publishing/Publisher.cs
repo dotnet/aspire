@@ -18,14 +18,12 @@ internal class Publisher(
 {
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        if (options.Value.OutputPath == null)
+        if (options.Value.OutputPath == null && !options.Value.Deploy)
         {
             throw new DistributedApplicationException(
                 "The '--output-path [path]' option was not specified."
             );
         }
-
-        var outputPath = Path.GetFullPath(options.Value.OutputPath);
 
         // Add a step to do model analysis before publishing/deploying
         var step = await progressReporter.CreateStepAsync(
@@ -40,62 +38,64 @@ internal class Publisher(
                 cancellationToken)
                 .ConfigureAwait(false);
 
-            var publishingResources = new List<IResource>();
-            var deployingResources = new List<IResource>();
+            var targetResources = new List<IResource>();
 
             foreach (var resource in model.Resources)
             {
-                if (resource.HasAnnotationOfType<PublishingCallbackAnnotation>())
+                if (options.Value.Deploy)
                 {
-                    publishingResources.Add(resource);
+                    if (resource.HasAnnotationOfType<DeployingCallbackAnnotation>())
+                    {
+                        targetResources.Add(resource);
+                    }
+                }
+                else
+                {
+                    if (resource.HasAnnotationOfType<PublishingCallbackAnnotation>())
+                    {
+                        targetResources.Add(resource);
+                    }
                 }
 
-                if (resource.HasAnnotationOfType<DeployingCallbackAnnotation>())
-                {
-                    deployingResources.Add(resource);
-                }
             }
 
-            (string Message, CompletionState State) taskInfo;
-
-            if (options.Value.Deploy)
-            {
-                taskInfo = deployingResources.Count switch
-                {
-                    0 => ("No resources in the distributed application model support deployment.", CompletionState.CompletedWithError),
-                    _ => ($"Found {deployingResources.Count} resources that support deployment. ({string.Join(", ", deployingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
-                };
-            }
-            else
-            {
-                taskInfo = publishingResources.Count switch
-                {
-                    0 => ("No resources in the distributed application model support publishing.", CompletionState.CompletedWithError),
-                    _ => ($"Found {publishingResources.Count} resources that support publishing. ({string.Join(", ", publishingResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
-                };
-            }
+            var (message, state) = GetTaskInfo(targetResources, options.Value.Deploy);
 
             await task.CompleteAsync(
-                        taskInfo.Message,
-                        taskInfo.State,
+                        message,
+                        state,
                         cancellationToken)
                         .ConfigureAwait(false);
 
-            if (taskInfo.State == CompletionState.CompletedWithError)
+            if (state == CompletionState.CompletedWithError)
             {
                 // If there are no resources to publish or deploy, we can exit early
                 return;
             }
         }
 
-        var publishingContext = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
-        await publishingContext.WriteModelAsync(model).ConfigureAwait(false);
-
         // If deployment is enabled, run deploying callbacks after publishing
         if (options.Value.Deploy)
         {
-            var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
+            var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
+                Path.GetFullPath(options.Value.OutputPath) : null);
             await deployingContext.WriteModelAsync(model).ConfigureAwait(false);
         }
+        else
+        {
+            var outputPath = Path.GetFullPath(options.Value.OutputPath!);
+            var publishingContext = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
+            await publishingContext.WriteModelAsync(model).ConfigureAwait(false);
+        }
+    }
+
+    private static (string Message, CompletionState State) GetTaskInfo(List<IResource> targetResources, bool isDeploy)
+    {
+        var operation = isDeploy ? "deployment" : "publishing";
+        return targetResources.Count switch
+        {
+            0 => ($"No resources in the distributed application model support {operation}.", CompletionState.CompletedWithError),
+            _ => ($"Found {targetResources.Count} resources that support {operation}. ({string.Join(", ", targetResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
+        };
     }
 }

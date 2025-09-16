@@ -159,6 +159,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
@@ -580,10 +585,16 @@ public class ProjectResourceTests
             });
 
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+             .WithEndpoint("ep", e =>
+             {
+                 e.UriScheme = "http";
+                 e.AllocatedEndpoint = new(e, "localhost", 8000);
+             })
              .WithArgs(context =>
              {
                  context.Args.Add("arg1");
                  context.Args.Add(c1.GetEndpoint("ep"));
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
              });
 
         using var app = appBuilder.Build();
@@ -592,7 +603,8 @@ public class ProjectResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("arg1", arg),
-            arg => Assert.Equal("http://localhost:1234", arg));
+            arg => Assert.Equal("http://localhost:1234", arg),
+            arg => Assert.Equal("http://localhost:8000", arg));
 
         // We don't yet process relationships set via the callbacks
         Assert.False(project.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));

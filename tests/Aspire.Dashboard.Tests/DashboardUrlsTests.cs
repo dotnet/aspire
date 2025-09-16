@@ -32,7 +32,7 @@ public class DashboardUrlsTests
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
             filters: TelemetryFilterFormatter.SerializeFiltersToString([
-                new TelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" }
+                new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" }
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
@@ -43,9 +43,9 @@ public class DashboardUrlsTests
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
             filters: TelemetryFilterFormatter.SerializeFiltersToString([
-                new TelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
-                new TelemetryFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!", Enabled = false },
-                new TelemetryFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
+                new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
+                new FieldTelemetryFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!", Enabled = false },
+                new FieldTelemetryFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);

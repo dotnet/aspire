@@ -52,19 +52,14 @@
         <target state="translated">&lt;L'acquisizione dei log è stata sospesa tra {0} e {1}, {2} log filtrati&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsResourceActions">
-        <source>Resource actions</source>
-        <target state="translated">Azioni delle risorse</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
         <target state="translated">Seleziona risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsSettings">
-        <source>Console logs settings</source>
-        <target state="translated">Impostazioni dei log della console</target>
+        <source>Settings</source>
+        <target state="translated">Impostazioni</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsTimestampHide">

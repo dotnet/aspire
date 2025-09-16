@@ -473,6 +473,160 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public void CollapseAllSpans_CollapsesAllSpans()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(5),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(6),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
+
+        // Act - Find the dropdown menu and click Collapse All
+        var menuButton = cut.FindComponent<AspireMenuButton>();
+        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
+        Assert.NotNull(collapseAllMenuItem);
+        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
+
+        // Assert
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut
+                .FindAll(".main-grid-expand-container")
+                .Where(c => c.ParentElement?.QuerySelector(".main-grid-expand-button") != null)
+                .ToList();
+
+            for (var i = 0; i < expandContainers.Count; i++)
+            {
+                // The first container should be expanded
+                // All other containers should be collapsed
+                var expectedClass = (i == 0)
+                    ? "main-grid-expanded"
+                    : "main-grid-collapsed";
+
+                Assert.True(expandContainers[i].ClassList.Contains(expectedClass));
+            }
+        });
+    }
+
+    [Fact]
+    public void ExpandAllSpans_ExpandsAllSpans()
+    {
+        // Arrange
+        SetupTraceDetailsServices();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<TelemetryRepository>();
+        telemetryRepository.AddTraces(new AddContext(),
+            new RepeatedField<ResourceSpans>
+            {
+                new ResourceSpans
+                {
+                    Resource = CreateResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Scope = CreateScope(),
+                            Spans =
+                            {
+                                CreateSpan(traceId: "1", spanId: "1-1",
+                                    startTime: s_testTime.AddMinutes(1),
+                                    endTime: s_testTime.AddMinutes(10)),
+                                CreateSpan(traceId: "1", spanId: "2-1",
+                                    startTime: s_testTime.AddMinutes(5),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                                CreateSpan(traceId: "1", spanId: "3-1",
+                                    startTime: s_testTime.AddMinutes(6),
+                                    endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
+                            }
+                        }
+                    }
+                }
+            });
+
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = RenderComponent<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".main-grid-expand-button").Count));
+
+        // First click "Collapse All" to collapse everything
+        var menuButton = cut.FindComponent<AspireMenuButton>();
+        var collapseAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Collapse all"); // Locate by text since ID was removed
+        Assert.NotNull(collapseAllMenuItem);
+        cut.InvokeAsync(() => collapseAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
+
+        // Wait for spans to collapse
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // At least one span should be collapsed
+            Assert.Contains(expandContainers, container => container.ClassList.Contains("main-grid-collapsed"));
+        });
+
+        // Act - Click "Expand All"
+        var expandAllMenuItem = menuButton.Instance.Items.FirstOrDefault(item => item.Text == "Expand all"); // Locate by text since ID was removed
+        Assert.NotNull(expandAllMenuItem);
+        cut.InvokeAsync(() => expandAllMenuItem!.OnClick?.Invoke() ?? Task.CompletedTask);
+
+        // Assert
+        cut.WaitForAssertion(() =>
+        {
+            var expandContainers = cut.FindAll(".main-grid-expand-container");
+            // All containers should now be expanded
+            foreach (var container in expandContainers)
+            {
+                Assert.True(container.ClassList.Contains("main-grid-expanded"));
+            }
+        });
+    }
+
     private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;

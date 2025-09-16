@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.GitHub;
+
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureContainerAppEnvironment("env");
 
-var chat = builder.AddGitHubModel("chat", "openai/gpt-4o-mini");
+var chat = builder.AddGitHubModel("chat", GitHubModel.OpenAI.OpenAIGPT4oMini);
 
 builder.AddProject<Projects.GitHubModelsEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()

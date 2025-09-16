@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -13,39 +12,13 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Azure;
 
 internal sealed class ContainerAppContext(IResource resource, ContainerAppEnvironmentContext containerAppEnvironmentContext)
+    : BaseContainerAppContext(resource, containerAppEnvironmentContext)
 {
-    private readonly ContainerAppEnvironmentContext _containerAppEnvironmentContext = containerAppEnvironmentContext;
-
-    public IResource Resource => resource;
-
-    /// <summary>
-    /// The normalized container app name (lowercase) that will be used consistently 
-    /// throughout the container app creation process for both the resource identifier 
-    /// and endpoint mapping host names.
-    /// </summary>
-    public string NormalizedContainerAppName => resource.Name.ToLowerInvariant();
-
     // Endpoint state after processing
-    record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
-    private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
     private (int? Port, bool Http2, bool External)? _httpIngress;
     private readonly List<int> _additionalPorts = [];
 
-    // Resolved environment variables and command line args
-    // These contain the values that need to be further transformed into
-    // bicep compatible values
-    public Dictionary<string, object> EnvironmentVariables { get; } = [];
-    public List<object> Args { get; } = [];
-    public Dictionary<string, (ContainerMountAnnotation, BicepOutputReference)> Volumes { get; } = [];
-
-    // Bicep build state
-    private ProvisioningParameter? _containerRegistryUrlParameter;
-    private ProvisioningParameter? _containerRegistryManagedIdentityIdParameter;
-
-    private AzureResourceInfrastructure? _infrastructure;
-    public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
-
-    public void BuildContainerApp(AzureResourceInfrastructure infra)
+    public override void BuildContainerApp(AzureResourceInfrastructure infra)
     {
         _infrastructure = infra;
         // Write a fake parameter for the container app environment
@@ -57,7 +30,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         ProvisioningParameter? containerImageParam = null;
 
-        if (!TryGetContainerImageName(resource, out var containerImageName))
+        if (!TryGetContainerImageName(Resource, out var containerImageName))
         {
             AllocateContainerRegistryParameters();
 
@@ -68,7 +41,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         BicepValue<string>? containerAppIdentityId = null;
 
-        if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
+        if (Resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
         {
             var appIdentityResource = appIdentityAnnotation.IdentityResource;
 
@@ -80,7 +53,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerAppResource.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
         }
 
-        AddContainerRegistryManagedIdentity(containerAppResource);
+        AddContainerRegistryManagedIdentity(containerAppResource.Identity);
 
         containerAppResource.EnvironmentId = containerAppIdParam;
 
@@ -88,14 +61,14 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
         AddIngress(configuration);
 
-        AddContainerRegistryParameters(configuration);
+        AddContainerRegistryParameters(reg => configuration.Registries = reg);
 
         var template = new ContainerAppTemplate();
         containerAppResource.Template = template;
 
         template.Scale = new ContainerAppScale()
         {
-            MinReplicas = resource.GetReplicaCount()
+            MinReplicas = Resource.GetReplicaCount()
         };
 
         var containerAppContainer = new ContainerAppContainer();
@@ -107,14 +80,15 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         SetEntryPoint(containerAppContainer);
         AddEnvironmentVariablesAndCommandLineArgs(
             containerAppContainer,
-            configuration,
+            () => configuration.Secrets ??= [],
             containerAppIdentityId);
-        AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer);
-        AddVolumes(template, containerAppContainer);
+        AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer.Env);
+        AddVolumes(template.Volumes, containerAppContainer);
+        AddProbes(containerAppContainer);
 
         infra.Add(containerAppResource);
 
-        if (resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
+        if (Resource.TryGetAnnotationsOfType<AzureContainerAppCustomizationAnnotation>(out var annotations))
         {
             foreach (var a in annotations)
             {
@@ -125,7 +99,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
     private ContainerApp CreateContainerApp()
     {
-        var containerApp = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(resource.Name))
+        var containerApp = new ContainerApp(Infrastructure.NormalizeBicepIdentifier(Resource.Name))
         {
             Name = NormalizedContainerAppName
         };
@@ -139,7 +113,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         const string latestPreview = "2025-02-02-preview"; // these properties are currently only available in preview
 
         // default autoConfigureDataProtection to true for .NET projects
-        if (resource is ProjectResource)
+        if (Resource is ProjectResource)
         {
             containerApp.ResourceVersion = latestPreview;
 
@@ -149,7 +123,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         }
 
         // default kind to functionapp for Azure Functions
-        if (resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
+        if (Resource.HasAnnotationOfType<AzureFunctionsAnnotation>())
         {
             containerApp.ResourceVersion = latestPreview;
 
@@ -161,66 +135,9 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         return containerApp;
     }
 
-    private void AddVolumes(ContainerAppTemplate template, ContainerAppContainer containerAppContainer)
+    protected override void ProcessEndpoints()
     {
-        foreach (var (volumeName, (volume, storageName)) in Volumes)
-        {
-            var containerAppVolume = new ContainerAppVolume
-            {
-                Name = volumeName,
-                StorageType = ContainerAppStorageType.AzureFile,
-                StorageName = storageName.AsProvisioningParameter(Infra),
-            };
-
-            template.Volumes.Add(containerAppVolume);
-
-            var containerAppVolumeMount = new ContainerAppVolumeMount
-            {
-                VolumeName = volumeName,
-                MountPath = volume.Target,
-            };
-
-            containerAppContainer.VolumeMounts.Add(containerAppVolumeMount);
-        }
-    }
-
-    private void AddAzureClientId(IAppIdentityResource? appIdentityResource, ContainerAppContainer containerAppContainer)
-    {
-        if (appIdentityResource is not null)
-        {
-            containerAppContainer.Env.Add(new ContainerAppEnvironmentVariable
-            {
-                Name = "AZURE_CLIENT_ID",
-                Value = AllocateParameter(appIdentityResource.ClientId)
-            });
-        }
-    }
-
-    private static bool TryGetContainerImageName(IResource resource, out string? containerImageName)
-    {
-        // If the resource has a Dockerfile build annotation, we don't have the image name
-        // it will come as a parameter
-        if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
-        {
-            containerImageName = null;
-            return false;
-        }
-
-        return resource.TryGetContainerImageName(out containerImageName);
-    }
-
-    public async Task ProcessResourceAsync(CancellationToken cancellationToken)
-    {
-        ProcessEndpoints();
-        ProcessVolumes();
-
-        await ProcessEnvironmentAsync(cancellationToken).ConfigureAwait(false);
-        await ProcessArgumentsAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private void ProcessEndpoints()
-    {
-        if (!resource.TryGetEndpoints(out var endpoints) || !endpoints.Any())
+        if (!Resource.TryGetEndpoints(out var endpoints) || !endpoints.Any())
         {
             return;
         }
@@ -253,7 +170,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         {
             endpointIndexMap[endpoint.Name] = endpointIndexMap.Count;
 
-            int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+            int? targetPort = (Resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
             {
                 // The port was specified so use it
                 (_, _, int target, _) => target,
@@ -271,7 +188,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
 
             // We only keep track of schemes for project resources, since we don't want
             // a non-project scheme to affect what project endpoints are considered default.
-            if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+            if (Resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
             {
                 httpSchemesEncountered.Add(endpoint.UriScheme);
             }
@@ -373,7 +290,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             // We're processed the http ingress, remove it from the list
             endpointsByTargetPort.Remove(httpIngress);
 
-            var targetPort = httpIngress.Port ?? (resource is ProjectResource ? null : 80);
+            var targetPort = httpIngress.Port ?? (Resource is ProjectResource ? null : 80);
 
             _httpIngress = (targetPort, httpIngress.AnyH2, httpIngress.External);
 
@@ -415,245 +332,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
                 _endpointMapping[e.Name] = new(e.UriScheme, NormalizedContainerAppName, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
             }
         }
-    }
-
-    private async Task ProcessArgumentsAsync(CancellationToken cancellationToken)
-    {
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
-        {
-            var context = new CommandLineArgsCallbackContext(Args, cancellationToken: cancellationToken)
-            {
-                ExecutionContext = _containerAppEnvironmentContext.ExecutionContext,
-            };
-
-            foreach (var c in commandLineArgsCallbackAnnotations)
-            {
-                await c.Callback(context).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async Task ProcessEnvironmentAsync(CancellationToken cancellationToken)
-    {
-        if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
-        {
-            var context = new EnvironmentCallbackContext(_containerAppEnvironmentContext.ExecutionContext, resource, EnvironmentVariables, cancellationToken: cancellationToken);
-
-            foreach (var c in environmentCallbacks)
-            {
-                await c.Callback(context).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private static BicepValue<string> ResolveValue(object val)
-    {
-        return val switch
-        {
-            BicepValue<string> s => s,
-            string s => s,
-            ProvisioningParameter p => p,
-            BicepFormatString fs => BicepFunction2.Interpolate(fs),
-            _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
-        };
-    }
-
-    private void ProcessVolumes()
-    {
-        if (resource.TryGetContainerMounts(out var mounts))
-        {
-            var bindMountIndex = 0;
-            var volumeIndex = 0;
-
-            foreach (var volume in mounts)
-            {
-                var (index, volumeName) = volume.Type switch
-                {
-                    ContainerMountType.BindMount => (bindMountIndex, $"bm{bindMountIndex}"),
-                    ContainerMountType.Volume => (volumeIndex, $"v{volumeIndex}"),
-                    _ => throw new NotSupportedException()
-                };
-
-                var storageName = _containerAppEnvironmentContext.Environment.GetVolumeStorage(resource, volume, volumeIndex);
-
-                Volumes[volumeName] = (volume, storageName);
-
-                if (volume.Type == ContainerMountType.BindMount)
-                {
-                    bindMountIndex++;
-                }
-                else
-                {
-                    volumeIndex++;
-                }
-
-            }
-        }
-    }
-
-    private BicepValue<string> GetValue(EndpointMapping mapping, EndpointProperty property)
-    {
-        var (scheme, host, port, targetPort, isHttpIngress, external) = mapping;
-
-        BicepValue<string> GetHostValue(string? prefix = null, string? suffix = null)
-        {
-            if (isHttpIngress)
-            {
-                var domain = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
-
-                return external ? BicepFunction.Interpolate($$"""{{prefix}}{{host}}.{{domain}}{{suffix}}""") : BicepFunction.Interpolate($$"""{{prefix}}{{host}}.internal.{{domain}}{{suffix}}""");
-            }
-
-            return $"{prefix}{host}{suffix}";
-        }
-
-        return property switch
-        {
-            EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{port}"),
-            EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
-            EndpointProperty.HostAndPort => GetHostValue(suffix: $":{port}"),
-            EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : $"{targetPort}",
-            EndpointProperty.Scheme => scheme,
-            _ => throw new NotSupportedException(),
-        };
-    }
-
-    private (object, SecretType) ProcessValue(object value, SecretType secretType = SecretType.None, object? parent = null)
-    {
-        if (value is string s)
-        {
-            return (s, secretType);
-        }
-
-        if (value is EndpointReference ep)
-        {
-            var context = ep.Resource == resource
-                ? this
-                : _containerAppEnvironmentContext.GetContainerAppContext(ep.Resource);
-
-            var mapping = context._endpointMapping[ep.EndpointName];
-
-            var url = GetValue(mapping, EndpointProperty.Url);
-
-            return (url, secretType);
-        }
-
-        if (value is ParameterResource param)
-        {
-            var st = param.Secret ? SecretType.Normal : secretType;
-
-            return (AllocateParameter(param, secretType: st), st);
-        }
-
-        if (value is ConnectionStringReference cs)
-        {
-            return ProcessValue(cs.Resource.ConnectionStringExpression, secretType: secretType, parent: parent);
-        }
-
-        if (value is IResourceWithConnectionString csrs)
-        {
-            return ProcessValue(csrs.ConnectionStringExpression, secretType: secretType, parent: parent);
-        }
-
-        if (value is BicepOutputReference output)
-        {
-            return (AllocateParameter(output, secretType: secretType), secretType);
-        }
-
-#pragma warning disable CS0618 // Type or member is obsolete
-        if (value is BicepSecretOutputReference)
-        {
-            throw new NotSupportedException("Automatic Key vault generation is not supported in this environment. Please create a key vault resource directly.");
-        }
-#pragma warning restore CS0618 // Type or member is obsolete
-
-        if (value is IAzureKeyVaultSecretReference vaultSecretReference)
-        {
-            if (parent is null)
-            {
-                return (AllocateKeyVaultSecretUriReference(vaultSecretReference), SecretType.KeyVault);
-            }
-
-            return (AllocateParameter(vaultSecretReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
-        }
-
-        if (value is EndpointReferenceExpression epExpr)
-        {
-            var context = epExpr.Endpoint.Resource == resource
-                ? this
-                : _containerAppEnvironmentContext.GetContainerAppContext(epExpr.Endpoint.Resource);
-
-            var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
-
-            var val = GetValue(mapping, epExpr.Property);
-
-            return (val, secretType);
-        }
-
-        if (value is ReferenceExpression expr)
-        {
-            // Special case simple expressions
-            if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
-            {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
-            }
-
-            var args = new object[expr.ValueProviders.Count];
-            var index = 0;
-            var finalSecretType = SecretType.None;
-
-            foreach (var vp in expr.ValueProviders)
-            {
-                var (val, secret) = ProcessValue(vp, secretType, parent: expr);
-
-                if (secret != SecretType.None)
-                {
-                    finalSecretType = SecretType.Normal;
-                }
-
-                args[index++] = val;
-            }
-
-            return (new BicepFormatString(expr.Format, args), finalSecretType);
-
-        }
-
-        if (value is IManifestExpressionProvider manifestExpressionProvider)
-        {
-            return (AllocateParameter(manifestExpressionProvider, secretType), secretType);
-        }
-
-        throw new NotSupportedException("Unsupported value type " + value.GetType());
-    }
-
-    private BicepValue<string> AllocateKeyVaultSecretUriReference(IAzureKeyVaultSecretReference secretOutputReference)
-    {
-        var secret = secretOutputReference.AsKeyVaultSecret(Infra);
-
-        return secret.Properties.SecretUri;
-    }
-
-    private ProvisioningParameter AllocateContainerImageParameter()
-        => AllocateParameter(new ContainerImageReference(resource));
-
-    private BicepValue<string> AllocateContainerPortParameter()
-        => AllocateParameter(new ContainerPortReference(resource));
-
-    private static BicepValue<int> AsInt(BicepValue<string> value)
-    {
-        return new FunctionCallExpression(new IdentifierExpression("int"), value.Compile());
-    }
-
-    private void AllocateContainerRegistryParameters()
-    {
-        _containerRegistryUrlParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerRegistryUrl);
-        _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerRegistryManagedIdentityId);
-    }
-
-    private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, SecretType secretType = SecretType.None)
-    {
-        return parameter.AsProvisioningParameter(Infra, isSecure: secretType != SecretType.None);
     }
 
     private void AddIngress(ContainerAppConfiguration config)
@@ -704,123 +382,6 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         config.Ingress = caIngress;
     }
 
-    private void SetEntryPoint(ContainerAppContainer container)
-    {
-        if (resource is ContainerResource containerResource && containerResource.Entrypoint is { } entrypoint)
-        {
-            container.Command = [entrypoint];
-        }
-    }
-
-    private void AddEnvironmentVariablesAndCommandLineArgs(
-        ContainerAppContainer container,
-        ContainerAppConfiguration containerAppConfiguration,
-        BicepValue<string>? containerAppIdentityId)
-    {
-        if (EnvironmentVariables.Count > 0)
-        {
-            container.Env = [];
-
-            foreach (var kv in EnvironmentVariables)
-            {
-                var (val, secretType) = ProcessValue(kv.Value);
-
-                var argValue = ResolveValue(val);
-
-                if (secretType != SecretType.None)
-                {
-                    var secretName = kv.Key.Replace("_", "-").ToLowerInvariant();
-
-                    containerAppConfiguration.Secrets ??= [];
-
-                    // Get or add the secret
-                    var secret = containerAppConfiguration.Secrets
-                                    .FirstOrDefault(s => s.Value?.Name.Value == secretName)
-                                    ?.Value;
-
-                    if (secret is null)
-                    {
-                        secret = new ContainerAppWritableSecret()
-                        {
-                            Name = secretName
-                        };
-
-                        if (secretType == SecretType.KeyVault)
-                        {
-                            // TODO: this should be able to use ToUri(), but it hit an issue
-                            secret.KeyVaultUri = new BicepValue<Uri>(((BicepExpression?)argValue)!);
-
-                            if (containerAppIdentityId is not null)
-                            {
-                                secret.Identity = containerAppIdentityId;
-                            }
-                        }
-                        else
-                        {
-                            secret.Value = argValue;
-                        }
-
-                        containerAppConfiguration.Secrets.Add(secret);
-                    }
-
-                    // The value is the secret name
-                    val = secretName;
-                }
-
-                container.Env.Add(secretType switch
-                {
-                    SecretType.None => new ContainerAppEnvironmentVariable { Name = kv.Key, Value = argValue },
-                    SecretType.Normal or SecretType.KeyVault => new ContainerAppEnvironmentVariable { Name = kv.Key, SecretRef = (string)val },
-                    _ => throw new NotSupportedException()
-                });
-            }
-        }
-
-        if (Args.Count > 0)
-        {
-            container.Args = [];
-
-            foreach (var arg in Args)
-            {
-                var (val, _) = ProcessValue(arg);
-
-                var argValue = ResolveValue(val);
-
-                container.Args.Add(argValue);
-            }
-        }
-    }
-
-    private void AddContainerRegistryManagedIdentity(ContainerApp app)
-    {
-        if (_containerRegistryManagedIdentityIdParameter is null)
-        {
-            return;
-        }
-
-        // REVIEW: This is is a little hacky, we should probably have a better way to do this
-        var id = BicepFunction.Interpolate($"{_containerRegistryManagedIdentityIdParameter}").Compile().ToString();
-
-        app.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
-        app.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
-    }
-
-    private void AddContainerRegistryParameters(ContainerAppConfiguration app)
-    {
-        if (_containerRegistryUrlParameter is null || _containerRegistryManagedIdentityIdParameter is null)
-        {
-            return;
-        }
-
-        app.Registries = [
-            new ContainerAppRegistryCredentials
-                    {
-                        Server = _containerRegistryUrlParameter,
-                        Identity = _containerRegistryManagedIdentityIdParameter
-                    }
-        ];
-    }
-
     private sealed class PortAllocator(int startPort = 8000)
     {
         private int _allocatedPortStart = startPort;
@@ -840,12 +401,5 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
         {
             _usedPorts.Add(port);
         }
-    }
-
-    enum SecretType
-    {
-        None,
-        Normal,
-        KeyVault,
     }
 }

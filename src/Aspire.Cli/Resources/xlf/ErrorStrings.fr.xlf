@@ -17,6 +17,11 @@
         <target state="translated">Le fichier AppHost a été spécifié dans « {0} » mais il n’existe pas dans « {1} ».</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">Aucun hôte d’application générable n’a été trouvé, mais il se peut qu’il y ait des hôtes d’application non générables.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion est nul</target>
@@ -82,6 +87,11 @@
         <target state="translated">Échec de l’analyse de la version du modèle à partir de stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">Échec de la récupération de tous les packages Aspire via le cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Échec de la récupération des packages de modèles via le cache.</target>
@@ -102,9 +112,9 @@
         <target state="translated">Le chemin d’accès de socket d’extension fourni nécessite deux parties valides.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">La version minimale du Kit de développement logiciel (SDK) .NET ({0}) n’est pas installée. Visitez https://get.dot.net pour télécharger et installer le Kit de développement logiciel (SDK) .NET.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -132,14 +142,19 @@
         <target state="translated">Le fichier projet de bot n’existe pas.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">Impossible de construire : {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Le fichier projet n’est pas un projet hôte d’application Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="new">Project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Le projet n’est pas un projet hôte d’application Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="new">The project does not contain an Aspire apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

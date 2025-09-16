@@ -12,7 +12,7 @@
     },
     "gateway": {
       "type": "container.v0",
-      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.3",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4",
       "entrypoint": "dotnet",
       "args": [
         "/app/yarp.dll"

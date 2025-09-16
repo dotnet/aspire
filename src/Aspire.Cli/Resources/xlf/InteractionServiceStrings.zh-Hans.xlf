@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">应用主机不兼容。请考虑升级应用主机或 Aspire CLI。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host...</source>
-        <target state="translated">正在生成应用主机...</target>
+        <source>Building apphost...</source>
+        <target state="new">Building apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -58,18 +58,18 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">正在查找应用主机...</target>
+        <source>Finding apphosts...</source>
+        <target state="new">Finding apphosts...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
-        <target state="new">[dim]For more information, see: [link]{0}[/][/]</target>
+        <target state="translated">[dim]有关详细信息，请参阅: [link]{0}[/][/]</target>
         <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
-        <target state="new">[yellow]A new version of the Aspire CLI is available: {0}[/]</target>
+        <target state="translated">[yellow]有新版本的 Aspire CLI 可用: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -112,14 +112,14 @@
         <target state="translated">正在搜索...</target>
         <note />
       </trans-unit>
-      <trans-unit id="SelectAppHostToRun">
-        <source>Select app host to run</source>
-        <target state="translated">选择要运行的应用主机</target>
+      <trans-unit id="SelectAppHostToUse">
+        <source>Select an apphost to use:</source>
+        <target state="new">Select an apphost to use:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定的项目文件不是 Aspire 应用主机项目。</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="new">The specified project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -130,6 +130,11 @@
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>
         <target state="translated">正在信任证书...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnbuildableAppHostsDetected">
+        <source>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</source>
+        <target state="translated">找不到应用主机(可能存在具有语法错误/SDK 版本无效的应用主机项目文件)。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedErrorOccurred">

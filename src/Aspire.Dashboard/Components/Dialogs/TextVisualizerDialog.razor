@@ -7,7 +7,7 @@
 @implements IDialogContentComponent<Aspire.Dashboard.Model.TextVisualizerDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="true">
-    <div class="visualizer-title-grid">
+    <div class="dialog-title-grid">
         <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" Style="grid-area: dialog-icon; align-self: center;" />
         <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
             @Content.Description
@@ -17,12 +17,12 @@
             <FluentMenuButton id="@_openSelectFormatButtonId"
                               ButtonAppearance="Appearance.Stealth"
                               IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
-                              Text="@(_currentValue ?? Loc[nameof(Dialogs.TextVisualizerSelectFormatType)])"
+                              Text="@(_selectedFormat ?? Loc[nameof(Dialogs.TextVisualizerSelectFormatType)])"
                               aria-label="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
                               OnMenuChanged="@OnFormatOptionChanged">
                 @foreach (var option in _options)
                 {
-                    <FluentMenuItem Id="@option.Id" Disabled="@(!EnabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentMenuItem>
+                    <FluentMenuItem Class="overflow-fluent-menu-item" Id="@option.Id" Disabled="@(!EnabledOptions.Contains(option.Id))" Value="@option.Id" title="@option.Name">@option.Name</FluentMenuItem>
                 }
             </FluentMenuButton>
         </div>
@@ -33,37 +33,11 @@
     <div class="text-visualizer-container">
         @if (IsTextContentDisplayed)
         {
-            <div class="log-overflow">
-                <div class="log-container" id="@_logContainerId">
-                    <Virtualize Items="@FormattedLines" ItemSize="20" OverscanCount="200">
-                        <div class="log-line-row-container">
-                            <div class="log-line-row">
-                                <span class="log-line-area">
-                                    <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
-                                    @if (context.IsFormatted)
-                                    {
-                                        // data-content and data-language used in javascript when re-highlighting a node when its
-                                        // content changes (through scrolling)
-                                        <span class="@GetLogContentClass()" data-content="@context.Content" data-language="@FormatKind">
-                                            @context.Content
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="log-content">
-                                            @context.Content
-                                        </span>
-                                    }
-                                </span>
-                            </div>
-                        </div>
-                    </Virtualize>
-                </div>
-            </div>
+            <TextVisualizer ViewModel="TextVisualizerViewModel" />
 
             <FluentButton Id="@_copyButtonId"
                           Class="text-visualizer-copy"
-                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
                 <span slot="start">
                     <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                     <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />

@@ -17,6 +17,11 @@
         <target state="translated">AppHost ファイルが '{0}' で指定されましたが、'{1}' に存在していません。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">ビルド可能なアプリ ホストは見つかりませんでしたが、ビルド不可能なアプリ ホストが存在した可能性があります。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion が null です</target>
@@ -82,6 +87,11 @@
         <target state="translated">stdout からのテンプレート バージョンの解析に失敗しました。</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">キャッシュを経由した、すべての Aspire パッケージの取得に失敗しました。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">キャッシュを経由したテンプレート パッケージの取得に失敗しました。</target>
@@ -102,9 +112,9 @@
         <target state="translated">指定された拡張ソケット パスには、2 つの有効な部分が必要です。</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">.NET SDK の最小バージョン ({0}) がインストールされていません。https://get.dot.net にアクセスして、.NET SDK をダウンロードしてインストールします。</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -132,14 +142,19 @@
         <target state="translated">プロジェクト ファイルが存在しません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">次をビルドできませんでした: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Aspire アプリ ホスティング プロセスのプロジェクトではないプロジェクト ファイルです。</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="new">Project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">このプロジェクトは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="new">The project does not contain an Aspire apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

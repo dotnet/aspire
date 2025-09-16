@@ -13,7 +13,7 @@ Supported Quality values:
 
 - `dev` - builds from the `main` branch
 - `staging` - builds from the current `release` branch like `release/9.4`
-- `ga` - build for the latest GA
+- `release` - build for the latest release
 
 ## Parameters
 
@@ -160,3 +160,38 @@ When modifying these scripts, ensure:
 - Error handling is comprehensive and user-friendly
 - Platform detection logic is robust
 - Security best practices are followed for downloads and file handling
+
+## PR Artifact Retrieval Scripts
+
+Additional scripts exist to fetch CLI and NuGet artifacts from a pull request build:
+
+- `get-aspire-cli-pr.sh`
+- `get-aspire-cli-pr.ps1`
+
+Quick fetch (Bash):
+```bash
+curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
+```
+
+Quick fetch (PowerShell):
+```powershell
+iex "& { $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1) } <PR_NUMBER>"
+```
+
+NuGet hive path pattern: `~/.aspire/hives/pr-<PR_NUMBER>/packages`
+
+### Repository Override
+
+You can point the PR artifact retrieval scripts at a fork by setting the `ASPIRE_REPO` environment variable to `owner/name` before invoking the script (defaults to `dotnet/aspire`).
+
+Examples:
+
+```bash
+export ASPIRE_REPO=myfork/aspire
+./get-aspire-cli-pr.sh 1234
+```
+
+```powershell
+$env:ASPIRE_REPO = 'myfork/aspire'
+./get-aspire-cli-pr.ps1 1234
+```

@@ -17,6 +17,26 @@
         <target state="translated">Zachytávání trasování bylo pozastaveno v {0}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">Typ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">Vybrat typ rozsahu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
+        <target state="translated">Počet zobrazovaných &lt;strong&gt; trasování: {0}&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} trace&lt;/strong&gt;</source>
+        <target state="translated">Počet zobrazovaných &lt;strong&gt; trasování: {0}&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
         <target state="translated">Název: {0}</target>

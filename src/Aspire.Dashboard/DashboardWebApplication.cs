@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -109,6 +110,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         Action<WebApplicationBuilder>? preConfigureBuilder = null,
         WebApplicationOptions? options = null)
     {
+        // Workaround MaxItemCount regression. In .NET 8 the value is set via AppContext.
+        // The issue doesn't appear to impact .NET 8, but setting this value ensures the dashbaord is always run with a consistent MaxItemCount value.
+        AppContext.SetData("Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize.MaxItemCount", 10_000);
+
         var builder = options is not null ? WebApplication.CreateBuilder(options) : WebApplication.CreateBuilder();
 
         preConfigureBuilder?.Invoke(builder);
@@ -227,6 +232,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
                     builder.WithMethods(HttpMethods.Post);
                 });
+            });
+        }
+
+        // Add Forwarded Headers support so that the dashboard can be run behind a reverse proxy.
+        // Verify they are enabled by looking at the value of ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
+        {
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+
+                // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
+                // being enabled by explicit configuration.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
             });
         }
 
@@ -427,6 +447,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
+        // Use Forwarded Headers middleware if configured.
+        if (builder.Configuration.GetBool(DashboardConfigNames.ForwardedHeaders.ConfigKey) ?? false)
+        {
+            _app.UseForwardedHeaders();
+        }
+
         _app.UseAuthorization();
 
         _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
@@ -444,7 +470,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
-        _app.MapDashboardBlazor();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()

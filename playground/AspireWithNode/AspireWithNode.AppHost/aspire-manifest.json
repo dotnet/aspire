@@ -1,0 +1,60 @@
+{
+  "resources": {
+    "cache": {
+      "type": "container.v0",
+      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port}",
+      "image": "docker.io/library/redis:7.2.4",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "weatherapi": {
+      "type": "project.v0",
+      "path": "../AspireWithNode.AspNetCoreApi/AspireWithNode.AspNetCoreApi.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "frontend": {
+      "type": "dockerfile.v0",
+      "path": "../NodeFrontend/Dockerfile",
+      "context": "../NodeFrontend",
+      "env": {
+        "NODE_ENV": "production",
+        "services__weatherapi__http__0": "{weatherapi.bindings.http.url}",
+        "services__weatherapi__https__0": "{weatherapi.bindings.https.url}",
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "PORT": "{frontend.bindings.http.targetPort}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8000,
+          "external": true
+        }
+      }
+    }
+  }
+}

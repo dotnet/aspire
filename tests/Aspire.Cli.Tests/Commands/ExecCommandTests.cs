@@ -26,12 +26,12 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var commandLineConfiguration = new CommandLineConfiguration(command);
-        commandLineConfiguration.Output = new TestOutputTextWriter(_outputHelper);
+        var invokeConfiguration = new InvocationConfiguration();
+        invokeConfiguration.Output = new TestOutputTextWriter(_outputHelper);
 
-        var result = command.Parse("exec --help", commandLineConfiguration);
+        var result = command.Parse("exec --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
@@ -41,6 +41,7 @@ public class ExecCommandTests
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
         {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();
         });
         var provider = services.BuildServiceProvider();
@@ -58,6 +59,7 @@ public class ExecCommandTests
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
         {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.ProjectLocatorFactory = _ => new MultipleProjectFilesProjectLocator();
         });
         var provider = services.BuildServiceProvider();
@@ -75,6 +77,7 @@ public class ExecCommandTests
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
         {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.ProjectLocatorFactory = _ => new ProjectFileDoesNotExistLocator();
         });
         var provider = services.BuildServiceProvider();
@@ -84,6 +87,29 @@ public class ExecCommandTests
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
+    [Fact]
+    public async Task ExecCommand_WhenFeatureFlagEnabled_CommandAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
+        {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var invokeConfiguration = new InvocationConfiguration();
+        var testOutputWriter = new TestOutputTextWriter(_outputHelper);
+        invokeConfiguration.Output = testOutputWriter;
+
+        var result = command.Parse("exec --help");
+
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Should succeed because exec command is registered when feature flag is enabled
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
 
     [Fact]
@@ -97,13 +123,13 @@ public class ExecCommandTests
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var commandLineConfiguration = new CommandLineConfiguration(command);
+        var invokeConfiguration = new InvocationConfiguration();
         var testOutputWriter = new TestOutputTextWriter(_outputHelper);
-        commandLineConfiguration.Output = testOutputWriter;
+        invokeConfiguration.Output = testOutputWriter;
 
-        var result = command.Parse("exec --project test.csproj echo hello", commandLineConfiguration);
+        var result = command.Parse("exec --project test.csproj echo hello");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync(invokeConfiguration).WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
 
         // attempt to find app host should not happen
@@ -116,6 +142,7 @@ public class ExecCommandTests
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, _outputHelper, options =>
         {
+            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.ProjectLocatorFactory = _ => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
@@ -143,6 +170,11 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
@@ -151,11 +183,25 @@ public class ExecCommandTests
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new List<FileInfo>
+            {
+                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
+                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
+            });
+        }
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }

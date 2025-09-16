@@ -17,6 +17,11 @@
         <target state="translated">O arquivo AppHost foi especificado em ''{0}'', mas não existe em ''{1}''.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="AppHostsMayNotBeBuildable">
+        <source>No buildable app hosts were found, but there may have been unbuildable app hosts.</source>
+        <target state="translated">Não foram encontrados hosts de aplicativos compiláveis, mas pode ter havido hosts de aplicativos não compiláveis.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireHostingVersionNull">
         <source>AspireHostingVersion is null</source>
         <target state="translated">AspireHostingVersion is null</target>
@@ -82,6 +87,11 @@
         <target state="translated">Falha ao analisar a versão do modelo de stdout.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRetrieveCachedAllAspirePackages">
+        <source>Failed to retrieve all Aspire packages via cache.</source>
+        <target state="translated">Falha ao recuperar todos os pacotes Aspire pelo cache.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToRetrieveCachedTemplatePackages">
         <source>Failed to retrieve template packages via cache.</source>
         <target state="translated">Falha ao recuperar pacotes de modelo por meio do cache.</target>
@@ -102,9 +112,9 @@
         <target state="translated">O caminho do soquete de extensão fornecido precisa de duas partes válidas.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">A versão mínima do SDK do .NET ({0}) não está instalada. Visite https://get.dot.net para baixar e instalar o SDK do .NET.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -132,14 +142,19 @@
         <target state="translated">O arquivo de projeto não existe.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileMayBeUnbuildableAppHost">
+        <source>Could not build: {0}</source>
+        <target state="translated">Não foi possível compilar: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">O arquivo de projeto não é um projeto do host de aplicativo do Aspire.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="new">Project file is not an Aspire AppHost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">O projeto não é um projeto de host de aplicativo do Aspire.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="new">The project does not contain an Aspire apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

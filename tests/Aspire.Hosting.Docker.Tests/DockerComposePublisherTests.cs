@@ -142,7 +142,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path)
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
@@ -169,7 +169,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(["--operation", "publish", "--publisher", "default", "--output-path", tempDir.Path])
             .WithTestAndResourceLogging(outputHelper);
-        
+
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose")
@@ -441,7 +441,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         builder.AddContainer("api", "my-api")
             .WithOtlpExporter();
 
-        builder.AddContainer("worker", "my-worker") 
+        builder.AddContainer("worker", "my-worker")
             .WithOtlpExporter();
 
         // Add a container without OTLP - should not be configured
@@ -492,6 +492,16 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
+            return Task.CompletedTask;
+        }
+
+        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+        {
             return Task.CompletedTask;
         }
     }

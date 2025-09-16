@@ -81,10 +81,6 @@ variables:
       value: true
 
 resources:
-  containers:
-  - container: LinuxContainer
-    image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
-
   repositories:
   - repository: 1ESPipelineTemplates
     type: git
@@ -94,6 +90,9 @@ resources:
 extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
+    featureFlags:
+      autoEnablePREfastWithNewRuleset: false
+      autoEnableRoslynWithNewRuleset: false
     sdl:
       policheck:
         enabled: true
@@ -109,6 +108,22 @@ extends:
         enabled: true
     customBuildTags:
     - ES365AIMigrationTooling
+    containers:
+      linux_x64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-amd64
+        env:
+          SysRoot: /crossrootfs/x64
+          LinkerFlavor: lld
+      linux_arm64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-arm64
+        env:
+          SysRoot: /crossrootfs/arm64
+          LinkerFlavor: lld
+      linux_musl_x64:
+        image: mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-net10.0-cross-amd64-musl
+        env:
+          SysRoot: /crossrootfs/x64
+          LinkerFlavor: lld
 
     stages:
 

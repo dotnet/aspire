@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <!-- This project needs to multi-target to net9.0 as well to avoid hitting NuGet Restore issues when package is restored from a net9+ project and avoid NU1605 downgrade errors. -->
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
     <Description>A Microsoft SQL Server client that integrates with Aspire, including health checks, metrics and telemetry.</Description>

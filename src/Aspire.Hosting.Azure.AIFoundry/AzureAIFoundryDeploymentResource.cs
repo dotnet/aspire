@@ -27,12 +27,18 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     public AzureAIFoundryDeploymentResource(string name, string modelName, string modelVersion, string format, AzureAIFoundryResource parent)
         : base(name)
     {
-        DeploymentName = modelName;
+        DeploymentName = name;
         ModelName = modelName;
         ModelVersion = modelVersion;
         Format = format;
         Parent = parent;
     }
+
+    /// <summary>
+    /// This field is used to store the model id that is downloaded by Foundry Local based on the local machine's GPU.
+    /// It is used in the connection string instead of <see cref="ModelName" />.
+    /// </summary>
+    internal string? ModelId { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the deployment.
@@ -85,5 +91,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the connection string expression for the Azure AI Foundry resource with model/deployment information.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => Parent.GetConnectionString(DeploymentName);
+    public ReferenceExpression ConnectionStringExpression => Parent.IsEmulator
+        ? ReferenceExpression.Create($"{Parent};Model={ModelId ?? ModelName}")
+        : ReferenceExpression.Create($"{Parent};Deployment={DeploymentName}");
 }

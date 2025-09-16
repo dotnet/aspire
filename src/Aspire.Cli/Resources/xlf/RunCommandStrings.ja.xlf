@@ -2,9 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="new">Connecting to app host...</target>
+        <source>Connecting to apphost...</source>
+        <target state="new">Connecting to apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -14,17 +19,22 @@
       </trans-unit>
       <trans-unit id="DashboardFailedToStart">
         <source>Aspire Dashboard failed to start.</source>
-        <target state="new">Aspire Dashboard failed to start.</target>
+        <target state="translated">Aspire ダッシュボードの起動に失敗しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">開発モードで Aspire アプリ ホスティング プロセスを実行します。</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="new">Run an Aspire apphost in development mode.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">エンドポイント</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="translated">AppHost ログをリアルタイムで表示するには、AppHost デバッグ コンソールに切り替えてください。</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -48,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire アプリ ホスティング プロセス プロジェクト ファイルへのパスです。</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="new">The path to the Aspire AppHost project file.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -62,14 +72,19 @@
         <target state="translated">リソース</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session during the run.</source>
+        <target state="translated">実行中にデバッグ セッションを開始するかどうかを選択します。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire アプリ ホスティング プロセスを開始しています...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="new">Starting Aspire apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="needs-review-translation">Aspire ダッシュボードを開始しています...</target>
+        <target state="translated">ダッシュボードを起動しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

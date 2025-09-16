@@ -7,15 +7,21 @@
     font-weight: 600;
 }
 
+::deep .trace-details-mobile {
+    padding-left: var(--layout-left-padding);
+    padding-right: var(--layout-right-padding);
+    padding-bottom: 4px;
+}
+
 ::deep .trace-id {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
     font-weight: normal;
+    line-height: 1;
 }
 
 ::deep .trace-view-grid {
-    width: 100%;
 }
 
 ::deep .trace-view-grid .fluent-data-grid-row:not([row-type='header']):hover .span-bar-label-detail {
@@ -37,11 +43,16 @@
     align-items: center;
 }
 
-::deep .trace-view-grid td {
+::deep .trace-view-grid td:not(.empty-content-cell) {
     padding: 0;
     border: 0;
     border-radius: 0;
     vertical-align: middle;
+}
+
+::deep .empty-content-cell {
+    margin-top: 8px;
+    border-top: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
 }
 
 ::deep .trace-view-grid .column-header {
@@ -49,10 +60,6 @@
     min-height: 32px !important;
     height: 32px !important;
     border-bottom: 0;
-}
-
-::deep .trace-view-grid th[col-index="2"] fluent-divider {
-    display: none;
 }
 
 ::deep .ticks {
@@ -83,7 +90,9 @@
 }
 
 ::deep .span-name-container {
-    vertical-align: middle;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 ::deep .span-container {
@@ -126,6 +135,8 @@
 
 ::deep .uninstrumented-peer {
     padding-left: 0.25rem;
+    color: var(--foreground-subtext-rest);
+    font-size: 12px;
 }
 
 ::deep .span-kind-icon {
@@ -137,15 +148,9 @@
     vertical-align: text-bottom;
 }
 
-::deep .span-row-name {
-    color: var(--foreground-subtext-rest);
-    padding-left: 0.5rem;
-    font-size: 12px;
-}
-
-::deep .selected-row .span-row-name,
-::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
-::deep .fluent-data-grid-row:not([row-type='header']):hover .span-row-name,
+::deep .selected-row .uninstrumented-peer,
+::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .uninstrumented-peer,
+::deep .fluent-data-grid-row:not([row-type='header']):hover .uninstrumented-peer,
 ::deep .selected-row .span-container .span-bar-label,
 ::deep .selected-row .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label,
 ::deep .fluent-data-grid-row:not([row-type='header']):hover .span-container .span-bar-label {
@@ -159,9 +164,14 @@
 }
 
 ::deep .span-overview-container {
-    height: 24px;
-    display: inline-flex;
+    display: grid;
     align-items: center;
+    grid-template-columns: auto 1fr auto;
+    width: 100%;
+}
+
+::deep .resource-name {
+    margin-left: 16px;
 }
 
 ::deep .trace-header {
@@ -192,7 +202,6 @@
 ::deep .trace-header-filters {
     grid-area: filters;
     display: flex;
-    column-gap: 8px;
 }
 
 ::deep .span-button-container {

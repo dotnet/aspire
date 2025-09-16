@@ -57,7 +57,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
     private readonly DistributedApplicationOptions _options;
-
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -189,7 +188,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
-        AppHostPath = Path.Join(AppHostDirectory, appHostName);
+        var appHostPath = Path.Join(AppHostDirectory, appHostName);
+
+        // Normalize the AppHost path for consistent behavior across platforms and execution contexts
+        AppHostPath = Path.GetFullPath(appHostPath);
 
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
@@ -220,7 +222,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
         else
         {
-            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+            // Normalize the casing of AppHostPath
+            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
             appHostSha = Convert.ToHexString(appHostShaBytes);
         }
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -241,6 +244,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
         _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
+        _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
@@ -248,8 +252,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<InteractionService>();
         _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
+        _innerBuilder.Services.AddSingleton<ParameterProcessor>();
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
+        _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
@@ -354,11 +360,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
             }
 
-            // Devcontainers & Codespaces
+            // Devcontainers & Codespaces & SSH Remote
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CodespacesOptions>, ConfigureCodespacesOptions>());
             _innerBuilder.Services.AddSingleton<CodespacesUrlRewriter>();
             _innerBuilder.Services.AddHostedService<CodespacesResourceUrlRewriterService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
             _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
         }
@@ -367,7 +374,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
-            _innerBuilder.Services.AddSingleton<ParameterProcessor>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();
 
             // DCP stuff
@@ -493,7 +499,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--operation", "AppHost:Operation" },
             { "--resource", "Exec:ResourceName" },
             { "--start-resource", "Exec:ResourceName" },
-            { "--command", "Exec:Command" }
+            { "--command", "Exec:Command" },
+            { "--workdir", "Exec:WorkingDirectory" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
 

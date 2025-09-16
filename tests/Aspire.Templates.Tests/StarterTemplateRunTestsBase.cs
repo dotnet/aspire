@@ -24,6 +24,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
 
     [Fact]
     [RequiresPlaywright]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();
@@ -38,6 +39,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
     [InlineData("http://")]
     [InlineData("https://")]
     [RequiresPlaywright]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task WebFrontendWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
@@ -57,6 +59,7 @@ public abstract class StarterTemplateRunTestsBase<T> : TemplateTestsBase, IClass
     [InlineData("http://")]
     [InlineData("https://")]
     [RequiresPlaywright]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     [Trait("category", "basic-build")]
     public async Task ApiServiceWorks(string urlPrefix)
     {

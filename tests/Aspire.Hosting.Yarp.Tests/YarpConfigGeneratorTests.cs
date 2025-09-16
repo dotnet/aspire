@@ -263,43 +263,36 @@ public class YarpConfigGeneratorTests()
     [RequiresDocker]
     public async Task GenerateEnvVariablesConfigurationDockerCompose()
     {
-        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-test");
-        try
-        {
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.FullName);
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
 
-            builder.AddDockerComposeEnvironment("docker-compose").WithDashboard(db => db.WithHostPort(18888));
+        builder.AddDockerComposeEnvironment("docker-compose").WithDashboard(db => db.WithHostPort(18888));
 
-            var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
-            var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
+        var backend = builder.AddContainer("backend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
+        var frontend = builder.AddContainer("frontend", "mcr.microsoft.com/dotnet/samples:aspnetapp").WithHttpEndpoint(targetPort: 8080);
 
-            builder.AddYarp("gateway")
-                   .WithHostPort(5000)
-                   .WithExternalHttpEndpoints()
-                   .WithConfiguration(yarp =>
-                    {
-                        var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
-                                                 .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
+        builder.AddYarp("gateway")
+               .WithHostPort(5000)
+               .WithExternalHttpEndpoints()
+               .WithConfiguration(yarp =>
+                {
+                    var backendCluster = yarp.AddCluster(backend.GetEndpoint("http"))
+                                             .WithMetadata(new Dictionary<string, string>() { { "custom-metadata", "some-value" } });
 
-                        yarp.AddRoute(frontend.GetEndpoint("http"))
-                            .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
+                    yarp.AddRoute(frontend.GetEndpoint("http"))
+                        .WithTransformRequestHeader("X-Custom-Forwarded", "yes");
 
-                        yarp.AddRoute("/api/{**catch-all}", backendCluster)
-                            .WithTransformPathRemovePrefix("/api");
-                    });
+                    yarp.AddRoute("/api/{**catch-all}", backendCluster)
+                        .WithTransformPathRemovePrefix("/api");
+                });
 
-            var app = builder.Build();
-            app.Run();
+        var app = builder.Build();
+        app.Run();
 
-            var composeFile = Path.Combine(tempDir.FullName, "docker-compose.yaml");
-            Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
+        var composeFile = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composeFile), "Docker Compose file was not created.");
 
-            var content = await File.ReadAllTextAsync(composeFile);
-            await Verify(content, "env");
-        }
-        finally
-        {
-            tempDir.Delete(recursive: true);
-        }
+        var content = await File.ReadAllTextAsync(composeFile);
+        await Verify(content, "env");
     }
 }

@@ -18,10 +18,12 @@ namespace Aspire.Cli.Commands;
 internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
+    private readonly IConfigurationService _configurationService;
+    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IInteractionService _interactionService;
 
-    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : base("config", ConfigCommandStrings.Description, features, updateNotifier)
+    public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : base("config", ConfigCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -29,12 +31,14 @@ internal sealed class ConfigCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _configuration = configuration;
+        _configurationService = configurationService;
+        _sdkInstaller = sdkInstaller;
         _interactionService = interactionService;
 
-        var getCommand = new GetCommand(configurationService, _interactionService, features, updateNotifier);
-        var setCommand = new SetCommand(configurationService, _interactionService, features, updateNotifier);
-        var listCommand = new ListCommand(configurationService, _interactionService, features, updateNotifier);
-        var deleteCommand = new DeleteCommand(configurationService, _interactionService, features, updateNotifier);
+        var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
@@ -196,7 +200,8 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier) : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, interactionService)
+    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
+        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, interactionService)
     {
         protected override bool UpdateNotificationsEnabled => false;
 

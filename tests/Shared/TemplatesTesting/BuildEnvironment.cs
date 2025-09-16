@@ -91,9 +91,9 @@ public class BuildEnvironment
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new XunitException(
-                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
+                        $"Could not find a SDK with the necessary components installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
                         $" Build all the packages with '{buildCmd} -pack'." +
-                        $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
+                        $" Then install the SDK with 'dotnet build {workloadsProjString}'." +
                         " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Templates.Tests#readme for more details.");
                 }
             }
