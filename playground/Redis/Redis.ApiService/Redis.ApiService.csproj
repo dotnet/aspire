@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.StackExchangeRedis" />
-    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

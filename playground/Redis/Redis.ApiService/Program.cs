@@ -1,38 +1,31 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddRedisClientBuilder("redis")
-    .WithAzureAuthentication()
-    .WithDistributedCache();
+builder.AddRedisClient("redis");
 builder.AddKeyedRedisClient("garnet");
 builder.AddKeyedRedisClient("valkey");
 
 var app = builder.Build();
 
-app.MapGet("/redis/ping", async (IConnectionMultiplexer connection, IDistributedCache cache) =>
+app.MapGet("/redis/ping", async (IConnectionMultiplexer connection) =>
 {
-    return $"{cache.GetType()} {await connection.GetDatabase().PingAsync()}";
+    return await connection.GetDatabase().PingAsync();
 });
 
-app.MapGet("/redis/set", async (IConnectionMultiplexer connection, IDistributedCache cache) =>
+app.MapGet("/redis/set", async (IConnectionMultiplexer connection) =>
 {
-    await cache.SetStringAsync("MyKey", $"{DateTime.Now}");
     return await connection.GetDatabase().StringSetAsync("Key", $"{DateTime.Now}");
-    
 });
 
-app.MapGet("/redis/get", async (IConnectionMultiplexer connection, IDistributedCache cache) =>
+app.MapGet("/redis/get", async (IConnectionMultiplexer connection) =>
 {
-    var c = cache.GetString("MyKey");
     var redisValue = await connection.GetDatabase().StringGetAsync("Key");
-    var d = redisValue.HasValue ? redisValue.ToString() : "(null)";
-    return $"{c} {d}";
+    return redisValue.HasValue ? redisValue.ToString() : "(null)";
 });
 
 app.MapGet("/garnet/ping", async ([FromKeyedServices("garnet")] IConnectionMultiplexer connection) =>
