@@ -170,7 +170,6 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
 
         return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
