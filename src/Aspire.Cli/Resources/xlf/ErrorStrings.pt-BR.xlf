@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="MinimumSdkVersionNotMet">
         <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
-        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
+        <target state="translated">A CLI do Aspire requer a versão do SDK do .NET {0} ou posterior. Detectado: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -149,12 +149,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire AppHost project.</source>
-        <target state="new">Project file is not an Aspire AppHost project.</target>
+        <target state="translated">O arquivo de projeto não é um projeto AppHost do Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
-        <target state="new">The project does not contain an Aspire apphost.</target>
+        <target state="translated">O projeto não contém um AppHost do Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
