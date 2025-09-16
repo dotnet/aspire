@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const rpcServer = await AspireRpcServer.create(
 		(rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => {
-            return new RpcClient(terminalProvider, connection, token, debugSessionId, () => aspireExtensionContext.getAspireDebugSession(debugSessionId));
+            return new RpcClient(terminalProvider, connection, debugSessionId, () => aspireExtensionContext.getAspireDebugSession(debugSessionId));
         }
 	);
 

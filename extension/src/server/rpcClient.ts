@@ -25,7 +25,7 @@ export class RpcClient implements ICliRpcClient {
     public debugSessionId: string | null;
     public interactionService: IInteractionService;
 
-    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, token: string, debugSessionId: string | null, interactionService: IInteractionService) {
+    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
         this._terminalProvider = terminalProvider;
         this._messageConnection = messageConnection;
         this._connectionClosed = false;
