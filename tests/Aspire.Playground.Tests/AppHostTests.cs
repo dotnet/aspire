@@ -4,7 +4,6 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Aspire.TestUtilities;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;

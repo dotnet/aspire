@@ -206,7 +206,7 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <returns>A task that completes when all of the specified texts have been logged.</returns>
     public static async Task WaitForAllTextAsync(this DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, CancellationToken cancellationToken = default)
     {
-        var table = logTexts.ToList();
+        var table = logTexts.ToHashSet();
         try
         {
             await app.WaitForTextAsync((log) =>
