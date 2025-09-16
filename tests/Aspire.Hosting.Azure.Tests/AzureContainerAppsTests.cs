@@ -1950,4 +1950,42 @@ public class AzureContainerAppsTests
         await Verify(containerBicep, "bicep")
               .AppendContentAsFile(projectBicep, "bicep");
     }
+
+    [Fact]
+    public async Task ContainerPortReferenceResolvesTargetPortInGeneratedBicep()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        var container = builder.AddContainer("api", "nginx:latest")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithEnvironment(context =>
+            {
+                // Use ContainerPortReference to demonstrate it resolves to the correct target port
+                context.EnvironmentVariables["CONTAINER_PORT"] = new ContainerPortReference(context.Resource);
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(model.GetContainerResources());
+
+        containerResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        // Verify the bicep contains the correct port value
+        Assert.Contains("8080", bicep);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }
