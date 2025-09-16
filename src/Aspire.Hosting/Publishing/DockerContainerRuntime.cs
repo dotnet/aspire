@@ -81,9 +81,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             // Add build secrets if specified
             foreach (var buildSecret in buildSecrets)
             {
-                arguments += buildSecret.Value is not null
-                    ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
-                    : $" --secret \"id={buildSecret.Key}\"";
+                arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
             }
 
             // Add stage if specified
