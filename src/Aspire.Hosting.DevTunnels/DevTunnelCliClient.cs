@@ -115,7 +115,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
                 }
                 if (exitCode == 0)
                 {
-                    logger?.LogTrace("Dev tunnel '{TunnelId}' created successfully.", tunnelId);
+                    logger?.LogTrace("Port '{PortNumber}' on dev tunnel '{TunnelId}' created successfully.", portNumber, tunnelId);
                     return port;
                 }
             }
@@ -145,7 +145,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
 
     public async Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
-        logger?.LogTrace("Getting access details for {PortInfo}dev tunnel '{TunnelId}'.", tunnelId, portNumber.HasValue ? $"port '{portNumber}' on " : string.Empty);
+        logger?.LogTrace("Getting access details for {PortInfo}dev tunnel '{TunnelId}'.", portNumber.HasValue ? $"port '{portNumber}' on " : string.Empty, tunnelId);
         var (access, exitCode, error) = await CallCliAsJsonAsync<DevTunnelAccessStatus>(
             (stdout, stderr, log, ct) => _cli.ListAccessAsync(tunnelId, portNumber, stdout, stderr, log, ct),
             logger, cancellationToken).ConfigureAwait(false);
