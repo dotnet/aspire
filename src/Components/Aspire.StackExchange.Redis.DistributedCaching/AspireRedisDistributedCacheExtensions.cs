@@ -82,7 +82,7 @@ public static class AspireRedisDistributedCacheExtensions
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="RedisCacheOptions"/>.</param>
     /// <returns>The <see cref="AspireRedisClientBuilder"/> for method chaining.</returns>
     /// <example>
-    /// The following example creates keyed IDistributedCache service using the "myCache" key for a Redis client connection named "redis".
+    /// The following example creates an IDistributedCache service using the Redis client connection named "redis".
     /// <code lang="csharp">
     /// var builder = WebApplication.CreateBuilder(args);
     ///
