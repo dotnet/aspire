@@ -478,11 +478,20 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         try
         {
-            var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());
+            var eventSubscribers = _host.Services.GetServices<IDistributedApplicationEventingSubscriber>();
             var eventing = _host.Services.GetRequiredService<IDistributedApplicationEventing>();
+            var execContext = _host.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+            foreach (var subscriber in eventSubscribers)
+            {
+                await subscriber.SubscribeAsync(eventing, execContext, cancellationToken).ConfigureAwait(false);
+            }
+
+            var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());
             await eventing.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
 
+#pragma warning disable CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
             var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+#pragma warning restore CS0618 // Hooks are obsolete, but still need to be supported until fully removed.
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 
             foreach (var lifecycleHook in lifecycleHooks)

@@ -13,7 +13,6 @@ namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
     IBicepProvisioner bicepProvisioner,
@@ -22,28 +21,22 @@ internal sealed class AzureProvisioner(
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
     IUserSecretsManager userSecretsManager
-    ) : IDistributedApplicationLifecycleHook
+    ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
     private ILookup<IResource, IResourceWithParent>? _parentChildLookup;
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
-        // AzureProvisioner only applies to RunMode
-        if (executionContext.IsPublishMode)
-        {
-            return;
-        }
-
-        var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(appModel);
+        var azureResources = AzureResourcePreparer.GetAzureResourcesFromAppModel(@event.Model);
         if (azureResources.Count == 0)
         {
             return;
         }
 
         // Create a map of parents to their children used to propagate state changes later.
-        _parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
+        _parentChildLookup = @event.Model.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync((IResource Resource, IAzureResource AzureResource) resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -287,5 +280,15 @@ internal sealed class AzureProvisioner(
                 }
             }
         }
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        if (executionContext.IsRunMode)
+        {
+            eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        }
+
+        return Task.CompletedTask;
     }
 }

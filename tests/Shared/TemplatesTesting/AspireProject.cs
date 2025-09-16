@@ -270,7 +270,7 @@ public partial class AspireProject : IAsyncDisposable
         {
             tasksToWaitFor.Add(dashboardUrlParsed.Task);
         }
-        
+
         var successfulStartupTask = Task.WhenAll(tasksToWaitFor);
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
@@ -542,7 +542,7 @@ public partial class AspireProject : IAsyncDisposable
     }
 
     public const string EndpointWritersCodeSnippet = """
-        builder.Services.AddLifecycleHook<EndPointWriterHook>();
+        builder.Services.TryAddEventingSubscriber<EndPointWriterHook>();
 
         var app = builder.Build();
 
