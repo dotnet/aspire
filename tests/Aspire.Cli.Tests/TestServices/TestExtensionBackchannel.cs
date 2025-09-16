@@ -67,6 +67,9 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? NotifyAppHostStartupCompletedAsyncCalled { get; set; }
 
+    public TaskCompletionSource? StartDebugSessionAsyncCalled { get; set; }
+    public Func<string, string?, bool, Task>? StartDebugSessionAsyncCallback { get; set; }
+
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
         ConnectAsyncCalled?.SetResult();
@@ -206,5 +209,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     {
         NotifyAppHostStartupCompletedAsyncCalled?.SetResult();
         return Task.CompletedTask;
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug,
+        CancellationToken cancellationToken)
+    {
+        StartDebugSessionAsyncCalled?.SetResult();
+        return StartDebugSessionAsyncCallback != null
+            ? StartDebugSessionAsyncCallback.Invoke(workingDirectory, projectFile, debug)
+            : Task.CompletedTask;
     }
 }

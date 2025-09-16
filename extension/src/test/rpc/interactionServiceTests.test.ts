@@ -108,11 +108,17 @@ suite('InteractionService endpoints', () => {
 
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
+
 		await testInfo.interactionService.displayDashboardUrls({
 			BaseUrlWithLoginToken: baseUrl,
 			CodespacesUrlWithLoginToken: codespacesUrl
 		});
+
 		const outputLines = stub.getCalls().map(call => call.args[0]);
+
+        // wait 2 seconds to ensure we waited for displayDashboardUrls to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		assert.equal(showInformationMessageStub.callCount, 1);
