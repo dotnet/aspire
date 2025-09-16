@@ -15,7 +15,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
     private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
 
-    public async Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
+    public async Task<DevTunnelStatus> CreateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var attempts = 0;
         var exitCode = 0;
@@ -74,7 +74,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         return tunnel ?? throw new DistributedApplicationException($"Failed to get dev tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
     }
 
-    public async Task<DevTunnelPortStatus> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
+    public async Task<DevTunnelPortStatus> CreatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var attempts = 0;
         var exitCode = 0;
