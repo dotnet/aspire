@@ -24,7 +24,7 @@
     min-height: 120px;
 }
 
-.text-visualizer-container .log-overflow {
+.text-visualizer-container ::deep.log-overflow {
     max-height: 60vh;
     margin-bottom: 16px;
 }
