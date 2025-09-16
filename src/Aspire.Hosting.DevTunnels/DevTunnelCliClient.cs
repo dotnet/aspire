@@ -26,7 +26,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
             logger?.LogTrace("Creating dev tunnel '{TunnelId}' with options: {Options}", tunnelId, options.ToLoggerString());
             if (attempts++ > 1)
             {
-                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create dev tunnel '{TunnelId}'", attempts, tunnelId, _maxCliAttempts);
+                logger?.LogTrace("Attempt {Attempt} of {MaxAttempts} to create dev tunnel '{TunnelId}'", attempts, _maxCliAttempts, tunnelId);
             }
             (var tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
                 (stdout, stderr, log, ct) => _cli.CreateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
