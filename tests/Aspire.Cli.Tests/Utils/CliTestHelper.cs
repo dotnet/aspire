@@ -22,6 +22,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Caching;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -85,6 +86,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+    services.AddSingleton<IDiskCache, DiskCache>();
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -242,9 +244,10 @@ internal sealed class CliServiceCollectionTestOptions
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
 
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext);
+    return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>

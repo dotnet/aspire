@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Caching;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -46,13 +47,9 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool StartDebugSession { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
 {
-    // Cache expiry window for package search results (default: 24 hours)
-    private static readonly TimeSpan s_defaultCacheExpiryWindow = TimeSpan.FromHours(3);
-    
-    // Maximum cache age before forced cleanup (default: 7 days)
-    private static readonly TimeSpan s_defaultMaxCacheAge = TimeSpan.FromDays(7);
+    private readonly IDiskCache _diskCache = diskCache;
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -67,31 +64,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
     }
 
-    private TimeSpan GetPackageSearchCacheExpiryWindow()
-    {
-        // Allow configuration override of cache expiry window
-        if (configuration["PackageSearchCacheExpirySeconds"] is string secondsString 
-            && double.TryParse(secondsString, out var seconds) 
-            && seconds > 0)
-        {
-            return TimeSpan.FromSeconds(seconds);
-        }
-        
-        return s_defaultCacheExpiryWindow;
-    }
-    
-    private TimeSpan GetPackageSearchMaxCacheAge()
-    {
-        // Allow configuration override of maximum cache age
-        if (configuration["PackageSearchMaxCacheAgeSeconds"] is string secondsString 
-            && double.TryParse(secondsString, out var seconds) 
-            && seconds > 0)
-        {
-            return TimeSpan.FromSeconds(seconds);
-        }
-        
-        return s_defaultMaxCacheAge;
-    }
+    // Cache expiry/max age handled inside DiskCache implementation.
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -787,151 +760,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    /// <summary>
-    /// Resolves a cache file for the given key, excluding any expired entries and cleaning up old files.
-    /// Also performs global cache cleanup for files that exceed the maximum cache age.
-    /// </summary>
-    /// <param name="cacheDirectory">The cache directory to search in</param>
-    /// <param name="keyHash">The cache key hash</param>
-    /// <param name="cacheExpiryWindow">The cache expiry window</param>
-    /// <param name="maxCacheAge">The maximum cache age before forced cleanup</param>
-    /// <returns>The path to a valid (non-expired) cache file, or null if none exists</returns>
-    private string? ResolveValidCacheFile(DirectoryInfo cacheDirectory, string keyHash, TimeSpan cacheExpiryWindow, TimeSpan maxCacheAge)
-    {
-        try
-        {
-            if (!cacheDirectory.Exists)
-            {
-                return null;
-            }
-
-            var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var pattern = $"{keyHash}.*.json";
-            var matchingFiles = cacheDirectory.GetFiles(pattern);
-            
-            // Also get all cache files for global cleanup
-            var allCacheFiles = cacheDirectory.GetFiles("*.json");
-
-            // Parse timestamps and sort files by timestamp (descending, newest first)
-            var filesWithTimestamps = new List<(FileInfo file, long timestamp)>();
-            
-            foreach (var file in matchingFiles)
-            {
-                // Extract timestamp from filename: {keyHash}.{timestamp}.json
-                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
-                var parts = fileNameWithoutExtension.Split('.');
-                
-                if (parts.Length >= 2 && long.TryParse(parts[1], out var fileTimestamp))
-                {
-                    filesWithTimestamps.Add((file, fileTimestamp));
-                }
-                else
-                {
-                    // Invalid filename format, delete it
-                    try
-                    {
-                        file.Delete();
-                        logger.LogDebug("Deleted invalid cache file: {CacheFile}", file.FullName);
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-                    {
-                        logger.LogDebug(ex, "Failed to delete invalid cache file: {CacheFile}", file.FullName);
-                    }
-                }
-            }
-
-            // Sort by timestamp descending (newest first)
-            filesWithTimestamps.Sort((a, b) => b.timestamp.CompareTo(a.timestamp));
-
-            string? validCacheFile = null;
-            
-            for (int i = 0; i < filesWithTimestamps.Count; i++)
-            {
-                var (file, timestamp) = filesWithTimestamps[i];
-                var fileAge = TimeSpan.FromSeconds(currentUnixTime - timestamp);
-                
-                if (i == 0 && fileAge <= cacheExpiryWindow)
-                {
-                    // This is the newest file and it's within the expiry window - use it
-                    validCacheFile = file.FullName;
-                }
-                else
-                {
-                    // Delete all other files (either not the newest, or expired)
-                    try
-                    {
-                        file.Delete();
-                        if (fileAge > cacheExpiryWindow)
-                        {
-                            logger.LogDebug("Deleted expired cache file: {CacheFile}", file.FullName);
-                        }
-                        else
-                        {
-                            logger.LogDebug("Deleted old cache file: {CacheFile}", file.FullName);
-                        }
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-                    {
-                        logger.LogDebug(ex, "Failed to delete cache file: {CacheFile}", file.FullName);
-                    }
-                }
-            }
-
-            // Perform global cache cleanup for files exceeding maximum age
-            foreach (var file in allCacheFiles)
-            {
-                try
-                {
-                    // Skip files we already processed above
-                    if (matchingFiles.Contains(file))
-                    {
-                        continue;
-                    }
-                    
-                    // Extract timestamp from filename
-                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
-                    var parts = fileNameWithoutExtension.Split('.');
-                    
-                    if (parts.Length >= 2 && long.TryParse(parts[1], out var fileTimestamp))
-                    {
-                        var fileAge = TimeSpan.FromSeconds(currentUnixTime - fileTimestamp);
-                        
-                        if (fileAge > maxCacheAge)
-                        {
-                            file.Delete();
-                            logger.LogDebug("Deleted old cache file during global cleanup: {CacheFile}", file.FullName);
-                        }
-                    }
-                    else
-                    {
-                        // Invalid filename format, delete it
-                        file.Delete();
-                        logger.LogDebug("Deleted invalid cache file during global cleanup: {CacheFile}", file.FullName);
-                    }
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-                {
-                    logger.LogDebug(ex, "Failed to delete cache file during global cleanup: {CacheFile}", file.FullName);
-                }
-            }
-
-            return validCacheFile;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-        {
-            logger.LogDebug(ex, "Failed to resolve cache file for key hash: {KeyHash}", keyHash);
-            return null;
-        }
-    }
+    // Removed ResolveValidCacheFile (moved to DiskCache implementation).
 
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string? cacheFilePath = null;
         string? rawKey = null;
-        string? keyHash = null;
-        DirectoryInfo? nugetCacheDir = null;
         bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
         if (cacheEnabled)
         {
@@ -950,38 +785,18 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 // Build a cache key using the main discriminators, including CLI version.
                 var cliVersion = VersionHelper.GetDefaultTemplateVersion();
                 rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}|cliVersion={cliVersion}";
-                using var keySha = System.Security.Cryptography.SHA256.Create();
-                var keyBytes = Encoding.UTF8.GetBytes(rawKey);
-                keyHash = Convert.ToHexString(keySha.ComputeHash(keyBytes));
-
-                // Use a subdirectory for nuget package search cache to allow future cleanup/policies.
-                nugetCacheDir = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, "nuget-search"));
-                if (!nugetCacheDir.Exists)
+                var cached = await _diskCache.GetAsync(rawKey, cancellationToken).ConfigureAwait(false);
+                if (cached is not null)
                 {
-                    nugetCacheDir.Create();
-                }
-
-                var cacheExpiryWindow = GetPackageSearchCacheExpiryWindow();
-                var maxCacheAge = GetPackageSearchMaxCacheAge();
-                cacheFilePath = ResolveValidCacheFile(nugetCacheDir, keyHash, cacheExpiryWindow, maxCacheAge);
-
-                if (cacheFilePath is not null)
-                {
-                    logger.LogDebug("Package search disk cache hit for key {RawKey} (file: {CacheFilePath})", rawKey, cacheFilePath);
                     try
                     {
-                        var json = await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false);
-                        var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(json);
+                        var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(cached);
                         return (0, foundPackages.ToArray());
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or JsonException)
+                    catch (JsonException ex)
                     {
-                        logger.LogDebug(ex, "Failed to read/parse package search cache file; falling back to live search.");
+                        logger.LogDebug(ex, "Failed to parse cached package search JSON; performing live search.");
                     }
-                }
-                else
-                {
-                    logger.LogDebug("Package search disk cache miss for key {RawKey}", rawKey);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -1063,30 +878,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(stdout);
 
                 // Attempt to persist the raw stdout JSON for future lookups when cache enabled
-                if (cacheEnabled && nugetCacheDir is not null && keyHash is not null && rawKey is not null)
+                if (cacheEnabled && rawKey is not null)
                 {
-                    try
-                    {
-                        // Generate cache file path with current Unix timestamp
-                        var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                        var timestampedCacheFileName = $"{keyHash}.{currentUnixTime}.json";
-                        var timestampedCacheFilePath = Path.Combine(nugetCacheDir.FullName, timestampedCacheFileName);
-                        
-                        // Write atomically: write to temp then move
-                        var tempFile = timestampedCacheFilePath + ".tmp";
-                        await File.WriteAllTextAsync(tempFile, stdout, cancellationToken).ConfigureAwait(false);
-                        if (File.Exists(timestampedCacheFilePath))
-                        {
-                            // In case of race, overwrite
-                            File.Delete(timestampedCacheFilePath);
-                        }
-                        File.Move(tempFile, timestampedCacheFilePath);
-                        logger.LogDebug("Stored package search results in disk cache for key {RawKey} (file: {CacheFilePath})", rawKey, timestampedCacheFilePath);
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-                    {
-                        logger.LogDebug(ex, "Failed to write package search cache file; continuing without caching.");
-                    }
+                    await _diskCache.SetAsync(rawKey, stdout, cancellationToken).ConfigureAwait(false);
                 }
 
                 return (result, foundPackages.ToArray());

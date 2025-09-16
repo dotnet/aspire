@@ -15,6 +15,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -120,6 +121,7 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
+    builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
