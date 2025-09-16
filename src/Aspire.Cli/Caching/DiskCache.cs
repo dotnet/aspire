@@ -50,7 +50,13 @@ internal sealed class DiskCache : IDiskCache
     {
         try
         {
+            // The key could be any string which is not necessary suitable as a string so we convert
+            // it to a hex encoded SHA256 hash of the string value.
             var keyHash = HashKey(key);
+
+            // Once we hashed key we resolve the path to the cache file. The fully qualified cache
+            // file will include a timestamp. As part of this call clean up of old cache entries may
+            // occur to keep the cache directory clean. This may return null if there is a cache miss.
             var cacheFilePath = ResolveValidCacheFile(keyHash);
             if (cacheFilePath is null)
             {
@@ -58,11 +64,14 @@ internal sealed class DiskCache : IDiskCache
                 return null;
             }
 
+            // Assuming here is a hit we attempt to read the file and return the string.
             _logger.LogDebug("Disk cache hit for key {RawKey} (file: {CacheFilePath})", key, cacheFilePath);
             return await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
+            // If there any any error we just log it and return null since it could be transient
+            // due to concurrency - it'll sort itself out eventually.
             _logger.LogDebug(ex, "Failed to retrieve or read cache entry for key {RawKey}", key);
             return null;
         }
@@ -72,6 +81,10 @@ internal sealed class DiskCache : IDiskCache
     {
         try
         {
+            // If the cache directory doesn't exist create it, but if it blows up just return
+            // failing to write the cache entry shouldn't be a fatal operation. If people notice
+            // that things aren't going fast enough tey can run in debug mode and they'll see the
+            // messages appearing  there.
             if (!_cacheDirectory.Exists)
             {
                 try
@@ -84,6 +97,11 @@ internal sealed class DiskCache : IDiskCache
                     return;
                 }
             }
+
+            // Compute the hash of the key and generate the filename based on the
+            // current using timestamp. To ensure we get a clean write we create a
+            // temp file to write into and then copy the file over in one step. Once
+            // again - if anything blows up we just move on.
             var keyHash = HashKey(key);
             var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var fileName = $"{keyHash}.{currentUnixTime}.json";
@@ -147,44 +165,97 @@ internal sealed class DiskCache : IDiskCache
 
     private string? ResolveValidCacheFile(string keyHash)
     {
+        // The purpose of this method is to find the best cache hit (if one exists)
+        // from the files that exist in the $HOME/.aspire/cache/nuget-cache directory.
+        // The filename structure for cache files is <keyhash>.<unixtimestamp>.json and
+        // each json file represents the JSOn payload from a single invocation from
+        // an dotnet package search.
+
+        // This method can absolutely be further optimized but its a huge leap up from
+        // spawning a process that makes a network call :) Basically it looks at all the
+        // files in the cache and then evicts the ones that are over the max age, and for
+        // all the ones that match the key, it deletes the oldest ones keeping the youngest
+        // assuming it is within the expiry window.
+
         try
         {
             if (!_cacheDirectory.Exists)
             {
                 return null;
             }
+
             var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var matchingFiles = _cacheDirectory.GetFiles($"{keyHash}.*.json");
             var allFiles = _cacheDirectory.GetFiles("*.json");
             var list = new List<(FileInfo file, long timestamp)>();
+
             foreach (var file in matchingFiles)
             {
                 var nameNoExt = Path.GetFileNameWithoutExtension(file.Name);
                 var parts = nameNoExt.Split('.');
-                if (parts.Length >= 2 && long.TryParse(parts[1], out var ts)) { list.Add((file, ts)); }
-                else { TryDelete(file, invalid: true); }
+                if (parts.Length >= 2 && long.TryParse(parts[1], out var ts))
+                {
+                    list.Add((file, ts));
+                }
+                else
+                {
+                    TryDelete(file, invalid: true);
+                }
             }
+
             list.Sort((a, b) => b.timestamp.CompareTo(a.timestamp));
+
             string? valid = null;
             for (var i = 0; i < list.Count; i++)
             {
                 var (file, ts) = list[i];
                 var age = TimeSpan.FromSeconds(currentUnixTime - ts);
-                if (i == 0 && age <= _expiryWindow) { valid = file.FullName; }
-                else { TryDelete(file, expired: age > _expiryWindow); }
+
+                if (i == 0)
+                {
+                    if (age <= _expiryWindow)
+                    {
+                        valid = file.FullName;
+                    }
+                    else
+                    {
+                        // first file exists but is expired
+                        TryDelete(file, expired: true);
+                    }
+                }
+                else
+                {
+                    // not the newest file; delete if it's expired (or unconditionally remove as older variants)
+                    var isExpired = age > _expiryWindow;
+                    TryDelete(file, expired: isExpired);
+                }
             }
+
             foreach (var file in allFiles)
             {
-                if (matchingFiles.Contains(file)) { continue; }
+                // Skip files already considered for this key
+                if (matchingFiles.Contains(file))
+                {
+                    continue;
+                }
+
                 var nameNoExt = Path.GetFileNameWithoutExtension(file.Name);
                 var parts = nameNoExt.Split('.');
+
                 if (parts.Length >= 2 && long.TryParse(parts[1], out var ts))
                 {
                     var age = TimeSpan.FromSeconds(currentUnixTime - ts);
-                    if (age > _maxAge) { TryDelete(file, old: true); }
+                    if (age > _maxAge)
+                    {
+                        TryDelete(file, old: true);
+                    }
                 }
-                else { TryDelete(file, invalid: true); }
+                else
+                {
+                    TryDelete(file, invalid: true);
+                }
             }
+
             return valid;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
