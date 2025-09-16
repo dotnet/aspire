@@ -760,7 +760,69 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    // Removed ResolveValidCacheFile (moved to DiskCache implementation).
+    public async Task<string> ComputeNuGetConfigHierarchySha256Async(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        // The purpose of this method is to compute a hash that can be used as a substitute for an explicitly passed
+        // in NuGet.config file hash. This is useful for when `aspire add` is invoked and we present options from the
+        // implicit feed where we effectively are presenting cached options based on the NuGet.config config in the
+        // current working directory. If any NuGet.config in the hierarchy of NuGet.config files is touched then the
+        // cache will be invalidated and we'll do a live search instead of using the cache. This is necessary for
+        // implicit channel searches which generally provide the best choice to users in the case of `aspire add`.
+
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(ComputeNuGetConfigHierarchySha256Async));
+
+        var (exitCode, configPaths) = await GetNuGetConfigPathsAsync(workingDirectory, options, cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return string.Empty;
+        }
+
+        if (configPaths.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var hashes = new List<string>();
+
+        foreach (var configPath in configPaths)
+        {
+            if (string.IsNullOrWhiteSpace(configPath))
+            {
+                continue;
+            }
+
+            var filePath = Path.IsPathRooted(configPath)
+                ? configPath
+                : Path.Combine(workingDirectory.FullName, configPath);
+
+            if (!File.Exists(filePath))
+            {
+                logger.LogDebug("NuGet config file not found at path: {Path}", filePath);
+                continue;
+            }
+
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                using var sha256 = System.Security.Cryptography.SHA256.Create();
+                var bytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
+                var hex = Convert.ToHexString(bytes);
+                hashes.Add(hex);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                logger.LogDebug(ex, "Failed to read or hash NuGet config file at path: {Path}", filePath);
+                continue;
+            }
+        }
+
+        var result = string.Join("|", hashes);
+        return result;
+    }
 
     public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -780,6 +842,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                     using var sha256 = System.Security.Cryptography.SHA256.Create();
                     var bytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
                     nugetConfigHash = Convert.ToHexString(bytes);
+                }
+                else
+                {
+                    nugetConfigHash = await ComputeNuGetConfigHierarchySha256Async(workingDirectory, options, cancellationToken);
                 }
 
                 // Build a cache key using the main discriminators, including CLI version.
@@ -832,14 +898,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) => {
+        options.StandardOutputCallback = (line) =>
+        {
             stdoutBuilder.AppendLine(line);
             existingStandardOutputCallback?.Invoke(line);
         };
 
         var stderrBuilder = new StringBuilder();
         var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) => {
+        options.StandardErrorCallback = (line) =>
+        {
             stderrBuilder.AppendLine(line);
             existingStandardErrorCallback?.Invoke(line);
         };
