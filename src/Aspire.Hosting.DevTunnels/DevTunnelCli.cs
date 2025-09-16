@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -224,7 +225,7 @@ internal sealed class DevTunnelCli
         var stdoutTask = Task.CompletedTask;
         var stderrTask = Task.CompletedTask;
 
-        logger?.LogTrace("Invoking devtunnel CLI{ShellExecuteInfo}: {FileName} {Arguments}", useShellExecute ? " (UseShellExecute=true)" : "", process.StartInfo.FileName, string.Join(' ', process.StartInfo.ArgumentList));
+        logger?.LogTrace("Invoking devtunnel CLI{ShellExecuteInfo}: {FileName} {Arguments}", useShellExecute ? " (UseShellExecute=true)" : "", process.StartInfo.FileName, EscapeArgList(process.StartInfo.ArgumentList));
 
         try
         {
@@ -275,6 +276,52 @@ internal sealed class DevTunnelCli
                 }
             }
         }
+    }
+
+    private static string? EscapeArgList(Collection<string> args)
+    {
+        if (args.Count == 0)
+        {
+            return null;
+        }
+
+        StringBuilder? sb = null;
+
+        foreach (var a in args)
+        {
+            if (string.IsNullOrWhiteSpace(a))
+            {
+                continue;
+            }
+
+            sb ??= new StringBuilder(args.Count * 2);
+            if (sb.Length > 0)
+            {
+                sb.Append(' ');
+            }
+
+            var needsQuotes = a.Any(char.IsWhiteSpace) || a.Contains('"');
+            if (needsQuotes)
+            {
+                sb.Append('"');
+            }
+
+            foreach (var c in a)
+            {
+                if (c == '"')
+                {
+                    sb.Append('\\'); // Escape quote
+                }
+                sb.Append(c);
+            }
+
+            if (needsQuotes)
+            {
+                sb.Append('"');
+            }
+        }
+
+        return sb?.ToString();
     }
 
     private ProcessStartInfo BuildStartInfo(IEnumerable<string> args, bool useShellExecute = false)
