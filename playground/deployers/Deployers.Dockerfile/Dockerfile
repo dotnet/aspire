@@ -12,13 +12,18 @@ WORKDIR /app
 ENV BUILD_VERSION=${BUILD_VERSION}
 ENV CUSTOM_MESSAGE=${CUSTOM_MESSAGE}
 
-# Use secret token during build (for demonstration - normally this would be used for auth during build)
-# The secret is mounted as a file and not exposed in the final image
-RUN --mount=type=secret,id=BUILD_SECRET,target=/run/secrets/token \
-    if [ -f /run/secrets/token ]; then \
+RUN --mount=type=secret,id=BUILD_SECRET \
+    if [ -f /run/secrets/BUILD_SECRET ] && [ -s /run/secrets/BUILD_SECRET ]; then \
         echo "Secret token available during build process"; \
+        echo "BUILD_SECRET_AVAILABLE=true" > /app/build_metadata.txt; \
+        SECRET_CONTENT=$(cat /run/secrets/BUILD_SECRET); \
+        SECRET_LENGTH=${#SECRET_CONTENT}; \
+        echo "BUILD_SECRET_LENGTH=$SECRET_LENGTH" >> /app/build_metadata.txt; \
+        echo "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /app/build_metadata.txt; \
     else \
-        echo "No secret token provided for build"; \
+        echo "BUILD_SECRET_AVAILABLE=false" > /app/build_metadata.txt; \
+        echo "BUILD_SECRET_LENGTH=0" >> /app/build_metadata.txt; \
+        echo "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /app/build_metadata.txt; \
     fi
 
 # Copy requirements.txt first to leverage Docker cache layers

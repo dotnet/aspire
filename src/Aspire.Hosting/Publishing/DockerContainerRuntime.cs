@@ -82,8 +82,8 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             foreach (var buildSecret in buildSecrets)
             {
                 arguments += buildSecret.Value is not null
-                    ? $" --secret \"id={buildSecret.Key},env={buildSecret.Value}\""
-                    : $" --secret \"id={buildSecret.Key}";
+                    ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
+                    : $" --secret \"id={buildSecret.Key}\"";
             }
 
             // Add stage if specified
@@ -106,8 +106,17 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                     logger.LogInformation("docker buildx (stderr): {Error}", error);
                 },
                 ThrowOnNonZeroReturnCode = false,
-                InheritEnv = true
+                InheritEnv = true,
             };
+
+            // Add build secrets as environment variables
+            foreach (var buildSecret in buildSecrets)
+            {
+                if (buildSecret.Value is not null)
+                {
+                    spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                }
+            }
 
             logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);

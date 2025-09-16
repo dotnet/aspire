@@ -53,7 +53,7 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         foreach (var buildSecret in buildSecrets)
         {
             arguments += buildSecret.Value is not null
-                ? $" --secret \"id={buildSecret.Key},env={buildSecret.Value}\""
+                ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
                 : $" --secret \"id={buildSecret.Key}\"";
         }
 
@@ -79,6 +79,15 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
         };
+
+        // Add build secrets as environment variables
+        foreach (var buildSecret in buildSecrets)
+        {
+            if (buildSecret.Value is not null)
+            {
+                spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+            }
+        }
 
         logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
