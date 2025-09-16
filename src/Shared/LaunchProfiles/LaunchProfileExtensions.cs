@@ -13,6 +13,7 @@ internal static class LaunchProfileExtensions
 {
     // Allow list of command names that are supported by Aspire
     private static readonly string[] s_allowedCommandNames = ["Project", "Executable"];
+   
     internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
         if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
