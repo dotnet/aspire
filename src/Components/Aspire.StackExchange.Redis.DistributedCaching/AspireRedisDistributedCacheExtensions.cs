@@ -151,6 +151,7 @@ public static class AspireRedisDistributedCacheExtensions
     public static AspireRedisClientBuilder WithKeyedDistributedCache(this AspireRedisClientBuilder builder, string name, Action<RedisCacheOptions>? configureOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         if (configureOptions is not null)
         {
