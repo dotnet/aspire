@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.StackExchange.Redis;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.OutputCaching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -71,6 +72,31 @@ public static class AspireRedisOutputCacheExtensions
         {
             options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredKeyedService<IConnectionMultiplexer>(name));
         });
+    }
+
+    /// <summary>
+    /// Configures the Redis client to provide output caching services through <see cref="IOutputCacheStore"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="AspireRedisClientBuilder"/> to configure.</param>
+    /// <returns>The <see cref="AspireRedisClientBuilder"/> for method chaining.</returns>
+    public static AspireRedisClientBuilder WithOutputCache(this AspireRedisClientBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.HostBuilder.AddRedisOutputCacheCore((RedisOutputCacheOptions options, IServiceProvider sp) =>
+        {
+            var key = builder.ServiceKey;
+            if (key is null)
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>());
+            }
+            else
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(sp.GetRequiredKeyedService<IConnectionMultiplexer>(key));
+            }
+        });
+
+        return builder;
     }
 
     private static void AddRedisOutputCacheCore(this IHostApplicationBuilder builder, Action<RedisOutputCacheOptions, IServiceProvider> configureRedisOptions)
