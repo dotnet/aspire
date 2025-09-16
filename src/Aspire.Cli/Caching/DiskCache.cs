@@ -24,7 +24,14 @@ internal sealed class DiskCache : IDiskCache
         _cacheDirectory = new DirectoryInfo(Path.Combine(executionContext.CacheDirectory.FullName, "nuget-search"));
         if (!_cacheDirectory.Exists)
         {
-            try { _cacheDirectory.Create(); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName); }
+            try
+            {
+                _cacheDirectory.Create();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName);
+            }
         }
         _expiryWindow = ReadWindow(configuration, "PackageSearchCacheExpirySeconds", s_defaultCacheExpiryWindow);
         _maxAge = ReadWindow(configuration, "PackageSearchMaxCacheAgeSeconds", s_defaultMaxCacheAge);
@@ -50,13 +57,13 @@ internal sealed class DiskCache : IDiskCache
                 _logger.LogDebug("Disk cache miss for key {RawKey}", key);
                 return null;
             }
+
             _logger.LogDebug("Disk cache hit for key {RawKey} (file: {CacheFilePath})", key, cacheFilePath);
-            try { return await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { _logger.LogDebug(ex, "Failed to read cache file {CacheFilePath}; treating as miss", cacheFilePath); return null; }
+            return await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
-            _logger.LogDebug(ex, "Failed to retrieve cache entry for key {RawKey}", key);
+            _logger.LogDebug(ex, "Failed to retrieve or read cache entry for key {RawKey}", key);
             return null;
         }
     }
@@ -67,7 +74,15 @@ internal sealed class DiskCache : IDiskCache
         {
             if (!_cacheDirectory.Exists)
             {
-                try { _cacheDirectory.Create(); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName); return; }
+                try
+                {
+                    _cacheDirectory.Create();
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                {
+                    _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName);
+                    return;
+                }
             }
             var keyHash = HashKey(key);
             var currentUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -75,7 +90,19 @@ internal sealed class DiskCache : IDiskCache
             var fullPath = Path.Combine(_cacheDirectory.FullName, fileName);
             var tempFile = fullPath + ".tmp";
             await File.WriteAllTextAsync(tempFile, content, cancellationToken).ConfigureAwait(false);
-            if (File.Exists(fullPath)) { try { File.Delete(fullPath); } catch { } }
+
+            if (File.Exists(fullPath))
+            {
+                try
+                {
+                    File.Delete(fullPath);
+                }
+                catch
+                {
+                    // Best effort; swallow per original intent.
+                }
+            }
+
             File.Move(tempFile, fullPath);
             _logger.LogDebug("Stored disk cache entry for key {RawKey} (file: {CacheFilePath})", key, fullPath);
         }
@@ -93,7 +120,14 @@ internal sealed class DiskCache : IDiskCache
             {
                 foreach (var file in _cacheDirectory.GetFiles("*.json", SearchOption.TopDirectoryOnly))
                 {
-                    try { file.Delete(); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { _logger.LogDebug(ex, "Failed to delete cache file {CacheFile}", file.FullName); }
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                    {
+                        _logger.LogDebug(ex, "Failed to delete cache file {CacheFile}", file.FullName);
+                    }
                 }
             }
         }

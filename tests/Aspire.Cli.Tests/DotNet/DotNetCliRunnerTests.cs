@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Caching;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -52,6 +53,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, _, _, _, _, _) => Assert.Contains(args, arg => arg == "--no-launch-profile"),
             42
             );
@@ -97,6 +99,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -144,6 +147,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -181,6 +185,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -227,6 +232,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 // When noBuild is true, the original env should be passed through unchanged
@@ -276,6 +282,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 Assert.NotNull(env);
@@ -327,6 +334,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             interactionService,
             executionContext,
+            new NullDiskCache(),
             (args, env, _, _, _, _) =>
             {
                 // Verify the arguments are correct for dotnet new
@@ -371,6 +379,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
             provider.GetRequiredService<CliExecutionContext>(),
+            new NullDiskCache(),
             (args, env, _, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -418,6 +427,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
             provider.GetRequiredService<CliExecutionContext>(),
+            new NullDiskCache(),
             (args, env, _, _, _, _) => 
             {
                 // When the feature is enabled (default), the version check env var should NOT be set
@@ -467,6 +477,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IFeatures>(),
             provider.GetRequiredService<IInteractionService>(),
             provider.GetRequiredService<CliExecutionContext>(),
+            new NullDiskCache(),
             (args, env, _, _, _, _) => 
             {
                 Assert.NotNull(env);
@@ -534,7 +545,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<IFeatures>(),
             interactionService,
-            executionContext
+            executionContext,
+            new NullDiskCache()
         );
 
         var exitCode = await runner.ExecuteAsync(
@@ -560,9 +572,10 @@ internal sealed class AssertingDotNetCliRunner(
     IFeatures features,
     IInteractionService interactionService,
     CliExecutionContext executionContext,
+    IDiskCache diskCache,
     Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
-    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext)
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
 {
     public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
