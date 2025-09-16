@@ -24,7 +24,8 @@
       "type": "host",
       "args": [
         {
-            "hostname": "dotnetcli"
+            "hostname": "dotnetcli",
+            "version": "[10.0,)"
         }
       ]
    }
