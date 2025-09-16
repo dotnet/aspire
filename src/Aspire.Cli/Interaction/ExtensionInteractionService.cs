@@ -13,7 +13,7 @@ namespace Aspire.Cli.Interaction;
 internal interface IExtensionInteractionService : IInteractionService
 {
     IExtensionBackchannel Backchannel { get; }
-    void OpenNewProject(string projectPath);
+    void OpenEditor(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug);
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
@@ -225,14 +225,16 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayEmptyLine();
     }
 
-    public void OpenNewProject(string projectPath)
+    public void OpenEditor(string path)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.OpenProjectAsync(projectPath, _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.OpenEditorAsync(path, _cancellationToken));
         Debug.Assert(result);
     }
 
     public void DisplayPlainText(string text)
     {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayPlainTextAsync(text, _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayPlainText(text);
     }
 

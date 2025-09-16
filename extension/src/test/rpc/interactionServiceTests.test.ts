@@ -153,16 +153,15 @@ suite('InteractionService endpoints', () => {
 	test("displayLines endpoint", async () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
-		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
 
 		testInfo.interactionService.displayLines([
 			{ Stream: 'stdout', Line: 'line1' },
 			{ Stream: 'stderr', Line: 'line2' }
 		]);
-		assert.ok(showInformationMessageSpy.called);
-		assert.ok(stub.calledWith('line1'));
-		assert.ok(stub.calledWith('line2'));
-		showInformationMessageSpy.restore();
+
+		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
+		openTextDocumentStub.restore();
 	});
 });
 
