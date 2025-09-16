@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -65,10 +66,13 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
                 throw new InvalidOperationException($"Deployment image tag callback requires a service provider, but none was provided to ContainerImageReference for resource '{Resource.Name}'.");
             }
 
+            var executionContext = ServiceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
             var context = new DeploymentImageTagCallbackAnnotationContext
             {
                 Resource = Resource,
-                Services = ServiceProvider
+                Services = ServiceProvider,
+                CancellationToken = cancellationToken,
+                ExecutionContext = executionContext
             };
             tag = await deploymentTag.Callback(context).ConfigureAwait(false);
         }

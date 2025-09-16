@@ -21,6 +21,16 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
     /// Gets the service provider for accessing services during callback execution.
     /// </summary>
     public required IServiceProvider Services { get; init; }
+
+    /// <summary>
+    /// Gets the cancellation token associated with the callback context.
+    /// </summary>
+    public required CancellationToken CancellationToken { get; init; }
+
+    /// <summary>
+    /// Gets the execution context associated with this invocation of the AppHost.
+    /// </summary>
+    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
 }
 
 /// <summary>
@@ -31,13 +41,23 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
 public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback.
+    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback that doesn't use context.
     /// </summary>
     /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
     public DeploymentImageTagCallbackAnnotation(Func<string> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
         Callback = _ => Task.FromResult(callback());
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback.
+    /// </summary>
+    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
+    public DeploymentImageTagCallbackAnnotation(Func<DeploymentImageTagCallbackAnnotationContext, string> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        Callback = context => Task.FromResult(callback(context));
     }
 
     /// <summary>

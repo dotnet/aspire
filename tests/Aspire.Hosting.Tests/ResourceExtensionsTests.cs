@@ -335,7 +335,9 @@ public class ResourceExtensionsTests
         var context = new DeploymentImageTagCallbackAnnotationContext
         {
             Resource = containerResource.Resource,
-            Services = serviceProvider
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         };
         var result = await annotation.Callback(context);
         Assert.Equal("test-tag", result);
@@ -379,7 +381,9 @@ public class ResourceExtensionsTests
         var context = new DeploymentImageTagCallbackAnnotationContext
         {
             Resource = containerResource.Resource,
-            Services = serviceProvider
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         };
         
         Assert.Equal("tag1", await annotations[0].Callback(context));
@@ -424,7 +428,9 @@ public class ResourceExtensionsTests
         var context = new DeploymentImageTagCallbackAnnotationContext
         {
             Resource = containerResource.Resource,
-            Services = serviceProvider
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         };
         
         // Callback should return different values when called multiple times
@@ -454,7 +460,9 @@ public class ResourceExtensionsTests
         var context = new DeploymentImageTagCallbackAnnotationContext
         {
             Resource = containerResource.Resource,
-            Services = serviceProvider
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         };
         var result = await annotation.Callback(context);
         Assert.Equal("async-tag-test-container", result);
