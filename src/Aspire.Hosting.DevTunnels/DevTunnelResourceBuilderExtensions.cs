@@ -130,7 +130,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }
                 catch (Exception ex)
                 {
-                    var exception = new DistributedApplicationException($"Error trying to create/update the dev tunnel resource '{tunnelResource.TunnelId}' that this resource has a reference to: {ex.Message}", ex);
+                    var exception = new DistributedApplicationException($"Error trying to create/update the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
                         portResource.TunnelEndpointAllocatedTcs.SetException(exception);
@@ -142,13 +142,12 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpointAllocatedTask)).ConfigureAwait(false);
 
                 // Start the tunnel ports
+                var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
                 await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
                     var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-                    var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                    var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
 
                     // Clear any prior port status
                     portLogger.LogInformation("Tunnel starting");
