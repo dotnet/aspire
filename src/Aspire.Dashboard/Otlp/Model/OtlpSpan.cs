@@ -70,47 +70,6 @@ public class OtlpSpan
         return null;
     }
 
-    /*
-    public enum PeerType
-    {
-        None,
-        ChildSpanPeer,
-        UninstrumentedPeer
-    }
-
-    public bool TryGetPeerType(out (OtlpResource? Peer, PeerType Type) result)
-    {
-        if (OtlpHelpers.GetPeerAddress(Attributes) == null)
-        {
-            result = default;
-            return false;
-        }
-        if (!(Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer))
-        {
-            result = default;
-            return false;
-        }
-        var childSpanCount = GetChildSpans().Count();
-        if (childSpanCount > 1)
-        {
-            // Multiple child spans. Can't single one out
-            result = default;
-            return false;
-        }
-        else if (childSpanCount == 0)
-        {
-            result = UninstrumentedPeer != null ? (UninstrumentedPeer, PeerType.UninstrumentedPeer) : default;
-            return result.Peer != null;
-        }
-        else
-        {
-            var childSpan = GetChildSpans().Single();
-            result = (childSpan.Source.Resource, PeerType.ChildSpanPeer);
-            return result.Peer != null;
-        }
-    }
-    */
-
     public OtlpSpan(OtlpResourceView resourceView, OtlpTrace trace, OtlpScope scope)
     {
         Source = resourceView;
