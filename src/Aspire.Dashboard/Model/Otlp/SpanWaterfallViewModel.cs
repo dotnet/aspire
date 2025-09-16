@@ -217,7 +217,9 @@ public sealed class SpanWaterfallViewModel
     {
         if (span.UninstrumentedPeer != null)
         {
-            // If the span has a peer name, use it.
+            // If the span has a peer name, use it. Note that when the peer is a resource with replicas, it's possible the uninstrumented peer name returned here isn't the real replica. The first match will be chosen.
+            // We are matching an address, e.g. localhost:8080, to replicas which share the same address. There isn't a way to know exactly which replica was called.
+            // This shouldn't be a big issue because typically project replicas will have OTEL setup, and so a child span is recorded.
             return OtlpResource.GetResourceName(span.UninstrumentedPeer, allResources);
         }
 
