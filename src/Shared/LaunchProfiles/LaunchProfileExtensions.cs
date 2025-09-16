@@ -127,7 +127,7 @@ internal static class LaunchProfileExtensions
         // Find the first profile with an allowed command name
         foreach (var (profileName, profile) in launchSettings.Profiles)
         {
-            if (profile.CommandName is not null && Array.Exists(s_allowedCommandNames, name => StringComparers.CommandName.Equals(name, profile.CommandName)))
+            if (profile.CommandName is not null && Array.Exists(s_allowedCommandNames, name => string.Equals(name, profile.CommandName, StringComparison.OrdinalIgnoreCase)))
             {
                 launchProfileName = profileName;
                 return true;
