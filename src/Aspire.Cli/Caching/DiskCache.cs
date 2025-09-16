@@ -158,9 +158,9 @@ internal sealed class DiskCache : IDiskCache
 
     private static string HashKey(string key)
     {
-        using var sha = SHA256.Create();
         var bytes = Encoding.UTF8.GetBytes(key);
-        return Convert.ToHexString(sha.ComputeHash(bytes));
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash);
     }
 
     private string? ResolveValidCacheFile(string keyHash)
