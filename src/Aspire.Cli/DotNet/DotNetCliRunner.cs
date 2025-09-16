@@ -49,7 +49,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
 {
     // Cache expiry window for package search results (default: 24 hours)
-    private static readonly TimeSpan s_defaultCacheExpiryWindow = TimeSpan.FromHours(24);
+    private static readonly TimeSpan s_defaultCacheExpiryWindow = TimeSpan.FromHours(3);
     
     // Maximum cache age before forced cleanup (default: 7 days)
     private static readonly TimeSpan s_defaultMaxCacheAge = TimeSpan.FromDays(7);
