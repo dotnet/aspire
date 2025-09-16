@@ -6,6 +6,8 @@
   This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
   -->
 
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />
+
   <ItemGroup>
     <ProjectCapability Include="DynamicFileNesting" />
     <ProjectCapability Include="DynamicFileNestingEnabled" />

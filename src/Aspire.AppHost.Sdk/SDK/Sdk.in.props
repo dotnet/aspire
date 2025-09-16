@@ -5,5 +5,12 @@
     the Aspire.AppHost.Sdk -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
     <IsAspireHost>true</IsAspireHost>
+    <_ImportMicrosoftNETSdkFromAspireSdk>false</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(UsingMicrosoftNETSdk)' == '' ">
+    <_ImportMicrosoftNETSdkFromAspireSdk>true</_ImportMicrosoftNETSdkFromAspireSdk>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />
 </Project>
