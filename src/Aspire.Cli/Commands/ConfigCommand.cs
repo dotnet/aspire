@@ -168,8 +168,8 @@ internal sealed class ConfigCommand : BaseCommand
             var value = await InteractionService.PromptForStringAsync(ConfigCommandStrings.SetCommand_PromptForValue, required: true, cancellationToken: cancellationToken);
             var isGlobal = await InteractionService.PromptForSelectionAsync(
                 ConfigCommandStrings.SetCommand_PromptForGlobal,
-                [true, false],
-                g => g ? TemplatingStrings.Yes : TemplatingStrings.No,
+                [false, true],
+                g => g ? ConfigCommandStrings.SetCommand_PromptForGlobal_GlobalOption : ConfigCommandStrings.SetCommand_PromptForGlobal_LocalOption,
                 cancellationToken: cancellationToken);
 
             return await ExecuteAsync(key, value, isGlobal, cancellationToken);

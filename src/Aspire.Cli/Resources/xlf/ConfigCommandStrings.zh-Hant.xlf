@@ -98,8 +98,18 @@
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForGlobal">
-        <source>Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file?</source>
-        <target state="new">Set the configuration value globally in $HOME/.aspire/settings.json instead of the local settings file?</target>
+        <source>Where do you want to set the configuration value?</source>
+        <target state="new">Where do you want to set the configuration value?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_GlobalOption">
+        <source>Globally ($HOME/.aspire/settings.json)</source>
+        <target state="new">Globally ($HOME/.aspire/settings.json)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetCommand_PromptForGlobal_LocalOption">
+        <source>Locally</source>
+        <target state="new">Locally</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForKey">
