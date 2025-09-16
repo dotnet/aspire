@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
 
@@ -28,24 +29,25 @@ internal sealed class DevTunnelCli
         _cliPath = filePath;
     }
 
-    public Task<int> UserLoginMicrosoftAsync(CancellationToken cancellationToken = default)
-        => RunAsync(["user", "login", "--entra", "--json", "--nologo"], null, null, useShellExecute: true, cancellationToken);
+    public Task<int> UserLoginMicrosoftAsync(ILogger? logger = default, CancellationToken cancellationToken = default)
+        => RunAsync(["user", "login", "--entra", "--json", "--nologo"], null, null, useShellExecute: true, logger, cancellationToken);
 
-    public Task<int> UserLoginGitHubAsync(CancellationToken cancellationToken = default)
-        => RunAsync(["user", "login", "--github", "--json", "--nologo"], null, null, useShellExecute: true, cancellationToken);
+    public Task<int> UserLoginGitHubAsync(ILogger? logger = default, CancellationToken cancellationToken = default)
+        => RunAsync(["user", "login", "--github", "--json", "--nologo"], null, null, useShellExecute: true, logger, cancellationToken);
 
-    public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
+    public Task<int> UserLogoutAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
         => RunAsync(new ArgsBuilder(["user", "logout", "--json", "--nologo"])
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
 
-    public Task<int> UserStatusAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["user", "show", "--json", "--nologo"], outputWriter, errorWriter, cancellationToken);
+    public Task<int> UserStatusAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
+        => RunAsync(["user", "show", "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
     public Task<int> CreateTunnelAsync(
         string? tunnelId = null,
         DevTunnelOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelOptions();
@@ -56,7 +58,7 @@ internal sealed class DevTunnelCli
             .AddValues("--labels", options.Labels)
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
     public Task<int> UpdateTunnelAsync(
@@ -64,6 +66,7 @@ internal sealed class DevTunnelCli
         DevTunnelOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelOptions();
@@ -72,7 +75,7 @@ internal sealed class DevTunnelCli
             .AddValues("--add-labels", options.Labels)
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
     public Task<int> ListAccessAsync(
@@ -80,13 +83,14 @@ internal sealed class DevTunnelCli
         int? portNumber = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         return RunAsync(new ArgsBuilder(["access", "list", tunnelId])
             .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
     public Task<int> ResetAccessAsync(
@@ -94,13 +98,14 @@ internal sealed class DevTunnelCli
         int? portNumber = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         return RunAsync(new ArgsBuilder(["access", "reset", tunnelId])
             .AddIfNotNull("--port-number", portNumber?.ToString(CultureInfo.InvariantCulture))
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
     public Task<int> CreateAccessAsync(
@@ -110,6 +115,7 @@ internal sealed class DevTunnelCli
         bool deny = false,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         if (!anonymous && !deny)
@@ -123,14 +129,24 @@ internal sealed class DevTunnelCli
             .AddIfTrue("--anonymous", anonymous)
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
-    public Task<int> DeleteTunnelAsync(string tunnelId, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["delete", tunnelId, "--json", "--nologo"], outputWriter, errorWriter, cancellationToken);
+    public Task<int> DeleteTunnelAsync(
+        string tunnelId,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        ILogger? logger = default,
+        CancellationToken cancellationToken = default)
+        => RunAsync(["delete", tunnelId, "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
-    public Task<int> ShowTunnelAsync(string tunnelId, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(["show", tunnelId, "--json", "--nologo"], outputWriter, errorWriter, cancellationToken);
+    public Task<int> ShowTunnelAsync(
+        string tunnelId,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        ILogger? logger = default,
+        CancellationToken cancellationToken = default)
+        => RunAsync(["show", tunnelId, "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
     public Task<int> CreatePortAsync(
         string tunnelId,
@@ -138,6 +154,7 @@ internal sealed class DevTunnelCli
         DevTunnelPortOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
@@ -147,7 +164,7 @@ internal sealed class DevTunnelCli
             .AddValues("--labels", options.Labels)
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
     public Task<int> UpdatePortAsync(
@@ -156,6 +173,7 @@ internal sealed class DevTunnelCli
         DevTunnelPortOptions? options = null,
         TextWriter? outputWriter = null,
         TextWriter? errorWriter = null,
+        ILogger? logger = default,
         CancellationToken cancellationToken = default)
     {
         options ??= new DevTunnelPortOptions();
@@ -165,13 +183,13 @@ internal sealed class DevTunnelCli
             .AddValues("--add-labels", options.Labels)
             .Add("--json")
             .Add("--nologo")
-        , outputWriter, errorWriter, cancellationToken);
+        , outputWriter, errorWriter, logger, cancellationToken);
     }
 
-    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, CancellationToken cancellationToken = default)
-        => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, cancellationToken);
+    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
+        => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, logger, cancellationToken);
 
-    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, bool useShellExecute = false, CancellationToken cancellationToken = default)
+    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, bool useShellExecute = false, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         return RunAsync((isError, line) =>
         {
@@ -183,10 +201,10 @@ internal sealed class DevTunnelCli
             {
                 outputWriter?.WriteLine(line);
             }
-        }, args, useShellExecute, cancellationToken);
+        }, args, useShellExecute, logger, cancellationToken);
     }
 
-    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, bool useShellExecute = false, CancellationToken cancellationToken = default)
+    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, bool useShellExecute = false, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         using var process = new Process
         {
@@ -196,6 +214,8 @@ internal sealed class DevTunnelCli
 
         var stdoutTask = Task.CompletedTask;
         var stderrTask = Task.CompletedTask;
+
+        logger?.LogTrace("Invoking devtunnel CLI{ShellExecuteInfo}: {FileName} {Arguments}", useShellExecute ? " (UseShellExecute=true)" : "", process.StartInfo.FileName, string.Join(' ', process.StartInfo.ArgumentList));
 
         try
         {
@@ -216,6 +236,7 @@ internal sealed class DevTunnelCli
                 {
                     if (!process.HasExited)
                     {
+                        logger?.LogTrace("Cancellation requested, killing devtunnel process tree.");
                         process.Kill(entireProcessTree: true);
                     }
                 }
@@ -226,11 +247,8 @@ internal sealed class DevTunnelCli
             });
 
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            if (!useShellExecute)
-            {
-                await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-            }
 
+            logger?.LogTrace("devtunnel CLI exited with exit code '{ExitCode}'.", process.ExitCode);
             return process.ExitCode;
         }
         finally
@@ -239,6 +257,7 @@ internal sealed class DevTunnelCli
             {
                 try
                 {
+                    logger?.LogTrace("devtunnel CLI exited, draining stdout/stderr.");
                     await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
                 }
                 catch
@@ -283,7 +302,7 @@ internal sealed class DevTunnelCli
         return psi;
     }
 
-    private static async Task PumpAsync(StreamReader reader, Action<string> onLine, CancellationToken cancellationToken)
+    private static async Task PumpAsync(StreamReader reader, Action<string> onLine, CancellationToken cancellationToken = default)
     {
         while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
         {

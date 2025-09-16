@@ -85,7 +85,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         var healtCheckKey = $"{name}-check";
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource),
+            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource, services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
             failureStatus: default,
             tags: default,
             timeout: default));
@@ -125,7 +125,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 try
                 {
                     logger.LogInformation("Creating or updating dev tunnel '{TunnelId}'", tunnelResource.TunnelId);
-                    var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, ct).ConfigureAwait(false);
+                    var tunnelStatus = await devTunnelClient.CreateOrUpdateTunnelAsync(tunnelResource.TunnelId, tunnelResource.Options, logger, ct).ConfigureAwait(false);
                     logger.LogDebug("Dev tunnel '{TunnelId}' created/updated", tunnelResource.TunnelId);
                 }
                 catch (Exception ex)
@@ -164,6 +164,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                                 portResource.DevTunnel.TunnelId,
                                 portResource.TargetEndpoint.Port,
                                 portResource.Options,
+                                portLogger,
                                 ct)
                             .ConfigureAwait(false);
 
