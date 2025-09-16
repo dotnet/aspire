@@ -11,6 +11,8 @@ namespace Aspire.Hosting;
 
 internal static class LaunchProfileExtensions
 {
+    // Allow list of command names that are supported by Aspire
+    private static readonly string[] s_allowedCommandNames = ["Project", "Executable"];
     internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
         if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
@@ -122,17 +124,10 @@ internal static class LaunchProfileExtensions
             return false;
         }
 
-        // Allow list of command names that are supported by Aspire
-        var allowedCommandNames = new HashSet<string>(StringComparers.CommandName)
-        {
-            "Project",
-            "Executable"
-        };
-
         // Find the first profile with an allowed command name
         foreach (var (profileName, profile) in launchSettings.Profiles)
         {
-            if (profile.CommandName is not null && allowedCommandNames.Contains(profile.CommandName))
+            if (profile.CommandName is not null && Array.Exists(s_allowedCommandNames, name => StringComparers.CommandName.Equals(name, profile.CommandName)))
             {
                 launchProfileName = profileName;
                 return true;
