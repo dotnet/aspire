@@ -513,7 +513,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        logger.LogDebug("Sent plain text message {Message}", text);
+        _logger.LogDebug("Sent plain text message {Message}", text);
 
         await rpc.InvokeWithCancellationAsync(
             "displayPlainText",

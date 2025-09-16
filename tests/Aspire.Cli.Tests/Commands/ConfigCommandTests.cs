@@ -22,9 +22,10 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
                 {
                     // Enable extension mode for testing
                     config["ASPIRE_EXTENSION_PROMPT_ENABLED"] = "true";
+                    config["ASPIRE_EXTENSION_TOKEN"] = "token";
                 };
 
-                options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+                options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
 
                 options.ConfigurationServiceFactory = _ => new TestConfigurationService();
             });

@@ -13,7 +13,7 @@ namespace Aspire.Cli.Interaction;
 internal interface IExtensionInteractionService : IInteractionService
 {
     IExtensionBackchannel Backchannel { get; }
-    void OpenNewProject(string projectPath);
+    void OpenEditor(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug);
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);

@@ -7,10 +7,9 @@ using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Commands;
 
-internal abstract class BaseConfigSubCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, IConfigurationService configurationService, IInteractionService interactionService) : BaseCommand(name, description, features, updateNotifier)
+internal abstract class BaseConfigSubCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, IConfigurationService configurationService, CliExecutionContext executionContext, IInteractionService interactionService) : BaseCommand(name, description, features, updateNotifier, executionContext, interactionService)
 {
     protected IConfigurationService ConfigurationService { get; } = configurationService;
-    protected IInteractionService InteractionService { get; } = interactionService;
 
     /// <summary>
     /// Extension-compatible method to execute the subcommand. Prompts for input if necessary.

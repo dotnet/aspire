@@ -308,7 +308,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
 
-        var locator = new ProjectLocator(logger, runner, workspace.WorkspaceRoot, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+        var locator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         await locator.UseOrFindAppHostProjectFileAsync(null, CancellationToken.None);
 

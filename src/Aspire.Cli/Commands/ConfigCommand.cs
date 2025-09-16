@@ -18,8 +18,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class ConfigCommand : BaseCommand
 {
     private readonly IConfiguration _configuration;
-    private readonly IConfigurationService _configurationService;
-    private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IInteractionService _interactionService;
 
     public ConfigCommand(IConfiguration configuration, IConfigurationService configurationService, IInteractionService interactionService, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
@@ -31,8 +29,6 @@ internal sealed class ConfigCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _configuration = configuration;
-        _configurationService = configurationService;
-        _sdkInstaller = sdkInstaller;
         _interactionService = interactionService;
 
         var getCommand = new GetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
@@ -63,7 +59,7 @@ internal sealed class ConfigCommand : BaseCommand
             cmd =>
             {
                 Debug.Assert(cmd.Description is not null);
-                return cmd.Description;
+                return cmd.Description.TrimEnd('.');
             },
             cancellationToken);
 
@@ -72,8 +68,8 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class GetCommand : BaseConfigSubCommand
     {
-        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, interactionService)
+        public GetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("get", ConfigCommandStrings.GetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
             var keyArgument = new Argument<string>("key")
             {
@@ -121,8 +117,8 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class SetCommand : BaseConfigSubCommand
     {
-        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, interactionService)
+        public SetCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("set", ConfigCommandStrings.SetCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
             var keyArgument = new Argument<string>("key")
             {
@@ -200,8 +196,8 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, interactionService)
+    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
     {
         protected override bool UpdateNotificationsEnabled => false;
 
@@ -238,8 +234,8 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class DeleteCommand : BaseConfigSubCommand
     {
-        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier)
-            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, interactionService)
+        public DeleteCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("delete", ConfigCommandStrings.DeleteCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
             var keyArgument = new Argument<string>("key")
             {

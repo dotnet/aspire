@@ -116,11 +116,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
-    public Action<string>? OpenNewProjectCallback { get; set; }
+    public Action<string>? OpenEditorCallback { get; set; }
 
-    public void OpenNewProject(string projectPath)
+    public void OpenEditor(string projectPath)
     {
-        OpenNewProjectCallback?.Invoke(projectPath);
+        OpenEditorCallback?.Invoke(projectPath);
     }
 
     public Action<int, string>? RequestAppHostAttachCallback { get; set; }
