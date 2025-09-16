@@ -20,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using System.Security.Cryptography;
 
 namespace Aspire.Cli.DotNet;
 
@@ -808,8 +809,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             try
             {
                 using var stream = File.OpenRead(filePath);
-                using var sha256 = System.Security.Cryptography.SHA256.Create();
-                var bytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
+                var bytes = await SHA256.HashDataAsync(stream, cancellationToken);
                 var hex = Convert.ToHexString(bytes);
                 hashes.Add(hex);
             }
@@ -839,8 +839,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 if (nugetConfigFile is not null && nugetConfigFile.Exists)
                 {
                     using var stream = nugetConfigFile.OpenRead();
-                    using var sha256 = System.Security.Cryptography.SHA256.Create();
-                    var bytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
+                    var bytes = await SHA256.HashDataAsync(stream, cancellationToken);
                     nugetConfigHash = Convert.ToHexString(bytes);
                 }
                 else
