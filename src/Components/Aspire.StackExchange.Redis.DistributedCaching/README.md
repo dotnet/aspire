@@ -39,7 +39,6 @@ public ProductsController(IDistributedCache cache)
 
 You can register multiple keyed `IDistributedCache` instances by building off the `AddRedisClientBuilder` extension method. The keyed services pattern allows you to register multiple instances of a service with different configurations and retrieve them using a key. The key used for the `IConnectionMultiplexer` service is separate from the key used to register the `IDistributedCache` service.
 
-
 ```csharp
 builder.AddRedisClientBuilder("redis") // register an unkeyed IConnectionMultiplexer with the connection name "redis"
        .WithKeyedDistributedCache("distributedCache"); // register a keyed IDistributedCache with key "distributedCache"
