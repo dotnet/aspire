@@ -73,8 +73,7 @@ public class OtlpSpanTests
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
 
-        var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
-            statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")]);
+        var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime);
 
         // Act
         var destination = span.GetDestination();
@@ -94,7 +93,6 @@ public class OtlpSpanTests
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
 
         var span = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
-            statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")],
             kind: OtlpSpanKind.Client, uninstrumentedPeer: app2);
 
         // Act
@@ -115,10 +113,8 @@ public class OtlpSpanTests
         var scope = TelemetryTestHelpers.CreateOtlpScope(context);
 
         var parentSpan = TelemetryTestHelpers.CreateOtlpSpan(app1, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
-            statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")],
             kind: OtlpSpanKind.Client);
         var childSpan = TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "abc-2", parentSpanId: "abc", startDate: s_testTime,
-            statusCode: OtlpSpanStatusCode.Ok, statusMessage: "Status message!", attributes: [new KeyValuePair<string, string>(KnownTraceFields.StatusMessageField, "value")],
             kind: OtlpSpanKind.Server);
 
         trace.AddSpan(parentSpan);
