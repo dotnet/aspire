@@ -122,8 +122,25 @@ internal static class LaunchProfileExtensions
             return false;
         }
 
-        launchProfileName = launchSettings.Profiles.Keys.First();
-        return true;
+        // Allow list of command names that are supported by Aspire
+        var allowedCommandNames = new HashSet<string>(StringComparers.CommandName)
+        {
+            "Project",
+            "Executable"
+        };
+
+        // Find the first profile with an allowed command name
+        foreach (var (profileName, profile) in launchSettings.Profiles)
+        {
+            if (profile.CommandName is not null && allowedCommandNames.Contains(profile.CommandName))
+            {
+                launchProfileName = profileName;
+                return true;
+            }
+        }
+
+        launchProfileName = null;
+        return false;
     }
 
     private static bool TrySelectLaunchProfileFromDefaultAnnotation(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
