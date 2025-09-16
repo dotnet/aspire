@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model.Otlp;
 using Grpc.Core;
 
@@ -134,17 +135,17 @@ public class OtlpSpan
 
     public OtlpResource? GetDestination()
     {
-        // Calculate destination. The destination could either be resolved from an uninstrumented peer, or from a single child span.
+        // Calculate destination. The destination could either be resolved from:
+        // - An uninstrumented peer, or
+        // - From single child span when the child span has a different resources and is a server/consumer.
         if (UninstrumentedPeer is { } peer)
         {
             return peer;
         }
         else
         {
-            var childSpans = GetChildSpans().ToList();
-            if (childSpans.Count == 1)
+            if (GetChildSpans().SingleOrNull() is { } childSpan)
             {
-                var childSpan = childSpans[0];
                 if (childSpan.Source.ResourceKey != Source.ResourceKey && childSpan.Kind is OtlpSpanKind.Server or OtlpSpanKind.Consumer)
                 {
                     return childSpan.Source.Resource;
