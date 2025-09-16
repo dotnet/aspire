@@ -137,12 +137,6 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-efcore</Uri>
       <Sha>3f7d40ec7be104358780955b3f0fea62495264dc</Sha>
     </Dependency>
-    <!-- Intermediate is necessary for source build. -->
-    <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="9.0.0-alpha.1.24453.2">
-      <Uri>https://github.com/dotnet/source-build-reference-packages</Uri>
-      <Sha>eb436a482c2a0c6aa45578ea0a48fd3782c275b2</Sha>
-      <SourceBuild RepoName="source-build-reference-packages" ManagedOnly="true" />
-    </Dependency>
     <Dependency Name="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
       <Sha>215a587e52efa710de84138b0a3374b860b924d8</Sha>
@@ -192,12 +186,6 @@
     <Dependency Name="Microsoft.DotNet.XliffTasks" Version="11.0.0-beta.25457.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
       <Sha>d7585e79b1397fe8783ac30c81bf5be4d250bcb1</Sha>
-    </Dependency>
-    <!-- Intermediate is necessary for source build. -->
-    <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="9.0.0-beta.25325.4">
-      <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>13b20849f8294593bf150a801cab639397e6c29d</Sha>
-      <SourceBuild RepoName="arcade" ManagedOnly="true" />
     </Dependency>
   </ToolsetDependencies>
 </Dependencies>
