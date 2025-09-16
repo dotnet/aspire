@@ -10,7 +10,7 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTunnelClient
 {
-    private readonly int _maxCliAttempts = configuration.GetValue<int?>("ASPIRE_DEVTUNNEL_MAX_CLI_ATTEMPTS") ?? 3;
+    private readonly int _maxCliAttempts = configuration.GetValue<int?>("ASPIRE_DEVTUNNEL_CLI_MAX_ATTEMPTS") ?? 3;
     private readonly TimeSpan _cliRetryOnErrorDelay = TimeSpan.FromSeconds(2);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
     private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
