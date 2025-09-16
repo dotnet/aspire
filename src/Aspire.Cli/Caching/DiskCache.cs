@@ -28,7 +28,7 @@ internal sealed class DiskCache : IDiskCache
             {
                 _cacheDirectory.Create();
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            catch (Exception ex)
             {
                 _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName);
             }
@@ -68,10 +68,8 @@ internal sealed class DiskCache : IDiskCache
             _logger.LogDebug("Disk cache hit for key {RawKey} (file: {CacheFilePath})", key, cacheFilePath);
             return await File.ReadAllTextAsync(cacheFilePath, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex)
         {
-            // If there any any error we just log it and return null since it could be transient
-            // due to concurrency - it'll sort itself out eventually.
             _logger.LogDebug(ex, "Failed to retrieve or read cache entry for key {RawKey}", key);
             return null;
         }
@@ -91,7 +89,7 @@ internal sealed class DiskCache : IDiskCache
                 {
                     _cacheDirectory.Create();
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                catch (Exception ex)
                 {
                     _logger.LogDebug(ex, "Failed to create cache directory {CacheDirectory}", _cacheDirectory.FullName);
                     return;
@@ -124,7 +122,7 @@ internal sealed class DiskCache : IDiskCache
             File.Move(tempFile, fullPath);
             _logger.LogDebug("Stored disk cache entry for key {RawKey} (file: {CacheFilePath})", key, fullPath);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to write disk cache entry for key {RawKey}", key);
         }
@@ -142,14 +140,14 @@ internal sealed class DiskCache : IDiskCache
                     {
                         file.Delete();
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                    catch (Exception ex)
                     {
                         _logger.LogDebug(ex, "Failed to delete cache file {CacheFile}", file.FullName);
                     }
                 }
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to clear disk cache at {CacheDirectory}", _cacheDirectory.FullName);
         }
@@ -258,7 +256,7 @@ internal sealed class DiskCache : IDiskCache
 
             return valid;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to resolve cache file for key hash {KeyHash}", keyHash);
             return null;
@@ -287,7 +285,7 @@ internal sealed class DiskCache : IDiskCache
                 _logger.LogDebug("Deleted cache file: {CacheFile}", file.FullName);
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to delete cache file {CacheFile}", file.FullName);
         }
