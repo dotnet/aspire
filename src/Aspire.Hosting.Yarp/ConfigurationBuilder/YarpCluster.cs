@@ -48,8 +48,8 @@ public class YarpCluster
     /// <summary>
     /// Creates a new instance of <see cref="YarpCluster"/> with a specified list of addresses.
     /// </summary>
-    /// <param name="resourceName">The name of the cluster.</param>
-    /// <param name="targets">The external addresses.</param>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targets">The target objects for the cluster (e.g., addresses, URIs, or other endpoint representations).</param>
     internal YarpCluster(string resourceName, params object[] targets)
     {
         ClusterConfig = new()
