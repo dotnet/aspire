@@ -7,6 +7,7 @@
     <PublishAot>false</PublishAot>
     <PublishTrimmed>false</PublishTrimmed>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
     <_ImportMicrosoftNETSdkFromAspireSdk>false</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
 
