@@ -358,7 +358,7 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         if (explicitGroups.Length > 0)
         {
             rootChoices.Add((
-                Label: "Channels",
+                Label: AddCommandStrings.Channels,
                 Action: ct => PromptForChannelSelectionAsync(explicitGroups, ct)
             ));
         }

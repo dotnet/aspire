@@ -171,4 +171,7 @@
   <data name="UsePrereleasePackages" xml:space="preserve">
     <value>Use pre-release packages</value>
   </data>
+  <data name="Channels" xml:space="preserve">
+    <value>Channels</value>
+  </data>
 </root>
